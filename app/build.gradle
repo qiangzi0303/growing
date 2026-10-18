@@ -1,0 +1,49 @@
+plugins { id 'com.android.application' }
+
+def releaseCode = (System.getenv('GROWING_VERSION_CODE') ?: '1').toInteger()
+def releaseName = System.getenv('GROWING_VERSION_NAME') ?: '1.0.0'
+def keyStorePath = System.getenv('ANDROID_KEYSTORE_PATH')
+
+android {
+    namespace 'com.qiangzi0303.growing'
+    compileSdk 35
+    defaultConfig {
+        // Never change: Android requires the same id and certificate for an update.
+        applicationId 'com.qiangzi0303.growing'
+        minSdk 26
+        targetSdk 35
+        versionCode releaseCode
+        versionName releaseName
+    }
+    signingConfigs {
+        release {
+            if (keyStorePath) {
+                storeFile file(keyStorePath)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+                enableV1Signing true
+                enableV2Signing true
+                enableV3Signing true
+            }
+        }
+    }
+    buildTypes {
+        release { signingConfig signingConfigs.release; minifyEnabled false }
+        debug { applicationIdSuffix '.debug'; versionNameSuffix '-debug' }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    buildFeatures { buildConfig true }
+}
+tasks.matching { it.name == 'validateSigningRelease' }.configureEach {
+    doFirst {
+        if (!keyStorePath || !file(keyStorePath).isFile()) throw new GradleException('Fixed release keystore is required. Debug signing is forbidden for releases.')
+        ['ANDROID_KEYSTORE_PASSWORD','ANDROID_KEY_ALIAS','ANDROID_KEY_PASSWORD'].each {
+            if (!System.getenv(it)) throw new GradleException('Missing release signing environment: ' + it)
+        }
+    }
+}
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+    testImplementation 'junit:junit:4.13.2'
+}

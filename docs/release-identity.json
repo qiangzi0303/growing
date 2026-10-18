@@ -1,0 +1,8 @@
+{
+  "applicationId": "com.qiangzi0303.growing",
+  "certificateSha256": "1A:BD:5C:46:A1:B9:26:AE:F1:F5:5D:DD:2C:CA:E8:52:82:91:7A:AE:52:7F:DD:34:18:52:A3:D4:7C:5C:10:95",
+  "webOrigin": "https://appassets.androidplatform.net",
+  "learningStorage": "learning-v1-{accountId}",
+  "accountStorage": "accounts-v1",
+  "signingPolicy": "Reuse the existing GitHub Actions signing secrets. Never generate a new release key during CI."
+}

@@ -1,0 +1,14 @@
+.gradle/
+**/build/
+local.properties
+*.jks
+*.keystore
+*.p12
+keystore.properties
+.env
+node_modules/
+server/data/
+*.log
+.DS_Store
+signing.json
+private/
