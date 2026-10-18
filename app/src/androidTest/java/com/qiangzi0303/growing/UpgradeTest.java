@@ -1,0 +1,74 @@
+package com.qiangzi0303.growing;
+
+import static org.junit.Assert.*;
+import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.view.View;
+import android.view.ViewGroup;
+import android.webkit.WebView;
+import androidx.test.core.app.ActivityScenario;
+import androidx.test.core.app.ApplicationProvider;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+/** Executed twice around adb install -r of a higher-version APK signed by the fixed key. */
+@RunWith(AndroidJUnit4.class)
+public class UpgradeTest {
+    private static final String PASSWORD="test-Only-Password-1987";
+    private Context context(){return ApplicationProvider.getApplicationContext();}
+    private int version() throws Exception{return context().getPackageManager().getPackageInfo(context().getPackageName(),0).versionCode;}
+    private WebView web(View view){if(view instanceof WebView)return (WebView)view;if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){WebView result=web(group.getChildAt(i));if(result!=null)return result;}}return null;}
+    private String js(ActivityScenario<MainActivity> scenario,String source) throws Exception{
+        CountDownLatch latch=new CountDownLatch(1);AtomicReference<String> result=new AtomicReference<>();
+        scenario.onActivity(activity->{WebView view=web(activity.getWindow().getDecorView());if(view==null){result.set("missing-webview");latch.countDown();}else view.evaluateJavascript(source,value->{result.set(value);latch.countDown();});});
+        assertTrue("WebView JavaScript callback timeout",latch.await(15,TimeUnit.SECONDS));return result.get();
+    }
+    private void ready(ActivityScenario<MainActivity> scenario) throws Exception{
+        for(int i=0;i<60;i++){if("true".equals(js(scenario,"document.readyState==='complete' && !!window.GrowingNative && !!document.querySelector('.subjects')")))return;Thread.sleep(200);}
+        fail("Learning home or document-start bridge failed to load");
+    }
+    @Test public void seed() throws Exception{
+        AccountStore accounts=new AccountStore(context());
+        String alice=accounts.authenticate("upgrade_alice",PASSWORD.toCharArray(),true);
+        assertNotNull(alice);assertEquals(alice,accounts.currentId());
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            ready(scenario);
+            assertEquals("\"written\"",js(scenario,"localStorage.setItem('upgrade.english','alice-English');localStorage.setItem('upgrade.math','alice-Math');'written'"));
+        }
+        accounts.logout();
+        accounts.authenticate("upgrade_bob",PASSWORD.toCharArray(),true);
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            ready(scenario);assertEquals("null",js(scenario,"localStorage.getItem('upgrade.english')"));
+            js(scenario,"localStorage.setItem('upgrade.english','bob-English')");
+        }
+        accounts.logout();
+        try{accounts.authenticate("upgrade_alice","wrong-password".toCharArray(),false);fail("Incorrect password accepted");}catch(IllegalArgumentException expected){}
+        assertEquals(alice,accounts.authenticate("upgrade_alice",PASSWORD.toCharArray(),false));
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            ready(scenario);assertEquals("\"alice-English\"",js(scenario,"localStorage.getItem('upgrade.english')"));
+        }
+        assertTrue(context().getSharedPreferences("upgrade-test",0).edit().putInt("old.version",version()).putString("alice.id",alice).commit());
+    }
+    @Test public void verify() throws Exception{
+        int old=context().getSharedPreferences("upgrade-test",0).getInt("old.version",-1);
+        assertTrue("Must run seed on an older APK first",old>0);
+        assertTrue("APK version did not increase",version()>old);
+        AccountStore accounts=new AccountStore(context());
+        assertEquals("upgrade_alice",accounts.currentName());
+        assertEquals(context().getSharedPreferences("upgrade-test",0).getString("alice.id",null),accounts.currentId());
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            ready(scenario);
+            assertEquals("\"alice-English\"",js(scenario,"localStorage.getItem('upgrade.english')"));
+            assertEquals("\"alice-Math\"",js(scenario,"localStorage.getItem('upgrade.math')"));
+        }
+        accounts.logout();accounts.authenticate("upgrade_bob",PASSWORD.toCharArray(),false);
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            ready(scenario);assertEquals("\"bob-English\"",js(scenario,"localStorage.getItem('upgrade.english')"));
+            assertEquals("null",js(scenario,"localStorage.getItem('upgrade.math')"));
+        }
+    }
+}

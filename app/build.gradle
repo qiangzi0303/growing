@@ -14,6 +14,7 @@ android {
         targetSdk 35
         versionCode releaseCode
         versionName releaseName
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     signingConfigs {
         release {
@@ -34,6 +35,7 @@ android {
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     buildFeatures { buildConfig true }
+    testBuildType 'release'
 }
 tasks.matching { it.name == 'validateSigningRelease' }.configureEach {
     doFirst {
@@ -46,4 +48,7 @@ tasks.matching { it.name == 'validateSigningRelease' }.configureEach {
 dependencies {
     implementation 'androidx.webkit:webkit:1.12.1'
     testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test:core:1.6.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
 }
