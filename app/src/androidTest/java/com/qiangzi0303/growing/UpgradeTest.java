@@ -6,6 +6,8 @@ import android.content.pm.PackageInfo;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
+import android.widget.Button;
+import android.widget.EditText;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -22,6 +24,11 @@ public class UpgradeTest {
     private Context context(){return ApplicationProvider.getApplicationContext();}
     private int version() throws Exception{return context().getPackageManager().getPackageInfo(context().getPackageName(),0).versionCode;}
     private WebView web(View view){if(view instanceof WebView)return (WebView)view;if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){WebView result=web(group.getChildAt(i));if(result!=null)return result;}}return null;}
+    private View find(View view,String label){
+        if(label.equals(String.valueOf(view.getContentDescription())) || view instanceof Button && label.equals(((Button)view).getText().toString()))return view;
+        if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){View found=find(group.getChildAt(i),label);if(found!=null)return found;}}
+        return null;
+    }
     private String js(ActivityScenario<MainActivity> scenario,String source) throws Exception{
         CountDownLatch latch=new CountDownLatch(1);AtomicReference<String> result=new AtomicReference<>();
         scenario.onActivity(activity->{WebView view=web(activity.getWindow().getDecorView());if(view==null){result.set("missing-webview");latch.countDown();}else view.evaluateJavascript(source,value->{result.set(value);latch.countDown();});});
@@ -33,6 +40,14 @@ public class UpgradeTest {
     }
     @Test public void seed() throws Exception{
         AccountStore accounts=new AccountStore(context());
+        // Register through the real native form before testing the storage path.
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            scenario.onActivity(activity->{View decor=activity.getWindow().getDecorView();find(decor,"还没有账号？注册").performClick();});
+            scenario.onActivity(activity->{View decor=activity.getWindow().getDecorView();((EditText)find(decor,"用户名")).setText("ui_student");((EditText)find(decor,"密码")).setText(PASSWORD);((EditText)find(decor,"确认密码")).setText(PASSWORD);find(decor,"注册并开始学习").performClick();});
+            ready(scenario);
+            assertEquals("ui_student",accounts.currentName());
+        }
+        accounts.logout();
         String alice=accounts.authenticate("upgrade_alice",PASSWORD.toCharArray(),true);
         assertNotNull(alice);assertEquals(alice,accounts.currentId());
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
