@@ -22,6 +22,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify native speech adapter behavior
+        run: node scripts/test-speech.cjs
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'

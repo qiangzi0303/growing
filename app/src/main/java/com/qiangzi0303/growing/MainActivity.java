@@ -7,8 +7,11 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.speech.tts.TextToSpeech;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
@@ -22,6 +25,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
@@ -39,6 +43,7 @@ public final class MainActivity extends Activity {
     private AccountStore accounts;
     private LinearLayout root;
     private WebView web;
+    private SpeechBridge speech;
     private Button back;
     private TextView screenTitle;
     private volatile String currentId;
@@ -47,6 +52,7 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
         accounts=new AccountStore(this);
         currentId=accounts.currentId();
         if(currentId==null) showLogin(); else showLearning();
@@ -111,14 +117,22 @@ public final class MainActivity extends Activity {
         web.getSettings().setSupportMultipleWindows(false);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         web.addJavascriptInterface(new LearningBridge(this,currentId,epoch),"GrowingNative");
-        try(InputStream stream=getAssets().open("bootstrap.js")){
+        speech=new SpeechBridge(this,web,currentId,epoch);
+        web.addJavascriptInterface(speech,"GrowingSpeech");
+        try{
             java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();
-            byte[] buffer=new byte[8192];int count;while((count=stream.read(buffer))!=-1)bytes.write(buffer,0,count);
+            for(String asset:new String[]{"speech-bootstrap.js","bootstrap.js"}){
+                try(InputStream stream=getAssets().open(asset)){
+                    byte[] buffer=new byte[8192];int count;while((count=stream.read(buffer))!=-1)bytes.write(buffer,0,count);
+                    bytes.write('\n');
+                }
+            }
             String script=bytes.toString(StandardCharsets.UTF_8.name());
             WebViewCompat.addDocumentStartJavaScript(web,script,Collections.singleton(ORIGIN));
         }catch(Exception e){new AlertDialog.Builder(this).setMessage("学习环境未能初始化，请重新安装同签名的安装包。").setPositiveButton("关闭",(d,w)->finish()).show();return;}
         WebViewAssetLoader loader=new WebViewAssetLoader.Builder().addPathHandler("/assets/",new WebViewAssetLoader.AssetsPathHandler(this)).build();
         web.setWebViewClient(new WebViewClient(){
+            @Override public void onPageStarted(WebView view,String url,android.graphics.Bitmap icon){if(speech!=null)speech.cancel();}
             @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){return loader.shouldInterceptRequest(request.getUrl());}
             @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
                 Uri url=request.getUrl();
@@ -136,16 +150,37 @@ public final class MainActivity extends Activity {
         if(currentId==null)return;
         SharedPreferences settings=getSharedPreferences("settings-v1-"+currentId,MODE_PRIVATE);
         LinearLayout form=column();form.setPadding(dp(24),dp(8),dp(24),0);
-        TextView note=text("本机账号："+accounts.currentName()+"\n版本："+BuildConfig.VERSION_NAME+"\n\n学习、音频和练习可离线使用。AI 评分和答疑需要联网并配置自己的 DeepSeek API Key。密钥只保存在此账号的本机设置中。",14,Color.rgb(80,100,75));form.addView(note);
+        TextView note=text("本机账号："+accounts.currentName()+"\n版本："+BuildConfig.VERSION_NAME+"\n\n课程、内置音频和练习可离线使用。单词朗读使用手机语音引擎，离线使用需先安装英语语音数据。AI 评分和答疑需要联网并配置自己的 DeepSeek API Key。密钥只保存在此账号的本机设置中。",14,Color.rgb(80,100,75));form.addView(note);
+        Button voice=button("朗读设置 / 英语试读");voice.setOnClickListener(v->showSpeechSettings());form.addView(voice);
         EditText key=input(settings.getString("ai.key","").isEmpty()?"填写 DeepSeek API Key":"已配置，留空保持现有密钥",true);form.addView(key);
         new AlertDialog.Builder(this).setTitle("账号与 AI 设置").setView(form)
             .setPositiveButton("保存",(d,w)->{String value=key.getText().toString().trim();if(!value.isEmpty()&&!settings.edit().putString("ai.key",value).commit())new AlertDialog.Builder(this).setMessage("密钥未保存，请检查存储空间后重试。").setPositiveButton("好",null).show();})
             .setNeutralButton("退出账号",(d,w)->new AlertDialog.Builder(this).setTitle("退出当前账号？").setMessage("本机学习记录会保留，重新登录此账号可以继续。").setPositiveButton("退出",(x,y)->{try{accounts.logout();currentId=null;epoch++;showLogin();}catch(Exception e){new AlertDialog.Builder(this).setMessage(e.getMessage()).setPositiveButton("好",null).show();}}).setNegativeButton("取消",null).show())
             .setNegativeButton("取消",null).show();
     }
-    private void destroyWeb(){if(web!=null){web.stopLoading();web.removeJavascriptInterface("GrowingNative");web.destroy();web=null;}}
+    private void openSpeechSettings(boolean install){
+        try{startActivity(new Intent(install?TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA:"com.android.settings.TTS_SETTINGS"));}
+        catch(Exception e){
+            Toast.makeText(this,"请在系统设置中搜索“文字转语音”，安装或启用语音引擎，并下载英语语音数据。",Toast.LENGTH_LONG).show();
+            try{startActivity(new Intent(Settings.ACTION_SETTINGS));}catch(Exception ignored){}
+        }
+    }
+    private void showSpeechSettings(){
+        LinearLayout form=column();form.setPadding(dp(24),dp(8),dp(24),0);
+        form.addView(text("朗读使用 Android 系统语音服务。请先选择可用引擎，并下载英语语音数据（数学设备朗读另需中文）。\n\n试读时调高媒体音量；若引擎仅支持在线语音，还需要联网。下载语言包后建议重新打开成长。",14,Color.rgb(80,100,75)));
+        Button test=button("试读英语：Hello, welcome to Growing");
+        test.setOnClickListener(v->{if(web!=null)web.evaluateJavascript("speechSynthesis.cancel();var t=new SpeechSynthesisUtterance('Hello, welcome to Growing.');t.lang='en-GB';speechSynthesis.speak(t);",null);});form.addView(test);
+        new AlertDialog.Builder(this).setTitle("朗读设置").setView(form)
+            .setPositiveButton("系统语音设置",(d,w)->openSpeechSettings(false))
+            .setNeutralButton("安装语音数据",(d,w)->openSpeechSettings(true))
+            .setNegativeButton("关闭",null).show();
+    }
+    private void destroyWeb(){
+        if(speech!=null){speech.close();speech=null;}
+        if(web!=null){web.stopLoading();web.removeJavascriptInterface("GrowingNative");web.removeJavascriptInterface("GrowingSpeech");web.destroy();web=null;}
+    }
     @Override public void onBackPressed(){if(web!=null&&!HOME.equals(web.getUrl()))loadHome();else super.onBackPressed();}
-    @Override protected void onPause(){if(web!=null)web.onPause();super.onPause();}
+    @Override protected void onPause(){if(speech!=null)speech.interrupt();if(web!=null)web.onPause();super.onPause();}
     @Override protected void onResume(){super.onResume();if(web!=null)web.onResume();}
     @Override protected void onDestroy(){destroyWeb();executor.shutdown();super.onDestroy();}
 }

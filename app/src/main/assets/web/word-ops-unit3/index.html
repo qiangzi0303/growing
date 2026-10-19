@@ -1763,7 +1763,7 @@ window.ChapterRewards=(()=>{
     if(!('speechSynthesis'in window)){toast('当前浏览器不支持朗读，可以查看音标。');return;}
     stopVoice();const u=new SpeechSynthesisUtterance(text);u.lang='en-GB';u.rate=state.settings.rate;
     const voices=speechSynthesis.getVoices();u.voice=voices.find(v=>v.lang==='en-GB')||voices.find(v=>v.lang.startsWith('en'))||null;
-    u.onerror=e=>{if(!['interrupted','canceled'].includes(e.error))toast('当前英语语音暂时不可用，请稍后再试。');};speechSynthesis.speak(u);
+    u.onerror=e=>{if(!['interrupted','canceled'].includes(e.error))toast(e.message||'当前英语语音暂时不可用，请稍后再试。');};speechSynthesis.speak(u);
   }
   function selectBalanced(){
     const sample=(test,n)=>D.shuffle(D.questions.filter(test)).slice(0,n);
