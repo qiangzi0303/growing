@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict');
+const E=require('../app/src/main/assets/web/app-design/reward-engine.js');
+let count=0;
+function test(name,fn){fn();count++;console.log('PASS '+name);}
+const fresh=()=>E.restore(null);
+test('default per-unit budget is 120 minutes and 200 yuan',()=>assert.deepEqual(fresh().config,{gameMinutes:120,cashYuan:200,enabled:true}));
+test('0 percent awards nothing',()=>assert.equal(E.amounts(E.accrue(fresh(),0,5)).cash,0));
+test('60 percent awards exactly 72 minutes and 120 yuan',()=>assert.deepEqual(E.amounts(E.accrue(fresh(),3,5)),{game:72,cash:12000,availableGame:72,availableCash:12000}));
+test('100 percent never exceeds budget',()=>assert.deepEqual(E.amounts(E.accrue(fresh(),5,5)),{game:120,cash:20000,availableGame:120,availableCash:20000}));
+test('small fractions round down independently',()=>assert.deepEqual(E.amounts(E.accrue(E.configure(fresh(),7,1),1,3)),{game:2,cash:33,availableGame:2,availableCash:33}));
+test('partial redemptions leave only the newly earned increment',()=>{let d=E.redeem(E.accrue(fresh(),3,5),'cash','妈妈');assert.equal(d.paidCash,12000);d=E.accrue(d,4,5);assert.equal(E.amounts(d).availableCash,4000);assert.equal(E.amounts(d).availableGame,96);});
+test('duplicate redemption rejected',()=>assert.throws(()=>E.redeem(E.redeem(E.accrue(fresh(),3,5),'game','爸爸'),'game','爸爸')));
+test('reset and repeated practice do not award twice',()=>{let d=E.redeem(E.accrue(fresh(),3,5),'cash','妈妈');d=E.accrue(d,0,5);d=E.accrue(d,3,5);assert.equal(E.amounts(d).availableCash,0);assert.equal(d.done,3);});
+test('budget fixed after a redemption',()=>assert.throws(()=>E.configure(E.redeem(E.accrue(fresh(),3,5),'cash','妈妈'),100,500)));
+test('unclaimed previous default migrates to 200',()=>{let d=fresh();delete d.defaultBudgetVersion;d.config.cashYuan=100;assert.equal(E.restore(d).config.cashYuan,200);});
+test('explicit custom 100 yuan remains 100',()=>assert.equal(E.restore(E.configure(fresh(),120,100)).config.cashYuan,100));
+test('legacy paid whole-unit promise is preserved after roundtrip',()=>{let d=E.restore(null,{config:{gameMinutes:120,cashYuan:100},award:{unlockedAt:1,gameMinutes:120,cashYuan:100,game:{at:2,parent:'妈妈'},cash:null}});d=E.restore(d);assert.equal(E.amounts(d).availableGame,0);assert.equal(E.amounts(d).availableCash,10000);assert.equal(E.locked(d),true);assert.throws(()=>E.configure(d,120,200));});
+test('English legacy hours and paid money imported',()=>{const d=E.restore(null,{config:{hours:2,yuan:100},award:{earnedAt:1,hours:2,yuan:100,gameAt:0,moneyAt:2}});assert.equal(d.paidCash,10000);assert.equal(E.amounts(d).availableGame,120);});
+test('paused rewards do not accrue new progress',()=>assert.equal(E.accrue(E.configure(fresh(),120,200,false),5,5).peak,0));
+test('invalid progress and currency rejected',()=>{for(const args of [[-1,5],[6,5],[NaN,5],[1,0]])assert.throws(()=>E.accrue(fresh(),...args));for(const args of [[-1,100],[1,NaN],[1,0.001]])assert.throws(()=>E.configure(fresh(),...args));});
+test('empty or unsafe parent names not accepted or evaluated',()=>{assert.throws(()=>E.redeem(E.accrue(fresh(),3,5),'cash',''));const name='<img src=x>';assert.equal(E.redeem(E.accrue(fresh(),3,5),'cash',name).history[0].parent,name);});
+test('pending units and zero budgets create no spendable rewards',()=>{assert.equal(E.amounts(E.accrue(fresh(),0,0)).availableCash,0);assert.equal(E.amounts(E.accrue(E.configure(fresh(),0,0),1,1)).availableCash,0);});
+console.log(`PASS ${count} reward engine cases`);

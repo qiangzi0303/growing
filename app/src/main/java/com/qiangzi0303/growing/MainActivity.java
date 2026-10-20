@@ -140,7 +140,7 @@ public final class MainActivity extends Activity {
                 if(request.isForMainFrame()&&"https".equals(url.getScheme())){try{startActivity(new Intent(Intent.ACTION_VIEW,url));}catch(Exception ignored){}}
                 return true;
             }
-            @Override public void onPageFinished(WebView view,String url){boolean home=HOME.equals(url);back.setVisibility(home?View.INVISIBLE:View.VISIBLE);screenTitle.setText(home?"":url.contains("fraction-ops")?"数学 · 分式":"英语 · Unit 3");}
+            @Override public void onPageFinished(WebView view,String url){boolean home=HOME.equals(url);back.setVisibility(home?View.INVISIBLE:View.VISIBLE);screenTitle.setText(home?"":url.contains("word-ops")?"英语 · Unit 3":url.contains("fraction-ops")?"数学 · 分式":url.contains("subject=english")?"英语":url.contains("math-course")||url.contains("knowledge")||url.contains("subject=math")?"数学":"成长课堂");}
         });
         loadHome();
     }

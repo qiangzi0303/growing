@@ -1,0 +1,26 @@
+/* Android-only fetch adapter contract. No real network or account credentials. */
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const source=fs.readFileSync(path.join(__dirname,'../app/src/main/assets/bootstrap.js'),'utf8');
+(async()=>{
+  let key='',configured=0,mode='ok';const calls=[],data=new Map(),ok=value=>JSON.stringify({ok:true,value});
+  const window={GrowingNative:{get:k=>ok(data.get(k)??null),put:(k,v)=>{data.set(k,v);return ok();},remove:k=>{data.delete(k);return ok();},clear:()=>{data.clear();return ok();},keys:()=>ok([...data.keys()]),aiKey:()=>key,configureAi:()=>configured++},fetch:async(url,options)=>{
+    calls.push({url,options});
+    if(mode==='http')return new Response('{}',{status:429});
+    return new Response(JSON.stringify({choices:[{finish_reason:mode==='length'?'length':'stop',message:{content:mode==='empty'?'':JSON.stringify({score:8,criticalErrors:[],feedback:'测试评阅'})}}]}));
+  }};
+  vm.runInNewContext(source,{window,URL,Request,Response,Headers,location:{href:'https://appassets.androidplatform.net/assets/web/app-design/math-course.html',origin:'https://appassets.androidplatform.net'}});
+  window.localStorage.setItem('growing-unit-rewards-v1:math-8a-01','reward');
+  assert.equal(window.localStorage.getItem('growing-unit-rewards-v1:math-8a-01'),'reward');
+  const ctrl=new AbortController(),options={method:'POST',signal:ctrl.signal,body:JSON.stringify({agentMode:'mainagent',task:'评阅学生解释，返回规定JSON'})};
+  await assert.rejects(()=>window.fetch('/api/Agent/Run',options),/账号设置/);assert.equal(configured,1);assert.equal(calls.length,0);
+  key='fake-device-key';let response=await window.fetch('/api/Agent/Run',options),result=await response.json();
+  assert.equal(result.ok,true);assert.equal(JSON.parse(result.content).score,8);
+  assert.equal(calls[0].url,'https://api.deepseek.com/chat/completions');assert.equal(calls[0].options.headers.Authorization,'Bearer fake-device-key');assert.equal(calls[0].options.signal,ctrl.signal);
+  assert.equal(JSON.parse(calls[0].options.body).messages[1].content,'评阅学生解释，返回规定JSON');
+  for(mode of ['empty','length'])await assert.rejects(()=>window.fetch('/api/Agent/Run',options));
+  mode='http';response=await window.fetch('/api/Agent/Run',options);assert.equal(response.status,429);assert.equal((await response.json()).ok,false);
+  await assert.rejects(()=>window.fetch('/api/Agent/Run',{method:'POST',body:'{}'}),/格式/);
+  mode='ok';await window.fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{Authorization:'Bearer placeholder'}});
+  assert.equal(calls.at(-1).options.headers.get('Authorization'),'Bearer fake-device-key');
+  console.log('PASS: Android AI adapter, device key, cancellation signal, errors, response contract and reward storage.');
+})().catch(error=>{console.error(error.name+': '+error.message);process.exitCode=1;});

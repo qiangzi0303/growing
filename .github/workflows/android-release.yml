@@ -27,6 +27,10 @@ jobs:
           node-version: '22'
       - name: Verify native speech adapter behavior
         run: node scripts/test-speech.cjs
+      - name: Verify Android AI and storage adapter
+        run: node scripts/test-ai.cjs
+      - name: Verify packaged rewards, curriculum and panorama rules
+        run: node --test scripts/rewards.test.cjs scripts/year8.test.cjs scripts/panorama.test.cjs
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'

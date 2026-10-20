@@ -282,6 +282,9 @@ nav{display:flex;gap:5px;align-items:center}nav button{background:none;border:1p
 .chapter-reward{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:24px 0;padding:22px;border:1px solid var(--cyan,#38e1ff);border-radius:12px;background:#38e1ff08}.chapter-reward h2{font-size:20px;margin:0 0 10px}.chapter-reward p{margin:8px 0}.reward-settings{margin:22px 0;padding:18px 0;border-top:1px solid var(--line,#455039);border-bottom:1px solid var(--line,#455039)}.reward-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}.reward-fields label{font-size:13px;min-width:0}.reward-fields input{width:100%;box-sizing:border-box;margin-top:8px}.reward-item{margin:14px 0;padding:16px;border:1px solid var(--line,#455039);border-radius:8px}.reward-item p{font-size:13px}.reward-settings input:disabled{opacity:.65}
 @media(max-width:600px){.chapter-reward{align-items:stretch;flex-direction:column;padding:16px;gap:8px}.reward-fields{grid-template-columns:1fr}}
   </style>
+<style data-source="../app-design/unit-rewards.css">
+.unit-rewards{font-family:'Microsoft YaHei','Segoe UI',sans-serif;box-sizing:border-box;margin:18px 0;padding:22px;border:1px solid #91a56d66;border-radius:16px;background:#f4f8ee;color:#294234;overflow-wrap:anywhere;text-align:left}.unit-rewards *{box-sizing:border-box}.unit-reward-heading{display:flex;justify-content:space-between;align-items:center;gap:15px}.unit-reward-heading span{font-size:12px;color:#587048}.unit-reward-heading h2{font-size:20px;margin:7px 0 12px}.unit-reward-heading>strong{font-size:30px;color:#557b3c}.unit-rewards progress{display:block;width:100%;height:16px;border:0;border-radius:20px;overflow:hidden;accent-color:#638d42;background:#dfe8d5}.unit-rewards progress::-webkit-progress-bar{background:#dfe8d5}.unit-rewards progress::-webkit-progress-value{background:#638d42;border-radius:20px}.unit-reward-rule{font-size:12px;line-height:1.8;color:#53684d}.unit-reward-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.unit-reward-amount{border:1px solid #bac9ac;border-radius:12px;padding:15px;background:#fffdf7}.unit-reward-amount h3{font-size:13px;margin:0 0 8px}.unit-reward-amount strong{font-size:19px;color:#3a6039}.unit-reward-amount p{font-size:12px;margin:10px 0 0;line-height:1.8}.unit-reward-settings{margin-top:16px}.unit-rewards summary{cursor:pointer;color:#3f6237;font-size:14px}.unit-rewards fieldset{margin:16px 0;padding:15px;border:1px solid #bac9ac;border-radius:10px;min-width:0}.unit-rewards legend{font-size:14px}.unit-rewards label{display:block;font-size:13px;line-height:1.8;margin:10px 0}.unit-rewards input:not([type=checkbox]){display:block;width:100%;min-width:0;background:#fff;color:#294234;border:1px solid #a8bc9b;padding:11px;border-radius:8px;font:inherit}.unit-rewards input[type=checkbox]{accent-color:#557b3c;width:18px;height:18px;vertical-align:middle;margin-right:8px}.unit-rewards button{border:1px solid #53733f;background:#53733f;color:#fff;padding:11px 14px;border-radius:8px;font:inherit;font-size:13px;cursor:pointer;white-space:normal}.unit-rewards button:disabled{opacity:.5;cursor:default}.unit-rewards button:focus-visible,.unit-rewards input:focus-visible,.unit-rewards summary:focus-visible{outline:3px solid #c78d24;outline-offset:3px}.unit-rewards fieldset p,.unit-reward-parent>p,.unit-reward-history p{font-size:12px;line-height:1.8}.unit-reward-buttons{display:flex;gap:10px;flex-wrap:wrap}.unit-reward-status{font-size:13px;line-height:1.8;white-space:pre-wrap;margin-bottom:0}.unit-rewards .unit-reward-status:empty{display:none}.unit-reward-catalog{margin-top:9px;font-size:11px;color:#557448}.unit-reward-catalog progress{display:block;width:100%;max-width:260px;height:7px;accent-color:#638d42;margin-top:6px}@media(max-width:600px){.unit-rewards{padding:16px 12px;margin:12px 0}.unit-reward-grid{grid-template-columns:1fr}.unit-reward-heading h2{font-size:18px}.unit-reward-heading>strong{font-size:26px}.unit-reward-amount{padding:13px}}
+  </style>
 </head>
 <body>
 <div id="app">
@@ -1475,30 +1478,149 @@ window.LearningTime = (() => {
 })();
   </script>
   <script data-source="rewards.js">
-/* 单章节奖励：达标时锁定奖励承诺，家长分别核销实际兑现的两项。 */
+/* Preserve old promises; new awards accrue proportionally in the unit ledger. */
 window.ChapterRewards=(()=>{
+  const D=window.UNIT3,id='english-8a-03';
+  function restore(raw){return raw&&typeof raw==='object'?JSON.parse(JSON.stringify(raw)):{config:{enabled:true,hours:2,yuan:200},award:null};}
+  function progress(state){return {words:D.words.filter(w=>state.mastered[w.id]).length,tests:[...D.groups,...D.lessons].filter(l=>Number.isFinite(Number(state.best[l.id]))&&Number(state.best[l.id])>=80&&Number(state.best[l.id])<=100).length,totalWords:D.words.length,totalTests:D.groups.length+D.lessons.length};}
+  function update(state){
+    window.UnitRewards.register(id,{title:'To be a good learner',legacy:()=>state.rewards,rule:'单词七次默写通过计1项，每个考核达到80%计1项；浏览和练习次数不计掌握。',progress:()=>{const p=progress(state);return {done:p.words+p.tests,total:p.totalWords+p.totalTests};}});
+    window.UnitRewards.update(id);
+  }
+  return {restore,progress,update,redeem:()=>false,home:()=>window.UnitRewards.placeholder(id),settings:()=>window.UnitRewards.placeholder(id)};
+})();
+  </script>
+  <script data-source="../app-design/reward-engine.js">
+(function(root,factory){
+  if(typeof module==='object'&&module.exports)module.exports=factory();
+  else root.GrowingRewards=factory();
+})(typeof globalThis!=='undefined'?globalThis:this,()=>{
   'use strict';
-  const D=window.UNIT3;
-  const value=(n,fallback)=>Number.isFinite(n)&&n>=0&&n<=10000?Math.round(n*100)/100:fallback;
-  const stamp=n=>Number.isFinite(n)&&n>0?n:0;
-  const when=n=>new Date(n).toLocaleString('zh-CN');
-  function restore(raw){
-    const config={enabled:raw?.config?.enabled!==false,hours:value(raw?.config?.hours,2),yuan:value(raw?.config?.yuan,100)};
-    const a=raw?.award;
-    return {config,award:stamp(a?.earnedAt)?{earnedAt:stamp(a.earnedAt),hours:value(a.hours,2),yuan:value(a.yuan,100),gameAt:stamp(a.gameAt),moneyAt:stamp(a.moneyAt)}:null};
+  const finite=(n,max)=>Number.isFinite(n)&&n>=0&&n<=max;
+  const clone=x=>JSON.parse(JSON.stringify(x));
+  const cents=n=>Math.round(n*100);
+  function budget(gameMinutes,cashYuan,enabled=true){
+    if(!Number.isInteger(gameMinutes)||!finite(gameMinutes,600000)||!finite(cashYuan,100000)||Math.abs(cashYuan*100-cents(cashYuan))>1e-6)throw Error('游戏时间须为0—600000的整数分钟，红包须为0—100000元且最多两位小数。');
+    return {gameMinutes,cashYuan,enabled:enabled!==false};
   }
-  function progress(state){return {words:D.words.filter(w=>state.mastered[w.id]).length,tests:[...D.groups,...D.lessons].filter(l=>Number(state.best[l.id])>=80).length,totalWords:D.words.length,totalTests:D.groups.length+D.lessons.length};}
-  function update(state){const r=state.rewards,p=progress(state);if(r.config.enabled&&!r.award&&p.words===p.totalWords&&p.tests===p.totalTests)r.award={earnedAt:Date.now(),hours:r.config.hours,yuan:r.config.yuan,gameAt:0,moneyAt:0};}
-  function redeem(state,kind){const a=state.rewards.award,key=kind==='game'?'gameAt':kind==='money'?'moneyAt':null;if(!a||!key||a[key])return false;a[key]=Date.now();return true;}
-  function home(state){
-    const r=state.rewards,a=r.award,p=progress(state);if(!r.config.enabled&&!a)return '';
-    return `<section class="chapter-reward"><div><h2>🎁 章节通关奖励</h2><p>${a?a.hours:r.config.hours} 小时游戏时间 ＋ ${a?a.yuan:r.config.yuan} 元红包</p><p class="lede">${a?`已解锁 · ${a.gameAt&&a.moneyAt?'家长已全部核销':'等待家长兑现并核销'}`:`单词掌握 ${p.words}/${p.totalWords} · 考核达标 ${p.tests}/${p.totalTests}`}</p></div><button class="btn ghost" data-action="rewardSettings">${a?'查看奖励与核销':'奖励设置'}</button></section>`;
+  function restore(raw,legacy){
+    const d={version:1,defaultBudgetVersion:2,config:budget(120,200),peak:0,done:0,total:0,paidGame:0,paidCash:0,history:[]};
+    if(raw?.version===1&&raw.config){
+      d.config=budget(raw.config.gameMinutes,raw.config.cashYuan,raw.config.enabled);
+      if(!finite(raw.peak,1)||!Number.isInteger(raw.paidGame)||!finite(raw.paidGame,d.config.gameMinutes)||!Number.isInteger(raw.paidCash)||!finite(raw.paidCash,cents(d.config.cashYuan)))throw Error('奖励存档格式不正确，原存档已保留。');
+      Object.assign(d,{peak:raw.peak,done:raw.done||0,total:raw.total||0,paidGame:raw.paidGame,paidCash:raw.paidCash,legacyLocked:raw.legacyLocked===true,history:Array.isArray(raw.history)?raw.history:[]});
+      if(raw.defaultBudgetVersion!==2&&d.config.cashYuan===100&&!locked(d))d.config.cashYuan=200;
+      return d;
+    }
+    // Import an existing whole-unit promise once; paid legacy items remain paid.
+    if(legacy){
+      const c=legacy.config||{},a=legacy.award;
+      const game=Number.isFinite(c.gameMinutes)?c.gameMinutes:Number.isFinite(c.hours)?Math.round(c.hours*60):120;
+      const oldCash=Number.isFinite(c.cashYuan)?c.cashYuan:Number.isFinite(c.yuan)?c.yuan:200;
+      const cash=oldCash===100&&!a?200:oldCash;
+      d.config=budget(game,cash,c.enabled);
+      if(a&&(Number.isFinite(a.unlockedAt)||Number.isFinite(a.earnedAt))){
+        d.config=budget(Number.isFinite(a.gameMinutes)?a.gameMinutes:Math.round(a.hours*60),Number.isFinite(a.cashYuan)?a.cashYuan:a.yuan);
+        d.peak=1;d.legacyLocked=true;
+        if(a.game||a.gameAt)d.paidGame=d.config.gameMinutes;
+        if(a.cash||a.moneyAt)d.paidCash=cents(d.config.cashYuan);
+        d.history.push({legacy:true,at:a.unlockedAt||a.earnedAt,game:d.paidGame,cash:d.paidCash});
+      }
+    }
+    return d;
   }
-  function settings(state){
-    const r=state.rewards,a=r.award,p=progress(state);
-    return `<section class="reward-settings"><h3>章节通关奖励 · 家长管理</h3><p class="modal-desc">${p.totalWords} 个单词全部七次默写通过，${p.totalTests} 个考核均达到 80% 后解锁。每章仅奖励一次；游戏时间和红包由家长实际兑现，本页只记录核销。</p><label class="setting-check"><input id="rewardEnabled" type="checkbox" ${r.config.enabled?'checked':''} ${a?'disabled':''}> 启用章节奖励</label><div class="reward-fields"><label for="rewardHours">游戏时间（小时）<input class="modal-input" id="rewardHours" type="number" min="0" max="10000" step="0.01" required value="${a?a.hours:r.config.hours}" ${a?'disabled':''}></label><label for="rewardYuan">红包金额（元）<input class="modal-input" id="rewardYuan" type="number" min="0" max="10000" step="0.01" required value="${a?a.yuan:r.config.yuan}" ${a?'disabled':''}></label></div><p class="modal-desc">${a?`达标时间：${when(a.earnedAt)}。奖励已锁定。`:`当前进度：单词 ${p.words}/${p.totalWords}，考核 ${p.tests}/${p.totalTests}。修改后点击下方“保存设置”。`}</p>${a?`<div class="reward-redemptions">${[['game','游戏时间',a.hours+' 小时',a.gameAt],['money','红包',a.yuan+' 元',a.moneyAt]].map(([kind,label,amount,at])=>`<div class="reward-item"><strong>${label} · ${amount}</strong>${at?`<p class="good">已核销 · ${when(at)}</p>`:`<p>待家长兑现</p><label class="setting-check"><input type="checkbox" id="rewardConfirm-${kind}"> 我是家长，确认已兑现此项奖励</label><button type="button" class="btn ghost small" data-action="redeemReward" data-id="${kind}">确认核销${label}</button>`}</div>`).join('')}</div>`:'<p class="modal-desc">尚未达标，暂不可核销。</p>'}<p class="modal-desc">重置学习进度保留本章奖励设置与核销记录，避免重复发奖。家长确认采用人工操作，不提供身份验证。</p></section>`;
+  function accrue(data,done,total){
+    if(!Number.isInteger(done)||!Number.isInteger(total)||done<0||total<0||done>total)throw Error('掌握进度无效。');
+    const d=clone(data);d.done=done;d.total=total;
+    if(d.config.enabled&&total)d.peak=Math.max(d.peak,done/total);
+    return d;
   }
-  return {restore,progress,update,redeem,home,settings};
+  const locked=d=>!!d.legacyLocked||d.history.some(x=>!x.legacy)||d.paidGame>0||d.paidCash>0;
+  function amounts(d){
+    const game=Math.floor(d.config.gameMinutes*d.peak+1e-8),cash=Math.floor(cents(d.config.cashYuan)*d.peak+1e-8);
+    return {game,cash,availableGame:Math.max(0,game-d.paidGame),availableCash:Math.max(0,cash-d.paidCash)};
+  }
+  function configure(data,game,cash,enabled=true){
+    if(locked(data))throw Error('已有核销或旧版锁定奖励，不能修改本单元奖励总额。');
+    return {...clone(data),config:budget(game,cash,enabled)};
+  }
+  function redeem(data,kind,parent,at=Date.now()){
+    if(!['game','cash'].includes(kind))throw Error('奖励类型无效。');
+    if(typeof parent!=='string'||!parent.trim()||parent.trim().length>30)throw Error('请填写家长称呼（1—30字）。');
+    const a=amounts(data),value=kind==='game'?a.availableGame:a.availableCash;
+    if(!value)throw Error('当前没有可核销额度。');
+    const d=clone(data);d[kind==='game'?'paidGame':'paidCash']+=value;
+    d.history.push({kind,amount:value,parent:parent.trim(),at});
+    return d;
+  }
+  return {restore,accrue,configure,redeem,amounts,locked};
+});
+  </script>
+  <script data-source="../app-design/unit-rewards.js">
+/* One ledger per curriculum unit. Course providers expose counts, never AI configuration. */
+(()=>{
+  'use strict';
+  const E=window.GrowingRewards,providers=new Map(),prefix='growing-unit-rewards-v1:';
+  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money=c=>(c/100).toFixed(2).replace(/\.00$/,'');
+  const percent=n=>Math.floor(n*1000+1e-8)/10;
+  function load(id){const raw=localStorage.getItem(prefix+id);return E.restore(raw?JSON.parse(raw):null,providers.get(id)?.legacy?.());}
+  function persist(id,d){localStorage.setItem(prefix+id,JSON.stringify(d));}
+  function current(id){const p=providers.get(id),s=p.progress();return E.accrue(load(id),s.done,s.total);}
+  function summary(id,d){
+    const p=providers.get(id),a=E.amounts(d),ratio=d.total?d.done/d.total:0;
+    const row=(name,earned,paid,available,unit)=>`<div class="unit-reward-amount"><h3>${name}</h3><strong>已获得 ${earned}${unit}</strong><p>已核销 ${paid}${unit} · 可核销 <b>${available}${unit}</b></p></div>`;
+    return `<div class="unit-reward-heading"><div><span>本单元奖励 · ${esc(p.title)}</span><h2>掌握多少，获得多少</h2></div><strong>${percent(ratio)}%</strong></div><progress max="100" value="${ratio*100}" aria-label="本单元掌握进度">${percent(ratio)}%</progress><p class="unit-reward-rule">${d.total?`已完成 ${d.done}/${d.total} 项。`:'本单元内容筹备中，暂不累计掌握进度。'}${esc(p.rule)}<br>奖励总额：${d.config.gameMinutes}分钟游戏 ＋ ${money(Math.round(d.config.cashYuan*100))}元红包，按实际比例计算，游戏向下取整到分钟、红包到分。</p><div class="unit-reward-grid">${row('游戏时间',a.game,d.paidGame,a.availableGame,'分钟')}${row('红包',money(a.cash),money(d.paidCash),money(a.availableCash),'元')}</div>${d.peak>ratio?'<p class="unit-reward-rule">曾获得的奖励已保留；重学或重置进度不会重复获得同一份额度，超过历史进度后继续累积。</p>':''}${!d.config.enabled?'<p class="unit-reward-rule">奖励累计已暂停，已获得额度保留。</p>':''}`;
+  }
+  function render(el,id){
+    if(!providers.has(id)||el.dataset.rewardMounted)return;
+    el.dataset.rewardMounted='true';el.classList.add('unit-rewards');
+    try{
+      const d=current(id);persist(id,d);
+      el.innerHTML=`<div class="unit-reward-summary">${summary(id,d)}</div><details class="unit-reward-settings"><summary>奖励总额设置 / 家长核销</summary><fieldset><legend>本单元奖励总额</legend><label>游戏时间（分钟）<input data-reward-field="game" type="number" min="0" max="600000" step="1" value="${d.config.gameMinutes}"></label><label>红包（元）<input data-reward-field="cash" type="number" min="0" max="100000" step="0.01" value="${d.config.cashYuan}"></label><label class="unit-reward-check"><input data-reward-field="enabled" type="checkbox" ${d.config.enabled?'checked':''}>启用奖励累计</label><button type="button" data-reward-action="save">保存本单元奖励</button><p>首次核销后固定总额。各单元独立设置，默认120分钟、200元。</p></fieldset><div class="unit-reward-parent"><label>核销家长称呼<input data-reward-field="parent" maxlength="30" placeholder="例如：妈妈"></label><label class="unit-reward-check"><input data-reward-field="confirm" type="checkbox">我是家长，确认已实际兑现本次额度</label><div class="unit-reward-buttons"><button type="button" data-reward-action="game">核销当前可领游戏时间</button><button type="button" data-reward-action="cash">核销当前可领红包</button></div><p>每次只核销尚未兑现的额度。本页只记账，不转账或控制游戏时长；家长确认不提供身份验证。</p><div class="unit-reward-history"></div></div></details><p class="unit-reward-status" role="status" aria-live="polite"></p>`;
+      refresh(el,id,d);
+    }catch(e){el.innerHTML='<p role="status">奖励记录暂不可用：'+esc(e.message)+' 请允许本地存储后刷新；原记录未删除。</p>';}
+  }
+  function refresh(el,id,d){
+    if(!el.querySelector('.unit-reward-summary'))return;
+    el.querySelector('.unit-reward-summary').innerHTML=summary(id,d);
+    const a=E.amounts(d),locked=E.locked(d);
+    for(const x of el.querySelectorAll('fieldset input,fieldset button'))x.disabled=locked;
+    el.querySelector('[data-reward-action=game]').disabled=!a.availableGame;
+    el.querySelector('[data-reward-action=cash]').disabled=!a.availableCash;
+    el.querySelector('.unit-reward-history').innerHTML=d.history.length?`<details><summary>核销记录（${d.history.length}）</summary>${d.history.map(h=>h.legacy?'<p>已承接旧版整单元奖励及核销状态。</p>':`<p>${esc(new Date(h.at).toLocaleString('zh-CN'))} · ${esc(h.parent)} · ${h.kind==='game'?h.amount+'分钟游戏':money(h.amount)+'元红包'}</p>`).join('')}</details>`:'';
+  }
+  function update(id){
+    if(!providers.has(id))return;
+    try{const d=current(id);persist(id,d);for(const el of document.querySelectorAll('[data-unit-reward]'))if(el.dataset.unitReward===id)refresh(el,id,d);}
+    catch(e){for(const el of document.querySelectorAll('[data-unit-reward]'))if(el.dataset.unitReward===id){const status=el.querySelector('.unit-reward-status');if(status)status.textContent='奖励未保存：'+e.message;}}
+  }
+  function scan(){for(const el of document.querySelectorAll('[data-unit-reward]'))render(el,el.dataset.unitReward);}
+  function register(id,p){providers.set(id,p);scan();}
+  const placeholder=id=>`<section data-unit-reward="${esc(id)}" aria-label="本单元进度与奖励"></section>`;
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('[data-reward-action]');if(!b||b.disabled)return;
+    e.preventDefault();const el=b.closest('[data-unit-reward]'),id=el.dataset.unitReward,status=el.querySelector('.unit-reward-status');
+    const field=k=>el.querySelector('[data-reward-field='+k+']');
+    try{
+      let d=current(id);
+      if(b.dataset.rewardAction==='save'){
+        if(!field('game').value.trim()||!field('cash').value.trim())throw Error('请填写游戏时间和红包总额。');
+        d=E.accrue(E.configure(d,Number(field('game').value),Number(field('cash').value),field('enabled').checked),d.done,d.total);
+      }else{
+        if(!field('confirm').checked)throw Error('请由家长勾选确认已实际兑现。');
+        d=E.redeem(d,b.dataset.rewardAction,field('parent').value);
+      }
+      persist(id,d); // Commit before showing success; a failed write never consumes a reward.
+      for(const other of document.querySelectorAll('[data-unit-reward]'))if(other.dataset.unitReward===id)refresh(other,id,d);
+      if(b.dataset.rewardAction!=='save')field('confirm').checked=false;
+      status.textContent=b.dataset.rewardAction==='save'?'本单元奖励总额已保存。':'本次核销已保存，只扣除当前可领额度。';
+    }catch(error){status.textContent='未完成：'+error.message;}
+  });
+  window.addEventListener('storage',e=>{if(e.key?.startsWith(prefix)){const id=e.key.slice(prefix.length);if(providers.has(id)){try{const d=load(id);for(const el of document.querySelectorAll('[data-unit-reward]'))if(el.dataset.unitReward===id)refresh(el,id,d);}catch{}}}});
+  // Observe course re-renders, not our own numeric/text updates.
+  new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('[data-unit-reward]:not([data-reward-mounted])')||n.querySelector?.('[data-unit-reward]:not([data-reward-mounted])')))))scan();}).observe(document.documentElement,{childList:true,subtree:true});
+  window.UnitRewards={register,placeholder,update};
 })();
   </script>
   <script data-source="app.js">
@@ -1970,7 +2092,7 @@ window.ChapterRewards=(()=>{
       if(e.key==='ArrowLeft'&&cardIndex>0){e.preventDefault();cardIndex--;renderCard();}
     }
   });
-  $('settingsForm').addEventListener('submit',e=>{e.preventDefault();if(!state.rewards.award)state.rewards.config={enabled:$('rewardEnabled').checked,hours:Number($('rewardHours').value),yuan:Number($('rewardYuan').value)};state.settings={...state.settings,autoSpeak:$('autoSpeak').checked,rate:Number($('speechRate').value)};save();closeSettings();if(current==='home')renderHome();toast('学习设置已保存。');});
+  $('settingsForm').addEventListener('submit',e=>{e.preventDefault();state.settings={...state.settings,autoSpeak:$('autoSpeak').checked,rate:Number($('speechRate').value)};save();closeSettings();if(current==='home')renderHome();toast('学习设置已保存。奖励总额请在奖励面板单独保存。');});
   $('settingsModal').addEventListener('click',e=>{if(e.target===$('settingsModal'))closeSettings();});
   document.addEventListener('visibilitychange',()=>{const hadWordClock=!!wordClock;syncQuizClock();syncWordClock();if(!document.hidden){tickWordTimer();if(current==='study')renderStudy(true);}if(hadWordClock)save();});
   window.addEventListener('pageshow',()=>{wordPageActive=true;syncWordClock();syncQuizClock();if(current==='card'&&deck?.kind==='word'&&state.wordRuns[deck.cards[cardIndex].id]?.phase==='memorize')renderCard();});
