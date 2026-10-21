@@ -30,7 +30,7 @@ jobs:
       - name: Verify Android AI and storage adapter
         run: node scripts/test-ai.cjs
       - name: Verify packaged rewards, curriculum and panorama rules
-        run: node --test scripts/rewards.test.cjs scripts/year8.test.cjs scripts/panorama.test.cjs
+        run: node --test scripts/rewards.test.cjs scripts/year8.test.cjs scripts/panorama.test.cjs scripts/english.test.cjs scripts/physics.test.cjs scripts/course-tools.test.cjs scripts/course-ai.test.cjs
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'

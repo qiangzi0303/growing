@@ -1,0 +1,4 @@
+(function(root,factory){
+  if(typeof module==='object'&&module.exports)module.exports=factory(require('./physics-sound.js'),require('./physics-light.js'),require('./physics-lenses.js'),require('./physics-thermal.js'),require('./physics-motion.js'));
+  else {root.GrowingPhysics=factory(root.GrowingPhysicsSound,root.GrowingPhysicsLight,root.GrowingPhysicsLenses,root.GrowingPhysicsThermal,root.GrowingPhysicsMotion);if(document.body?.dataset.subject==='physics'||document.documentElement.dataset.subject==='physics')root.GrowingKnowledge=root.GrowingPhysics;}
+})(globalThis,(...chapters)=>({version:'suke-physics8a-2025-1',title:'八年级物理知识图谱',subjectName:'物理',scopeLabel:'上册5章',chapters,nodes:chapters.flatMap(c=>c.nodes),edges:chapters.flatMap(c=>c.edges),questions:chapters.flatMap(c=>c.questions)}));

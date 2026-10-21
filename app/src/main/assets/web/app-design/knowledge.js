@@ -1,29 +1,31 @@
 (() => {
   'use strict';
   const D=window.GrowingKnowledge,E=window.GrowingDiagnosis,g=E.graph(D);
+  const physics=document.body.dataset.subject==='physics',subject=physics?'physics':'math',subjectName=physics?'物理':'数学',graphFile=physics?'physics-knowledge.html':'knowledge.html';
   const screen=document.getElementById('screen'),note=document.getElementById('storage-note');
   const params=new URLSearchParams(location.search);
   const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const chapter=D.chapters.find(c=>c.id===(params.get('chapter')||'math-8b-10'));
-  if(!chapter){screen.innerHTML='<section class="panel"><h2>没有找到这个数学章节</h2><a href="units.html?subject=math">返回数学目录 →</a></section>';return;}
-  const KEY='growing-diagnosis-year8-v1:'+chapter.id;
-  const studyLink=(c=chapter,id='')=>'study.html?'+new URLSearchParams({subject:'math',term:c.term,unit:c.id,...(id?{node:id}:{})});
+  const chapter=D.chapters.find(c=>c.id===(params.get('chapter')||(physics?D.chapters[0].id:'math-8b-10')));
+  if(!chapter){screen.innerHTML=`<section class="panel"><h2>没有找到这个${subjectName}章节</h2><a href="units.html?subject=${subject}">返回${subjectName}目录 →</a></section>`;return;}
+  const KEY=(physics?'growing-diagnosis-physics-v1:':'growing-diagnosis-year8-v1:')+chapter.id;
+  const studyLink=(c=chapter,id='')=>'study.html?'+new URLSearchParams({subject,term:c.term,unit:c.id,v:'shared-ai-1',...(id?{node:id}:{})});
   const courseLink=n=>{const c=D.chapters.find(c=>c.id===n.chapter);return c?`<a class="link-button" href="${studyLink(c,n.id)}">打开${esc(c.title)}课程</a>`:'';};
   const availableIds=new Set(chapter.nodes.map(n=>n.id));
   function includePre(id){for(const e of g.pre.get(id)){if(!availableIds.has(e.from)){availableIds.add(e.from);includePre(e.from);}}}
   chapter.nodes.forEach(n=>includePre(n.id));
   const availableNodes=D.nodes.filter(n=>availableIds.has(n.id));
   document.title=chapter.title+'知识图谱与诊断 · 成长';
-  document.getElementById('knowledge-meta').textContent=`苏科版 · 八年级${chapter.term==='upper'?'上':'下'}册 · 第${chapter.number}章 · ${chapter.title}`;
+  document.getElementById('knowledge-meta').textContent=`${physics?(chapter.term==='upper'?'苏科版2025年第4版':'苏科版2012年第3版（2015年印刷）'):'苏科版'} · 八年级${chapter.term==='upper'?'上':'下'}册 · 第${chapter.number}章 · ${chapter.title}`;
   document.getElementById('chapter-number').textContent=chapter.number;
-  document.getElementById('scope-note').textContent=`本章 ${chapter.nodes.length} 个知识点；全年11章可切换，必要时跨章回查先修。题目与关系待教师审核，初筛用于安排复习。`;
+  document.getElementById('scope-note').textContent=`本章 ${chapter.nodes.length} 个知识点；${D.scopeLabel||'全年11章'}可切换，必要时跨章回查先修。题目与关系待教师审核，初筛用于安排复习。`;
   document.getElementById('chapter-select').innerHTML=D.chapters.map(c=>`<option value="${c.id}" ${c.id===chapter.id?'selected':''}>${c.term==='upper'?'上册':'下册'} · 第${c.number}章 ${esc(c.title)}</option>`).join('');
-  document.getElementById('catalog-back').href='units.html?subject=math&term='+chapter.term;
+  document.getElementById('catalog-back').href='units.html?subject='+subject+'&term='+chapter.term;
+  document.getElementById('catalog-back').textContent='← '+subjectName+'目录';
   document.getElementById('chapter-study').href=studyLink();
   const labels={untested:'未测',pending:'待复测',screened:'初筛通过',shaky:'不稳',weak:'需补学'};
   const title=id=>g.byId.get(id).title;
   const chip=(id,status)=>`<span class="chip ${status}">${esc(labels[status])}</span>`;
-  let selected=g.byId.has(params.get('node'))?params.get('node'):chapter.number===10?'add':chapter.nodes[0].id;
+  let selected=g.byId.has(params.get('node'))?params.get('node'):!physics&&chapter.number===10?'add':chapter.nodes[0].id;
   let mode=['diagnosis','panorama'].includes(params.get('mode'))?params.get('mode'):'graph';
   let panoramaRange=params.get('range')==='year'?'year':'chapter';
   const panorama=window.GrowingPanorama.create(g);
@@ -45,7 +47,7 @@
     document.querySelectorAll('[data-mode]').forEach(b=>{
       if(b.dataset.mode===mode)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
     });
-    try{history.replaceState(null,'','knowledge.html?'+new URLSearchParams({chapter:chapter.id,node:selected,mode,...(mode==='panorama'?{range:panoramaRange}:{})}));}catch(error){/* file browsing can restrict history */}
+    try{history.replaceState(null,'',graphFile+'?'+new URLSearchParams({chapter:chapter.id,node:selected,mode,...(mode==='panorama'?{range:panoramaRange}:{})}));}catch(error){/* file browsing can restrict history */}
     screen.innerHTML=mode==='graph'?graphMarkup():mode==='panorama'?panorama.markup({chapter,range:panoramaRange,selected,states:state()?.states||{}})+detailMarkup():diagnosisMarkup();
     if(mode==='graph'){
       observer=new ResizeObserver(drawLines);observer.observe(document.querySelector('.graph-board'));
@@ -158,7 +160,7 @@
   });
   document.addEventListener('change',event=>{
     const el=event.target;
-    if(el.id==='chapter-select'){location.href='knowledge.html?'+new URLSearchParams({chapter:el.value,mode,...(mode==='panorama'?{range:panoramaRange}:{})});}
+    if(el.id==='chapter-select'){location.href=graphFile+'?'+new URLSearchParams({chapter:el.value,mode,...(mode==='panorama'?{range:panoramaRange}:{})});}
     else if(el.id==='pan-range'){panoramaRange=el.value==='year'?'year':'chapter';if(panoramaRange==='chapter'&&!availableIds.has(selected)){selected=chapter.nodes[0].id;target=selected;}render();}
     else if(el.id==='graph-depth'){scope=el.value;render();}
     else if(el.id==='node-select'){selected=el.value;target=selected;render();}

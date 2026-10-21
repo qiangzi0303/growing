@@ -20,6 +20,16 @@ window.GrowingCurriculum={
       ]},
     },
   },
+  physics:{
+    name:'物理',edition:'苏科版（按所供教材）',label:'章节',
+    terms:{upper:{name:'八年级上册',edition:'苏科版2025年第4版',verified:true,units:[
+      {id:'physics-8a-01',number:1,title:'声现象',summary:'声音产生与传播 · 声音特性 · 噪声 · 超声和次声',outline:['声音是什么','声音的特性','噪声及其控制','人耳听不到的声音']},
+      {id:'physics-8a-02',number:2,title:'光现象',summary:'色彩与直线传播 · 平面镜 · 光的反射',outline:['光的色彩','光的直线传播','平面镜','光的反射']},
+      {id:'physics-8a-03',number:3,title:'光的折射 透镜',summary:'折射 · 透镜成像 · 人眼与光学仪器 · 不可见光',outline:['光的折射','透镜','凸透镜成像的规律','透镜的应用','人眼看不见的光']},
+      {id:'physics-8a-04',number:4,title:'物态变化',summary:'温度测量 · 六种物态变化 · 水循环',outline:['物质的三态 温度的测量','汽化和液化','熔化和凝固','升华和凝华','水循环']},
+      {id:'physics-8a-05',number:5,title:'物体的运动',summary:'长度与时间 · 速度 · 直线运动 · 运动的相对性',outline:['长度与时间的测量','速度','直线运动','运动的相对性']},
+    ]},lower:{name:'八年级下册',verified:false,units:[]}},
+  },
   english:{
     name:'英语',edition:'译林版',label:'单元',
     terms:{
@@ -39,7 +49,12 @@ window.GrowingCurriculum={
     },
   },
 };
+for(const book of Object.values(window.GrowingCurriculum.physics.terms))for(const unit of book.units)unit.entry='physics-course.html?chapter='+unit.id;
 // The original fraction classroom remains the entry for chapter 10.
 for(const book of Object.values(window.GrowingCurriculum.math.terms)){
   for(const unit of book.units)if(!unit.entry)unit.entry='math-course.html?chapter='+unit.id;
+}
+// 2025秋译林版：Unit 3继续使用已有完整课堂，其余上册单元进入共享英语课堂。
+for(const unit of window.GrowingCurriculum.english.terms.upper.units){
+  if(!unit.entry)unit.entry='english-course.html?unit='+unit.id;
 }

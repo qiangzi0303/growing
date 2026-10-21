@@ -3,6 +3,10 @@ import re
 
 root=Path(__file__).resolve().parents[1]
 web=root/'app/src/main/assets/web'
+for name in ['english-course.html','english-course.css','english-course.js','english-vocabulary.js','english-lessons.js','english-engine.js']:
+    if not (web/'app-design'/name).is_file():raise SystemExit('Missing English learning asset: '+name)
+for name in ['physics-course.html','physics-knowledge.html','physics-sound-lab.html','physics-explore-lab.html','physics-course.css','physics-builder.js','physics-data.js','physics-figures.js']+['physics-'+chapter+'.js' for chapter in ['sound','light','lenses','thermal','motion']]:
+    if not (web/'app-design'/name).is_file():raise SystemExit('Missing Physics learning asset: '+name)
 for name in ['app-design/index.html','app-design/home.css','app-design/units.html','app-design/study.html','app-design/knowledge.html','app-design/panorama.js','app-design/math-data.js','app-design/math-course.html','app-design/reward-engine.js','app-design/unit-rewards.js','word-ops-unit3/index.html','fraction-ops/分式作战_一分钟学习版.html']:
     path=web/name
     if not path.is_file():raise SystemExit('Missing required learning asset: '+name)

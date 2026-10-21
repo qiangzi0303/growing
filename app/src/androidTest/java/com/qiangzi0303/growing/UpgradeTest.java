@@ -52,7 +52,7 @@ public class UpgradeTest {
         assertNotNull(alice);assertEquals(alice,accounts.currentId());
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             ready(scenario);
-            assertEquals("\"written\"",js(scenario,"localStorage.setItem('upgrade.english','alice-English');localStorage.setItem('upgrade.math','alice-Math');'written'"));
+            assertEquals("\"written\"",js(scenario,"localStorage.setItem('upgrade.english','alice-English');localStorage.setItem('upgrade.math','alice-Math');localStorage.setItem('upgrade.physics','alice-Physics');'written'"));
             assertEquals("\"reward-saved\"",js(scenario,"localStorage.setItem('growing-unit-rewards-v1:math-8b-10',JSON.stringify({version:1,config:{gameMinutes:120,cashYuan:200},peak:0.6,paidGame:72,paidCash:12000}));'reward-saved'"));
         }
         accounts.logout();
@@ -80,12 +80,14 @@ public class UpgradeTest {
             ready(scenario);
             assertEquals("\"alice-English\"",js(scenario,"localStorage.getItem('upgrade.english')"));
             assertEquals("\"alice-Math\"",js(scenario,"localStorage.getItem('upgrade.math')"));
+            assertEquals("\"alice-Physics\"",js(scenario,"localStorage.getItem('upgrade.physics')"));
             assertEquals("12000",js(scenario,"JSON.parse(localStorage.getItem('growing-unit-rewards-v1:math-8b-10')).paidCash"));
         }
         accounts.logout();accounts.authenticate("upgrade_bob",PASSWORD.toCharArray(),false);
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             ready(scenario);assertEquals("\"bob-English\"",js(scenario,"localStorage.getItem('upgrade.english')"));
             assertEquals("null",js(scenario,"localStorage.getItem('upgrade.math')"));
+            assertEquals("null",js(scenario,"localStorage.getItem('upgrade.physics')"));
             assertEquals("null",js(scenario,"localStorage.getItem('growing-unit-rewards-v1:math-8b-10')"));
         }
     }

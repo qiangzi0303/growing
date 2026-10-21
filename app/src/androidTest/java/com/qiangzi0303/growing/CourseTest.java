@@ -28,13 +28,26 @@ public class CourseTest {
         try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
             ready(s,"!!document.querySelector('.subjects')");
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=math&term=upper&unit=math-8a-03'");
-            ready(s,"(()=>{const f=document.querySelector('iframe');return !!(f&&f.contentDocument&&f.contentDocument.querySelector('.unit-reward-summary'));})()");
+            ready(s,"(()=>{const f=document.querySelector('iframe');return !!(f&&f.contentDocument&&f.contentDocument.querySelector('.unit-reward-trigger'));})()");
+            assertEquals("0",js(s,"document.querySelector('iframe').contentDocument.querySelectorAll('.unit-reward-summary').length"));
+            js(s,"document.querySelector('iframe').contentDocument.querySelector('.unit-reward-trigger').click()");
+            ready(s,"!!document.querySelector('iframe').contentDocument.querySelector('dialog[open] .unit-reward-summary')");
             assertEquals("200",js(s,"JSON.parse(document.querySelector('iframe').contentWindow.localStorage.getItem('growing-unit-rewards-v1:math-8a-03')).config.cashYuan"));
             assertEquals("false",js(s,"Object.getOwnPropertyDescriptor(document.querySelector('iframe').contentWindow,'localStorage').configurable"));
             js(s,"document.querySelector('iframe').contentWindow.localStorage.setItem('course.iframe','native-bridge-ok')");
             assertEquals("\"native-bridge-ok\"",js(s,"localStorage.getItem('course.iframe')"));
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/knowledge.html?chapter=math-8b-09&mode=panorama&range=year'");
             ready(s,"document.body.classList.contains('is-panorama') && !!document.querySelector('svg')");
+            js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=physics&term=upper&unit=physics-8a-01'");
+            ready(s,"(()=>{const f=document.querySelector('iframe');return !!(f&&f.contentWindow.GrowingCourseAI&&f.contentDocument.querySelector('.course-tools-nav'));})()");
+            assertEquals("true",js(s,"document.querySelector('iframe').contentWindow.GrowingCourseAI.info().native"));
+            assertEquals("5",js(s,"document.querySelector('iframe').contentDocument.querySelectorAll('.course-tools-nav button').length"));
+            assertEquals("\"native-bridge-ok\"",js(s,"document.querySelector('iframe').contentWindow.localStorage.getItem('course.iframe')"));
+            js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=english&term=upper&unit=english-8a-01'");
+            ready(s,"(()=>{const f=document.querySelector('iframe');return !!(f&&f.contentWindow.GrowingCourseAI&&f.contentDocument.querySelector('#word-detail'));})()");
+            assertEquals("true",js(s,"document.querySelector('iframe').contentWindow.GrowingCourseAI.info().native"));
+            js(s,"document.querySelector('iframe').contentDocument.querySelector('[data-view=settings]').click()");
+            ready(s,"!!document.querySelector('iframe').contentDocument.querySelector('[data-course-ai-native]')");
         }
     }
 }

@@ -5,7 +5,15 @@ import json,re
 repo=Path(__file__).resolve().parents[1]
 project=repo.parent
 web=repo/'app/src/main/assets/web'
-files=[p.relative_to(project) for p in (project/'app-design').iterdir() if p.is_file() and p.suffix in ('.html','.css','.js')]
+deferred={'physics-'+name+'.js' for name in ['matter','particles','forces','dynamics','pressure','lower-figures']}
+files=[p.relative_to(project) for p in (project/'app-design').iterdir() if p.is_file() and p.suffix in ('.html','.css','.js') and p.name not in deferred]
+# Preserve previously copied drafts outside the APK assets, without deleting them.
+for name in sorted(deferred):
+    previous=web/'app-design'/name
+    if previous.is_file():
+        backup=project/'.nmai/tmp/physics-lower-deferred-assets'/name
+        backup.parent.mkdir(parents=True,exist_ok=True)
+        if not backup.exists():previous.rename(backup)
 files += [Path('word-ops-unit3/index.html'),Path('fraction-ops/分式作战_一分钟学习版.html')]
 removed=0
 for relative in sorted(files):
@@ -17,8 +25,10 @@ for relative in sorted(files):
     target=web/relative
     target.parent.mkdir(parents=True,exist_ok=True)
     target.write_text(text,encoding='utf-8',newline='\n')
-for name in ['rewards.test.cjs','panorama.test.cjs','year8.test.cjs']:
+tests=['rewards.test.cjs','panorama.test.cjs','year8.test.cjs','english.test.cjs','physics.test.cjs','course-tools.test.cjs','course-ai.test.cjs']
+for name in tests:
     source=(project/'app-design/tests'/name).read_text(encoding='utf-8')
     source=source.replace("require('../","require('../app/src/main/assets/web/app-design/")
+    source=source.replace("require.resolve('../","require.resolve('../app/src/main/assets/web/app-design/")
     (repo/'scripts'/name).write_text(source,encoding='utf-8',newline='\n')
-print(json.dumps({'offline_files':len(files),'credentials_removed':removed,'rule_tests':3}))
+print(json.dumps({'offline_files':len(files),'credentials_removed':removed,'rule_tests':len(tests)}))

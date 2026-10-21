@@ -5,3 +5,5 @@
 @media(max-width:900px){.workspace{padding:23px}.graph-layout{grid-template-columns:1fr}.graph-board{min-height:220px}.detail{scroll-margin-top:16px}.chapter-number{font-size:50px}}
 @media(max-width:520px){.workspace{padding:16px}.page-heading{margin:23px 0 18px}h1{font-size:25px;letter-spacing:0}.chapter-number{display:none}.intro{font-size:12px}.scope-note{font-size:11px}.panel{padding:18px;border-radius:15px}.graph-columns{gap:15px}.graph-node{font-size:11px;padding:10px 6px}.graph-node small{font-size:9px}.column-label{font-size:10px}.panel-top h2{font-size:18px}.graph-caption{font-size:11px}.field-row{grid-template-columns:1fr}.question-title{font-size:19px}.option{font-size:13px;padding:12px}.summary-stats{gap:5px}.stat{padding:13px 5px}.stat span{font-size:10px}.actions button,.actions .link-button{font-size:12px}.progress-top{align-items:flex-start}.graph-column{gap:9px}.detail-heading{font-size:22px}.tabs{margin-top:21px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+.graph-layout>.panel{min-width:0}
+@media(max-width:900px){.graph-layout{grid-template-columns:minmax(0,1fr)}}
