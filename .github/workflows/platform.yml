@@ -1,0 +1,53 @@
+name: Web and parent backend
+on:
+  push:
+    branches: [main]
+    paths: ['cloudflare/**', 'server/database/**', 'platform-web/**', 'scripts/*platform*', 'scripts/*worker*', 'scripts/export-english-rules.cjs', 'app/src/main/assets/web/**', '.github/workflows/platform.yml']
+  pull_request:
+    paths: ['cloudflare/**', 'server/database/**', 'platform-web/**', 'scripts/*platform*', 'scripts/*worker*', 'scripts/export-english-rules.cjs', 'app/src/main/assets/web/**', '.github/workflows/platform.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: cloudflare/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: npm ci
+        working-directory: cloudflare
+      - run: node --test scripts/test-platform.cjs
+      - run: python scripts/build-worker-assets.py
+      - run: npm run check
+        working-directory: cloudflare
+      - run: npm test
+        working-directory: cloudflare
+      - run: npm run bundle
+        working-directory: cloudflare
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: growing-cloudflare-workers
+          path: |
+            cloudflare/src/
+            cloudflare/test/
+            cloudflare/migrations/
+            cloudflare/public/
+            cloudflare/package*.json
+            cloudflare/tsconfig.json
+            cloudflare/wrangler.jsonc
+            scripts/build-worker-assets.py
+            scripts/export-english-rules.cjs
+            platform-web/
+            app/src/main/assets/web/
+            server/database/
+            docs/platform-deployment.md
+            docs/self-hosted-updates.md

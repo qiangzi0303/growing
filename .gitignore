@@ -11,4 +11,12 @@ server/data/
 *.log
 .DS_Store
 signing.json
+**/bin/
+**/obj/
+**/TestResults/
+server/**/.keys/
+.wrangler/
+.dev.vars
+.dev.vars.*
+cloudflare/public/
 private/

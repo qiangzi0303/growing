@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "growing-platform",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "kv_namespaces": [{ "binding": "APK_FILES", "id": "d4791757e7614d3f91d25e069610de66" }],
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "growing-db",
+    "database_id": "4c05083b-7ab5-4175-b3d6-9ac944b61716",
+    "migrations_dir": "migrations"
+  }],
+  "build": { "command": "python ../scripts/build-worker-assets.py" },
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "none",
+    "not_found_handling": "none"
+  },
+  "ratelimits": [{ "name": "AUTH_LIMITER", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } }]
+}

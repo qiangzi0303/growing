@@ -3,6 +3,22 @@ plugins { id 'com.android.application' }
 def releaseCode = (System.getenv('GROWING_VERSION_CODE') ?: '1').toInteger()
 def releaseName = System.getenv('GROWING_VERSION_NAME') ?: '1.0.0'
 def keyStorePath = System.getenv('ANDROID_KEYSTORE_PATH')
+def updateSite = new groovy.json.JsonSlurper().parse(rootProject.file('update-site.json'))
+def platformSite = new groovy.json.JsonSlurper().parse(rootProject.file('platform-site.json'))
+def cloudApiUrl = (System.getenv('GROWING_CLOUD_URL') ?: platformSite.apiBaseUrl ?: '').trim().replaceAll('/+$', '')
+if (cloudApiUrl) {
+    def uri = new URI(cloudApiUrl)
+    if (uri.scheme != 'https' || !uri.host || uri.userInfo || uri.fragment || uri.query || (uri.path && uri.path != '/')) {
+        throw new GradleException('Cloud URL must be an HTTPS site origin, such as https://learn.example.com.')
+    }
+}
+def updateManifestUrl = (System.getenv('GROWING_UPDATE_URL') ?: updateSite.manifestUrl ?: '').trim()
+if (updateManifestUrl) {
+    def uri = new URI(updateManifestUrl)
+    if (uri.scheme != 'https' || !uri.host || uri.userInfo || uri.fragment) {
+        throw new GradleException('Update manifest URL must be a public HTTPS URL without credentials or fragment.')
+    }
+}
 
 android {
     namespace 'com.qiangzi0303.growing'
@@ -14,6 +30,8 @@ android {
         targetSdk 35
         versionCode releaseCode
         versionName releaseName
+        buildConfigField 'String', 'UPDATE_MANIFEST_URL', groovy.json.JsonOutput.toJson(updateManifestUrl)
+        buildConfigField 'String', 'CLOUD_API_URL', groovy.json.JsonOutput.toJson(cloudApiUrl)
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     signingConfigs {
@@ -48,6 +66,7 @@ tasks.matching { it.name == 'validateSigningRelease' }.configureEach {
 dependencies {
     implementation 'androidx.webkit:webkit:1.12.1'
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
     androidTestImplementation 'androidx.test:runner:1.6.2'
     androidTestImplementation 'androidx.test:core:1.6.1'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'

@@ -1,0 +1,1912 @@
+{
+  "english-8a-01": {
+    "words": [
+      {
+        "id": "friendship",
+        "word": "friendship"
+      },
+      {
+        "id": "honest",
+        "word": "honest"
+      },
+      {
+        "id": "cheerful",
+        "word": "cheerful"
+      },
+      {
+        "id": "humorous",
+        "word": "humorous"
+      },
+      {
+        "id": "caring",
+        "word": "caring"
+      },
+      {
+        "id": "truth",
+        "word": "truth"
+      },
+      {
+        "id": "joke",
+        "word": "joke"
+      },
+      {
+        "id": "laugh",
+        "word": "laugh"
+      },
+      {
+        "id": "unhappy",
+        "word": "unhappy"
+      },
+      {
+        "id": "lie",
+        "word": "lie"
+      },
+      {
+        "id": "person",
+        "word": "person"
+      },
+      {
+        "id": "thought",
+        "word": "thought"
+      },
+      {
+        "id": "seat",
+        "word": "seat"
+      },
+      {
+        "id": "schoolwork",
+        "word": "schoolwork"
+      },
+      {
+        "id": "patient",
+        "word": "patient"
+      },
+      {
+        "id": "understand",
+        "word": "understand"
+      },
+      {
+        "id": "bit",
+        "word": "bit"
+      },
+      {
+        "id": "a little bit",
+        "word": "a little bit"
+      },
+      {
+        "id": "funny",
+        "word": "funny"
+      },
+      {
+        "id": "sense",
+        "word": "sense"
+      },
+      {
+        "id": "humour",
+        "word": "humour"
+      },
+      {
+        "id": "sense of humour",
+        "word": "sense of humour"
+      },
+      {
+        "id": "bored",
+        "word": "bored"
+      },
+      {
+        "id": "energetic",
+        "word": "energetic"
+      },
+      {
+        "id": "active",
+        "word": "active"
+      },
+      {
+        "id": "encourage",
+        "word": "encourage"
+      },
+      {
+        "id": "believe",
+        "word": "believe"
+      },
+      {
+        "id": "secret",
+        "word": "secret"
+      },
+      {
+        "id": "keep secrets",
+        "word": "keep secrets"
+      },
+      {
+        "id": "worse",
+        "word": "worse"
+      },
+      {
+        "id": "worst",
+        "word": "worst"
+      },
+      {
+        "id": "height",
+        "word": "height"
+      },
+      {
+        "id": "sec.",
+        "word": "sec."
+      },
+      {
+        "id": "test",
+        "word": "test"
+      },
+      {
+        "id": "badminton",
+        "word": "badminton"
+      },
+      {
+        "id": "however",
+        "word": "however"
+      },
+      {
+        "id": "balloon",
+        "word": "balloon"
+      },
+      {
+        "id": "scared",
+        "word": "scared"
+      },
+      {
+        "id": "fight",
+        "word": "fight"
+      },
+      {
+        "id": "dead",
+        "word": "dead"
+      },
+      {
+        "id": "attack",
+        "word": "attack"
+      },
+      {
+        "id": "danger",
+        "word": "danger"
+      },
+      {
+        "id": "brave",
+        "word": "brave"
+      },
+      {
+        "id": "get along with sb",
+        "word": "get along with sb"
+      },
+      {
+        "id": "nod",
+        "word": "nod"
+      },
+      {
+        "id": "once",
+        "word": "once"
+      },
+      {
+        "id": "feeling",
+        "word": "feeling"
+      },
+      {
+        "id": "thoughtful",
+        "word": "thoughtful"
+      }
+    ],
+    "lessons": [
+      {
+        "id": "reading",
+        "answers": [
+          "She helps me with my schoolwork.",
+          "laugh",
+          "外貌→品质及事例→感受"
+        ]
+      },
+      {
+        "id": "forms",
+        "answers": [
+          "happier",
+          "biggest",
+          "more interesting"
+        ]
+      },
+      {
+        "id": "comparison",
+        "answers": [
+          "the tallest",
+          "much",
+          "students"
+        ]
+      },
+      {
+        "id": "suffixes",
+        "answers": [
+          "-less",
+          "boring",
+          "to help"
+        ]
+      }
+    ]
+  },
+  "english-8a-02": {
+    "words": [
+      {
+        "id": "plastic",
+        "word": "plastic"
+      },
+      {
+        "id": "cheap",
+        "word": "cheap"
+      },
+      {
+        "id": "environment",
+        "word": "environment"
+      },
+      {
+        "id": "few",
+        "word": "few"
+      },
+      {
+        "id": "drama",
+        "word": "drama"
+      },
+      {
+        "id": "foreign",
+        "word": "foreign"
+      },
+      {
+        "id": "as ... as ...",
+        "word": "as ... as ..."
+      },
+      {
+        "id": "French",
+        "word": "French"
+      },
+      {
+        "id": "German",
+        "word": "German"
+      },
+      {
+        "id": "forward",
+        "word": "forward"
+      },
+      {
+        "id": "look forward to",
+        "word": "look forward to"
+      },
+      {
+        "id": "go",
+        "word": "go"
+      },
+      {
+        "id": "have a go",
+        "word": "have a go"
+      },
+      {
+        "id": "earthquake",
+        "word": "earthquake"
+      },
+      {
+        "id": "offer",
+        "word": "offer"
+      },
+      {
+        "id": "programme",
+        "word": "programme"
+      },
+      {
+        "id": "plenty",
+        "word": "plenty"
+      },
+      {
+        "id": "plenty of",
+        "word": "plenty of"
+      },
+      {
+        "id": "hands-on",
+        "word": "hands-on"
+      },
+      {
+        "id": "attention",
+        "word": "attention"
+      },
+      {
+        "id": "pay attention to",
+        "word": "pay attention to"
+      },
+      {
+        "id": "boring",
+        "word": "boring"
+      },
+      {
+        "id": "aware",
+        "word": "aware"
+      },
+      {
+        "id": "be aware of",
+        "word": "be aware of"
+      },
+      {
+        "id": "importance",
+        "word": "importance"
+      },
+      {
+        "id": "Japanese",
+        "word": "Japanese"
+      },
+      {
+        "id": "carefully",
+        "word": "carefully"
+      },
+      {
+        "id": "ourselves",
+        "word": "ourselves"
+      },
+      {
+        "id": "develop",
+        "word": "develop"
+      },
+      {
+        "id": "junior",
+        "word": "junior"
+      },
+      {
+        "id": "rocket",
+        "word": "rocket"
+      },
+      {
+        "id": "least",
+        "word": "least"
+      },
+      {
+        "id": "Italian",
+        "word": "Italian"
+      },
+      {
+        "id": "international",
+        "word": "international"
+      },
+      {
+        "id": "vacation",
+        "word": "vacation"
+      },
+      {
+        "id": "textbook",
+        "word": "textbook"
+      },
+      {
+        "id": "search",
+        "word": "search"
+      },
+      {
+        "id": "finish",
+        "word": "finish"
+      },
+      {
+        "id": "American",
+        "word": "American"
+      },
+      {
+        "id": "hamburger",
+        "word": "hamburger"
+      },
+      {
+        "id": "pizza",
+        "word": "pizza"
+      },
+      {
+        "id": "salad",
+        "word": "salad"
+      },
+      {
+        "id": "chopstick",
+        "word": "chopstick"
+      },
+      {
+        "id": "movie",
+        "word": "movie"
+      },
+      {
+        "id": "difference",
+        "word": "difference"
+      },
+      {
+        "id": "lunchtime",
+        "word": "lunchtime"
+      },
+      {
+        "id": "cookie",
+        "word": "cookie"
+      },
+      {
+        "id": "fork",
+        "word": "fork"
+      },
+      {
+        "id": "spoon",
+        "word": "spoon"
+      },
+      {
+        "id": "suggestion",
+        "word": "suggestion"
+      },
+      {
+        "id": "uniform",
+        "word": "uniform"
+      },
+      {
+        "id": "improve",
+        "word": "improve"
+      },
+      {
+        "id": "suggest",
+        "word": "suggest"
+      },
+      {
+        "id": "provide",
+        "word": "provide"
+      }
+    ],
+    "lessons": [
+      {
+        "id": "reading",
+        "answers": [
+          "learning",
+          "One has smaller classes than the other.",
+          "to"
+        ]
+      },
+      {
+        "id": "amount",
+        "answers": [
+          "fewer",
+          "the least",
+          "more"
+        ]
+      },
+      {
+        "id": "equality",
+        "answers": [
+          "important",
+          "much",
+          "A is shorter than B."
+        ]
+      },
+      {
+        "id": "writing",
+        "answers": [
+          "creating",
+          "Japanese",
+          "for"
+        ]
+      }
+    ]
+  },
+  "english-8a-04": {
+    "words": [
+      {
+        "id": "mooncake",
+        "word": "mooncake"
+      },
+      {
+        "id": "shelf",
+        "word": "shelf"
+      },
+      {
+        "id": "rose",
+        "word": "rose"
+      },
+      {
+        "id": "tape",
+        "word": "tape"
+      },
+      {
+        "id": "glue",
+        "word": "glue"
+      },
+      {
+        "id": "complete",
+        "word": "complete"
+      },
+      {
+        "id": "DIY",
+        "word": "DIY"
+      },
+      {
+        "id": "crazy",
+        "word": "crazy"
+      },
+      {
+        "id": "be crazy about",
+        "word": "be crazy about"
+      },
+      {
+        "id": "born",
+        "word": "born"
+      },
+      {
+        "id": "mistake",
+        "word": "mistake"
+      },
+      {
+        "id": "power cut",
+        "word": "power cut"
+      },
+      {
+        "id": "fill ... with",
+        "word": "fill ... with"
+      },
+      {
+        "id": "unlucky",
+        "word": "unlucky"
+      },
+      {
+        "id": "instead",
+        "word": "instead"
+      },
+      {
+        "id": "course",
+        "word": "course"
+      },
+      {
+        "id": "mess",
+        "word": "mess"
+      },
+      {
+        "id": "in a mess",
+        "word": "in a mess"
+      },
+      {
+        "id": "lamp",
+        "word": "lamp"
+      },
+      {
+        "id": "catch one's eye",
+        "word": "catch one's eye"
+      },
+      {
+        "id": "surprise",
+        "word": "surprise"
+      },
+      {
+        "id": "impossible",
+        "word": "impossible"
+      },
+      {
+        "id": "nearly",
+        "word": "nearly"
+      },
+      {
+        "id": "can",
+        "word": "can"
+      },
+      {
+        "id": "everywhere",
+        "word": "everywhere"
+      },
+      {
+        "id": "chalk",
+        "word": "chalk"
+      },
+      {
+        "id": "mark",
+        "word": "mark"
+      },
+      {
+        "id": "brush",
+        "word": "brush"
+      },
+      {
+        "id": "instructions",
+        "word": "instructions"
+      },
+      {
+        "id": "dangerous",
+        "word": "dangerous"
+      },
+      {
+        "id": "usual",
+        "word": "usual"
+      },
+      {
+        "id": "method",
+        "word": "method"
+      },
+      {
+        "id": "not only ... but also ...",
+        "word": "not only ... but also ..."
+      },
+      {
+        "id": "tie",
+        "word": "tie"
+      },
+      {
+        "id": "dye",
+        "word": "dye"
+      },
+      {
+        "id": "untie",
+        "word": "untie"
+      },
+      {
+        "id": "product",
+        "word": "product"
+      },
+      {
+        "id": "workshop",
+        "word": "workshop"
+      },
+      {
+        "id": "reduce",
+        "word": "reduce"
+      },
+      {
+        "id": "waste",
+        "word": "waste"
+      },
+      {
+        "id": "joy",
+        "word": "joy"
+      },
+      {
+        "id": "reason",
+        "word": "reason"
+      },
+      {
+        "id": "result",
+        "word": "result"
+      },
+      {
+        "id": "glove",
+        "word": "glove"
+      },
+      {
+        "id": "finger",
+        "word": "finger"
+      }
+    ],
+    "lessons": [
+      {
+        "id": "reading",
+        "answers": [
+          "阅读DIY资料并参加线上课程",
+          "with",
+          "about"
+        ]
+      },
+      {
+        "id": "imperatives",
+        "answers": [
+          "Read",
+          "Don’t leave",
+          "make"
+        ]
+      },
+      {
+        "id": "advice",
+        "answers": [
+          "ask",
+          "turn off",
+          "You had better not run."
+        ]
+      },
+      {
+        "id": "prefixes",
+        "answers": [
+          "impossible",
+          "buying",
+          "but also"
+        ]
+      }
+    ]
+  },
+  "english-8a-05": {
+    "words": [
+      {
+        "id": "wild",
+        "word": "wild"
+      },
+      {
+        "id": "eagle",
+        "word": "eagle"
+      },
+      {
+        "id": "fox",
+        "word": "fox"
+      },
+      {
+        "id": "shark",
+        "word": "shark"
+      },
+      {
+        "id": "wolf",
+        "word": "wolf"
+      },
+      {
+        "id": "king",
+        "word": "king"
+      },
+      {
+        "id": "tiny",
+        "word": "tiny"
+      },
+      {
+        "id": "birth",
+        "word": "birth"
+      },
+      {
+        "id": "round-the-clock",
+        "word": "round-the-clock"
+      },
+      {
+        "id": "weigh",
+        "word": "weigh"
+      },
+      {
+        "id": "satisfying",
+        "word": "satisfying"
+      },
+      {
+        "id": "in the wild",
+        "word": "in the wild"
+      },
+      {
+        "id": "face",
+        "word": "face"
+      },
+      {
+        "id": "serious",
+        "word": "serious"
+      },
+      {
+        "id": "even if",
+        "word": "even if"
+      },
+      {
+        "id": "easily",
+        "word": "easily"
+      },
+      {
+        "id": "sick",
+        "word": "sick"
+      },
+      {
+        "id": "live on",
+        "word": "live on"
+      },
+      {
+        "id": "mainly",
+        "word": "mainly"
+      },
+      {
+        "id": "as a result",
+        "word": "as a result"
+      },
+      {
+        "id": "government",
+        "word": "government"
+      },
+      {
+        "id": "action",
+        "word": "action"
+      },
+      {
+        "id": "take action",
+        "word": "take action"
+      },
+      {
+        "id": "thanks to",
+        "word": "thanks to"
+      },
+      {
+        "id": "effort",
+        "word": "effort"
+      },
+      {
+        "id": "increase",
+        "word": "increase"
+      },
+      {
+        "id": "protection",
+        "word": "protection"
+      },
+      {
+        "id": "in danger",
+        "word": "in danger"
+      },
+      {
+        "id": "fat",
+        "word": "fat"
+      },
+      {
+        "id": "once in a while",
+        "word": "once in a while"
+      },
+      {
+        "id": "manage",
+        "word": "manage"
+      },
+      {
+        "id": "whale",
+        "word": "whale"
+      },
+      {
+        "id": "hunt",
+        "word": "hunt"
+      },
+      {
+        "id": "meaningful",
+        "word": "meaningful"
+      },
+      {
+        "id": "accept",
+        "word": "accept"
+      },
+      {
+        "id": "drop",
+        "word": "drop"
+      },
+      {
+        "id": "blue whale",
+        "word": "blue whale"
+      },
+      {
+        "id": "risk",
+        "word": "risk"
+      },
+      {
+        "id": "at risk",
+        "word": "at risk"
+      },
+      {
+        "id": "Indian",
+        "word": "Indian"
+      },
+      {
+        "id": "disaster",
+        "word": "disaster"
+      },
+      {
+        "id": "pollution",
+        "word": "pollution"
+      },
+      {
+        "id": "certain",
+        "word": "certain"
+      },
+      {
+        "id": "illness",
+        "word": "illness"
+      }
+    ],
+    "lessons": [
+      {
+        "id": "reading",
+        "answers": [
+          "Bamboo.",
+          "Setting up nature reserves.",
+          "to"
+        ]
+      },
+      {
+        "id": "verb-to",
+        "answers": [
+          "to protect",
+          "not to hurt",
+          "taking"
+        ]
+      },
+      {
+        "id": "purpose",
+        "answers": [
+          "to watch",
+          "Why does she work hard?",
+          "To learn"
+        ]
+      },
+      {
+        "id": "object-to",
+        "answers": [
+          "to wait",
+          "laugh",
+          "not to disturb"
+        ]
+      },
+      {
+        "id": "writing",
+        "answers": [
+          "kindness",
+          "danger",
+          "Reduce pollution in rivers."
+        ]
+      }
+    ]
+  },
+  "english-8a-06": {
+    "words": [
+      {
+        "id": "snowy",
+        "word": "snowy"
+      },
+      {
+        "id": "hide",
+        "word": "hide"
+      },
+      {
+        "id": "shower",
+        "word": "shower"
+      },
+      {
+        "id": "lazy",
+        "word": "lazy"
+      },
+      {
+        "id": "pool",
+        "word": "pool"
+      },
+      {
+        "id": "upon",
+        "word": "upon"
+      },
+      {
+        "id": "as",
+        "word": "as"
+      },
+      {
+        "id": "temperature",
+        "word": "temperature"
+      },
+      {
+        "id": "sofa",
+        "word": "sofa"
+      },
+      {
+        "id": "snowman",
+        "word": "snowman"
+      },
+      {
+        "id": "blow",
+        "word": "blow"
+      },
+      {
+        "id": "shine",
+        "word": "shine"
+      },
+      {
+        "id": "smell",
+        "word": "smell"
+      },
+      {
+        "id": "heat",
+        "word": "heat"
+      },
+      {
+        "id": "sudden",
+        "word": "sudden"
+      },
+      {
+        "id": "snowball",
+        "word": "snowball"
+      },
+      {
+        "id": "fog",
+        "word": "fog"
+      },
+      {
+        "id": "divide",
+        "word": "divide"
+      },
+      {
+        "id": "divide ... into ...",
+        "word": "divide ... into ..."
+      },
+      {
+        "id": "end",
+        "word": "end"
+      },
+      {
+        "id": "growth",
+        "word": "growth"
+      },
+      {
+        "id": "as well as",
+        "word": "as well as"
+      },
+      {
+        "id": "connect",
+        "word": "connect"
+      },
+      {
+        "id": "be connected with",
+        "word": "be connected with"
+      },
+      {
+        "id": "positive",
+        "word": "positive"
+      },
+      {
+        "id": "effect",
+        "word": "effect"
+      },
+      {
+        "id": "average",
+        "word": "average"
+      },
+      {
+        "id": "wet",
+        "word": "wet"
+      },
+      {
+        "id": "degree",
+        "word": "degree"
+      },
+      {
+        "id": "sunshine",
+        "word": "sunshine"
+      },
+      {
+        "id": "snowstorm",
+        "word": "snowstorm"
+      },
+      {
+        "id": "get around",
+        "word": "get around"
+      },
+      {
+        "id": "awful",
+        "word": "awful"
+      },
+      {
+        "id": "order",
+        "word": "order"
+      },
+      {
+        "id": "take care",
+        "word": "take care"
+      },
+      {
+        "id": "frozen",
+        "word": "frozen"
+      },
+      {
+        "id": "thick",
+        "word": "thick"
+      },
+      {
+        "id": "deep",
+        "word": "deep"
+      },
+      {
+        "id": "throw",
+        "word": "throw"
+      }
+    ],
+    "lessons": [
+      {
+        "id": "reading",
+        "answers": [
+          "拟人",
+          "snow / grow",
+          "Autumn."
+        ]
+      },
+      {
+        "id": "sv-svo",
+        "answers": [
+          "S+V",
+          "snowmen",
+          "地点状语"
+        ]
+      },
+      {
+        "id": "linking",
+        "answers": [
+          "sweet",
+          "S+V+P",
+          "The soup smells good."
+        ]
+      },
+      {
+        "id": "weather",
+        "answers": [
+          "foggy",
+          "What is the weather like?",
+          "零下五度"
+        ]
+      }
+    ]
+  },
+  "english-8a-07": {
+    "words": [
+      {
+        "id": "penguin",
+        "word": "penguin"
+      },
+      {
+        "id": "climate",
+        "word": "climate"
+      },
+      {
+        "id": "include",
+        "word": "include"
+      },
+      {
+        "id": "around",
+        "word": "around"
+      },
+      {
+        "id": "hold",
+        "word": "hold"
+      },
+      {
+        "id": "return",
+        "word": "return"
+      },
+      {
+        "id": "get rid of",
+        "word": "get rid of"
+      },
+      {
+        "id": "store",
+        "word": "store"
+      },
+      {
+        "id": "act",
+        "word": "act"
+      },
+      {
+        "id": "therefore",
+        "word": "therefore"
+      },
+      {
+        "id": "sadly",
+        "word": "sadly"
+      },
+      {
+        "id": "ton",
+        "word": "ton"
+      },
+      {
+        "id": "harm",
+        "word": "harm"
+      },
+      {
+        "id": "wildlife",
+        "word": "wildlife"
+      },
+      {
+        "id": "quite a few",
+        "word": "quite a few"
+      },
+      {
+        "id": "noisy",
+        "word": "noisy"
+      },
+      {
+        "id": "system",
+        "word": "system"
+      },
+      {
+        "id": "cause",
+        "word": "cause"
+      },
+      {
+        "id": "north-east",
+        "word": "north-east"
+      },
+      {
+        "id": "cover",
+        "word": "cover"
+      },
+      {
+        "id": "lead",
+        "word": "lead"
+      },
+      {
+        "id": "lead to",
+        "word": "lead to"
+      },
+      {
+        "id": "create",
+        "word": "create"
+      },
+      {
+        "id": "set up",
+        "word": "set up"
+      },
+      {
+        "id": "balanced",
+        "word": "balanced"
+      },
+      {
+        "id": "project",
+        "word": "project"
+      },
+      {
+        "id": "knowledge",
+        "word": "knowledge"
+      },
+      {
+        "id": "sir",
+        "word": "sir"
+      },
+      {
+        "id": "madam",
+        "word": "madam"
+      },
+      {
+        "id": "kill",
+        "word": "kill"
+      },
+      {
+        "id": "solve",
+        "word": "solve"
+      },
+      {
+        "id": "environmental",
+        "word": "environmental"
+      }
+    ],
+    "lessons": [
+      {
+        "id": "reading",
+        "answers": [
+          "Living and non-living things.",
+          "Kidneys.",
+          "to"
+        ]
+      },
+      {
+        "id": "double-object",
+        "answers": [
+          "间接宾语",
+          "to",
+          "for"
+        ]
+      },
+      {
+        "id": "complement",
+        "answers": [
+          "宾语补足语",
+          "She gave me a pen.",
+          "S+V+O+C"
+        ]
+      },
+      {
+        "id": "conjunctions",
+        "answers": [
+          "but",
+          "so",
+          "Because it rained, we stayed home."
+        ]
+      },
+      {
+        "id": "writing",
+        "answers": [
+          "carefully",
+          "friendly",
+          "Keep rubbish out of the water."
+        ]
+      }
+    ]
+  },
+  "english-8a-08": {
+    "words": [
+      {
+        "id": "sound",
+        "word": "sound"
+      },
+      {
+        "id": "safe and sound",
+        "word": "safe and sound"
+      },
+      {
+        "id": "emergency",
+        "word": "emergency"
+      },
+      {
+        "id": "situation",
+        "word": "situation"
+      },
+      {
+        "id": "lightning",
+        "word": "lightning"
+      },
+      {
+        "id": "office",
+        "word": "office"
+      },
+      {
+        "id": "homeless",
+        "word": "homeless"
+      },
+      {
+        "id": "coach",
+        "word": "coach"
+      },
+      {
+        "id": "road",
+        "word": "road"
+      },
+      {
+        "id": "accident",
+        "word": "accident"
+      },
+      {
+        "id": "state",
+        "word": "state"
+      },
+      {
+        "id": "fireman",
+        "word": "fireman"
+      },
+      {
+        "id": "traffic",
+        "word": "traffic"
+      },
+      {
+        "id": "terrible",
+        "word": "terrible"
+      },
+      {
+        "id": "shake",
+        "word": "shake"
+      },
+      {
+        "id": "thunder",
+        "word": "thunder"
+      },
+      {
+        "id": "shout",
+        "word": "shout"
+      },
+      {
+        "id": "fear",
+        "word": "fear"
+      },
+      {
+        "id": "in fear",
+        "word": "in fear"
+      },
+      {
+        "id": "direction",
+        "word": "direction"
+      },
+      {
+        "id": "in all directions",
+        "word": "in all directions"
+      },
+      {
+        "id": "silent",
+        "word": "silent"
+      },
+      {
+        "id": "if",
+        "word": "if"
+      },
+      {
+        "id": "nervous",
+        "word": "nervous"
+      },
+      {
+        "id": "beat",
+        "word": "beat"
+      },
+      {
+        "id": "say to oneself",
+        "word": "say to oneself"
+      },
+      {
+        "id": "calm",
+        "word": "calm"
+      },
+      {
+        "id": "calm down",
+        "word": "calm down"
+      },
+      {
+        "id": "since",
+        "word": "since"
+      },
+      {
+        "id": "weak",
+        "word": "weak"
+      },
+      {
+        "id": "voice",
+        "word": "voice"
+      },
+      {
+        "id": "except",
+        "word": "except"
+      },
+      {
+        "id": "smoke",
+        "word": "smoke"
+      },
+      {
+        "id": "burn",
+        "word": "burn"
+      },
+      {
+        "id": "put out",
+        "word": "put out"
+      },
+      {
+        "id": "heavily",
+        "word": "heavily"
+      },
+      {
+        "id": "guess",
+        "word": "guess"
+      },
+      {
+        "id": "hat",
+        "word": "hat"
+      },
+      {
+        "id": "clear",
+        "word": "clear"
+      },
+      {
+        "id": "policeman",
+        "word": "policeman"
+      },
+      {
+        "id": "ache",
+        "word": "ache"
+      },
+      {
+        "id": "postman",
+        "word": "postman"
+      },
+      {
+        "id": "airport",
+        "word": "airport"
+      },
+      {
+        "id": "passport",
+        "word": "passport"
+      },
+      {
+        "id": "report",
+        "word": "report"
+      },
+      {
+        "id": "so far",
+        "word": "so far"
+      },
+      {
+        "id": "including",
+        "word": "including"
+      },
+      {
+        "id": "sign",
+        "word": "sign"
+      },
+      {
+        "id": "avoid",
+        "word": "avoid"
+      },
+      {
+        "id": "wound",
+        "word": "wound"
+      },
+      {
+        "id": "bleed",
+        "word": "bleed"
+      },
+      {
+        "id": "press",
+        "word": "press"
+      },
+      {
+        "id": "warn",
+        "word": "warn"
+      }
+    ],
+    "lessons": [
+      {
+        "id": "reading",
+        "answers": [
+          "Waited for help.",
+          "事件发生顺序",
+          "down"
+        ]
+      },
+      {
+        "id": "past-continuous",
+        "answers": [
+          "was reading",
+          "were playing",
+          "Was he sleeping?"
+        ]
+      },
+      {
+        "id": "when-while",
+        "answers": [
+          "began",
+          "was washing",
+          "While I was waiting, a bus arrived."
+        ]
+      },
+      {
+        "id": "writing",
+        "answers": [
+          "snowstorm",
+          "playing",
+          "not to swim"
+        ]
+      }
+    ]
+  },
+  "__legacy": {
+    "fractionTopics": [
+      "definition",
+      "domain",
+      "zero",
+      "property",
+      "reduce",
+      "common",
+      "sign",
+      "add",
+      "multiply",
+      "equation",
+      "extra"
+    ],
+    "words": [
+      {
+        "id": "w1",
+        "word": "learner"
+      },
+      {
+        "id": "w2",
+        "word": "feed"
+      },
+      {
+        "id": "w3",
+        "word": "fish"
+      },
+      {
+        "id": "w4",
+        "word": "lifetime"
+      },
+      {
+        "id": "w5",
+        "word": "journey"
+      },
+      {
+        "id": "w6",
+        "word": "single"
+      },
+      {
+        "id": "w7",
+        "word": "against"
+      },
+      {
+        "id": "w8",
+        "word": "fall behind"
+      },
+      {
+        "id": "w9",
+        "word": "successful"
+      },
+      {
+        "id": "w10",
+        "word": "drive"
+      },
+      {
+        "id": "w11",
+        "word": "guide"
+      },
+      {
+        "id": "w12",
+        "word": "lifelong"
+      },
+      {
+        "id": "w13",
+        "word": "inventor"
+      },
+      {
+        "id": "w14",
+        "word": "found"
+      },
+      {
+        "id": "w15",
+        "word": "talent"
+      },
+      {
+        "id": "w16",
+        "word": "century"
+      },
+      {
+        "id": "w17",
+        "word": "set ... apart"
+      },
+      {
+        "id": "w18",
+        "word": "print"
+      },
+      {
+        "id": "w19",
+        "word": "himself"
+      },
+      {
+        "id": "w20",
+        "word": "bookseller"
+      },
+      {
+        "id": "w21",
+        "word": "in order to"
+      },
+      {
+        "id": "w22",
+        "word": "return"
+      },
+      {
+        "id": "w23",
+        "word": "curious"
+      },
+      {
+        "id": "w24",
+        "word": "storm"
+      },
+      {
+        "id": "w25",
+        "word": "finding"
+      },
+      {
+        "id": "w26",
+        "word": "predict"
+      },
+      {
+        "id": "w27",
+        "word": "countless"
+      },
+      {
+        "id": "w28",
+        "word": "invention"
+      },
+      {
+        "id": "w29",
+        "word": "come as no surprise"
+      },
+      {
+        "id": "w30",
+        "word": "invent"
+      },
+      {
+        "id": "w31",
+        "word": "for free"
+      },
+      {
+        "id": "w32",
+        "word": "greatness"
+      },
+      {
+        "id": "w33",
+        "word": "success"
+      },
+      {
+        "id": "w34",
+        "word": "Italian"
+      },
+      {
+        "id": "w35",
+        "word": "themselves"
+      },
+      {
+        "id": "w36",
+        "word": "conversation"
+      },
+      {
+        "id": "w37",
+        "word": "translate"
+      },
+      {
+        "id": "w38",
+        "word": "page"
+      },
+      {
+        "id": "w39",
+        "word": "badly"
+      },
+      {
+        "id": "w40",
+        "word": "yourself"
+      },
+      {
+        "id": "w41",
+        "word": "yourselves"
+      },
+      {
+        "id": "w42",
+        "word": "record"
+      },
+      {
+        "id": "w43",
+        "word": "printer"
+      },
+      {
+        "id": "w44",
+        "word": "slashie"
+      },
+      {
+        "id": "w45",
+        "word": "dialect"
+      },
+      {
+        "id": "w46",
+        "word": "besides"
+      },
+      {
+        "id": "w47",
+        "word": "possible"
+      },
+      {
+        "id": "w48",
+        "word": "as ... as possible"
+      },
+      {
+        "id": "w49",
+        "word": "sentence"
+      },
+      {
+        "id": "w50",
+        "word": "rather than"
+      },
+      {
+        "id": "w51",
+        "word": "pronunciation"
+      },
+      {
+        "id": "w52",
+        "word": "grammar"
+      },
+      {
+        "id": "w53",
+        "word": "slowly"
+      },
+      {
+        "id": "w54",
+        "word": "text"
+      },
+      {
+        "id": "w55",
+        "word": "speech"
+      },
+      {
+        "id": "w56",
+        "word": "aloud"
+      },
+      {
+        "id": "w57",
+        "word": "pronounce"
+      },
+      {
+        "id": "w58",
+        "word": "correctly"
+      },
+      {
+        "id": "w59",
+        "word": "spelling"
+      },
+      {
+        "id": "w60",
+        "word": "to one's surprise"
+      },
+      {
+        "id": "w61",
+        "word": "repeat"
+      },
+      {
+        "id": "w62",
+        "word": "tourist"
+      }
+    ],
+    "seenIds": [
+      "w1",
+      "w2",
+      "w3",
+      "w4",
+      "w5",
+      "w6",
+      "w7",
+      "w8",
+      "w9",
+      "w10",
+      "w11",
+      "w12",
+      "w13",
+      "w14",
+      "w15",
+      "w16",
+      "w17",
+      "w18",
+      "w19",
+      "w20",
+      "w21",
+      "w22",
+      "w23",
+      "w24",
+      "w25",
+      "w26",
+      "w27",
+      "w28",
+      "w29",
+      "w30",
+      "w31",
+      "w32",
+      "w33",
+      "w34",
+      "w35",
+      "w36",
+      "w37",
+      "w38",
+      "w39",
+      "w40",
+      "w41",
+      "w42",
+      "w43",
+      "w44",
+      "w45",
+      "w46",
+      "w47",
+      "w48",
+      "w49",
+      "w50",
+      "w51",
+      "w52",
+      "w53",
+      "w54",
+      "w55",
+      "w56",
+      "w57",
+      "w58",
+      "w59",
+      "w60",
+      "w61",
+      "w62",
+      "p1",
+      "p2",
+      "p3",
+      "p4",
+      "p5",
+      "p6",
+      "p7",
+      "p8",
+      "a1",
+      "a2",
+      "a3",
+      "a4",
+      "a5",
+      "a6",
+      "r1",
+      "r2",
+      "r3",
+      "r4",
+      "f1",
+      "f2",
+      "f3",
+      "f4",
+      "t1",
+      "t2",
+      "t3",
+      "t4"
+    ],
+    "tests": [
+      "v1",
+      "v2",
+      "v3",
+      "v4",
+      "v5",
+      "v6",
+      "patterns",
+      "adverbs",
+      "reflexives",
+      "formation",
+      "reading"
+    ]
+  }
+}

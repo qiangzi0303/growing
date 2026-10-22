@@ -22,6 +22,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -49,9 +50,11 @@ public final class MainActivity extends Activity {
     private volatile String currentId;
     private volatile long epoch=0;
     private boolean registering=false;
+    private AppUpdater updater;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        updater=new AppUpdater(this);
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         accounts=new AccountStore(this);
         currentId=accounts.currentId();
@@ -59,6 +62,23 @@ public final class MainActivity extends Activity {
     }
     private int dp(float value){return Math.round(value*getResources().getDisplayMetrics().density);}
     private LinearLayout column(){LinearLayout result=new LinearLayout(this);result.setOrientation(LinearLayout.VERTICAL);return result;}
+    private LinearLayout loginForm(){
+        // Measure against the current window, including tablet split-screen widths.
+        LinearLayout form=new LinearLayout(this){
+            @Override protected void onMeasure(int widthSpec,int heightSpec){
+                int width=Math.min(View.MeasureSpec.getSize(widthSpec),dp(560));
+                super.onMeasure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),heightSpec);
+            }
+        };
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setGravity(Gravity.CENTER_VERTICAL);
+        form.setPadding(dp(30),dp(35),dp(30),dp(35));
+        return form;
+    }
+    private ScrollView scrollable(LinearLayout form){
+        ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);
+        scroll.addView(form,new ScrollView.LayoutParams(-1,-2));return scroll;
+    }
     private TextView text(String value,int size,int color){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);return t;}
     private Button button(String value){Button b=new Button(this);b.setText(value);b.setAllCaps(false);b.setTextSize(14);return b;}
     private void attachRoot(LinearLayout layout){
@@ -77,7 +97,8 @@ public final class MainActivity extends Activity {
         destroyWeb();
         LinearLayout outer=column();attachRoot(outer);
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);outer.addView(scroll,new LinearLayout.LayoutParams(-1,-1));
-        LinearLayout form=column();form.setGravity(Gravity.CENTER_VERTICAL);form.setPadding(dp(30),dp(35),dp(30),dp(35));scroll.addView(form,new ScrollView.LayoutParams(-1,-1));
+        FrameLayout center=new FrameLayout(this);scroll.addView(center,new ScrollView.LayoutParams(-1,-2));
+        LinearLayout form=loginForm();center.addView(form,new FrameLayout.LayoutParams(-1,-2,Gravity.CENTER));
         TextView title=text("成长",34,Color.rgb(45,68,52));title.setTypeface(null,Typeface.BOLD);form.addView(title);
         TextView hint=text(registering?"创建你的学习账号":"登录，继续你的学习",18,Color.rgb(80,110,70));hint.setPadding(0,dp(12),0,dp(24));form.addView(hint);
         EditText name=input("用户名（2—24 个字符）",false);name.setContentDescription("用户名");form.addView(name);
@@ -86,6 +107,7 @@ public final class MainActivity extends Activity {
         TextView error=text("",14,Color.rgb(160,90,60));error.setPadding(0,dp(12),0,dp(8));form.addView(error);
         Button submit=button(registering?"注册并开始学习":"登录");form.addView(submit);
         Button toggle=button(registering?"已有账号？去登录":"还没有账号？注册");form.addView(toggle);
+        Button updates=button("检查更新 · "+BuildConfig.VERSION_NAME);updates.setOnClickListener(v->updater.check(true));form.addView(updates);
         TextView note=text("本机账号 · 学习记录按账号分别保存\n覆盖安装新版会保留账号与学习记录；卸载或清除应用数据会删除本机记录。",12,Color.rgb(125,136,118));note.setPadding(0,dp(22),0,0);note.setLineSpacing(dp(3),1);form.addView(note);
         toggle.setOnClickListener(v->{registering=!registering;showLogin();});
         submit.setOnClickListener(v->{
@@ -121,7 +143,7 @@ public final class MainActivity extends Activity {
         web.addJavascriptInterface(speech,"GrowingSpeech");
         try{
             java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();
-            for(String asset:new String[]{"speech-bootstrap.js","bootstrap.js"}){
+            for(String asset:new String[]{"speech-bootstrap.js","bootstrap.js","web/cloud/sync-core.js","web/cloud/cloud-agent.js"}){
                 try(InputStream stream=getAssets().open(asset)){
                     byte[] buffer=new byte[8192];int count;while((count=stream.read(buffer))!=-1)bytes.write(buffer,0,count);
                     bytes.write('\n');
@@ -152,11 +174,14 @@ public final class MainActivity extends Activity {
         LinearLayout form=column();form.setPadding(dp(24),dp(8),dp(24),0);
         TextView note=text("本机账号："+accounts.currentName()+"\n版本："+BuildConfig.VERSION_NAME+"\n\n课程、内置音频和练习可离线使用。单词朗读使用手机语音引擎，离线使用需先安装英语语音数据。AI 评分和答疑需要联网并配置自己的 DeepSeek API Key。密钥只保存在此账号的本机设置中。",14,Color.rgb(80,100,75));form.addView(note);
         Button voice=button("朗读设置 / 英语试读");voice.setOnClickListener(v->showSpeechSettings());form.addView(voice);
+        Button updates=button("检查更新");updates.setOnClickListener(v->updater.check(true));form.addView(updates);
+        Button cloud=button("云同步 / 家长关联");form.addView(cloud);
         EditText key=input(settings.getString("ai.key","").isEmpty()?"填写 DeepSeek API Key":"已配置，留空保持现有密钥",true);form.addView(key);
-        new AlertDialog.Builder(this).setTitle("账号与 AI 设置").setView(form)
+        AlertDialog accountDialog=new AlertDialog.Builder(this).setTitle("账号与 AI 设置").setView(scrollable(form))
             .setPositiveButton("保存",(d,w)->{String value=key.getText().toString().trim();if(!value.isEmpty()&&!settings.edit().putString("ai.key",value).commit())new AlertDialog.Builder(this).setMessage("密钥未保存，请检查存储空间后重试。").setPositiveButton("好",null).show();})
             .setNeutralButton("退出账号",(d,w)->new AlertDialog.Builder(this).setTitle("退出当前账号？").setMessage("本机学习记录会保留，重新登录此账号可以继续。").setPositiveButton("退出",(x,y)->{try{accounts.logout();currentId=null;epoch++;showLogin();}catch(Exception e){new AlertDialog.Builder(this).setMessage(e.getMessage()).setPositiveButton("好",null).show();}}).setNegativeButton("取消",null).show())
             .setNegativeButton("取消",null).show();
+        cloud.setOnClickListener(v->{accountDialog.dismiss();if(web!=null)web.loadUrl(ORIGIN+"/assets/web/cloud/index.html");});
     }
     private void openSpeechSettings(boolean install){
         try{startActivity(new Intent(install?TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA:"com.android.settings.TTS_SETTINGS"));}
@@ -170,7 +195,7 @@ public final class MainActivity extends Activity {
         form.addView(text("朗读使用 Android 系统语音服务。请先选择可用引擎，并下载英语语音数据（数学设备朗读另需中文）。\n\n试读时调高媒体音量；若引擎仅支持在线语音，还需要联网。下载语言包后建议重新打开成长。",14,Color.rgb(80,100,75)));
         Button test=button("试读英语：Hello, welcome to Growing");
         test.setOnClickListener(v->{if(web!=null)web.evaluateJavascript("speechSynthesis.cancel();var t=new SpeechSynthesisUtterance('Hello, welcome to Growing.');t.lang='en-GB';speechSynthesis.speak(t);",null);});form.addView(test);
-        new AlertDialog.Builder(this).setTitle("朗读设置").setView(form)
+        new AlertDialog.Builder(this).setTitle("朗读设置").setView(scrollable(form))
             .setPositiveButton("系统语音设置",(d,w)->openSpeechSettings(false))
             .setNeutralButton("安装语音数据",(d,w)->openSpeechSettings(true))
             .setNegativeButton("关闭",null).show();
@@ -182,5 +207,7 @@ public final class MainActivity extends Activity {
     @Override public void onBackPressed(){if(web!=null&&!HOME.equals(web.getUrl()))loadHome();else super.onBackPressed();}
     @Override protected void onPause(){if(speech!=null)speech.interrupt();if(web!=null)web.onPause();super.onPause();}
     @Override protected void onResume(){super.onResume();if(web!=null)web.onResume();}
-    @Override protected void onDestroy(){destroyWeb();executor.shutdown();super.onDestroy();}
+    @Override protected void onStart(){super.onStart();updater.onStart();}
+    @Override protected void onStop(){updater.onStop();super.onStop();}
+    @Override protected void onDestroy(){if(updater!=null)updater.close();destroyWeb();executor.shutdown();super.onDestroy();}
 }

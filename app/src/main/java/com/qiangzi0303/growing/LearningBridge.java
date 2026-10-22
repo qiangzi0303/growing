@@ -41,6 +41,7 @@ public final class LearningBridge {
         catch(Exception e) { return error(e); }
     }
     @JavascriptInterface public String aiKey() { try{authorize();return settings.getString("ai.key","");}catch(Exception e){return "";} }
+    @JavascriptInterface public String cloudApiUrl() { try{authorize();return BuildConfig.CLOUD_API_URL;}catch(Exception e){return "";} }
     @JavascriptInterface public void configureAi() { try{authorize();activity.runOnUiThread(activity::showAccount);}catch(Exception ignored){} }
     @JavascriptInterface public void home() { try{authorize();activity.runOnUiThread(activity::loadHome);}catch(Exception ignored){} }
 }
