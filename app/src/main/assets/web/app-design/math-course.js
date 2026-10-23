@@ -107,7 +107,7 @@
   }
   function practice(n,r){
     const qs=n.practice;
-    return `<p class="muted">每个知识点3题，本轮全部正确记为“应用练习通过”。题目为原创教学补充，练习记录与诊断记录独立；复做可能受熟悉题目影响。</p><p><a target="_top" href="handwriting.html?${esc(new URLSearchParams({subject,unit:chapter.id,prompt:qs[0].prompt+'\n'+qs[0].options.map((o,i)=>'ABCD'[i]+'. '+o).join('\n')+'\n请写出解题过程并说明理由。'}))}">用手写板说明第 1 题的解题过程 / AI 点评 ↗</a></p>
+    return `<p class="muted">每个知识点3题，本轮全部正确记为“应用练习通过”。题目为原创教学补充，练习记录与诊断记录独立；复做可能受熟悉题目影响。</p><p><a target="_top" href="handwriting.html?${esc(new URLSearchParams({subject,unit:chapter.id}))}">本章手写解答题 / AI 点评 ↗</a></p>
       <form id="practice-form">${qs.map((q,i)=>`<fieldset class="question"><legend>${i+1}. ${esc(q.prompt)}</legend>${q.options.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}" required ${submitted?.choices[i]===j?'checked':''} ${submitted?'disabled':''}><span>${'ABCD'[j]} · ${esc(o)}</span></label>`).join('')}${submitted?`<div class="practice-feedback ${submitted.choices[i]!==q.answer?'wrong':''}">${submitted.choices[i]===q.answer?'本题正确':'本题未通过'} · 参考答案：${esc(q.options[q.answer])}<br>${esc(q.explanation)}</div>`:''}</fieldset>`).join('')}
       ${submitted?`<div class="quiz-total">本轮 ${submitted.score}/3。${submitted.score===3?'应用练习通过。':'先对照解析补学，再重新练习。'} 概念解释评分另行记录。</div><div class="lesson-actions"><button type="button" id="retry-practice">重新练习</button><a href="${tool('diagnosis')}" target="_top">检查必要先修 →</a></div>`:'<button type="submit" class="primary">提交本轮3题 →</button>'}</form><p class="mini-progress">历史最好：${r.bestQuiz}/3；${concept(r)?'已有有效AI概念解释通过记录。':'尚无有效AI概念解释通过记录。'}</p>`;
   }

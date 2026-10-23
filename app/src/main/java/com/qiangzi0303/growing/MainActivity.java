@@ -145,7 +145,7 @@ public final class MainActivity extends Activity {
         destroyWeb();
         LinearLayout outer=column();attachRoot(outer);
         LinearLayout toolbar=new LinearLayout(this);toolbar.setGravity(Gravity.CENTER_VERTICAL);toolbar.setPadding(dp(8),0,dp(8),0);
-        back=button("‹ 返回选科");back.setOnClickListener(v->loadHome());toolbar.addView(back);
+        back=button("‹ 返回登录");back.setOnClickListener(v->navigateBack());toolbar.addView(back);
         screenTitle=text("",14,Color.rgb(80,110,70));screenTitle.setGravity(Gravity.CENTER);toolbar.addView(screenTitle,new LinearLayout.LayoutParams(0,dp(48),1));
         Button account=button("账号");account.setOnClickListener(v->showAccount());toolbar.addView(account);outer.addView(toolbar,new LinearLayout.LayoutParams(-1,dp(48)));
         web=new WebView(this);outer.addView(web,new LinearLayout.LayoutParams(-1,0,1));
@@ -172,7 +172,7 @@ public final class MainActivity extends Activity {
         }catch(Exception e){new AlertDialog.Builder(this).setMessage("学习环境未能初始化，请重新安装同签名的安装包。").setPositiveButton("关闭",(d,w)->finish()).show();return;}
         WebViewAssetLoader loader=new WebViewAssetLoader.Builder().addPathHandler("/assets/",new WebViewAssetLoader.AssetsPathHandler(this)).build();
         web.setWebViewClient(new WebViewClient(){
-            @Override public void onPageStarted(WebView view,String url,android.graphics.Bitmap icon){if(speech!=null)speech.cancel();}
+            @Override public void onPageStarted(WebView view,String url,android.graphics.Bitmap icon){if(speech!=null)speech.cancel();updateNavigation(url);}
             @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){return loader.shouldInterceptRequest(request.getUrl());}
             @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
                 Uri url=request.getUrl();
@@ -183,11 +183,26 @@ public final class MainActivity extends Activity {
                 if(request.isForMainFrame()&&"https".equals(url.getScheme())){try{startActivity(new Intent(Intent.ACTION_VIEW,url));}catch(Exception ignored){}}
                 return true;
             }
-            @Override public void onPageFinished(WebView view,String url){boolean home=HOME.equals(url),cloud=CLOUD.equals(url);back.setVisibility(home||cloud?View.INVISIBLE:View.VISIBLE);screenTitle.setText(cloud?"云账号与身份":home?"":url.contains("word-ops")?"英语 · Unit 3":url.contains("fraction-ops")?"数学 · 分式":url.contains("subject=english")||url.contains("english-course")?"英语":url.contains("subject=physics")||url.contains("physics-")?"物理":url.contains("math-course")||url.contains("knowledge")||url.contains("subject=math")?"数学":"成长课堂");}
+            @Override public void onPageFinished(WebView view,String url){updateNavigation(url);}
         });
         loadHome();
     }
     public void loadHome(){if(web!=null){NativeIdentity identity=accounts.identity(currentId);web.loadUrl(identity!=null&&identity.role.equals("Student")?HOME:CLOUD);}}
+    private void updateNavigation(String url){
+        boolean home=HOME.equals(url),cloud=CLOUD.equals(url);
+        NativeIdentity identity=accounts.identity(currentId);
+        back.setVisibility(home?View.INVISIBLE:View.VISIBLE);
+        back.setText(cloud?(identity!=null&&identity.role.equals("Student")?"‹ 返回主页":"‹ 返回登录"):"‹ 返回选科");
+        screenTitle.setText(cloud?"云账号与身份":home?"":url.contains("word-ops")?"英语 · Unit 3":url.contains("fraction-ops")?"数学 · 分式":url.contains("subject=english")||url.contains("english-course")?"英语":url.contains("subject=physics")||url.contains("physics-")?"物理":url.contains("math-course")||url.contains("knowledge")||url.contains("subject=math")?"数学":"成长课堂");
+    }
+    private void navigateBack(){
+        if(web==null)return;
+        NativeIdentity identity=accounts.identity(currentId);
+        if(CLOUD.equals(web.getUrl())&&(identity==null||!identity.role.equals("Student"))){
+            try{accounts.logout();currentId=null;pendingRegistration=null;epoch++;registering=false;showLogin();}
+            catch(Exception e){new AlertDialog.Builder(this).setMessage("未能返回登录，请重试。").setPositiveButton("好",null).show();}
+        }else loadHome();
+    }
     synchronized String takeRegistration(String id,long value){
         if(!isSession(id,value))return "";
         String result=pendingRegistration;pendingRegistration=null;return result==null?"":result;
@@ -196,6 +211,7 @@ public final class MainActivity extends Activity {
     void confirmIdentity(String id,long value,String profile) throws Exception {
         if(!isSession(id,value))throw new SecurityException("登录已失效。");
         accounts.confirmIdentity(id,profile);
+        runOnUiThread(()->{if(isSession(id,value)&&web!=null)updateNavigation(web.getUrl());});
     }
     public boolean isSession(String id,long value){return id!=null&&id.equals(currentId)&&value==epoch;}
     public void showAccount(){
@@ -206,7 +222,7 @@ public final class MainActivity extends Activity {
         TextView note=text("本机账号："+accounts.currentName()+"\n身份："+(identity==null?"待确认":identity.role.equals("Student")?"学生":identity.role.equals("Parent")?"家长":"管理员")+"\n版本："+BuildConfig.VERSION_NAME+"\n\n学生课程、内置音频和练习可离线使用。单词朗读使用手机语音引擎，离线使用需先安装英语语音数据。AI 评分和答疑需要联网并配置自己的 DeepSeek API Key。密钥只保存在此账号的本机设置中。",14,Color.rgb(80,100,75));form.addView(note);
         Button voice=button("朗读设置 / 英语试读");voice.setOnClickListener(v->showSpeechSettings());form.addView(voice);
         Button updates=button("检查更新");updates.setOnClickListener(v->updater.check(true));form.addView(updates);
-        Button cloud=button("云同步 / 家长关联");form.addView(cloud);
+        Button cloud=button(identity!=null&&identity.role.equals("Parent")?"我的孩子":"云同步");form.addView(cloud);
         EditText key=input(settings.getString("ai.key","").isEmpty()?"填写 DeepSeek API Key":"已配置，留空保持现有密钥",true);form.addView(key);
         AlertDialog accountDialog=new AlertDialog.Builder(this).setTitle("账号与 AI 设置").setView(scrollable(form))
             .setPositiveButton("保存",(d,w)->{String value=key.getText().toString().trim();if(!value.isEmpty()&&!settings.edit().putString("ai.key",value).commit())new AlertDialog.Builder(this).setMessage("密钥未保存，请检查存储空间后重试。").setPositiveButton("好",null).show();})
@@ -235,7 +251,7 @@ public final class MainActivity extends Activity {
         if(speech!=null){speech.close();speech=null;}
         if(web!=null){web.stopLoading();web.removeJavascriptInterface("GrowingNative");web.removeJavascriptInterface("GrowingSpeech");web.destroy();web=null;}
     }
-    @Override public void onBackPressed(){if(web!=null&&!HOME.equals(web.getUrl())&&!CLOUD.equals(web.getUrl()))loadHome();else super.onBackPressed();}
+    @Override public void onBackPressed(){if(web!=null&&!HOME.equals(web.getUrl()))navigateBack();else super.onBackPressed();}
     @Override protected void onPause(){if(speech!=null)speech.interrupt();if(web!=null)web.onPause();super.onPause();}
     @Override protected void onResume(){super.onResume();if(web!=null)web.onResume();}
     @Override protected void onStart(){super.onStart();updater.onStart();}

@@ -1,5 +1,31 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const C=require('../app/src/main/assets/web/app-design/handwriting-core.js'),S=require('../platform-web/sync-core.js');
+const T=require('../app/src/main/assets/web/app-design/handwriting-tasks.js');
+test('every verified curriculum unit has distinct subject-specific handwritten tasks',()=>{
+  const vm=require('node:vm'),fs=require('node:fs'),context={window:{}};
+  vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../app/src/main/assets/web/app-design/curriculum.js'),'utf8'),context);
+  const all=new Set(),ids=new Set();let count=0;
+  for(const subject of ['math','physics','english']){
+    const supported=Object.values(context.window.GrowingCurriculum[subject].terms).filter(t=>t.verified).flatMap(t=>t.units.map(u=>u.id));
+    assert.deepEqual([...supported].sort(),C.units(subject).sort());
+    for(const unit of supported){
+      const tasks=T.forUnit(subject,unit);assert.ok(tasks.length>=2,unit);
+      for(const task of tasks){
+        assert.ok(task.title.length>3&&task.prompt.length>70&&task.prompt.length<=6000,task.id);
+        assert.ok(!ids.has(task.id)&&!all.has(task.prompt),'tasks must not repeat across units');ids.add(task.id);all.add(task.prompt);
+        assert.ok(!/待补充|待核对|TODO/.test(task.prompt));
+        if(subject==='english')assert.match(task.prompt,/80—100词/);else assert.match(task.prompt,/（1）/);
+        const d=C.create(subject,unit,task.prompt);assert.ok(C.validate(d));
+        assert.equal(d.mode,subject==='english'?'essay':'solution');
+        assert.equal(JSON.parse(JSON.stringify(d)).prompt,task.prompt);count++;
+      }
+    }
+  }
+  assert.equal(count,48);
+});
+test('unverified or mismatched units never borrow questions from another subject or book',()=>{
+  for(const [subject,unit] of [['english','english-8b-01'],['physics','physics-8b-01'],['math','english-8a-01'],['other','math-8a-01']])assert.deepEqual(T.forUnit(subject,unit),[]);
+});
 const make=()=>{const d=C.create('math','math-8a-01','求解并说明理由');d.pages[0].push({tool:'pen',width:4,points:[[10,20,.2],[30,50,.9]]});return d;};
 test('original round-trips pressures, symbols and multiple pages without embedding credentials',()=>{
   const d=make();d.prompt='x² / √2 ≤ 3';d.pages.push([{tool:'eraser',width:28,points:[[10,30,1]]}]);

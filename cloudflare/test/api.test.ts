@@ -464,3 +464,35 @@ test('historical rank rebuild is idempotent, admin-only and guarded against conc
   assert.equal((await call(path,'GET',undefined,student.token)).status,404);
   assert.equal((await db.query('SELECT "Value" FROM "GrowingDocuments" WHERE "StudentId"=?1 AND "Key"=?2',[student.user.id,key]))[0].Value,null);
 });
+
+test('parents add multiple children by verified student credentials without student invitations',async()=>{
+  const parent=await register('Parent'),other=await register('Parent'),a=await register(),b=await register(),pending=await register();
+  const path='/api/parent/children/account';
+  const credentials=(child:any)=>({studentUsername:child.name.toLowerCase(),studentPassword:password});
+  const linked=async()=>await (await call('/api/parent/children','GET',undefined,parent.token)).json() as any[];
+  const sessionsBefore=await db.query('SELECT * FROM "GrowingSessions" WHERE "UserId" IN (?1,?2)',[a.user.id,b.user.id]);
+  assert.equal((await call(path,'POST',credentials(a))).status,401);
+  assert.equal((await call(path,'POST',credentials(b),a.token)).status,403);
+  assert.equal((await call(path,'POST',{...credentials(a),studentPassword:'incorrect-password'},parent.token)).status,400);
+  assert.equal((await call(path,'POST',{...credentials(a),studentUsername:'no_such_student'},parent.token)).status,400);
+  assert.equal((await call(path,'POST',credentials(other),parent.token)).status,400);
+  await db.query('UPDATE "GrowingUsers" SET "RoleConfirmed"=0 WHERE "Id"=?1',[pending.user.id]);
+  assert.equal((await call(path,'POST',credentials(pending),parent.token)).status,400);
+  assert.deepEqual(await linked(),[]);
+  limited=true;
+  try{assert.equal((await call(path,'POST',credentials(a),parent.token)).status,429);}finally{limited=false;}
+  assert.deepEqual(await linked(),[]);
+  for(const student of [a,b,a]){
+    const response=await call(path,'POST',credentials(student),parent.token);
+    assert.equal(response.status,200,await response.clone().text());
+    assert.deepEqual(await response.json(),{studentId:student.user.id});
+  }
+  assert.deepEqual((await linked()).map(c=>c.id).sort(),[a.user.id,b.user.id].sort());
+  assert.equal((await (await call('/api/auth/me','GET',undefined,parent.token)).json() as any).id,parent.user.id);
+  assert.deepEqual(await db.query('SELECT * FROM "GrowingSessions" WHERE "UserId" IN (?1,?2)',[a.user.id,b.user.id]),sessionsBefore);
+  assert.deepEqual(await db.query('SELECT * FROM "GrowingInvitations" WHERE "StudentId" IN (?1,?2)',[a.user.id,b.user.id]),[]);
+  for(const student of [a,b]){
+    assert.equal((await call('/api/parent/children/'+student.user.id+'/report','GET',undefined,parent.token)).status,200);
+    assert.equal((await call('/api/parent/children/'+student.user.id+'/report','GET',undefined,other.token)).status,404);
+  }
+});

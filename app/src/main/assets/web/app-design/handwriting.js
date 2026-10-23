@@ -4,10 +4,25 @@
   const subject=['math','physics','english'].includes(params.get('subject'))?params.get('subject'):'math';
   const unitId=C.units(subject).includes(params.get('unit'))?params.get('unit'):C.units(subject)[0];
   const course=Object.values(GrowingCurriculum[subject].terms).flatMap(t=>t.units).find(u=>u.id===unitId);
+  const tasks=GrowingHandwritingTasks.forUnit(subject,unitId),essay=subject==='english';
   const CONFIG='growing-vision-ai-v1',canvas=$('#paper');
   let doc,key,page=0,tool='pen',redo=[],active=null,job=null,blocked=false,dirty=false,saveTimer;
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   $('#course-label').textContent=GrowingCurriculum[subject].name+' · '+course.title+' · '+(subject==='english'?'作文 / 书面表达':'解答题 / 推导过程');
+  document.title=GrowingCurriculum[subject].name+'手写'+(essay?'作文':'解答题')+' · '+course.title;
+  $('#page-title').textContent=GrowingCurriculum[subject].name+'手写'+(essay?'作文':'解答题');
+  $('#writing-guide').textContent=essay?'根据本单元主题和写作要求，在下方书写完整作文，保留你的原始字迹与段落。':'根据本章题目，在下方画图、列式并写出推导或证明过程，保留你的原始笔迹。';
+  $('#task-heading').textContent='本'+(essay?'单元作文题目':'章解答题');
+  $('#prompt-label').textContent=essay?'作文题目与写作要求':'解答题题目与作答要求';
+  $('#prompt').placeholder=essay?'填写主题、写作情境、要点与词数要求。':'填写完整题目、已知条件和需要求解或证明的问题。';
+  $('#review-guide').textContent=essay?'识别不会自动改写作文。请对照原稿核对单词、标点和段落，再确认点评。':'识别不会自动补全解题过程。请重点核对负号、分数、根号、上下标和单位。';
+  $('#transcript-label').textContent=essay?'核对后的作文原文':'核对后的解题过程 / 数学表达式';
+  $('#transcript').placeholder=essay?'识别后核对原文，保留原有段落与表达。':'识别后核对符号、公式和单位，分数可写为(a+b)/c，乘方可写为x^2。';
+  $('#task-choice').innerHTML=tasks.map(t=>`<option value="${esc(t.id)}">${esc(t.title)}</option>`).join('')+'<option value="custom">自拟题目 / 老师布置的作业</option>';
+  function previewTask(){const task=tasks.find(t=>t.id===$('#task-choice').value);$('#task-preview').textContent=task?.prompt||(essay?'新建空白作文作业后，填写主题和写作要求。':'新建空白解答作业后，填写题目与已知条件。');}
+  function matchTask(){const task=tasks.find(t=>t.prompt===doc.prompt);$('#task-choice').value=task?.id||'custom';previewTask();}
+  function selectedPrompt(){return tasks.find(t=>t.id===$('#task-choice').value)?.prompt||'';}
+  $('#task-choice').onchange=previewTask;
   $('#back').href=course.entry||(subject==='english'?'english-course.html?unit=':subject==='physics'?'physics-course.html?chapter=':'math-course.html?chapter=')+unitId;
   $('#back').target='_top';
   function say(id,text,error=false){$(id).textContent=text;$(id).classList.toggle('error',error);}
@@ -31,6 +46,7 @@
     $('#add-page').disabled=blocked||!!job||doc.pages.length>=C.MAX_PAGES;
     $('#undo').disabled=blocked||!!job||!doc.pages[page].length;$('#redo').disabled=blocked||!!job||!redo.length;
     $('#prompt').disabled=blocked||!!job;review();
+    $('#task-choice').disabled=!!job;$('#use-task').disabled=!!job;
   }
   function review(){
     const r=doc.recognition;$('#transcript').value=r?.text||'';$('#transcript').disabled=blocked||!!job||!r;
@@ -41,13 +57,14 @@
   }
   function open(k){
     if(job||active||dirty&&!save())return;
-    try{const d=JSON.parse(localStorage.getItem(k));if(!C.validate(d)||d.unitId!==unitId)throw Error();doc=d;key=k;blocked=false;dirty=false;page=0;redo=[];say('#ai-status','');render();archiveList();history.replaceState(null,'','?'+new URLSearchParams({subject,unit:unitId,id:key.slice(C.PREFIX.length)}));}
+    try{const d=JSON.parse(localStorage.getItem(k));if(!C.validate(d)||d.unitId!==unitId)throw Error();doc=d;key=k;blocked=false;dirty=false;page=0;redo=[];say('#ai-status','');matchTask();render();archiveList();history.replaceState(null,'','?'+new URLSearchParams({subject,unit:unitId,id:key.slice(C.PREFIX.length)}));}
     catch{say('#ai-status','该原稿无法读取，原记录已保留，未覆盖。请选择其他作业或新建。',true);}
   }
-  function newDoc(){if(job||active||dirty&&!save())return;doc=C.create(subject,unitId);key=C.PREFIX+crypto.randomUUID();page=0;redo=[];blocked=false;dirty=true;render();save();say('#ai-status','已新建。先填写题目，再书写答案。');history.replaceState(null,'','?'+new URLSearchParams({subject,unit:unitId,id:key.slice(C.PREFIX.length)}));}
+  function newDoc(){if(job||active||dirty&&!save())return;doc=C.create(subject,unitId,selectedPrompt());key=C.PREFIX+crypto.randomUUID();page=0;redo=[];blocked=false;dirty=true;matchTask();render();save();say('#ai-status',doc.prompt?'已按所选题目新建，请在下方书写'+(essay?'作文。':'解答过程。'):'已新建自拟作业，请先填写'+(essay?'作文要求。':'题目与条件。'));history.replaceState(null,'','?'+new URLSearchParams({subject,unit:unitId,id:key.slice(C.PREFIX.length)}));}
   $('#new').onclick=newDoc;$('#archives').onclick=e=>{const b=e.target.closest('[data-archive]');if(b)open(b.dataset.archive);};
+  $('#use-task').onclick=newDoc;
   $('#save').onclick=()=>{if(!active)save();};
-  $('#prompt').oninput=()=>{C.change(doc);doc.prompt=$('#prompt').value;dirty=true;review();say('#save-status','正在保存…');clearTimeout(saveTimer);saveTimer=setTimeout(save,400);};
+  $('#prompt').oninput=()=>{C.change(doc);doc.prompt=$('#prompt').value;dirty=true;matchTask();review();say('#save-status','正在保存…');clearTimeout(saveTimer);saveTimer=setTimeout(save,400);};
   $('#pen').onclick=()=>selectTool('pen');$('#eraser').onclick=()=>selectTool('eraser');
   function selectTool(t){tool=t;$('#pen').setAttribute('aria-pressed',t==='pen');$('#eraser').setAttribute('aria-pressed',t==='eraser');}
   $('#undo').onclick=()=>{if(active||job||blocked||!doc.pages[page].length)return;const history=redo;history.push(doc.pages[page].pop());C.change(doc);dirty=true;review();save();redo=history;render();};
@@ -88,7 +105,7 @@
   async function request(kind){
     if(job||active||blocked)return;
     let settings;try{settings=config();}catch(err){say('#ai-status',err.message,true);return;}
-    if(!doc.prompt.trim()||!doc.pages.some(p=>p.some(s=>s.tool==='pen'))){say('#ai-status','请填写题目 / 作文要求，并先写下答案。',true);return;}
+    if(!doc.prompt.trim()||!doc.pages.some(p=>p.some(s=>s.tool==='pen'))){say('#ai-status',essay?'请填写作文要求，并先写下作文。':'请填写完整题目，并先写下解答过程。',true);return;}
     if(kind==='grade'&&(!doc.recognition?.confirmed||!doc.recognition.text.trim()))return;
     if(!save()){say('#ai-status','请先成功保存原稿，再发送批改。',true);return;}
     const controller=new AbortController();job=controller;const revision=doc.revision,documentKey=key;
@@ -118,8 +135,8 @@
   $('#recognize').onclick=()=>request('recognize');$('#grade').onclick=()=>request('grade');$('#cancel').onclick=()=>job?.abort();
   $('#transcript').oninput=()=>{if(!doc.recognition||job)return;const r=doc.recognition;C.change(doc);doc.recognition={...r,revision:doc.revision,text:$('#transcript').value,confirmed:false};dirty=true;$('#confirmed').checked=false;$('#grade').disabled=true;save();};
   $('#confirmed').onchange=()=>{if(!doc.recognition||job)return;doc.recognition.confirmed=$('#confirmed').checked;dirty=true;save();review();};
-  doc=C.create(subject,unitId,(params.get('prompt')||'').slice(0,6000));key=C.PREFIX+crypto.randomUUID();
+  doc=C.create(subject,unitId,(params.get('prompt')||(tasks.find(t=>t.id===params.get('task'))||tasks[0])?.prompt||'').slice(0,6000));key=C.PREFIX+crypto.randomUUID();
   const requested=C.PREFIX+params.get('id');if(C.KEY.test(requested)){try{const d=JSON.parse(localStorage.getItem(requested));if(!C.validate(d)||d.unitId!==unitId)throw Error();doc=d;key=requested;}catch{blocked=true;say('#ai-status','该原稿无法读取，已停止覆盖。原记录保留，可从左侧新建另一份作业。',true);}}
   if(!C.KEY.test(requested))history.replaceState(null,'','?'+new URLSearchParams({subject,unit:unitId,id:key.slice(C.PREFIX.length)}));
-  render();archiveList();
+  matchTask();render();archiveList();if(!C.KEY.test(requested)){dirty=true;save();}
 })();

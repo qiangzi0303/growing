@@ -18,7 +18,8 @@ jobs:
       GROWING_VERSION_NAME: 1.0.${{ github.run_number }}
       # Use the versioned update-site.json; ignore stale repository overrides.
       GROWING_UPDATE_URL: ''
-      GROWING_CLOUD_URL: ${{ vars.GROWING_CLOUD_URL }}
+      # Use platform-site.json, matching the public download/update domain.
+      GROWING_CLOUD_URL: ''
     steps:
       - uses: actions/checkout@v4
       - name: Verify APK publishing configuration

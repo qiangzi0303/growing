@@ -81,7 +81,7 @@ export function createHandler(database: (env: Env) => Database = env => {
       db = database(env);
       const store = new Store(db);
       if (path === "/api/ready" && request.method === "GET") { await store.ready(); return decorate(json({ ready: true }), request); }
-      const limited = (path === "/api/auth/register" || path === "/api/auth/login" || path === "/api/student/invitations" || path === "/api/parent/children") && request.method === "POST";
+      const limited = (path === "/api/auth/register" || path === "/api/auth/login" || path === "/api/student/invitations" || path === "/api/parent/children" || path === "/api/parent/children/account") && request.method === "POST";
       if (limited) {
         const ip = request.headers.get("CF-Connecting-IP") ?? "local";
         if (!(await env.AUTH_LIMITER.limit({ key: "auth:" + ip })).success) error(429, "操作过于频繁，请稍后重试。");
@@ -121,7 +121,7 @@ export function createHandler(database: (env: Env) => Database = env => {
       if (path.startsWith("/api/admin/") && current.role !== "Admin") error(403, "需要管理员权限。");
       if (path.startsWith("/api/student/") && current.role !== "Student") error(403, "当前账号没有权限。");
       if (path.startsWith("/learn/") && current.role !== "Student" && current.role !== "Admin") error(403, "当前账号没有权限。");
-      if (path.startsWith("/api/parent/") && current.role !== "Parent" && !(current.role === "Admin" && (request.method === "GET" || path === "/api/parent/children" && request.method === "POST"))) error(403, "当前账号没有权限。");
+      if (path.startsWith("/api/parent/") && current.role !== "Parent" && !(current.role === "Admin" && (request.method === "GET" || ["/api/parent/children", "/api/parent/children/account"].includes(path) && request.method === "POST"))) error(403, "当前账号没有权限。");
       let result: Response;
       const admin = new Administration(db);
       const childState = async (id: string) => {
@@ -204,6 +204,16 @@ export function createHandler(database: (env: Env) => Database = env => {
       else if (path.startsWith("/api/student/parents/") && request.method === "DELETE") {
         const id = path.slice("/api/student/parents/".length); if (!uuid.test(id)) error(404, "未找到家长。");
         await store.revoke(current.id, id); result = new Response(null, { status: 204 });
+      } else if (path === "/api/parent/children/account" && request.method === "POST") {
+        const data = await body(request);
+        const name = typeof data.studentUsername === 'string' ? data.studentUsername.trim() : '';
+        if (!/^[\p{L}\p{N}_]{2,24}$/u.test(name) || typeof data.studentPassword !== 'string' || data.studentPassword.length < 8 || data.studentPassword.length > 128)
+          error(400, '请填写孩子的学生账号和 8—128 位密码。');
+        const student = await store.findUser(name.toUpperCase());
+        const matched = student ? await verifyPassword(data.studentPassword as string, student.passwordHash) : (await passwordHash(data.studentPassword as string), false);
+        if (!student || !matched) error(400, '孩子的账号或密码不正确。');
+        if (student!.role !== 'Student' || requiresRoleSelection(student!)) error(400, '请使用已确认学生身份的孩子账号。');
+        result = json(await store.bindStudent(current.id, student!.id));
       } else if (path === "/api/parent/children" && request.method === "POST") {
         const data = await body(request), code = typeof data.code === "string" ? data.code.trim().toUpperCase() : "";
         if (!/^[a-f0-9]{12}$/i.test(code)) error(400, "请输入学生提供的 12 位绑定码。");

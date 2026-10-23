@@ -130,6 +130,16 @@ export class Store {
   async parents(student: string) {
     return this.db.query('SELECT u."Id" AS id,u."DisplayName" AS "displayName",l."CreatedAt" AS "createdAt" FROM "GrowingFamilyLinks" l JOIN "GrowingUsers" u ON u."Id"=l."ParentId" WHERE l."StudentId"=?1', [student]);
   }
+  async bindStudent(parent: string, student: string) {
+    const [link] = await this.db.query<{studentId: string}>(`INSERT INTO "GrowingFamilyLinks" ("ParentId","StudentId","CreatedAt")
+      SELECT ?1,u."Id",${nowSql} FROM "GrowingUsers" u
+      WHERE u."Id"=?2 AND u."Role"='Student' AND u."RoleConfirmed"=1
+        AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=u."Id")
+      ON CONFLICT ("ParentId","StudentId") DO UPDATE SET "CreatedAt"="GrowingFamilyLinks"."CreatedAt"
+      RETURNING "StudentId" AS "studentId"`, [parent, student]);
+    if (!link) throw new HttpError(400, '孩子身份已变更，请重新验证学生账号。');
+    return link;
+  }
   async children(parent: string) {
     return this.db.query('SELECT u."Id" AS id,u."DisplayName" AS "displayName",l."CreatedAt" AS "createdAt" FROM "GrowingFamilyLinks" l JOIN "GrowingUsers" u ON u."Id"=l."StudentId" WHERE l."ParentId"=?1', [parent]);
   }

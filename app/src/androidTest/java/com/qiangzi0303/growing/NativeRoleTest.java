@@ -81,4 +81,28 @@ public class NativeRoleTest {
     }
     @Test public void legacyStudentCannotBypassGateAndConfirmationSurvivesRestart() throws Exception {confirmLegacy("Student");}
     @Test public void legacyParentSavesBeforeEntryAndNeverEntersStudentCourses() throws Exception {confirmLegacy("Parent");}
+    @Test public void unconfirmedLegacyAccountCanReturnToLoginWithoutLosingRecords() throws Exception {
+        AccountStore accounts=accounts();accounts.logout();String name="return_"+Long.toString(System.nanoTime(),36);
+        String id=accounts.authenticate(name,"Native-Test-Password".toCharArray(),true);
+        android.content.SharedPreferences records=ApplicationProvider.getApplicationContext().getSharedPreferences("learning-v1-"+id,0);
+        assertTrue(records.edit().putString("qa-preserved","original-progress").commit());
+        try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
+            ready(s,"!!document.querySelector('#auth')");
+            s.onActivity(a->{View button=find(a.getWindow().getDecorView(),"‹ 返回登录");assertNotNull(button);assertEquals(View.VISIBLE,button.getVisibility());button.performClick();});
+            assertNull(accounts.currentId());assertNull(accounts.identity(id));
+            assertEquals("original-progress",records.getString("qa-preserved",""));
+            s.onActivity(a->{View v=a.getWindow().getDecorView();assertNotNull(find(v,"登录"));});
+        }
+        assertEquals(id,accounts.authenticate(name,"Native-Test-Password".toCharArray(),false));
+    }
+    @Test public void confirmedStudentCanReturnFromCloudPageToOfflineHome() throws Exception {
+        AccountStore accounts=accounts();accounts.logout();accounts.authenticate("home_"+Long.toString(System.nanoTime(),36),"Native-Test-Password".toCharArray(),true);IdentityFixtures.student(accounts);
+        try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
+            ready(s,"!!document.querySelector('.subjects')");
+            js(s,"location.href='../cloud/index.html'");ready(s,"!!document.querySelector('#auth')");
+            s.onActivity(a->{View button=find(a.getWindow().getDecorView(),"‹ 返回主页");assertNotNull(button);assertEquals(View.VISIBLE,button.getVisibility());button.performClick();});
+            ready(s,"!!document.querySelector('.subjects')");
+            assertEquals("Student",accounts.identity(accounts.currentId()).role);
+        }
+    }
 }
