@@ -7,6 +7,8 @@ import { connect, type Database, Store, nowSql } from "../src/database";
 import { hash, passwordHash, verifyPassword } from "../src/auth";
 import { rankingStatements } from '../src/rankings';
 import rankingRules from '../src/ranking-rules.json';
+import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
+import diagnosisRules from '../src/diagnosis-rules.json';
 
 const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: 'export default {fetch(){return new Response("ok")}}', compatibilityDate: '2026-10-22', d1Databases: ['DB'] }));
 let db: Database;
@@ -44,6 +46,17 @@ before(async () => {
   await db.batch(statements); await db.batch(statements);
   const rankings=await readFile(new URL('../migrations/0003_rankings.sql',import.meta.url),'utf8');
   await db.batch(rankings.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
+  const diagnosisMigration=await readFile(new URL('../migrations/0004_diagnosis_rankings.sql',import.meta.url),'utf8');
+  const fixture=crypto.randomUUID();
+  await db.query(`INSERT INTO "GrowingUsers" ("Id","Username","NormalizedName","DisplayName","Role","PasswordHash","CreatedAt") VALUES (?1,?2,?2,'migration','Student','test-only',${nowSql})`,[fixture,'migration_'+fixture.slice(0,8)]);
+  await db.query(`INSERT INTO "GrowingDocuments" ("StudentId","Key","Value","Revision","UpdatedAt") VALUES (?1,'growing-math-lessons-v1','{"preserved":true}',1,${nowSql})`,[fixture]);
+  await db.query(`INSERT INTO "GrowingRankings" ("StudentId","BoardId","Kind","Subject","Term","Title","ConceptDone","ConceptTotal","TestDone","TestTotal","Score","UpdatedAt") VALUES (?1,'math-8a-01','unit','math','upper','migration',6,12,12,12,8500,${nowSql})`,[fixture]);
+  await db.batch(diagnosisMigration.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
+  const [migrated]=await db.query<any>('SELECT * FROM "GrowingRankings" WHERE "StudentId"=?1',[fixture]);
+  assert.equal(migrated.Score,5500);assert.equal(migrated.DiagnosisDone,0);assert.equal(migrated.DiagnosisTotal,12);
+  assert.equal((await db.query<any>('SELECT "Value" FROM "GrowingDocuments" WHERE "StudentId"=?1',[fixture]))[0].Value,'{"preserved":true}');
+  await db.batch(['GrowingRankings','GrowingDocuments'].map(table=>({sql:`DELETE FROM "${table}" WHERE "StudentId"=?1`,params:[fixture]})));
+  await db.query('DELETE FROM "GrowingUsers" WHERE "Id"=?1',[fixture]);
 });
 after(async () => { await mf.dispose(); });
 
@@ -320,15 +333,25 @@ test("parent confirmations verify stored rewards and binding, are idempotent and
 test('rankings use real D1 scoring, ties, privacy, pagination and bound-parent authorization',async()=>{
   const a=await register(),b=await register(),c=await register(),parent=await register('Parent'),stranger=await register('Parent');
   const rule=rankingRules.find(r=>r.id==='physics-8a-05')!;
+  const saveDiagnosis=async(s:any)=>{
+    const graph=diagnosis.graph(diagnosisRules.physics);
+    let session=diagnosis.createAssessment(graph,rule.diagnosisTopics!),view;
+    while((view=diagnosis.inspect(graph,session)).next){const q=view.next.question;session=diagnosis.answer(graph,session,q.id,q.answer);}
+    const value=JSON.stringify({version:1,records:Object.fromEntries(rule.diagnosisTopics!.map(id=>[id,session]))});
+    const response=await call('/api/student/state/growing-diagnosis-v1:'+rule.id,'PUT',{revision:0,value},s.token);
+    assert.equal(response.status,200,await response.clone().text());
+  };
   const save=async(s:any,quiz:number,revision=0)=>{
     const topics=Object.fromEntries(rule.topics!.map(id=>[id,{seen:true,bestQuiz:quiz,attempts:[{score:8,feedback:'解释准确',criticalErrors:[]}]}]));
     const response=await call('/api/student/state/growing-physics-lessons-v1','PUT',{revision,value:JSON.stringify({topics})},s.token);
     assert.equal(response.status,200,await response.clone().text());
   };
   await save(a,3);await save(b,3);await save(c,0);
+  await saveDiagnosis(a);await saveDiagnosis(b);
   const path='/api/student/rankings?board='+rule.id;
   const first=await (await call(path,'GET',undefined,a.token)).json() as any;
   assert.equal(first.self.rank,1);assert.equal(first.self.score,100);assert.equal(first.total,3);
+  assert.equal(first.self.diagnosisPercent,100);assert.equal(first.self.testPercent,100);
   assert.deepEqual(first.rows.map((r:any)=>r.rank),[1,1,3]);
   assert.equal(first.rows.filter((r:any)=>r.isSelf).length,1);
   const text=JSON.stringify(first);for(const secret of [a.user.id,b.user.id,c.user.id,b.name,c.name,'解释准确','passwordHash'])assert.ok(!text.includes(secret));
@@ -359,8 +382,10 @@ test('rankings use real D1 scoring, ties, privacy, pagination and bound-parent a
   assert.equal(last.rows.length,20);assert.equal(last.self.rank,23);assert.equal(last.total,23);assert.equal(last.self.score,30);
   const second=await (await call(path+'&page=2','GET',undefined,c.token)).json() as any;
   assert.equal(second.rows.length,3);assert.ok(second.rows.some((r:any)=>r.isSelf));
-  await save(c,3,1);assert.equal((await (await call(path,'GET',undefined,c.token)).json() as any).self.rank,1);
+  await save(c,3,1);await saveDiagnosis(c);assert.equal((await (await call(path,'GET',undefined,c.token)).json() as any).self.rank,1);
   await call('/api/student/state/growing-physics-lessons-v1','PUT',{revision:2,value:null},c.token);
+  assert.equal((await (await call(path,'GET',undefined,c.token)).json() as any).self.score,30);
+  await call('/api/student/state/growing-diagnosis-v1:'+rule.id,'PUT',{revision:1,value:null},c.token);
   assert.equal((await call(path,'GET',undefined,c.token)).status,404);
 });
 

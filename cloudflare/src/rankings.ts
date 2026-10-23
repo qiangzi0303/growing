@@ -1,4 +1,6 @@
 import catalogData from './ranking-rules.json';
+import diagnosisData from './diagnosis-rules.json';
+import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
 import { HttpError, type Database, type Document, type Statement } from './database';
 
 type Data = Record<string, any>;
@@ -10,11 +12,13 @@ const grade = (v: any) => v && Number.isInteger(v.score) && v.score >= 8 && v.sc
 const normalize = (v: unknown) => typeof v === 'string' ? v.trim().toLowerCase().replace(/[’‘]/g,"'").replace(/…/g,'...')
   .replace(/\s*\.\.\.\s*/g,' ... ').replace(/\s*-\s*/g,'-').replace(/\s+/g,' ').trim() : '';
 const catalog = catalogData as Data[];
+const diagnosisGraphs = Object.fromEntries(Object.entries(diagnosisData).map(([subject,data])=>[subject,diagnosis.graph(data)]));
 export interface Mastery {
   id: string; title: string; subject: string; subjectName: string; term: string; termName: string;
-  kind: 'unit' | 'course'; conceptDone: number; conceptTotal: number; testDone: number; testTotal: number; score: number;
+  kind: 'unit' | 'course'; conceptDone: number; conceptTotal: number; testDone: number; testTotal: number;
+  diagnosisDone: number; diagnosisTotal: number; score: number;
 }
-const score = (r: Omit<Mastery,'score'>): Mastery => ({...r,score:Math.round(3000*r.conceptDone/r.conceptTotal+7000*r.testDone/r.testTotal)});
+const score = (r: Omit<Mastery,'score'>): Mastery => ({...r,score:Math.round(3000*r.conceptDone/r.conceptTotal+4000*r.testDone/r.testTotal+3000*r.diagnosisDone/r.diagnosisTotal)});
 export function masteryBoards(docs: Document[]): Mastery[] {
   const states = new Map<string,Data>();
   for (const doc of docs) if (doc.value !== null) {
@@ -24,6 +28,17 @@ export function masteryBoards(docs: Document[]): Mastery[] {
     let conceptDone=0,testDone=0,conceptTotal=unit.topics?.length??unit.rules?.lessons.length??0;
     const testTotal=unit.kind==='english'?unit.rules.words.length+unit.rules.lessons.length:unit.tests?.length??conceptTotal;
     let started=false;
+    let diagnosisDone=0;
+    const diagnosisTopics:string[]=unit.diagnosisTopics??[],diagnosisTotal=diagnosisTopics.length||conceptTotal;
+    const evidence=object(states.get('growing-diagnosis-v1:'+unit.id));
+    if(evidence.version===1&&diagnosisGraphs[unit.subject])for(const id of diagnosisTopics){
+      const session=object(evidence.records)[id];
+      if(!session||!Array.isArray(session.targets)||!session.targets.every((target:unknown)=>typeof target==='string'&&diagnosisTopics.includes(target)))continue;
+      try{
+        const credit=diagnosis.assessmentCredit(diagnosisGraphs[unit.subject],session);
+        if(credit&&Object.hasOwn(credit,id)){diagnosisDone+=credit[id];started=true;}
+      }catch{/* Only complete, valid question paths earn diagnostic credit. */}
+    }
     if (unit.kind==='math'||unit.kind==='physics'||unit.kind==='fraction') {
       const state=states.get(unit.kind==='fraction'?'fraction-minute-v1':`growing-${unit.kind}-lessons-v1`)??{};
       for (const id of unit.topics) {
@@ -63,7 +78,7 @@ export function masteryBoards(docs: Document[]): Mastery[] {
       }
       for (const id of unit.tests)testDone+=ratio(best[id],100);
     }
-    return {...score({id:unit.id,title:unit.title,subject:unit.subject,subjectName:unit.subjectName,term:unit.term,termName:unit.termName,kind:'unit',conceptDone,conceptTotal,testDone,testTotal}),started};
+    return {...score({id:unit.id,title:unit.title,subject:unit.subject,subjectName:unit.subjectName,term:unit.term,termName:unit.termName,kind:'unit',conceptDone,conceptTotal,testDone,testTotal,diagnosisDone,diagnosisTotal}),started};
   });
   const result:Mastery[]=units.filter(u=>u.started).map(({started,...u})=>u);
   for (const key of new Set(units.map(u=>u.subject+':'+u.term))) {
@@ -72,7 +87,8 @@ export function masteryBoards(docs: Document[]): Mastery[] {
     const first=group[0];
     result.push(score({id:key,title:first.termName+' · '+first.subjectName,subject:first.subject,subjectName:first.subjectName,term:first.term,termName:first.termName,kind:'course',
       conceptDone:group.reduce((n,u)=>n+u.conceptDone,0),conceptTotal:group.reduce((n,u)=>n+u.conceptTotal,0),
-      testDone:group.reduce((n,u)=>n+u.testDone,0),testTotal:group.reduce((n,u)=>n+u.testTotal,0)}));
+      testDone:group.reduce((n,u)=>n+u.testDone,0),testTotal:group.reduce((n,u)=>n+u.testTotal,0),
+      diagnosisDone:group.reduce((n,u)=>n+u.diagnosisDone,0),diagnosisTotal:group.reduce((n,u)=>n+u.diagnosisTotal,0)}));
   }
   return result;
 }
@@ -83,10 +99,10 @@ export function rankingStatements(student:string,docs:Document[],revision?:numbe
   const guard=revision===undefined?'':' AND EXISTS (SELECT 1 FROM "GrowingUsers" WHERE "Id"=?1 AND "SyncRevision"=?2)';
   const statements:Statement[]=[{sql:'DELETE FROM "GrowingRankings" WHERE "StudentId"=?1'+guard,params:revision===undefined?[student]:[student,revision]}];
   for(const row of masteryBoards(docs))statements.push({
-    sql:`INSERT INTO "GrowingRankings" ("StudentId","BoardId","Kind","Subject","Term","Title","ConceptDone","ConceptTotal","TestDone","TestTotal","Score","UpdatedAt")
-      SELECT ?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,strftime('%Y-%m-%dT%H:%M:%fZ','now')`+
-      (revision===undefined?'':' WHERE EXISTS (SELECT 1 FROM "GrowingUsers" WHERE "Id"=?1 AND "SyncRevision"=?12)'),
-    params:[student,row.id,row.kind,row.subject,row.term,row.title,row.conceptDone,row.conceptTotal,row.testDone,row.testTotal,row.score,...(revision===undefined?[]:[revision])],
+    sql:`INSERT INTO "GrowingRankings" ("StudentId","BoardId","Kind","Subject","Term","Title","ConceptDone","ConceptTotal","TestDone","TestTotal","DiagnosisDone","DiagnosisTotal","Score","UpdatedAt")
+      SELECT ?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,strftime('%Y-%m-%dT%H:%M:%fZ','now')`+
+      (revision===undefined?'':' WHERE EXISTS (SELECT 1 FROM "GrowingUsers" WHERE "Id"=?1 AND "SyncRevision"=?14)'),
+    params:[student,row.id,row.kind,row.subject,row.term,row.title,row.conceptDone,row.conceptTotal,row.testDone,row.testTotal,row.diagnosisDone,row.diagnosisTotal,row.score,...(revision===undefined?[]:[revision])],
   });
   return statements;
 }
@@ -94,16 +110,17 @@ export function rankingStatements(student:string,docs:Document[],revision?:numbe
 const eligible=`FROM "GrowingRankings" r JOIN "GrowingUsers" u ON u."Id"=r."StudentId" WHERE u."Role"='Student'
   AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=u."Id")`;
 const fields=`r."BoardId" AS id,r."Kind" AS kind,r."Subject" AS subject,r."Term" AS term,r."Title" AS title,
-  r."ConceptDone" AS conceptDone,r."ConceptTotal" AS conceptTotal,r."TestDone" AS testDone,r."TestTotal" AS testTotal,r."Score" AS points,r."UpdatedAt" AS updatedAt`;
+  r."ConceptDone" AS conceptDone,r."ConceptTotal" AS conceptTotal,r."TestDone" AS testDone,r."TestTotal" AS testTotal,
+  r."DiagnosisDone" AS diagnosisDone,r."DiagnosisTotal" AS diagnosisTotal,r."Score" AS points,r."UpdatedAt" AS updatedAt`;
 export class Rankings {
   constructor(private db:Database){}
   async list(student:string){
     const rows=await this.db.query<Data>(`SELECT ${fields},(SELECT COUNT(*) FROM "GrowingRankings" peer JOIN "GrowingUsers" pu ON pu."Id"=peer."StudentId"
       WHERE peer."BoardId"=r."BoardId" AND pu."Role"='Student' AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=pu."Id")) AS participants
       ${eligible} AND r."StudentId"=?1 ORDER BY r."Subject",r."Term",r."Kind",r."BoardId"`,[student]);
-    return {boards:rows.map(r=>this.percentages(r)),formula:'概念定义掌握率 × 30% + 测试掌握率 × 70%',note:'按最近云同步记录排名；学期按教材上册/下册划分，不是按自然日期清零。科目榜分母为本学期全部已开放单元，未掌握部分记 0。同分并列。'};
+    return {boards:rows.map(r=>this.percentages(r)),formula:'费曼评测 × 30% + 题目评测 × 40% + 图谱诊断评测 × 30%',note:'按最近云同步记录排名；学期按教材上册/下册划分，不是按自然日期清零。科目榜分母为本学期全部已开放单元，未掌握部分记 0。同分并列。英语图谱诊断尚未开放，该项暂记0。'};
   }
-  percentages(row:Data){const {points,...rest}=row;return {...rest,score:points/100,conceptPercent:100*row.conceptDone/row.conceptTotal,testPercent:100*row.testDone/row.testTotal};}
+  percentages(row:Data){const {points,...rest}=row;return {...rest,score:points/100,conceptPercent:100*row.conceptDone/row.conceptTotal,testPercent:100*row.testDone/row.testTotal,diagnosisPercent:100*row.diagnosisDone/row.diagnosisTotal};}
   async board(student:string,id:string,page:number){
     const own=await this.db.query<Data>(`SELECT ${fields} ${eligible} AND r."StudentId"=?1 AND r."BoardId"=?2`,[student,id]);
     if(!own.length)throw new HttpError(404,'该学生尚未开始学习此课程，暂无对应排行榜。');

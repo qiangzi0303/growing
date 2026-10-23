@@ -1,0 +1,4751 @@
+{
+  "math": {
+    "version": "suke-year8-1",
+    "nodes": [
+      {
+        "id": "number-fraction",
+        "title": "分数基本性质",
+        "criterion": "能说明分子、分母同乘或同除同一个非零数，分数值不变。"
+      },
+      {
+        "id": "expression",
+        "title": "整式与代入",
+        "criterion": "能区分整式与含字母分母的式子，并准确代入计算。"
+      },
+      {
+        "id": "factor",
+        "title": "提公因式法",
+        "criterion": "找出各项共有的因式；提出后逐项相除并展开检查。"
+      },
+      {
+        "id": "linear",
+        "title": "一元一次方程",
+        "criterion": "能按等式性质解一元一次方程，并代回检验。"
+      },
+      {
+        "id": "definition",
+        "title": "分式的定义",
+        "criterion": "能依据分母含字母判断分式，不把 π 当变量。"
+      },
+      {
+        "id": "meaning",
+        "title": "分式有意义",
+        "criterion": "能列出原式全部分母不为0的限制。"
+      },
+      {
+        "id": "zero",
+        "title": "分式的值为零",
+        "criterion": "能同时检查分子为0、分母不为0，识别无解情形。"
+      },
+      {
+        "id": "property",
+        "title": "分式基本性质",
+        "criterion": "能说出同时、同一个、乘或除、非零四项条件。"
+      },
+      {
+        "id": "sign",
+        "title": "分式符号变化",
+        "criterion": "能处理分式内外负号以及 a−b 与 b−a 的关系。"
+      },
+      {
+        "id": "reduce",
+        "title": "分式约分",
+        "criterion": "能先分解因式再约去公因式，并保留原式限制。"
+      },
+      {
+        "id": "common",
+        "title": "通分与公分母",
+        "criterion": "能分解分母，取各因式最高次幂并同步改写分子。"
+      },
+      {
+        "id": "add",
+        "title": "分式加减",
+        "criterion": "能先通分再合并分子，并正确处理减号与括号。"
+      },
+      {
+        "id": "multiply",
+        "title": "分式乘除",
+        "criterion": "能把除法改成乘倒数，约分并保留除式不为0的条件。"
+      },
+      {
+        "id": "equation",
+        "title": "分式方程",
+        "criterion": "能找公分母、去分母、解整式方程，再检验原分母。"
+      },
+      {
+        "id": "extraneous",
+        "title": "增根与检验",
+        "criterion": "能识别使原分母为0的候选解并舍去。"
+      },
+      {
+        "id": "tri-lines",
+        "title": "中线、高与角平分线",
+        "criterion": "先指出从哪个顶点出发；按中点、垂直或角相等区分三种线段。"
+      },
+      {
+        "id": "tri-angles",
+        "title": "三角形内角与外角",
+        "criterion": "用180°减去两个已知内角；外角只加不相邻的两个内角。"
+      },
+      {
+        "id": "tri-inequality",
+        "title": "三角形三边关系",
+        "criterion": "先找最长边检查两短边之和；求第三边范围时用严格不等号。"
+      },
+      {
+        "id": "congruence",
+        "title": "全等与对应关系",
+        "criterion": "按全等符号两侧顺序找对应顶点；只比较对应边和对应角。"
+      },
+      {
+        "id": "cong-sss",
+        "title": "边边边判定 SSS",
+        "criterion": "找出三组对应边相等；写出SSS并保持对应顺序。"
+      },
+      {
+        "id": "cong-sas",
+        "title": "边角边判定 SAS",
+        "criterion": "列出两组对应边；检查相等的角是不是两边夹角。"
+      },
+      {
+        "id": "cong-asa",
+        "title": "角边角与角角边",
+        "criterion": "核对两组角相等；看已知边是夹边还是非夹边。"
+      },
+      {
+        "id": "cong-hl",
+        "title": "直角三角形 HL",
+        "criterion": "先确认两个三角形都是直角三角形；再核对斜边和一条直角边。"
+      },
+      {
+        "id": "perp-bisector",
+        "title": "线段垂直平分线",
+        "criterion": "区分垂直与平分两个条件；在等距条件和位置条件间双向转换。"
+      },
+      {
+        "id": "angle-bisector",
+        "title": "角平分线的等距性质",
+        "criterion": "距离必须作到两边的垂线段；说明点在角内部以及两条垂足的位置。"
+      },
+      {
+        "id": "isosceles",
+        "title": "等腰三角形",
+        "criterion": "先分清腰、底边、顶角和底角；用等边对等角或等角对等边。"
+      },
+      {
+        "id": "equilateral",
+        "title": "等边三角形",
+        "criterion": "核对三边相等或足以推出三角相等的条件；用周长除以3求边长。"
+      },
+      {
+        "id": "square-root",
+        "title": "平方根与算术平方根",
+        "criterion": "区分求平方根与求算术平方根；被开方数在实数范围内须非负。"
+      },
+      {
+        "id": "root-estimate",
+        "title": "估计平方根",
+        "criterion": "找相邻整数的平方夹住被开方数；再把比较转换到平方根。"
+      },
+      {
+        "id": "cube-root",
+        "title": "立方根",
+        "criterion": "寻找立方后等于原数的数；保留负数立方根的负号。"
+      },
+      {
+        "id": "real-types",
+        "title": "有理数与无理数",
+        "criterion": "先化简表达式再分类；区分无限循环小数与无限不循环小数。"
+      },
+      {
+        "id": "real-line",
+        "title": "实数与数轴",
+        "criterion": "比较位置时由左到右递增；求绝对值时取到原点的非负距离。"
+      },
+      {
+        "id": "approximate",
+        "title": "近似值与精确度",
+        "criterion": "确定保留的数位；查看后一位并四舍五入。"
+      },
+      {
+        "id": "pythagoras",
+        "title": "勾股定理",
+        "criterion": "先确认直角和斜边；列平方关系后求边长。"
+      },
+      {
+        "id": "pyth-converse",
+        "title": "勾股定理的逆定理",
+        "criterion": "先找最长边；比较两短边平方和与最长边平方。"
+      },
+      {
+        "id": "pyth-apply",
+        "title": "勾股定理的应用",
+        "criterion": "画出直角关系并标已知边；计算后检查结果及实际单位。"
+      },
+      {
+        "id": "coordinates",
+        "title": "有序数对与坐标",
+        "criterion": "先沿x轴找横坐标；再按纵坐标确定上下位置。"
+      },
+      {
+        "id": "quadrants",
+        "title": "象限与坐标轴",
+        "criterion": "先看横纵坐标符号；有坐标为0时改判坐标轴。"
+      },
+      {
+        "id": "translation",
+        "title": "平移与坐标变化",
+        "criterion": "把方向转换为横纵坐标的增减；对每个顶点使用同一平移量。"
+      },
+      {
+        "id": "reflection",
+        "title": "轴对称与坐标变化",
+        "criterion": "先确认对称轴或对称中心；保留未改变的位置分量。"
+      },
+      {
+        "id": "function-variable",
+        "title": "变量、常量与函数",
+        "criterion": "辨明变化过程中的变量和常量；检查一个x是否对应唯一的y。"
+      },
+      {
+        "id": "linear-function",
+        "title": "一次函数与正比例函数",
+        "criterion": "将表达式整理为kx+b；核对x次数为1且k非零。"
+      },
+      {
+        "id": "line-graph",
+        "title": "一次函数的图象",
+        "criterion": "取两个不同x求对应y；描点连线并标明坐标轴。"
+      },
+      {
+        "id": "line-monotone",
+        "title": "一次函数的增减性",
+        "criterion": "看k的正负判断增减；看b确定纵截距。"
+      },
+      {
+        "id": "line-coefficients",
+        "title": "待定系数求解析式",
+        "criterion": "将两点分别代入并列方程；解得k、b后用两个已知点代入检验。"
+      },
+      {
+        "id": "line-model",
+        "title": "一次函数解决实际问题",
+        "criterion": "找初始量和每单位的变化量；写出范围、单位并检查结论。"
+      },
+      {
+        "id": "line-system",
+        "title": "一次函数与二元一次方程",
+        "criterion": "当y的系数非零时，可整理为y=kx+b；x=常数表示竖直直线；求交点后代入两式检验。"
+      },
+      {
+        "id": "survey",
+        "title": "普查与抽样调查",
+        "criterion": "分清总体、个体、样本与样本容量；根据成本、破坏性和代表性选调查方式。"
+      },
+      {
+        "id": "charts",
+        "title": "统计图的选择与阅读",
+        "criterion": "按数量、趋势或占比选择图型；检查纵轴起点与单位再比较。"
+      },
+      {
+        "id": "price-study",
+        "title": "货比三家：可比的数据",
+        "criterion": "先统一单位和比较条件；计算真实总价而不是只看标价。"
+      },
+      {
+        "id": "frequency",
+        "title": "频数与频率",
+        "criterion": "明确总数与某类频数；用频数除总数并检查结果在0到1之间。"
+      },
+      {
+        "id": "histogram",
+        "title": "频数分布表与直方图",
+        "criterion": "明确分组边界并保证每个数据只入一组；先列表计频数再画等组距直方图。"
+      },
+      {
+        "id": "vision-study",
+        "title": "视力调查：从数据到结论",
+        "criterion": "为目标总体设计有代表性的样本；报告比例、样本量与调查局限。"
+      },
+      {
+        "id": "random-event",
+        "title": "必然、不可能与随机事件",
+        "criterion": "明确试验条件和结果范围；按是否必定发生分类。"
+      },
+      {
+        "id": "probability",
+        "title": "等可能情形下的概率",
+        "criterion": "先确认基本结果等可能；完整列举总数与有利结果数。"
+      },
+      {
+        "id": "frequency-prob",
+        "title": "用频率估计概率",
+        "criterion": "区分试验得到的频率与理论概率；强调大量重复和随机波动。"
+      },
+      {
+        "id": "parallelogram",
+        "title": "平行四边形的性质",
+        "criterion": "由平行四边形条件调用相应性质；分清对角线互相平分与互相垂直。"
+      },
+      {
+        "id": "parallel-judge",
+        "title": "平行四边形的判定",
+        "criterion": "完整列出一套判定条件；避免把不同对边的平行和相等拼凑。"
+      },
+      {
+        "id": "rectangle",
+        "title": "矩形",
+        "criterion": "先有平行四边形条件再补一个直角；用对角线相等或直角条件完成判定。"
+      },
+      {
+        "id": "rhombus",
+        "title": "菱形",
+        "criterion": "核对平行四边形及邻边相等；用垂直平分求边长或面积。"
+      },
+      {
+        "id": "square",
+        "title": "正方形与特殊四边形关系",
+        "criterion": "从矩形加邻边相等或菱形加直角判定；合并对角线相等、垂直、互相平分的性质。"
+      },
+      {
+        "id": "midline",
+        "title": "三角形的中位线",
+        "criterion": "确认端点都是两边中点；写出平行关系与一半长度关系。"
+      },
+      {
+        "id": "trapezoid",
+        "title": "梯形及其面积",
+        "criterion": "先分清两底、腰和垂直的高；代入面积公式并保留平方单位。"
+      },
+      {
+        "id": "iso-trapezoid",
+        "title": "等腰梯形",
+        "criterion": "先有梯形条件，再检查两腰相等；用同底角相等和邻角互补求角。"
+      },
+      {
+        "id": "factor-concept",
+        "title": "因式分解的概念",
+        "criterion": "结果必须是整式的积；把结果展开检验是否等于原多项式。"
+      },
+      {
+        "id": "factor-difference",
+        "title": "平方差公式分解",
+        "criterion": "识别两个平方与中间减号；按和乘差写成积并继续检查。"
+      },
+      {
+        "id": "factor-perfect",
+        "title": "完全平方公式分解",
+        "criterion": "确认首尾是平方；核对中间项的系数与符号。"
+      },
+      {
+        "id": "radical-domain",
+        "title": "二次根式与有意义条件",
+        "criterion": "列被开方数≥0的条件；同时检查原式若有分母不能为0。"
+      },
+      {
+        "id": "radical-simplify",
+        "title": "二次根式的性质与化简",
+        "criterion": "区分根号平方与平方开根；提取完全平方因子并使用绝对值。"
+      },
+      {
+        "id": "radical-multiply",
+        "title": "二次根式的乘除",
+        "criterion": "检查乘除的非负与非零条件；合并或拆分后化简到最简形式。"
+      },
+      {
+        "id": "radical-add",
+        "title": "二次根式的加减",
+        "criterion": "先化简再判断是否同类；合并系数而保留相同根式。"
+      }
+    ],
+    "edges": [
+      {
+        "to": "factor",
+        "from": "expression",
+        "strength": "hard",
+        "reason": "因式分解先识别多项式的项与因式。"
+      },
+      {
+        "to": "definition",
+        "from": "expression",
+        "strength": "hard",
+        "reason": "先区分整式，才能判断分母含字母的式子。"
+      },
+      {
+        "to": "meaning",
+        "from": "definition",
+        "strength": "hard",
+        "reason": "先确定分式的分母。"
+      },
+      {
+        "to": "meaning",
+        "from": "linear",
+        "strength": "hard",
+        "reason": "求分母零点时常需解简单方程。"
+      },
+      {
+        "to": "zero",
+        "from": "meaning",
+        "strength": "hard",
+        "reason": "分子为零时，原分母仍须非零。"
+      },
+      {
+        "to": "property",
+        "from": "meaning",
+        "strength": "hard",
+        "reason": "同乘同除及原分母都受非零条件约束。"
+      },
+      {
+        "to": "property",
+        "from": "number-fraction",
+        "strength": "hard",
+        "reason": "从分数基本性质类比分式的性质。"
+      },
+      {
+        "to": "sign",
+        "from": "property",
+        "strength": "hard",
+        "reason": "符号变化可理解为同乘−1。"
+      },
+      {
+        "to": "reduce",
+        "from": "property",
+        "strength": "hard",
+        "reason": "约分依据分式基本性质。"
+      },
+      {
+        "to": "reduce",
+        "from": "factor",
+        "strength": "hard",
+        "reason": "多项式通常需先分解出公因式。"
+      },
+      {
+        "to": "common",
+        "from": "property",
+        "strength": "hard",
+        "reason": "分母改变时分子要同步改变。"
+      },
+      {
+        "to": "common",
+        "from": "factor",
+        "strength": "hard",
+        "reason": "分解分母以确定各因式最高次幂。"
+      },
+      {
+        "to": "add",
+        "from": "common",
+        "strength": "hard",
+        "reason": "异分母加减必须先通分。"
+      },
+      {
+        "to": "add",
+        "from": "sign",
+        "strength": "soft",
+        "reason": "减号与相反因式容易产生符号错误。"
+      },
+      {
+        "to": "multiply",
+        "from": "reduce",
+        "strength": "hard",
+        "reason": "分式乘除常通过约分化简。"
+      },
+      {
+        "to": "multiply",
+        "from": "meaning",
+        "strength": "hard",
+        "reason": "除式必须有意义且值不为0。"
+      },
+      {
+        "to": "equation",
+        "from": "common",
+        "strength": "hard",
+        "reason": "去分母要先找到公分母。"
+      },
+      {
+        "to": "equation",
+        "from": "linear",
+        "strength": "hard",
+        "reason": "去分母后需会解整式方程。"
+      },
+      {
+        "to": "equation",
+        "from": "meaning",
+        "strength": "hard",
+        "reason": "解方程前后都须保留原分母限制。"
+      },
+      {
+        "to": "extraneous",
+        "from": "equation",
+        "strength": "hard",
+        "reason": "增根来自去分母后的候选解。"
+      },
+      {
+        "to": "extraneous",
+        "from": "meaning",
+        "strength": "hard",
+        "reason": "用原分母非零条件排除增根。"
+      },
+      {
+        "from": "tri-angles",
+        "to": "congruence",
+        "strength": "hard",
+        "reason": "要能识别三角形各顶角。"
+      },
+      {
+        "from": "congruence",
+        "to": "cong-sss",
+        "strength": "hard",
+        "reason": "先确定对应顶点与对应边。"
+      },
+      {
+        "from": "congruence",
+        "to": "cong-sas",
+        "strength": "hard",
+        "reason": "先识别对应关系和夹角。"
+      },
+      {
+        "from": "congruence",
+        "to": "cong-asa",
+        "strength": "hard",
+        "reason": "需要对应关系。"
+      },
+      {
+        "from": "tri-angles",
+        "to": "cong-asa",
+        "strength": "hard",
+        "reason": "AAS可借内角和转化为ASA。"
+      },
+      {
+        "from": "congruence",
+        "to": "cong-hl",
+        "strength": "hard",
+        "reason": "需要对应边关系。"
+      },
+      {
+        "from": "cong-sss",
+        "to": "perp-bisector",
+        "strength": "hard",
+        "reason": "等距位置性质可通过全等来解释。"
+      },
+      {
+        "from": "cong-hl",
+        "to": "angle-bisector",
+        "strength": "hard",
+        "reason": "利用直角三角形全等说明两条垂距相等。"
+      },
+      {
+        "from": "tri-angles",
+        "to": "isosceles",
+        "strength": "hard",
+        "reason": "由内角和求底角。"
+      },
+      {
+        "from": "cong-sas",
+        "to": "isosceles",
+        "strength": "hard",
+        "reason": "性质可用全等推导。"
+      },
+      {
+        "from": "isosceles",
+        "to": "equilateral",
+        "strength": "hard",
+        "reason": "先理解等腰三角形的边角关系。"
+      },
+      {
+        "from": "expression",
+        "to": "square-root",
+        "strength": "hard",
+        "reason": "需要准确计算平方与代入。"
+      },
+      {
+        "from": "square-root",
+        "to": "root-estimate",
+        "strength": "hard",
+        "reason": "要先理解算术平方根。"
+      },
+      {
+        "from": "expression",
+        "to": "cube-root",
+        "strength": "hard",
+        "reason": "要会计算整数的立方。"
+      },
+      {
+        "from": "square-root",
+        "to": "real-types",
+        "strength": "hard",
+        "reason": "分类前常要先化简平方根。"
+      },
+      {
+        "from": "real-types",
+        "to": "real-line",
+        "strength": "hard",
+        "reason": "要知道实数包含无理数。"
+      },
+      {
+        "from": "root-estimate",
+        "to": "real-line",
+        "strength": "hard",
+        "reason": "估计根号数才能确定数轴位置。"
+      },
+      {
+        "from": "square-root",
+        "to": "pythagoras",
+        "strength": "hard",
+        "reason": "从平方求正的边长要取算术平方根。"
+      },
+      {
+        "from": "pythagoras",
+        "to": "pyth-converse",
+        "strength": "hard",
+        "reason": "要分清定理的条件和结论，逆定理用边判断角。"
+      },
+      {
+        "from": "pythagoras",
+        "to": "pyth-apply",
+        "strength": "hard",
+        "reason": "实际问题转化后使用勾股定理。"
+      },
+      {
+        "from": "coordinates",
+        "to": "quadrants",
+        "strength": "hard",
+        "reason": "要理解横纵坐标。"
+      },
+      {
+        "from": "coordinates",
+        "to": "translation",
+        "strength": "hard",
+        "reason": "坐标含义是写出变化规则的基础。"
+      },
+      {
+        "from": "coordinates",
+        "to": "reflection",
+        "strength": "hard",
+        "reason": "先理解横纵位置与对称。"
+      },
+      {
+        "from": "coordinates",
+        "to": "function-variable",
+        "strength": "hard",
+        "reason": "函数图象用有序数对表示对应。"
+      },
+      {
+        "from": "function-variable",
+        "to": "linear-function",
+        "strength": "hard",
+        "reason": "先理解函数的唯一对应。"
+      },
+      {
+        "from": "expression",
+        "to": "linear-function",
+        "strength": "hard",
+        "reason": "识别表达式中自变量的次数和系数。"
+      },
+      {
+        "from": "linear-function",
+        "to": "line-graph",
+        "strength": "hard",
+        "reason": "要能代入一次函数求值。"
+      },
+      {
+        "from": "coordinates",
+        "to": "line-graph",
+        "strength": "hard",
+        "reason": "描点需要坐标知识。"
+      },
+      {
+        "from": "line-graph",
+        "to": "line-monotone",
+        "strength": "hard",
+        "reason": "先理解图象上的变化趋势。"
+      },
+      {
+        "from": "linear-function",
+        "to": "line-coefficients",
+        "strength": "hard",
+        "reason": "要知道解析式中的参数。"
+      },
+      {
+        "from": "linear",
+        "to": "line-coefficients",
+        "strength": "hard",
+        "reason": "要能解简单方程。"
+      },
+      {
+        "from": "linear-function",
+        "to": "line-model",
+        "strength": "hard",
+        "reason": "用kx+b建立关系。"
+      },
+      {
+        "from": "line-coefficients",
+        "to": "line-model",
+        "strength": "hard",
+        "reason": "需要从条件确定系数。"
+      },
+      {
+        "from": "line-graph",
+        "to": "line-system",
+        "strength": "hard",
+        "reason": "理解直线上的点满足解析式。"
+      },
+      {
+        "from": "linear",
+        "to": "line-system",
+        "strength": "hard",
+        "reason": "要能解求交点时的一元一次方程。"
+      },
+      {
+        "from": "survey",
+        "to": "charts",
+        "strength": "hard",
+        "reason": "图表描述的是调查获得的数据。"
+      },
+      {
+        "from": "charts",
+        "to": "price-study",
+        "strength": "hard",
+        "reason": "要能从调查表中读取数据。"
+      },
+      {
+        "from": "expression",
+        "to": "price-study",
+        "strength": "hard",
+        "reason": "比较价格需要代入并正确运算。"
+      },
+      {
+        "from": "number-fraction",
+        "to": "frequency",
+        "strength": "hard",
+        "reason": "频率是部分与总数的比。"
+      },
+      {
+        "from": "frequency",
+        "to": "histogram",
+        "strength": "hard",
+        "reason": "需要先理解频数和总数的关系。"
+      },
+      {
+        "from": "charts",
+        "to": "histogram",
+        "strength": "hard",
+        "reason": "需要会读统计图的刻度。"
+      },
+      {
+        "from": "survey",
+        "to": "vision-study",
+        "strength": "hard",
+        "reason": "合理样本是推断总体的前提。"
+      },
+      {
+        "from": "frequency",
+        "to": "vision-study",
+        "strength": "hard",
+        "reason": "用频率描述样本比例。"
+      },
+      {
+        "from": "histogram",
+        "to": "vision-study",
+        "strength": "hard",
+        "reason": "整理分组数据后才能分析分布。"
+      },
+      {
+        "from": "random-event",
+        "to": "probability",
+        "strength": "hard",
+        "reason": "概率描述随机事件发生的可能性。"
+      },
+      {
+        "from": "number-fraction",
+        "to": "probability",
+        "strength": "hard",
+        "reason": "概率计算使用分数比。"
+      },
+      {
+        "from": "probability",
+        "to": "frequency-prob",
+        "strength": "hard",
+        "reason": "需要理解概率的含义。"
+      },
+      {
+        "from": "frequency",
+        "to": "frequency-prob",
+        "strength": "hard",
+        "reason": "需要知道频率如何计算。"
+      },
+      {
+        "from": "tri-angles",
+        "to": "parallelogram",
+        "strength": "hard",
+        "reason": "需要角关系与基本几何推理。"
+      },
+      {
+        "from": "cong-sas",
+        "to": "parallelogram",
+        "strength": "hard",
+        "reason": "性质可通过全等三角形得到。"
+      },
+      {
+        "from": "parallelogram",
+        "to": "parallel-judge",
+        "strength": "hard",
+        "reason": "要区分性质与判定的方向。"
+      },
+      {
+        "from": "parallelogram",
+        "to": "rectangle",
+        "strength": "hard",
+        "reason": "矩形保留平行四边形性质。"
+      },
+      {
+        "from": "parallel-judge",
+        "to": "rectangle",
+        "strength": "hard",
+        "reason": "证明矩形常先证平行四边形。"
+      },
+      {
+        "from": "pythagoras",
+        "to": "rectangle",
+        "strength": "soft",
+        "reason": "对角线长度可用勾股定理求。"
+      },
+      {
+        "from": "parallelogram",
+        "to": "rhombus",
+        "strength": "hard",
+        "reason": "菱形是特殊平行四边形。"
+      },
+      {
+        "from": "pythagoras",
+        "to": "rhombus",
+        "strength": "soft",
+        "reason": "半条对角线构成直角三角形可求边长。"
+      },
+      {
+        "from": "rectangle",
+        "to": "square",
+        "strength": "hard",
+        "reason": "正方形具有矩形的角与对角线性质。"
+      },
+      {
+        "from": "rhombus",
+        "to": "square",
+        "strength": "hard",
+        "reason": "正方形也具有菱形的边与对角线性质。"
+      },
+      {
+        "from": "tri-lines",
+        "to": "midline",
+        "strength": "hard",
+        "reason": "先区分中点、中线和中位线。"
+      },
+      {
+        "from": "parallelogram",
+        "to": "midline",
+        "strength": "soft",
+        "reason": "可通过构造平行四边形解释中位线性质。"
+      },
+      {
+        "from": "parallelogram",
+        "to": "trapezoid",
+        "strength": "soft",
+        "reason": "比较只有一组与两组对边平行的区别。"
+      },
+      {
+        "from": "trapezoid",
+        "to": "iso-trapezoid",
+        "strength": "hard",
+        "reason": "先分清梯形的底与腰。"
+      },
+      {
+        "from": "isosceles",
+        "to": "iso-trapezoid",
+        "strength": "soft",
+        "reason": "常通过辅助线转化为等腰三角形。"
+      },
+      {
+        "from": "expression",
+        "to": "factor-concept",
+        "strength": "hard",
+        "reason": "需要先识别整式、多项式和乘积。"
+      },
+      {
+        "from": "factor-concept",
+        "to": "factor",
+        "strength": "hard",
+        "reason": "要明确把多项式写成积的目标。"
+      },
+      {
+        "from": "factor-concept",
+        "to": "factor-difference",
+        "strength": "hard",
+        "reason": "要能区分乘积与多项式。"
+      },
+      {
+        "from": "factor",
+        "to": "factor-difference",
+        "strength": "hard",
+        "reason": "有公因式时通常先提取。"
+      },
+      {
+        "from": "factor-concept",
+        "to": "factor-perfect",
+        "strength": "hard",
+        "reason": "要把三项式改写为积。"
+      },
+      {
+        "from": "factor",
+        "to": "factor-perfect",
+        "strength": "hard",
+        "reason": "先提公因式可能让公式更清楚。"
+      },
+      {
+        "from": "square-root",
+        "to": "radical-domain",
+        "strength": "hard",
+        "reason": "二次根式延续算术平方根的非负含义。"
+      },
+      {
+        "from": "linear",
+        "to": "radical-domain",
+        "strength": "hard",
+        "reason": "简单一次式的边界需要会移项和运算。"
+      },
+      {
+        "from": "radical-domain",
+        "to": "radical-simplify",
+        "strength": "hard",
+        "reason": "要理解二次根式非负。"
+      },
+      {
+        "from": "factor-difference",
+        "to": "radical-simplify",
+        "strength": "soft",
+        "reason": "识别因式有助于整理根号内的代数式。"
+      },
+      {
+        "from": "radical-simplify",
+        "to": "radical-multiply",
+        "strength": "hard",
+        "reason": "运算结果要继续化简。"
+      },
+      {
+        "from": "number-fraction",
+        "to": "radical-multiply",
+        "strength": "hard",
+        "reason": "分式等值变形用于分母有理化。"
+      },
+      {
+        "from": "radical-simplify",
+        "to": "radical-add",
+        "strength": "hard",
+        "reason": "同类根式往往需要先化简才能识别。"
+      },
+      {
+        "from": "factor-difference",
+        "to": "reduce",
+        "strength": "hard",
+        "reason": "约分标准题含x²−1，需要先用平方差公式分解，再检查原分母限制。"
+      }
+    ],
+    "questions": [
+      {
+        "id": "number-fraction-1",
+        "topic": "number-fraction",
+        "difficulty": "standard",
+        "prompt": "与 3/5 相等的是哪一个？",
+        "options": [
+          "4/6",
+          "6/10",
+          "3/10",
+          "6/5"
+        ],
+        "answer": 1,
+        "explanation": "分子分母同时乘2，得到6/10。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "number-fraction-2",
+        "topic": "number-fraction",
+        "difficulty": "basic",
+        "prompt": "1/2 的分子、分母同时乘3，得到什么？",
+        "options": [
+          "3/6",
+          "3/2",
+          "1/6",
+          "4/5"
+        ],
+        "answer": 0,
+        "explanation": "(1×3)/(2×3)=3/6，值仍是1/2。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "expression-1",
+        "topic": "expression",
+        "difficulty": "standard",
+        "prompt": "x=−2 时，x²−1 的值是？",
+        "options": [
+          "−5",
+          "−3",
+          "5",
+          "3"
+        ],
+        "answer": 3,
+        "explanation": "(−2)²−1=4−1=3。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "expression-2",
+        "topic": "expression",
+        "difficulty": "basic",
+        "prompt": "下面哪一个是整式？",
+        "options": [
+          "1/x",
+          "2/(x+1)",
+          "x/3",
+          "1/(x−1)"
+        ],
+        "answer": 2,
+        "explanation": "x/3=(1/3)x，分母为常数，是整式。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "factor-1",
+        "prompt": "6x²+9x分解因式为？",
+        "options": [
+          "3x(2x+3)",
+          "3(2x+3)",
+          "x(6x+9x)",
+          "6x(x+3)"
+        ],
+        "answer": 0,
+        "explanation": "公因式为3x，余下2x+3。",
+        "topic": "factor",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "factor-2",
+        "prompt": "x²+3x提取公因式得到？",
+        "options": [
+          "(x+3)²",
+          "x(x+3)",
+          "x(x−3)",
+          "x²(1+3)"
+        ],
+        "answer": 1,
+        "explanation": "每项都有因式x，提出后为x+3。",
+        "topic": "factor",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "linear-1",
+        "topic": "linear",
+        "difficulty": "standard",
+        "prompt": "方程 3x−2=7 的解是？",
+        "options": [
+          "x=5/3",
+          "x=−3",
+          "x=9",
+          "x=3"
+        ],
+        "answer": 3,
+        "explanation": "两边加2得3x=9，再除以3得x=3。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "linear-2",
+        "topic": "linear",
+        "difficulty": "basic",
+        "prompt": "方程 x+4=9 的解是？",
+        "options": [
+          "x=13",
+          "x=−5",
+          "x=5",
+          "x=4"
+        ],
+        "answer": 2,
+        "explanation": "等号两边减4，x=5。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "definition-1",
+        "topic": "definition",
+        "difficulty": "standard",
+        "prompt": "下面哪一个是分式？",
+        "options": [
+          "(x+1)/2",
+          "1/π",
+          "3/(x−2)",
+          "x²+1"
+        ],
+        "answer": 2,
+        "explanation": "3/(x−2)的分母含字母；π是常数。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "definition-2",
+        "topic": "definition",
+        "difficulty": "basic",
+        "prompt": "判断是不是分式，主要看什么？",
+        "options": [
+          "分子是否有字母",
+          "分母是否含字母",
+          "是否写了除号",
+          "结果是否小于1"
+        ],
+        "answer": 1,
+        "explanation": "分子分母为整式时，分母中含字母是分式的判断关键。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "meaning-1",
+        "topic": "meaning",
+        "difficulty": "standard",
+        "prompt": "1/[x(x−3)] 有意义的条件是？",
+        "options": [
+          "x≠0 且 x≠3",
+          "x≠0",
+          "x≠3",
+          "所有实数"
+        ],
+        "answer": 0,
+        "explanation": "x和x−3两个因式都不能为0。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "meaning-2",
+        "topic": "meaning",
+        "difficulty": "basic",
+        "prompt": "(x+1)/(x−2) 有意义，必须满足？",
+        "options": [
+          "x≠−1",
+          "x=2",
+          "x=−1",
+          "x≠2"
+        ],
+        "answer": 3,
+        "explanation": "只需原分母x−2≠0，即x≠2。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "zero-1",
+        "topic": "zero",
+        "difficulty": "standard",
+        "prompt": "(x−2)/(x²−4) 的值为0时，x 是？",
+        "options": [
+          "2",
+          "−2",
+          "不存在这样的x",
+          "0"
+        ],
+        "answer": 2,
+        "explanation": "分子为0要求x=2，但此时分母也为0，无意义。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "zero-2",
+        "topic": "zero",
+        "difficulty": "basic",
+        "prompt": "(x−3)/(x+2)=0 时，x 是？",
+        "options": [
+          "−2",
+          "3",
+          "−3",
+          "2"
+        ],
+        "answer": 1,
+        "explanation": "分子为0得x=3，此时分母为5，符合要求。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "property-1",
+        "topic": "property",
+        "difficulty": "standard",
+        "prompt": "1/x=(x+1)/[x(x+1)] 成立的条件是？",
+        "options": [
+          "x≠0 即可",
+          "x≠−1 即可",
+          "所有实数",
+          "x≠0 且 x≠−1"
+        ],
+        "answer": 3,
+        "explanation": "原分母x和同乘的整式x+1都不能为0。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "property-2",
+        "topic": "property",
+        "difficulty": "basic",
+        "prompt": "哪种操作一定保持分式的值不变（原分母非零）？",
+        "options": [
+          "分子分母同时乘2",
+          "分子分母同时加2",
+          "只有分子乘2",
+          "分子分母同时乘0"
+        ],
+        "answer": 0,
+        "explanation": "分子分母同乘同一个非零数，值不变。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "sign-1",
+        "topic": "sign",
+        "difficulty": "standard",
+        "prompt": "x≠1 时，(x−1)/(1−x) 等于？",
+        "options": [
+          "1",
+          "−1",
+          "x",
+          "0"
+        ],
+        "answer": 1,
+        "explanation": "1−x=−(x−1)，所以值为−1。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "sign-2",
+        "topic": "sign",
+        "difficulty": "basic",
+        "prompt": "B≠0 时，(−A)/(−B) 等于？",
+        "options": [
+          "−A/B",
+          "−B/A",
+          "A/B",
+          "0"
+        ],
+        "answer": 2,
+        "explanation": "分子分母同时改变符号，分式的值不变。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "reduce-1",
+        "topic": "reduce",
+        "difficulty": "standard",
+        "prompt": "(x²−1)/(x²+x) 约分后，结果和原式限制是？",
+        "options": [
+          "(x−1)/x，x≠0 即可",
+          "(x+1)/x，x≠0、−1",
+          "x−1，x≠−1",
+          "(x−1)/x，x≠0、−1"
+        ],
+        "answer": 3,
+        "explanation": "分解成(x−1)(x+1)/[x(x+1)]；约去x+1，但不能丢掉x≠−1。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "reduce-2",
+        "topic": "reduce",
+        "difficulty": "basic",
+        "prompt": "x≠0 时，(x²+2x)/x 等于？",
+        "options": [
+          "x+2",
+          "2",
+          "x²+2",
+          "x"
+        ],
+        "answer": 0,
+        "explanation": "分子提x得到x(x+2)，约去公因式x，结果x+2。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "common-1",
+        "topic": "common",
+        "difficulty": "standard",
+        "prompt": "6x²y 和 4xy³（x、y非零）的最简公分母是？",
+        "options": [
+          "24x³y⁴",
+          "12xy",
+          "12x²y³",
+          "6x²y³"
+        ],
+        "answer": 2,
+        "explanation": "系数最小公倍数12；x最高次数2，y最高次数3。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "common-2",
+        "topic": "common",
+        "difficulty": "basic",
+        "prompt": "x≠0 时，把1/x 通分成分母为x²的分式，结果是？",
+        "options": [
+          "1/x²",
+          "x/x²",
+          "x²/x²",
+          "2/x²"
+        ],
+        "answer": 1,
+        "explanation": "分母乘x，分子也要乘x。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "add-1",
+        "topic": "add",
+        "difficulty": "standard",
+        "prompt": "x≠0、−1 时，1/x−1/(x+1) 等于？",
+        "options": [
+          "1/[x(x+1)]",
+          "0",
+          "1/(2x+1)",
+          "−1/[x(x+1)]"
+        ],
+        "answer": 0,
+        "explanation": "通分后的分子为(x+1)−x=1。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "add-2",
+        "topic": "add",
+        "difficulty": "basic",
+        "prompt": "x≠0 时，2/x+3/x 等于？",
+        "options": [
+          "5/(2x)",
+          "6/x²",
+          "5",
+          "5/x"
+        ],
+        "answer": 3,
+        "explanation": "同分母分式相加，分母不变，分子2+3=5。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "multiply-1",
+        "topic": "multiply",
+        "difficulty": "standard",
+        "prompt": "(2/x)÷(4/y) 的结果及原式限制是？",
+        "options": [
+          "8/(xy)，x、y≠0",
+          "y/(2x)，x、y≠0",
+          "y/(2x)，只需x≠0",
+          "2x/y，x、y≠0"
+        ],
+        "answer": 1,
+        "explanation": "乘倒数得(2/x)×(y/4)=y/(2x)，原分母x和y都不能为0。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "multiply-2",
+        "topic": "multiply",
+        "difficulty": "basic",
+        "prompt": "x、y≠0 时，(3/x)×(x/y) 等于？",
+        "options": [
+          "3x/y",
+          "3/(xy)",
+          "3/y",
+          "x/(3y)"
+        ],
+        "answer": 2,
+        "explanation": "先乘得到3x/(xy)，约去非零因式x。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "equation-1",
+        "topic": "equation",
+        "difficulty": "standard",
+        "prompt": "方程 2/(x−1)=1 的解是？",
+        "options": [
+          "x=1",
+          "x=−1",
+          "无解",
+          "x=3"
+        ],
+        "answer": 3,
+        "explanation": "去分母得2=x−1，解得x=3，且x−1≠0。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "equation-2",
+        "topic": "equation",
+        "difficulty": "basic",
+        "prompt": "方程 3/x=1 的解是？",
+        "options": [
+          "x=3",
+          "x=0",
+          "x=1/3",
+          "无解"
+        ],
+        "answer": 0,
+        "explanation": "x≠0，去分母得3=x；检验通过。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "extraneous-1",
+        "topic": "extraneous",
+        "difficulty": "standard",
+        "prompt": "方程 1/(x−1)=x/(x−1) 的结论是？",
+        "options": [
+          "x=1",
+          "x=0",
+          "原方程无解",
+          "所有实数都是解"
+        ],
+        "answer": 2,
+        "explanation": "去分母得x=1，但它使原分母为0，是增根，必须舍去。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "extraneous-2",
+        "topic": "extraneous",
+        "difficulty": "basic",
+        "prompt": "解分式方程得到候选值后，必须检查什么？",
+        "options": [
+          "是否为正数",
+          "是否使原分母为0",
+          "是否为整数",
+          "是否大于分子"
+        ],
+        "answer": 1,
+        "explanation": "候选值若使原分母为0，原式无意义，必须舍去。",
+        "origin": "本项目独立编写，待教师审核"
+      },
+      {
+        "id": "tri-lines-1",
+        "prompt": "AD是△ABC的中线，BC=14，BD等于？",
+        "options": [
+          "14",
+          "7",
+          "28",
+          "不能确定"
+        ],
+        "answer": 1,
+        "explanation": "中线连向对边中点，BD=BC/2=7。",
+        "topic": "tri-lines",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "tri-lines-2",
+        "prompt": "三角形的高与对边所在直线有什么关系？",
+        "options": [
+          "平行",
+          "重合",
+          "垂直",
+          "一定相等"
+        ],
+        "answer": 2,
+        "explanation": "高所在直线垂直对边所在直线。",
+        "topic": "tri-lines",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "tri-angles-1",
+        "prompt": "三角形两个内角为50°、60°，第三角为？",
+        "options": [
+          "70°",
+          "80°",
+          "110°",
+          "130°"
+        ],
+        "answer": 0,
+        "explanation": "180°−50°−60°=70°。",
+        "topic": "tri-angles",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "tri-angles-2",
+        "prompt": "三角形内角和为？",
+        "options": [
+          "90°",
+          "360°",
+          "270°",
+          "180°"
+        ],
+        "answer": 3,
+        "explanation": "任何平面三角形的内角和都是180°。",
+        "topic": "tri-angles",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "tri-inequality-1",
+        "prompt": "哪组线段能组成三角形？",
+        "options": [
+          "2,3,5",
+          "1,2,4",
+          "3,4,5",
+          "2,2,5"
+        ],
+        "answer": 2,
+        "explanation": "3+4>5；其余有两边之和不大于第三边。",
+        "topic": "tri-inequality",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "tri-inequality-2",
+        "prompt": "三角形两边为4、6，第三边x满足？",
+        "options": [
+          "x=10",
+          "2<x<10",
+          "0<x<2",
+          "x≥10"
+        ],
+        "answer": 1,
+        "explanation": "差的绝对值为2，和为10，因此2<x<10。",
+        "topic": "tri-inequality",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "congruence-1",
+        "prompt": "△ABC≌△DEF，与BC对应的边是？",
+        "options": [
+          "DE",
+          "DF",
+          "AB",
+          "EF"
+        ],
+        "answer": 3,
+        "explanation": "B对应E，C对应F，所以BC对应EF。",
+        "topic": "congruence",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "congruence-2",
+        "prompt": "全等三角形的对应角有什么关系？",
+        "options": [
+          "相等",
+          "互补",
+          "一定是直角",
+          "不确定"
+        ],
+        "answer": 0,
+        "explanation": "全等保持所有对应边长和角度。",
+        "topic": "congruence",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "cong-sss-1",
+        "prompt": "两个三角形三边分别为3、4、5与3、4、5，可以用什么判全等？",
+        "options": [
+          "AAA",
+          "SSS",
+          "SSA",
+          "只凭面积"
+        ],
+        "answer": 1,
+        "explanation": "三组对应边分别相等，满足SSS。",
+        "topic": "cong-sss",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "cong-sss-2",
+        "prompt": "SSS需要几组对应边相等？",
+        "options": [
+          "1组",
+          "2组",
+          "3组",
+          "0组"
+        ],
+        "answer": 2,
+        "explanation": "三边分别相等。",
+        "topic": "cong-sss",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "cong-sas-1",
+        "prompt": "AB=DE、AC=DF，用SAS还需哪个角相等？",
+        "options": [
+          "∠ABC=∠DEF",
+          "∠BCA=∠EFD",
+          "∠BAC=∠EDF",
+          "任意角都可以"
+        ],
+        "answer": 2,
+        "explanation": "AB与AC的夹角是∠BAC，对应∠EDF。",
+        "topic": "cong-sas",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "cong-sas-2",
+        "prompt": "SAS中的角必须是？",
+        "options": [
+          "最大角",
+          "已知两边的夹角",
+          "任意一个角",
+          "直角"
+        ],
+        "answer": 1,
+        "explanation": "夹角条件是SAS有效的关键。",
+        "topic": "cong-sas",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "cong-asa-1",
+        "prompt": "∠A=∠D、∠B=∠E、AB=DE，可用？",
+        "options": [
+          "SSS",
+          "SSA",
+          "ASA",
+          "AAA"
+        ],
+        "answer": 2,
+        "explanation": "AB是∠A和∠B的夹边，满足ASA。",
+        "topic": "cong-asa",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "cong-asa-2",
+        "prompt": "只有三个对应角相等，两个三角形一定全等吗？",
+        "options": [
+          "不一定",
+          "一定",
+          "都是等边三角形",
+          "面积一定相等"
+        ],
+        "answer": 0,
+        "explanation": "大小可以不同，AAA不能判全等。",
+        "topic": "cong-asa",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "cong-hl-1",
+        "prompt": "HL判定适用于？",
+        "options": [
+          "所有四边形",
+          "任意三角形",
+          "只有等边三角形",
+          "直角三角形"
+        ],
+        "answer": 3,
+        "explanation": "HL有直角三角形的前提。",
+        "topic": "cong-hl",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "cong-hl-2",
+        "prompt": "HL中的H表示哪条边？",
+        "options": [
+          "斜边",
+          "底边",
+          "最短边",
+          "中线"
+        ],
+        "answer": 0,
+        "explanation": "H是斜边，L是一条直角边。",
+        "topic": "cong-hl",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "perp-bisector-1",
+        "prompt": "P在线段AB的垂直平分线上，PA=7，则PB为？",
+        "options": [
+          "14",
+          "3.5",
+          "7",
+          "不能确定"
+        ],
+        "answer": 2,
+        "explanation": "垂直平分线上的点到两端点距离相等。",
+        "topic": "perp-bisector",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "perp-bisector-2",
+        "prompt": "垂直平分线同时满足什么？",
+        "options": [
+          "经过端点且平行",
+          "经过中点且垂直",
+          "经过中点即可",
+          "垂直即可"
+        ],
+        "answer": 1,
+        "explanation": "既要过中点，又要与该线段垂直。",
+        "topic": "perp-bisector",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "angle-bisector-1",
+        "prompt": "P在角平分线上，到一边的距离为4，到另一边的距离是？",
+        "options": [
+          "2",
+          "8",
+          "不确定",
+          "4"
+        ],
+        "answer": 3,
+        "explanation": "两边距离相等。",
+        "topic": "angle-bisector",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "angle-bisector-2",
+        "prompt": "点到直线的距离要量哪条线段？",
+        "options": [
+          "垂线段",
+          "斜线段",
+          "任意线段",
+          "沿直线的线段"
+        ],
+        "answer": 0,
+        "explanation": "距离定义为垂线段的长度。",
+        "topic": "angle-bisector",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "isosceles-1",
+        "prompt": "等腰三角形顶角为36°，每个底角为？",
+        "options": [
+          "36°",
+          "72°",
+          "108°",
+          "144°"
+        ],
+        "answer": 1,
+        "explanation": "(180°−36°)/2=72°。",
+        "topic": "isosceles",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "isosceles-2",
+        "prompt": "等腰三角形的两个底角？",
+        "options": [
+          "相等",
+          "一定是直角",
+          "互余",
+          "一定是60°"
+        ],
+        "answer": 0,
+        "explanation": "等边对等角。",
+        "topic": "isosceles",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "equilateral-1",
+        "prompt": "等边三角形周长为24，边长为？",
+        "options": [
+          "6",
+          "12",
+          "24",
+          "8"
+        ],
+        "answer": 3,
+        "explanation": "三边相等，24÷3=8。",
+        "topic": "equilateral",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "equilateral-2",
+        "prompt": "等边三角形每个内角为？",
+        "options": [
+          "60°",
+          "90°",
+          "30°",
+          "120°"
+        ],
+        "answer": 0,
+        "explanation": "180°÷3=60°。",
+        "topic": "equilateral",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "square-root-1",
+        "prompt": "16的平方根为？",
+        "options": [
+          "4",
+          "±4",
+          "−4",
+          "8"
+        ],
+        "answer": 1,
+        "explanation": "平方等于16的实数是4和−4。",
+        "topic": "square-root",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "square-root-2",
+        "prompt": "√25等于？",
+        "options": [
+          "±5",
+          "−5",
+          "5",
+          "12.5"
+        ],
+        "answer": 2,
+        "explanation": "根号表示非负的算术平方根，所以是5。",
+        "topic": "square-root",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "root-estimate-1",
+        "prompt": "√30在哪两个相邻整数之间？",
+        "options": [
+          "3与4",
+          "4与5",
+          "5与6",
+          "6与7"
+        ],
+        "answer": 2,
+        "explanation": "25<30<36，所以5<√30<6。",
+        "topic": "root-estimate",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "root-estimate-2",
+        "prompt": "因为9<13<16，所以？",
+        "options": [
+          "3<√13<4",
+          "9<√13<16",
+          "√13=13/2",
+          "√13<0"
+        ],
+        "answer": 0,
+        "explanation": "对正数开平方保持大小关系。",
+        "topic": "root-estimate",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "cube-root-1",
+        "prompt": "∛(−64)等于？",
+        "options": [
+          "4",
+          "±4",
+          "−8",
+          "−4"
+        ],
+        "answer": 3,
+        "explanation": "(−4)³=−64。",
+        "topic": "cube-root",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "cube-root-2",
+        "prompt": "∛8等于？",
+        "options": [
+          "2",
+          "±2",
+          "4",
+          "−2"
+        ],
+        "answer": 0,
+        "explanation": "2³=8，立方根唯一。",
+        "topic": "cube-root",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "real-types-1",
+        "prompt": "哪个数是无理数？",
+        "options": [
+          "√9",
+          "1/3",
+          "√2",
+          "0.25"
+        ],
+        "answer": 2,
+        "explanation": "√2是无限不循环小数；√9=3。",
+        "topic": "real-types",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "real-types-2",
+        "prompt": "实数由哪两类组成？",
+        "options": [
+          "整数和小数",
+          "有理数和无理数",
+          "正数和负数（不含0）",
+          "自然数和整数"
+        ],
+        "answer": 1,
+        "explanation": "有理数与无理数组成实数。",
+        "topic": "real-types",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "real-line-1",
+        "prompt": "−√3在哪个区间？",
+        "options": [
+          "−3与−2",
+          "0与1",
+          "1与2",
+          "−2与−1"
+        ],
+        "answer": 3,
+        "explanation": "1<√3<2，取相反数得−2<−√3<−1。",
+        "topic": "real-line",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "real-line-2",
+        "prompt": "|−5|等于？",
+        "options": [
+          "5",
+          "−5",
+          "0",
+          "±5"
+        ],
+        "answer": 0,
+        "explanation": "绝对值是到原点的距离，结果非负。",
+        "topic": "real-line",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "approximate-1",
+        "prompt": "2.995精确到0.01是？",
+        "options": [
+          "2.99",
+          "3",
+          "3.00",
+          "3.01"
+        ],
+        "answer": 2,
+        "explanation": "千分位为5，百分位进位，连续进位后为3.00。",
+        "topic": "approximate",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "approximate-2",
+        "prompt": "把3.1416保留两位小数，得到？",
+        "options": [
+          "3.1",
+          "3.14",
+          "3.15",
+          "3.141"
+        ],
+        "answer": 1,
+        "explanation": "第三位小数1<5，保留为3.14。",
+        "topic": "approximate",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "pythagoras-1",
+        "prompt": "直角边为5、12，斜边长为？",
+        "options": [
+          "17",
+          "7",
+          "13",
+          "√17"
+        ],
+        "answer": 2,
+        "explanation": "c²=25+144=169，c=13。",
+        "topic": "pythagoras",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "pythagoras-2",
+        "prompt": "直角三角形斜边c满足？",
+        "options": [
+          "c=a+b",
+          "c²=a²+b²",
+          "c²=a²−b²",
+          "c=a−b"
+        ],
+        "answer": 1,
+        "explanation": "这是勾股定理。",
+        "topic": "pythagoras",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "pyth-converse-1",
+        "prompt": "哪组边长能构成直角三角形？",
+        "options": [
+          "4,5,6",
+          "6,8,10",
+          "5,5,6",
+          "3,4,6"
+        ],
+        "answer": 1,
+        "explanation": "6²+8²=10²。",
+        "topic": "pyth-converse",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "pyth-converse-2",
+        "prompt": "使用勾股逆定理前，先找什么？",
+        "options": [
+          "最短边",
+          "中线",
+          "最长边",
+          "角平分线"
+        ],
+        "answer": 2,
+        "explanation": "把最长边作为待检验的斜边。",
+        "topic": "pyth-converse",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "pyth-apply-1",
+        "prompt": "长13m梯子底端距墙5m，墙地垂直，靠墙高度为？",
+        "options": [
+          "18m",
+          "8m",
+          "12m",
+          "√194m"
+        ],
+        "answer": 2,
+        "explanation": "h²=13²−5²=144，h=12m。",
+        "topic": "pyth-apply",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "pyth-apply-2",
+        "prompt": "长方形长3、宽4，对角线长为？",
+        "options": [
+          "7",
+          "5",
+          "12",
+          "1"
+        ],
+        "answer": 1,
+        "explanation": "对角线分出直角三角形，√(9+16)=5。",
+        "topic": "pyth-apply",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "coordinates-1",
+        "prompt": "A(−3,2)到x轴的距离为？",
+        "options": [
+          "−3",
+          "3",
+          "2",
+          "−2"
+        ],
+        "answer": 2,
+        "explanation": "到x轴距离等于纵坐标的绝对值|2|=2。",
+        "topic": "coordinates",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "coordinates-2",
+        "prompt": "点(4,−1)的横坐标为？",
+        "options": [
+          "4",
+          "−1",
+          "1",
+          "−4"
+        ],
+        "answer": 0,
+        "explanation": "有序数对中第一个数是横坐标。",
+        "topic": "coordinates",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "quadrants-1",
+        "prompt": "点(−4,3)在？",
+        "options": [
+          "第一象限",
+          "第二象限",
+          "第三象限",
+          "第四象限"
+        ],
+        "answer": 1,
+        "explanation": "横负纵正，在第二象限。",
+        "topic": "quadrants",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "quadrants-2",
+        "prompt": "点(0,5)位于？",
+        "options": [
+          "第一象限",
+          "第二象限",
+          "y轴上",
+          "x轴上"
+        ],
+        "answer": 2,
+        "explanation": "横坐标为0，所以在y轴上。",
+        "topic": "quadrants",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "translation-1",
+        "prompt": "(2,−1)向左3、向上4后为？",
+        "options": [
+          "(5,3)",
+          "(−1,−5)",
+          "(−1,3)",
+          "(3,−1)"
+        ],
+        "answer": 2,
+        "explanation": "x=2−3=−1，y=−1+4=3。",
+        "topic": "translation",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "translation-2",
+        "prompt": "向右平移2个单位，哪个坐标变化？",
+        "options": [
+          "横坐标加2",
+          "纵坐标加2",
+          "横坐标减2",
+          "纵坐标减2"
+        ],
+        "answer": 0,
+        "explanation": "左右移动改变横坐标。",
+        "topic": "translation",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "reflection-1",
+        "prompt": "(−2,5)关于y轴的对称点为？",
+        "options": [
+          "(−2,−5)",
+          "(2,−5)",
+          "(5,−2)",
+          "(2,5)"
+        ],
+        "answer": 3,
+        "explanation": "关于y轴只改变横坐标符号。",
+        "topic": "reflection",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "reflection-2",
+        "prompt": "(3,4)关于x轴对称后为？",
+        "options": [
+          "(−3,4)",
+          "(3,−4)",
+          "(−3,−4)",
+          "(4,3)"
+        ],
+        "answer": 1,
+        "explanation": "x不变，y变号。",
+        "topic": "reflection",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "function-variable-1",
+        "prompt": "每个允许的x值都对应怎样的y值，才构成函数？",
+        "options": [
+          "至少两个",
+          "唯一确定的一个",
+          "没有",
+          "任意多个"
+        ],
+        "answer": 1,
+        "explanation": "函数要求一个x对应唯一一个y。",
+        "topic": "function-variable",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "function-variable-2",
+        "prompt": "y=5x中不变的数5是？",
+        "options": [
+          "自变量",
+          "因变量",
+          "常量",
+          "坐标轴"
+        ],
+        "answer": 2,
+        "explanation": "在此关系中5保持不变。",
+        "topic": "function-variable",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "linear-function-1",
+        "prompt": "哪个是一次函数？",
+        "options": [
+          "y=x²",
+          "y=2x−1",
+          "y=1/x",
+          "y=5"
+        ],
+        "answer": 1,
+        "explanation": "y=2x−1符合kx+b且k≠0。",
+        "topic": "linear-function",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "linear-function-2",
+        "prompt": "正比例函数y=kx中，k需要？",
+        "options": [
+          "等于0",
+          "任意数都行",
+          "不等于0",
+          "只能大于0"
+        ],
+        "answer": 2,
+        "explanation": "正比例函数的比例系数非零。",
+        "topic": "linear-function",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "line-graph-1",
+        "prompt": "直线y=−2x+3与y轴的交点为？",
+        "options": [
+          "(3,0)",
+          "(0,−2)",
+          "(0,3)",
+          "(−2,3)"
+        ],
+        "answer": 2,
+        "explanation": "y轴上的点x=0，代入得y=3。",
+        "topic": "line-graph",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "line-graph-2",
+        "prompt": "确定一条直线至少需要几个不同点？",
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "answer": 1,
+        "explanation": "两点确定一条直线。",
+        "topic": "line-graph",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "line-monotone-1",
+        "prompt": "哪个函数的y随x增大而减小？",
+        "options": [
+          "y=2x−4",
+          "y=3x",
+          "y=x+8",
+          "y=−x+5"
+        ],
+        "answer": 3,
+        "explanation": "只有y=−x+5的k为负。",
+        "topic": "line-monotone",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "line-monotone-2",
+        "prompt": "y=4x−7的图象从左向右怎样变化？",
+        "options": [
+          "上升",
+          "下降",
+          "水平",
+          "先升后降"
+        ],
+        "answer": 0,
+        "explanation": "k=4>0，y随x增大而增大。",
+        "topic": "line-monotone",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "line-coefficients-1",
+        "prompt": "一次函数过(0,2)、(1,5)，其解析式为？",
+        "options": [
+          "y=2x+3",
+          "y=5x+2",
+          "y=3x+2",
+          "y=3x−2"
+        ],
+        "answer": 2,
+        "explanation": "b=2，5=k+2，所以k=3。",
+        "topic": "line-coefficients",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "line-coefficients-2",
+        "prompt": "已知直线y=kx+b过(0,4)，立即可得？",
+        "options": [
+          "k=4",
+          "b=4",
+          "k=0",
+          "b=0"
+        ],
+        "answer": 1,
+        "explanation": "x=0时y=b=4。",
+        "topic": "line-coefficients",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "line-model-1",
+        "prompt": "固定收费10元，每件加工费3元，加工x件总费用为？",
+        "options": [
+          "y=10x+3",
+          "y=3x+10",
+          "y=13x",
+          "y=30x"
+        ],
+        "answer": 1,
+        "explanation": "固定费是b=10，每件单价是k=3。",
+        "topic": "line-model",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "line-model-2",
+        "prompt": "y=2x+6中，x=4时y为？",
+        "options": [
+          "8",
+          "10",
+          "14",
+          "24"
+        ],
+        "answer": 2,
+        "explanation": "代入得2×4+6=14。",
+        "topic": "line-model",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "line-system-1",
+        "prompt": "y=x+2与y=−x+6的交点为？",
+        "options": [
+          "(4,2)",
+          "(2,4)",
+          "(2,2)",
+          "(0,6)"
+        ],
+        "answer": 1,
+        "explanation": "x+2=−x+6，x=2，y=4。",
+        "topic": "line-system",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "line-system-2",
+        "prompt": "两条直线的公共交点满足？",
+        "options": [
+          "只满足第一式",
+          "只满足第二式",
+          "同时满足两式",
+          "不满足任何一式"
+        ],
+        "answer": 2,
+        "explanation": "交点属于两条直线，坐标同时满足两个方程。",
+        "topic": "line-system",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "survey-1",
+        "prompt": "了解全校学生视力，哪种抽样较合理？",
+        "options": [
+          "只问戴眼镜的同学",
+          "只调查自己班",
+          "各年级随机抽取一定人数",
+          "只问运动队"
+        ],
+        "answer": 2,
+        "explanation": "各年级随机抽取更能覆盖总体差异。",
+        "topic": "survey",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "survey-2",
+        "prompt": "调查全部对象的方式叫？",
+        "options": [
+          "抽样调查",
+          "普查",
+          "实验",
+          "估计"
+        ],
+        "answer": 1,
+        "explanation": "普查逐一调查总体中的所有个体。",
+        "topic": "survey",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "charts-1",
+        "prompt": "展示某地每月平均气温变化最适合？",
+        "options": [
+          "扇形图",
+          "折线图",
+          "座位图",
+          "只有文字"
+        ],
+        "answer": 1,
+        "explanation": "折线图清晰呈现随时间变化的趋势。",
+        "topic": "charts",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "charts-2",
+        "prompt": "扇形图主要表示？",
+        "options": [
+          "变化速度",
+          "地点位置",
+          "部分占总体的比例",
+          "方程的解"
+        ],
+        "answer": 2,
+        "explanation": "圆代表整体，各扇形代表部分比例。",
+        "topic": "charts",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "price-study-1",
+        "prompt": "A店3kg售价24元，B店2kg售价18元，同质商品哪个单位价低？",
+        "options": [
+          "A店",
+          "B店",
+          "相同",
+          "无法比较"
+        ],
+        "answer": 0,
+        "explanation": "A为8元/kg，B为9元/kg，A低。",
+        "topic": "price-study",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "price-study-2",
+        "prompt": "比较不同规格商品，首先应？",
+        "options": [
+          "只看包装大小",
+          "统一计量单位",
+          "只看广告",
+          "忽略运费"
+        ],
+        "answer": 1,
+        "explanation": "统一单位后才能比较单价。",
+        "topic": "price-study",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "frequency-1",
+        "prompt": "80人中20人选A，A的频率为？",
+        "options": [
+          "0.2",
+          "0.4",
+          "0.25",
+          "4"
+        ],
+        "answer": 2,
+        "explanation": "20÷80=0.25。",
+        "topic": "frequency",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "frequency-2",
+        "prompt": "频率的计算公式为？",
+        "options": [
+          "总数÷频数",
+          "频数÷总数",
+          "频数×总数",
+          "总数−频数"
+        ],
+        "answer": 1,
+        "explanation": "比例用部分数量除总体数量。",
+        "topic": "frequency",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "histogram-1",
+        "prompt": "按[10,20)、[20,30)分组，数据20属于？",
+        "options": [
+          "第一组",
+          "第二组",
+          "两组都属",
+          "两组都不属"
+        ],
+        "answer": 1,
+        "explanation": "左端包含、右端不包含，20计入第二组。",
+        "topic": "histogram",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "histogram-2",
+        "prompt": "各组频数之和应等于？",
+        "options": [
+          "1",
+          "最高频数",
+          "数据总数",
+          "组数"
+        ],
+        "answer": 2,
+        "explanation": "分组覆盖全部数据且不重不漏。",
+        "topic": "histogram",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "vision-study-1",
+        "prompt": "随机抽200人，有50人某指标未达标，合理表述是？",
+        "options": [
+          "全校一定恰好50人未达标",
+          "用样本25%估计总体相应比例，并说明误差",
+          "可证明某习惯导致近视",
+          "不必说明抽样方法"
+        ],
+        "answer": 1,
+        "explanation": "抽样只能估计总体比例，不能把样本数量直接当总体数量或证明因果。",
+        "topic": "vision-study",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "vision-study-2",
+        "prompt": "一份调查报告应说明哪项？",
+        "options": [
+          "只写结论",
+          "只写标题",
+          "调查对象和方法",
+          "只写喜欢的图"
+        ],
+        "answer": 2,
+        "explanation": "对象、方法和样本量影响结论的可信度。",
+        "topic": "vision-study",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "random-event-1",
+        "prompt": "掷普通六面骰子，出现点数大于4属于？",
+        "options": [
+          "必然事件",
+          "不可能事件",
+          "随机事件",
+          "没有结果的事件"
+        ],
+        "answer": 2,
+        "explanation": "可能掷出5或6，也可能掷出1到4。",
+        "topic": "random-event",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "random-event-2",
+        "prompt": "普通六面骰子掷出7属于？",
+        "options": [
+          "不可能事件",
+          "必然事件",
+          "随机事件",
+          "一定发生的事件"
+        ],
+        "answer": 0,
+        "explanation": "普通骰子没有点数7。",
+        "topic": "random-event",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "probability-1",
+        "prompt": "袋中3红球2白球，除颜色外相同，随机摸1球为红的概率为？",
+        "options": [
+          "1/2",
+          "2/5",
+          "3/5",
+          "3/2"
+        ],
+        "answer": 2,
+        "explanation": "5个球等可能，红球3个，概率3/5。",
+        "topic": "probability",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "probability-2",
+        "prompt": "概率的取值范围为？",
+        "options": [
+          "小于0",
+          "0到1（含端点）",
+          "大于1",
+          "所有整数"
+        ],
+        "answer": 1,
+        "explanation": "不可能事件概率0，必然事件概率1。",
+        "topic": "probability",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "frequency-prob-1",
+        "prompt": "均匀硬币连出5次正面，下一次正面的理论概率为？",
+        "options": [
+          "0",
+          "1",
+          "1/2",
+          "1/6"
+        ],
+        "answer": 2,
+        "explanation": "在独立且均匀的模型下，下一次仍为1/2。",
+        "topic": "frequency-prob",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "frequency-prob-2",
+        "prompt": "用试验估计概率，通常应？",
+        "options": [
+          "只做1次",
+          "大量重复试验",
+          "挑选喜欢的结果",
+          "把频率固定为1"
+        ],
+        "answer": 1,
+        "explanation": "大量试验的频率通常在概率附近稳定波动。",
+        "topic": "frequency-prob",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "parallelogram-1",
+        "prompt": "平行四边形一个内角为70°，其邻角为？",
+        "options": [
+          "70°",
+          "110°",
+          "90°",
+          "140°"
+        ],
+        "answer": 1,
+        "explanation": "邻角互补，180°−70°=110°。",
+        "topic": "parallelogram",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "parallelogram-2",
+        "prompt": "一般平行四边形的两条对角线一定？",
+        "options": [
+          "相等",
+          "垂直",
+          "互相平分",
+          "都是高"
+        ],
+        "answer": 2,
+        "explanation": "对角线互相平分，其他条件不一定。",
+        "topic": "parallelogram",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "parallel-judge-1",
+        "prompt": "哪组条件能判四边形是平行四边形？",
+        "options": [
+          "只有一组对边平行",
+          "只有一组对边相等",
+          "一组对边平行且相等",
+          "对角线仅相等"
+        ],
+        "answer": 2,
+        "explanation": "同一组对边同时平行且相等，条件充分。",
+        "topic": "parallel-judge",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "parallel-judge-2",
+        "prompt": "对角线互相平分的四边形是？",
+        "options": [
+          "平行四边形",
+          "一定是正方形",
+          "一定是矩形",
+          "一定是菱形"
+        ],
+        "answer": 0,
+        "explanation": "这是平行四边形判定之一。",
+        "topic": "parallel-judge",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "rectangle-1",
+        "prompt": "矩形对角线长10，交点O到一个顶点的距离为？",
+        "options": [
+          "10",
+          "20",
+          "5",
+          "不能确定"
+        ],
+        "answer": 2,
+        "explanation": "对角线互相平分且相等，半条为5。",
+        "topic": "rectangle",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "rectangle-2",
+        "prompt": "有一个角为直角的平行四边形是？",
+        "options": [
+          "任意梯形",
+          "矩形",
+          "只有菱形",
+          "只有正方形"
+        ],
+        "answer": 1,
+        "explanation": "符合矩形定义。",
+        "topic": "rectangle",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "rhombus-1",
+        "prompt": "菱形两对角线长10、12，面积为？",
+        "options": [
+          "120",
+          "30",
+          "60",
+          "22"
+        ],
+        "answer": 2,
+        "explanation": "S=10×12/2=60。",
+        "topic": "rhombus",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "rhombus-2",
+        "prompt": "菱形的四条边？",
+        "options": [
+          "全部相等",
+          "只有一对相等",
+          "一定垂直",
+          "一定平行于坐标轴"
+        ],
+        "answer": 0,
+        "explanation": "四边相等是菱形性质。",
+        "topic": "rhombus",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "square-1",
+        "prompt": "哪个条件可把矩形判为正方形？",
+        "options": [
+          "对角线相等",
+          "有一个直角",
+          "一组邻边相等",
+          "对边平行"
+        ],
+        "answer": 2,
+        "explanation": "矩形加邻边相等，四边相等，得到正方形。",
+        "topic": "square",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "square-2",
+        "prompt": "正方形一定同时是？",
+        "options": [
+          "梯形和圆",
+          "矩形和菱形",
+          "只有一般四边形",
+          "不属于平行四边形"
+        ],
+        "answer": 1,
+        "explanation": "正方形同时具备矩形和菱形性质。",
+        "topic": "square",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "midline-1",
+        "prompt": "三角形中位线长6，与它平行的第三边长为？",
+        "options": [
+          "3",
+          "6",
+          "12",
+          "18"
+        ],
+        "answer": 2,
+        "explanation": "第三边是中位线的2倍，等于12。",
+        "topic": "midline",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "midline-2",
+        "prompt": "三角形中位线连接什么？",
+        "options": [
+          "两个顶点",
+          "两边的中点",
+          "顶点和中点",
+          "两条高的垂足"
+        ],
+        "answer": 1,
+        "explanation": "这是中位线定义。",
+        "topic": "midline",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "trapezoid-1",
+        "prompt": "梯形上底3、下底7、高4，面积为？",
+        "options": [
+          "40",
+          "20",
+          "10",
+          "28"
+        ],
+        "answer": 1,
+        "explanation": "(3+7)×4÷2=20。",
+        "topic": "trapezoid",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "trapezoid-2",
+        "prompt": "梯形面积公式里的高是？",
+        "options": [
+          "任意一条腰",
+          "两底之和",
+          "两底之间的垂直距离",
+          "对角线"
+        ],
+        "answer": 2,
+        "explanation": "高是平行的两底所在直线之间的距离。",
+        "topic": "trapezoid",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "iso-trapezoid-1",
+        "prompt": "等腰梯形一条底边上的角为65°，同底另一角为？",
+        "options": [
+          "115°",
+          "90°",
+          "65°",
+          "130°"
+        ],
+        "answer": 2,
+        "explanation": "同一底上的两个角相等。",
+        "topic": "iso-trapezoid",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "iso-trapezoid-2",
+        "prompt": "等腰梯形相等的是哪两边？",
+        "options": [
+          "两底",
+          "两腰",
+          "所有四边",
+          "两条高只有一条"
+        ],
+        "answer": 1,
+        "explanation": "两腰相等是定义条件。",
+        "topic": "iso-trapezoid",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "factor-concept-1",
+        "prompt": "下列哪个是因式分解？",
+        "options": [
+          "x(x+1)=x²+x",
+          "x²−4=(x−2)(x+2)",
+          "x²+x=x+x²",
+          "x²−1=x²+ (−1)"
+        ],
+        "answer": 1,
+        "explanation": "多项式被写成整式乘积。",
+        "topic": "factor-concept",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "factor-concept-2",
+        "prompt": "因式分解的结果应写成？",
+        "options": [
+          "几个整式的和",
+          "任意商",
+          "几个整式的积",
+          "一个小数"
+        ],
+        "answer": 2,
+        "explanation": "因式分解强调乘积形式。",
+        "topic": "factor-concept",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "factor-difference-1",
+        "prompt": "9x²−4分解为？",
+        "options": [
+          "(3x−2)²",
+          "(9x+4)(x−1)",
+          "(3x+2)(3x−2)",
+          "(3x+4)(3x−4)"
+        ],
+        "answer": 2,
+        "explanation": "9x²=(3x)²，4=2²，应用平方差公式。",
+        "topic": "factor-difference",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "factor-difference-2",
+        "prompt": "a²−b²等于？",
+        "options": [
+          "(a−b)²",
+          "(a+b)(a−b)",
+          "(a+b)²",
+          "a(a−b)"
+        ],
+        "answer": 1,
+        "explanation": "平方差等于和乘差。",
+        "topic": "factor-difference",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "factor-perfect-1",
+        "prompt": "x²+8x+16分解为？",
+        "options": [
+          "(x+8)²",
+          "(x+4)²",
+          "(x−4)²",
+          "(x+2)(x+8)"
+        ],
+        "answer": 1,
+        "explanation": "首尾为x²、4²，中间为2·x·4。",
+        "topic": "factor-perfect",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "factor-perfect-2",
+        "prompt": "(a−b)²展开为？",
+        "options": [
+          "a²−b²",
+          "a²+2ab+b²",
+          "a²−2ab+b²",
+          "a²−2ab−b²"
+        ],
+        "answer": 2,
+        "explanation": "完全平方公式中末项仍为正的b²。",
+        "topic": "factor-perfect",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "radical-domain-1",
+        "prompt": "√(x−3)在实数范围有意义，需？",
+        "options": [
+          "x>3",
+          "x≤3",
+          "x≥3",
+          "x≠3"
+        ],
+        "answer": 2,
+        "explanation": "被开方数x−3≥0，得x≥3。",
+        "topic": "radical-domain",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "radical-domain-2",
+        "prompt": "√a表示的值一定？",
+        "options": [
+          "小于0",
+          "大于或等于0",
+          "有正负两个值",
+          "不为0"
+        ],
+        "answer": 1,
+        "explanation": "它表示算术平方根，结果非负。",
+        "topic": "radical-domain",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "radical-simplify-1",
+        "prompt": "√50化简为？",
+        "options": [
+          "25√2",
+          "5√2",
+          "2√5",
+          "5"
+        ],
+        "answer": 1,
+        "explanation": "50=25×2，√50=5√2。",
+        "topic": "radical-simplify",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "radical-simplify-2",
+        "prompt": "√[(−4)²]等于？",
+        "options": [
+          "−4",
+          "±4",
+          "4",
+          "16"
+        ],
+        "answer": 2,
+        "explanation": "√16=4，也就是|−4|。",
+        "topic": "radical-simplify",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "radical-multiply-1",
+        "prompt": "√8·√2等于？",
+        "options": [
+          "√10",
+          "16",
+          "4",
+          "2√2"
+        ],
+        "answer": 2,
+        "explanation": "√(8×2)=√16=4。",
+        "topic": "radical-multiply",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "radical-multiply-2",
+        "prompt": "√18÷√2等于？",
+        "options": [
+          "3",
+          "9",
+          "√16",
+          "2"
+        ],
+        "answer": 0,
+        "explanation": "√(18/2)=√9=3，分母√2非零。",
+        "topic": "radical-multiply",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "radical-add-1",
+        "prompt": "√12+√27化简为？",
+        "options": [
+          "√39",
+          "5√3",
+          "3√5",
+          "√15"
+        ],
+        "answer": 1,
+        "explanation": "√12=2√3，√27=3√3，相加为5√3。",
+        "topic": "radical-add",
+        "difficulty": "standard",
+        "origin": "本项目原创，待教师审核"
+      },
+      {
+        "id": "radical-add-2",
+        "prompt": "2√5+3√5等于？",
+        "options": [
+          "√25",
+          "6√5",
+          "5√5",
+          "5√10"
+        ],
+        "answer": 2,
+        "explanation": "同类根式合并系数2+3=5。",
+        "topic": "radical-add",
+        "difficulty": "basic",
+        "origin": "本项目原创，待教师审核"
+      }
+    ]
+  },
+  "physics": {
+    "version": "suke-physics8a-2025-1",
+    "nodes": [
+      {
+        "id": "phy-source",
+        "title": "声音来自振动",
+        "criterion": "先找正在振动并发声的物体，而不是只找听到声音的位置；敲击音叉后，用接触叉股的小球运动显示微小振动，这是转换法；声源振动停止，发声停止；已经传出的声音仍需时间传播。"
+      },
+      {
+        "id": "phy-medium",
+        "title": "声音传播需要介质",
+        "criterion": "声源振动使周围介质产生波动，声波可以传递信息和能量；抽气罩内铃声减弱，结合空气越来越少，推测真空不传声；固体、液体也能传声；抽气实验要保持铃的工作状态等条件尽量不变。"
+      },
+      {
+        "id": "phy-echo",
+        "title": "声速与回声测距",
+        "criterion": "速度、路程、时间满足s=vt，单位要配套；发声到收到同处回声，声音走过声源到障碍物的往返路程2d；声源与障碍物静止、介质均匀且声速给定时，d=vt/2。"
+      },
+      {
+        "id": "phy-pitch",
+        "title": "音调由频率决定",
+        "criterion": "频率f=振动次数÷所用时间，时间用秒；改变音调要改变振动快慢，而不是只改变用力大小；做比较实验时控制其他条件，避免将响度变化误判为音调变化。"
+      },
+      {
+        "id": "phy-loudness",
+        "title": "响度与振幅",
+        "criterion": "振幅描述物体振动幅度，区别于振动快慢；比较轻敲与重敲同一鼓，在相同接收位置判断响度；远近变化也会影响听到的响度，不能把一切响度变化都归因于声源振幅。"
+      },
+      {
+        "id": "phy-timbre",
+        "title": "用音色识别声源",
+        "criterion": "音调看高低，主要与频率有关；响度看强弱，与振幅等有关；音色看特色，与声源的材料和结构等有关；比较同音调、相近响度的不同乐器，可突出音色差异。"
+      },
+      {
+        "id": "phy-noise",
+        "title": "噪声控制的三个环节",
+        "criterion": "先按具体场景判断声音是否产生干扰，不只凭好听与否；禁止鸣笛、设备消声针对声源；隔声屏障针对传播途中；耳罩、耳塞作用于接收处；噪声监测仪用于监测，不能直接消除噪声。"
+      },
+      {
+        "id": "phy-ultrasound",
+        "title": "超声与次声",
+        "criterion": "依据频率分类，不依据响度大小分类；超声可用于探测、医学检查等，次声可用于某些自然事件监测；声音能传递信息和能量；不可听声仍需要介质传播。"
+      },
+      {
+        "id": "phy-spectrum",
+        "title": "光源与白光的色散",
+        "criterion": "区分物体本身发光与反射别处的光；三棱镜能把太阳光分解为红、橙、黄、绿、蓝、靛、紫等色光；色散揭示白光的组成，三棱镜并不是凭空制造这些色光。"
+      },
+      {
+        "id": "phy-rgb",
+        "title": "三原色光与光能",
+        "criterion": "记住光的三原色是红、绿、蓝，不是红、黄、蓝；适当比例的三原色光叠加可以得到白光，显示器利用色光混合；太阳能电池把光能转化为电能，太阳能热水器主要把光能转化为内能。"
+      },
+      {
+        "id": "phy-straight",
+        "title": "光的直线传播与小孔成像",
+        "criterion": "说出同种均匀介质这个条件；介质改变或不均匀时不能无条件套用；从物体上下端各画一条过小孔的光线，说明上下颠倒；小孔像可呈在屏上；像的大小与物距、屏距有关，不一定等大。"
+      },
+      {
+        "id": "phy-mirror",
+        "title": "平面镜成像的对称性",
+        "criterion": "先作物点到镜面的垂线，再在镜后取等距离像点；物体远离镜面，像也远离镜面，但像的实际大小不变；物像间距是两倍物距；虚像由反射光线反向延长相交形成。"
+      },
+      {
+        "id": "phy-mirror-lab",
+        "title": "平面镜成像实验",
+        "criterion": "选薄玻璃板并竖直放置，尽量减少两表面像带来的干扰；移动板后的相同棋子，使它与镜前棋子的像重合，多角度观察确认；测量物、像到板的距离，多组物距检验规律；在像处放光屏检验虚像。"
+      },
+      {
+        "id": "phy-reflection",
+        "title": "反射定律与角度",
+        "criterion": "先画垂直反射面的法线，再标入射光与反射光；入射角、反射角分别是相应光线与法线的夹角；若给光线与镜面的夹角，要先用90°减它，再应用两角相等。"
+      },
+      {
+        "id": "phy-diffuse",
+        "title": "镜面反射与漫反射",
+        "criterion": "比较表面粗糙程度及各处法线方向；漫反射使人能从多个方向看到不发光物体；看不发光物体，需有照明并有反射光进入眼睛；粗糙表面不等于自行发光。"
+      },
+      {
+        "id": "phy-refraction",
+        "title": "折射方向与法线",
+        "criterion": "先分清入射介质、另一介质和光的行进方向；折射光、入射光与法线共面，两条光线分居法线两侧；角度从法线量起；在同一对介质中，入射角增大，折射角也增大。"
+      },
+      {
+        "id": "phy-shallow",
+        "title": "水底为何看起来浅",
+        "criterion": "光从水底出发，经水面进入空气和眼睛，不是从眼睛发光；在水面处出水光线偏离法线，将它反向延长确定看见的位置；看到的浅像不表示水底上升；观察者位置固定仍可能因加水而看见原先被挡住的硬币。"
+      },
+      {
+        "id": "phy-lens",
+        "title": "凸透镜与凹透镜",
+        "criterion": "按中央和边缘的相对厚度判断，不能只看某一表面的形状；同种均匀透明材料制成的常用凸透镜使平行光会聚；凹透镜使平行光发散，凹透镜后无实际会聚的亮焦点。"
+      },
+      {
+        "id": "phy-focus",
+        "title": "焦点、焦距与特殊光线",
+        "criterion": "主光轴通过光心；f是O到F的距离，不是两焦点间距离；画凸透镜光路时可用平行主轴光经远侧焦点、过光心光方向不变两条特殊光线；用远处景物在光屏上成清晰像，像距可近似估计焦距。"
+      },
+      {
+        "id": "phy-imaging",
+        "title": "一倍焦距分虚实，二倍分大小",
+        "criterion": "u是物到透镜距离，v是像到透镜距离，不是物像总距离；u>2f时f<v<2f；u=2f时v=2f；f<u<2f时v>2f；u=f时在有限距离光屏上不能得到清晰实像；u<f时虚像与物同侧，不能直接用光屏承接。"
+      },
+      {
+        "id": "phy-lens-lab",
+        "title": "怎样找到清晰的实像",
+        "criterion": "先测焦距，再把物距、像距从透镜光心量起；清晰像偏离光屏中心时，检查各中心高度；光屏上有模糊亮斑不等于找到清晰像；在成实像的范围内，物体向透镜靠近，像会远离透镜并变大；移到焦内后应透过透镜观察虚像。"
+      },
+      {
+        "id": "phy-applications",
+        "title": "照相、投影与放大观察",
+        "criterion": "照相对应u>2f，感光部件位于实像处；投影放大对应f<u<2f，屏在另一侧且v>2f；放大镜对应u<f，眼睛透过透镜观察虚像，不能直接用屏接。"
+      },
+      {
+        "id": "phy-eye",
+        "title": "人眼成像与视力矫正",
+        "criterion": "眼睛通过调节晶状体形状来改变会聚能力，使像落在视网膜；近视：远物像偏前，用凹透镜发散，使会聚位置后移；远视：近物像偏后，用凸透镜会聚，使会聚位置前移；实际配镜需专业检查。"
+      },
+      {
+        "id": "phy-instruments",
+        "title": "望远镜与显微镜",
+        "criterion": "先按位置分物镜和目镜，再按具体仪器识别作用，不能把两者叫法对调；本课开普勒望远镜物镜长焦，显微镜物镜短焦；不是所有望远镜结构都相同；望远镜通过增大视角帮助看清远物，不能透过任何仪器直视太阳或强光源。"
+      },
+      {
+        "id": "phy-invisible",
+        "title": "红外线与紫外线",
+        "criterion": "红外与紫外均不是肉眼可直接看见的色光；红外热成像通过物体辐射的红外线获取信息，不等于相机向人发出高温；紫外线可能损伤眼睛和皮肤；紫外消毒灯工作时应按规范避开直接照射。"
+      },
+      {
+        "id": "phy-temperature",
+        "title": "三态与温度计的使用",
+        "criterion": "测前看量程与分度值，选合适温度计；零下温度也有大小，−5 ℃高于−10 ℃；普通实验液体温度计玻璃泡充分浸没于被测液体，不碰底壁；等示数稳定后，玻璃泡仍在被测液体中，视线与液柱上表面相平再读数。"
+      },
+      {
+        "id": "phy-cooling",
+        "title": "读懂温度—时间图像",
+        "criterion": "确定横轴时间单位和纵轴温度单位，不能把两轴含义对调；从某时刻向图线找对应温度，温差用末温减初温或说明降低多少；热水在恒定室温中自然冷却通常逐渐接近室温，不能机械地按初始降温速度一直外推。"
+      },
+      {
+        "id": "phy-evaporation",
+        "title": "蒸发与控制变量",
+        "criterion": "蒸发不要求达到沸点，只发生在液体表面；研究单个影响因素时，其余条件尽量一致，比较相同时间损失的液体量等；提高温度、增大表面积、加快表面空气流动，其他条件相同时通常使蒸发加快。"
+      },
+      {
+        "id": "phy-boiling",
+        "title": "沸腾需要持续吸热",
+        "criterion": "比较蒸发与沸腾的发生位置、温度条件、剧烈程度，两者都吸热；达到相应沸点并继续吸热，液体才能持续沸腾；读加热图像时，沸腾平台表示吸热但温度不变，不表示停止供热。"
+      },
+      {
+        "id": "phy-liquid",
+        "title": "白气、露与液化",
+        "criterion": "先辨状态：水蒸气为气态，白气由细小液滴组成；冷杯外壁水珠主要来自周围空气中的水蒸气，不是杯中水穿过杯壁；液化与汽化方向相反，液化放热、汽化吸热。"
+      },
+      {
+        "id": "phy-melting",
+        "title": "熔化、凝固与平台图像",
+        "criterion": "晶体开始熔化要达到熔点，并能继续吸热；只有达到熔点并不保证持续熔化；晶体熔化平台是固液共存，持续吸热，不能仅凭温度不变说没有能量变化；同种晶体在相同条件下熔点与凝固点相同；标准大气压下冰的熔点约0 ℃。"
+      },
+      {
+        "id": "phy-sublimation",
+        "title": "直接跨过液态的变化",
+        "criterion": "关键词是直接，不经历中间液态；先判变化前后状态，再命名，再判断吸热或放热；霜是固态，露是液态；干冰升华吸热可使附近空气中的水蒸气液化成白雾。"
+      },
+      {
+        "id": "phy-water-cycle",
+        "title": "水循环与状态变化链",
+        "criterion": "按变化前后状态逐步命名，不给整个复杂过程只贴一个标签；云由小水滴和小冰晶等组成，不是肉眼直接看见的水蒸气；水的总量大不等于可用淡水充足，还受分布、污染和取用条件影响。"
+      },
+      {
+        "id": "phy-length",
+        "title": "刻度尺读数与单位",
+        "criterion": "常用换算：1 km=1000 m，1 cm=0.01 m，1 mm=0.001 m；一端对齐零刻度；零刻度损坏时可用其他刻度起测，长度等于末读数减初读数；分度值1 mm=0.1 cm时，以cm记录通常需估读到0.01 cm。"
+      },
+      {
+        "id": "phy-error",
+        "title": "误差不是错误",
+        "criterion": "先检查操作是否正确，再讨论正常测量中的误差；对同一长度重复测量后取平均，不能混入不同对象或不同单位的数据；平均不能消除所有系统性偏差；结果保留到与仪器精度相适应的位数。"
+      },
+      {
+        "id": "phy-time",
+        "title": "计时与累积测量",
+        "criterion": "先确认秒表量程、显示规则并归零，避免把小数秒按六十进制换算；一个完整来回为一次周期，不是单程；从同一位置同一方向开始和结束计数；平均周期T=总时间÷完整来回次数，记录单位秒。"
+      },
+      {
+        "id": "phy-speed",
+        "title": "速度计算与单位换算",
+        "criterion": "先明确同一运动过程中的路程s和时间t，单位要配套；求路程用s=vt，求时间用t=s/v，不能只凭数字大小比较不同单位速度；km/h换m/s除以3.6，m/s换km/h乘3.6。"
+      },
+      {
+        "id": "phy-uniform",
+        "title": "匀速直线运动与s—t图",
+        "criterion": "既要沿直线，又要速度不变；只看路线直不能断定匀速；用各段路程除以对应时间检验速度是否相近，注意区间时间是相邻时刻之差；s—t图斜率表示速度，水平段表示路程不再增加；图线形状不是空间运动轨迹。"
+      },
+      {
+        "id": "phy-average",
+        "title": "平均速度与列车过桥",
+        "criterion": "先选过程边界，把所有路程和对应时间配成同一段，包括过程中的停留时间；平均速度v=总路程/总时间，分段速度平均仅在各段用时相等等特定条件下成立；完全过桥路程=桥长+车长；只到车头出桥则是另一过程，不能混算。"
+      },
+      {
+        "id": "phy-reference",
+        "title": "先选参照物再说动静",
+        "criterion": "明确研究对象与参照物，不能选研究对象自身来研究它的运动；相对位置改变为运动，不改变为静止；通常可选地面作参照物；相对静止不等于宇宙中绝对不动；同车乘客可相对车厢静止、相对地面运动。"
+      }
+    ],
+    "edges": [
+      {
+        "from": "phy-source",
+        "to": "phy-medium",
+        "strength": "hard",
+        "reason": "传播前先区分声源振动与声波传播。"
+      },
+      {
+        "from": "phy-medium",
+        "to": "phy-echo",
+        "strength": "hard",
+        "reason": "明确声波沿介质传播并能反射，才可分析往返声程。"
+      },
+      {
+        "from": "phy-source",
+        "to": "phy-pitch",
+        "strength": "hard",
+        "reason": "频率描述声源振动的快慢。"
+      },
+      {
+        "from": "phy-source",
+        "to": "phy-loudness",
+        "strength": "hard",
+        "reason": "利用可见振动幅度理解振幅。"
+      },
+      {
+        "from": "phy-pitch",
+        "to": "phy-timbre",
+        "strength": "hard",
+        "reason": "先区分音调才能辨别音色。"
+      },
+      {
+        "from": "phy-loudness",
+        "to": "phy-timbre",
+        "strength": "hard",
+        "reason": "控制响度以突出声源特色。"
+      },
+      {
+        "from": "phy-medium",
+        "to": "phy-noise",
+        "strength": "hard",
+        "reason": "沿声源、传播介质到接收者定位措施。"
+      },
+      {
+        "from": "phy-pitch",
+        "to": "phy-ultrasound",
+        "strength": "hard",
+        "reason": "用频率数值与听觉范围比较。"
+      },
+      {
+        "from": "phy-medium",
+        "to": "phy-ultrasound",
+        "strength": "hard",
+        "reason": "不可听声仍是声波，传播需要介质。"
+      },
+      {
+        "from": "phy-spectrum",
+        "to": "phy-rgb",
+        "strength": "hard",
+        "reason": "先理解白光含多种色光，再学习色光混合。"
+      },
+      {
+        "from": "phy-straight",
+        "to": "phy-mirror",
+        "strength": "hard",
+        "reason": "用直线的反向延长与几何对称描述虚像位置。"
+      },
+      {
+        "from": "phy-mirror",
+        "to": "phy-mirror-lab",
+        "strength": "hard",
+        "reason": "依据像与物等大等距来设计检验。"
+      },
+      {
+        "from": "phy-straight",
+        "to": "phy-reflection",
+        "strength": "hard",
+        "reason": "用带方向的直线表示光路并确定法线。"
+      },
+      {
+        "from": "phy-reflection",
+        "to": "phy-diffuse",
+        "strength": "hard",
+        "reason": "两种反射的每条光线均满足反射定律。"
+      },
+      {
+        "from": "phy-reflection",
+        "to": "phy-refraction",
+        "strength": "hard",
+        "reason": "反射与折射都要先确定法线，但角度规律不同。"
+      },
+      {
+        "from": "phy-refraction",
+        "to": "phy-shallow",
+        "strength": "hard",
+        "reason": "先依据水到空气的折射方向追踪入眼光线。"
+      },
+      {
+        "from": "phy-mirror",
+        "to": "phy-shallow",
+        "strength": "hard",
+        "reason": "借助反向延长线理解虚像，而非实际光在像处会聚。"
+      },
+      {
+        "from": "phy-refraction",
+        "to": "phy-lens",
+        "strength": "hard",
+        "reason": "透镜的作用来自光在表面的折射。"
+      },
+      {
+        "from": "phy-lens",
+        "to": "phy-focus",
+        "strength": "hard",
+        "reason": "先理解凸透镜对平行光的会聚作用。"
+      },
+      {
+        "from": "phy-focus",
+        "to": "phy-imaging",
+        "strength": "hard",
+        "reason": "先定义焦点与焦距，才能按物距分类。"
+      },
+      {
+        "from": "phy-imaging",
+        "to": "phy-lens-lab",
+        "strength": "hard",
+        "reason": "应用物近像远像变大的实像规律调节实验。"
+      },
+      {
+        "from": "phy-imaging",
+        "to": "phy-applications",
+        "strength": "hard",
+        "reason": "把成像区间与实际仪器用途对应。"
+      },
+      {
+        "from": "phy-lens",
+        "to": "phy-eye",
+        "strength": "hard",
+        "reason": "用会聚与发散作用解释矫正方向。"
+      },
+      {
+        "from": "phy-imaging",
+        "to": "phy-eye",
+        "strength": "hard",
+        "reason": "理解视网膜处形成实像的条件。"
+      },
+      {
+        "from": "phy-applications",
+        "to": "phy-instruments",
+        "strength": "hard",
+        "reason": "先区分实像与放大镜虚像，才能理解两组透镜的分工。"
+      },
+      {
+        "from": "phy-spectrum",
+        "to": "phy-invisible",
+        "strength": "hard",
+        "reason": "根据可见光谱的两端定位不可见光。"
+      },
+      {
+        "from": "phy-temperature",
+        "to": "phy-cooling",
+        "strength": "hard",
+        "reason": "先能比较和读取温度，再分析随时间的变化。"
+      },
+      {
+        "from": "phy-temperature",
+        "to": "phy-evaporation",
+        "strength": "hard",
+        "reason": "控制温度，避免把多种因素变化混在一起。"
+      },
+      {
+        "from": "phy-evaporation",
+        "to": "phy-boiling",
+        "strength": "hard",
+        "reason": "先掌握汽化吸热，再区分两种汽化方式。"
+      },
+      {
+        "from": "phy-cooling",
+        "to": "phy-boiling",
+        "strength": "hard",
+        "reason": "能解释温度—时间图像的升温段和平台段。"
+      },
+      {
+        "from": "phy-evaporation",
+        "to": "phy-liquid",
+        "strength": "hard",
+        "reason": "液化是汽化的逆过程，要反向判断状态与吸放热。"
+      },
+      {
+        "from": "phy-temperature",
+        "to": "phy-melting",
+        "strength": "hard",
+        "reason": "能比较温度并识别固液状态。"
+      },
+      {
+        "from": "phy-cooling",
+        "to": "phy-melting",
+        "strength": "hard",
+        "reason": "按坐标与趋势识别相变平台。"
+      },
+      {
+        "from": "phy-liquid",
+        "to": "phy-sublimation",
+        "strength": "hard",
+        "reason": "先区分气态到液态与气态到固态。"
+      },
+      {
+        "from": "phy-melting",
+        "to": "phy-sublimation",
+        "strength": "hard",
+        "reason": "区分直接升华与先熔化再汽化的两步过程。"
+      },
+      {
+        "from": "phy-evaporation",
+        "to": "phy-water-cycle",
+        "strength": "hard",
+        "reason": "蒸发是进入大气的重要途径。"
+      },
+      {
+        "from": "phy-liquid",
+        "to": "phy-water-cycle",
+        "strength": "hard",
+        "reason": "水蒸气遇冷成为云中小水滴，需要先理解液化过程。"
+      },
+      {
+        "from": "phy-sublimation",
+        "to": "phy-water-cycle",
+        "strength": "hard",
+        "reason": "冰晶形成与冰雪消耗还可能涉及凝华或升华。"
+      },
+      {
+        "from": "phy-length",
+        "to": "phy-error",
+        "strength": "hard",
+        "reason": "先掌握规范读数，才能区分测量误差与操作错误。"
+      },
+      {
+        "from": "phy-length",
+        "to": "phy-speed",
+        "strength": "hard",
+        "reason": "计算需要准确的路程及长度单位。"
+      },
+      {
+        "from": "phy-time",
+        "to": "phy-speed",
+        "strength": "hard",
+        "reason": "速度需同时考虑对应时间及其单位。"
+      },
+      {
+        "from": "phy-speed",
+        "to": "phy-uniform",
+        "strength": "hard",
+        "reason": "用路程时间之比理解图像斜率与运动快慢。"
+      },
+      {
+        "from": "phy-speed",
+        "to": "phy-average",
+        "strength": "hard",
+        "reason": "平均速度仍是对应总路程与总时间之比。"
+      }
+    ],
+    "questions": [
+      {
+        "id": "phy-source-diagnosis-0",
+        "prompt": "敲响音叉后小球被弹开，主要说明什么？",
+        "options": [
+          "小球制造了全部声音",
+          "空气不能传声",
+          "音叉没有能量",
+          "发声音叉在振动"
+        ],
+        "answer": 3,
+        "explanation": "小球把不易看清的音叉振动转换为明显运动。",
+        "topic": "phy-source",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-source-diagnosis-1",
+        "prompt": "下列哪个是正在发声的声源？",
+        "options": [
+          "桌上的空乐谱",
+          "耳朵旁静止的书",
+          "正在振动的琴弦",
+          "未弹奏的吉他外壳"
+        ],
+        "answer": 2,
+        "explanation": "判断声源要抓住正在振动并发声。",
+        "topic": "phy-source",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-medium-diagnosis-0",
+        "prompt": "航天员在真空中面对面喊话不能直接听到，是因为？",
+        "options": [
+          "真空没有光",
+          "声音只能在液体中传播",
+          "真空缺少传声介质",
+          "声源一定不能振动"
+        ],
+        "answer": 2,
+        "explanation": "声音传播需要介质，真空不能传声。",
+        "topic": "phy-medium",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-medium-diagnosis-1",
+        "prompt": "潜水者能听到水下的声音，说明？",
+        "options": [
+          "只有空气能传声",
+          "液体能够传声",
+          "液体只能发光",
+          "水中不存在振动"
+        ],
+        "answer": 1,
+        "explanation": "水是液体，也能作为传声介质。",
+        "topic": "phy-medium",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-echo-diagnosis-0",
+        "prompt": "人在原地发声1 s后收到墙的回声，声速340 m/s，人离墙多远？",
+        "options": [
+          "34 m",
+          "170 m",
+          "340 m",
+          "680 m"
+        ],
+        "answer": 1,
+        "explanation": "回声走往返路程，d=340×1÷2=170 m。",
+        "topic": "phy-echo",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-echo-diagnosis-1",
+        "prompt": "声波遇到山体返回形成回声，属于？",
+        "options": [
+          "声音的反射",
+          "声音在真空传播",
+          "光的折射",
+          "声源消失"
+        ],
+        "answer": 0,
+        "explanation": "回声来自声音的反射。",
+        "topic": "phy-echo",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-pitch-diagnosis-0",
+        "prompt": "甲2 s振动1000次，乙2 s振动600次，谁音调较高？",
+        "options": [
+          "甲",
+          "乙",
+          "一定一样",
+          "必须看振幅才能判断"
+        ],
+        "answer": 0,
+        "explanation": "甲500 Hz，乙300 Hz，甲频率大，音调高。",
+        "topic": "phy-pitch",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-pitch-diagnosis-1",
+        "prompt": "频率的单位是？",
+        "options": [
+          "m",
+          "s",
+          "℃",
+          "Hz"
+        ],
+        "answer": 3,
+        "explanation": "频率单位是赫兹，符号Hz。",
+        "topic": "phy-pitch",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-loudness-diagnosis-0",
+        "prompt": "同一鼓在相同位置听，重敲通常比轻敲更响，主要关联？",
+        "options": [
+          "频率必为零",
+          "真空变多",
+          "音调必提高",
+          "振幅较大"
+        ],
+        "answer": 3,
+        "explanation": "其他条件相同时，振幅越大，响度通常越大。",
+        "topic": "phy-loudness",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-loudness-diagnosis-1",
+        "prompt": "“声音很响”主要描述什么？",
+        "options": [
+          "音色",
+          "声速",
+          "响度",
+          "音调"
+        ],
+        "answer": 2,
+        "explanation": "响度描述强弱，音调描述高低。",
+        "topic": "phy-loudness",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-timbre-diagnosis-0",
+        "prompt": "相同音调、相近响度下仍能分辨钢琴与小提琴，主要依据？",
+        "options": [
+          "音高一定不同",
+          "真空传声能力",
+          "音色",
+          "传播时间一定不同"
+        ],
+        "answer": 2,
+        "explanation": "不同乐器材料结构不同，音色可不同。",
+        "topic": "phy-timbre",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-timbre-diagnosis-1",
+        "prompt": "下列配对正确的是？",
+        "options": [
+          "声速—好听程度",
+          "音调—高低",
+          "响度—高低",
+          "音色—强弱"
+        ],
+        "answer": 1,
+        "explanation": "高低是音调，强弱是响度，特色是音色。",
+        "topic": "phy-timbre",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-noise-diagnosis-0",
+        "prompt": "在公路与学校之间建隔声屏障属于？",
+        "options": [
+          "制造真空声源",
+          "传播途中控制",
+          "声源处控制",
+          "接收处控制"
+        ],
+        "answer": 1,
+        "explanation": "屏障在声源到接收者的传播途中减弱噪声。",
+        "topic": "phy-noise",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-noise-diagnosis-1",
+        "prompt": "工作人员戴耳罩属于？",
+        "options": [
+          "接收处防护",
+          "改变发动机振动",
+          "消除所有空气",
+          "声源处控制"
+        ],
+        "answer": 0,
+        "explanation": "耳罩减弱进入耳朵的声音。",
+        "topic": "phy-noise",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-ultrasound-diagnosis-0",
+        "prompt": "25 kHz的声波属于？",
+        "options": [
+          "超声",
+          "次声",
+          "通常可听声",
+          "真空中的光波"
+        ],
+        "answer": 0,
+        "explanation": "25 kHz=25000 Hz，大于20000 Hz。",
+        "topic": "phy-ultrasound",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-ultrasound-diagnosis-1",
+        "prompt": "10 Hz的声波属于？",
+        "options": [
+          "超声",
+          "通常可听声",
+          "音色",
+          "次声"
+        ],
+        "answer": 3,
+        "explanation": "10 Hz小于20 Hz，属于次声。",
+        "topic": "phy-ultrasound",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-spectrum-diagnosis-0",
+        "prompt": "下列哪个本身正在发光，是光源？",
+        "options": [
+          "镜中灯的像",
+          "白天反光的白纸",
+          "点亮的电灯",
+          "月亮"
+        ],
+        "answer": 2,
+        "explanation": "点亮的电灯本身发光，其余所列靠反光或成像显亮。",
+        "topic": "phy-spectrum",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-spectrum-diagnosis-1",
+        "prompt": "太阳白光经三棱镜分为多种色光，这叫？",
+        "options": [
+          "机械运动",
+          "色散",
+          "回声",
+          "凝华"
+        ],
+        "answer": 1,
+        "explanation": "白光分解为多种色光的现象叫色散。",
+        "topic": "phy-spectrum",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-rgb-diagnosis-0",
+        "prompt": "光的三原色是哪一组？",
+        "options": [
+          "黑、白、灰",
+          "红、绿、蓝",
+          "红、黄、蓝",
+          "红、橙、黄"
+        ],
+        "answer": 1,
+        "explanation": "光的三原色为红、绿、蓝。",
+        "topic": "phy-rgb",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-rgb-diagnosis-1",
+        "prompt": "太阳能电池工作时，主要把光能转化为？",
+        "options": [
+          "电能",
+          "声音",
+          "长度",
+          "时间"
+        ],
+        "answer": 0,
+        "explanation": "太阳能电池把光能转化为电能。",
+        "topic": "phy-rgb",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-straight-diagnosis-0",
+        "prompt": "光沿直线传播的正确条件是？",
+        "options": [
+          "同种均匀介质中",
+          "任何介质任何条件下",
+          "只能在水中",
+          "只能在真空中"
+        ],
+        "answer": 0,
+        "explanation": "必须保留同种均匀介质条件。",
+        "topic": "phy-straight",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-straight-diagnosis-1",
+        "prompt": "小孔成像通常是？",
+        "options": [
+          "正立虚像",
+          "总是等大虚像",
+          "由孔形状决定的图案",
+          "倒立实像"
+        ],
+        "answer": 3,
+        "explanation": "实际光线经小孔在光屏会聚成像，上下颠倒。",
+        "topic": "phy-straight",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-mirror-diagnosis-0",
+        "prompt": "物距平面镜2 m，物与像相距多少？",
+        "options": [
+          "2 m",
+          "1 m",
+          "0 m",
+          "4 m"
+        ],
+        "answer": 3,
+        "explanation": "像距也为2 m，物像间距为2+2=4 m。",
+        "topic": "phy-mirror",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-mirror-diagnosis-1",
+        "prompt": "物体远离平面镜，其像的实际大小？",
+        "options": [
+          "变小",
+          "先变小后消失",
+          "不变",
+          "变大"
+        ],
+        "answer": 2,
+        "explanation": "理想平面镜所成像始终与物等大。",
+        "topic": "phy-mirror",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-mirror-lab-diagnosis-0",
+        "prompt": "实验中用玻璃板代替不透明镜子，主要为了？",
+        "options": [
+          "消除一切误差",
+          "把像固定在板上",
+          "同时看到像和板后替代物",
+          "让像变成实像"
+        ],
+        "answer": 2,
+        "explanation": "玻璃板既能反光成像，又能透光看到后面的替代物。",
+        "topic": "phy-mirror-lab",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-mirror-lab-diagnosis-1",
+        "prompt": "两枚棋子选相同大小，主要用于比较？",
+        "options": [
+          "光速的变化",
+          "像与物的大小",
+          "空气中的声速",
+          "温度高低"
+        ],
+        "answer": 1,
+        "explanation": "通过与像重合的相同棋子，比较像和物的大小。",
+        "topic": "phy-mirror-lab",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-reflection-diagnosis-0",
+        "prompt": "入射光与镜面夹角30°，反射角为？",
+        "options": [
+          "0°",
+          "60°",
+          "30°",
+          "90°"
+        ],
+        "answer": 1,
+        "explanation": "入射角相对法线为90°−30°=60°，反射角等于它。",
+        "topic": "phy-reflection",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-reflection-diagnosis-1",
+        "prompt": "反射角是反射光线与什么的夹角？",
+        "options": [
+          "法线",
+          "镜面",
+          "入射光线",
+          "任意水平线"
+        ],
+        "answer": 0,
+        "explanation": "入射角和反射角都从法线量起。",
+        "topic": "phy-reflection",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-diffuse-diagnosis-0",
+        "prompt": "教室不同位置都能看到黑板上的字，主要因为？",
+        "options": [
+          "字和板面对光的漫反射",
+          "黑板本身总在发光",
+          "光不能在空气传播",
+          "漫反射没有法线"
+        ],
+        "answer": 0,
+        "explanation": "漫反射把照明光送向多个方向。",
+        "topic": "phy-diffuse",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-diffuse-diagnosis-1",
+        "prompt": "关于漫反射，正确的是？",
+        "options": [
+          "反射角总大于入射角",
+          "不需要入射光",
+          "每一处法线方向相同",
+          "每一处仍遵守反射定律"
+        ],
+        "answer": 3,
+        "explanation": "不同位置法线方向不同，但局部仍遵守反射定律。",
+        "topic": "phy-diffuse",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-refraction-diagnosis-0",
+        "prompt": "光从空气斜射入水，入射角40°，折射角可能是？",
+        "options": [
+          "90°",
+          "25°",
+          "40°",
+          "60°"
+        ],
+        "answer": 1,
+        "explanation": "空气斜入水，折射角小于入射角，给出的选项中25°符合。",
+        "topic": "phy-refraction",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-refraction-diagnosis-1",
+        "prompt": "光垂直射入水面时，传播方向？",
+        "options": [
+          "不变",
+          "一定偏转90°",
+          "一定沿水面",
+          "一定反向"
+        ],
+        "answer": 0,
+        "explanation": "垂直入射时入射角、折射角均为0°，方向不变。",
+        "topic": "phy-refraction",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-shallow-diagnosis-0",
+        "prompt": "从岸上斜看清水中的石子，通常看到的位置？",
+        "options": [
+          "比实际浅",
+          "比实际深",
+          "一定在水面上",
+          "一定与实际重合"
+        ],
+        "answer": 0,
+        "explanation": "出水光折射，反向延长形成较浅的虚像。",
+        "topic": "phy-shallow",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-shallow-diagnosis-1",
+        "prompt": "加水后又看到原来被碗沿挡住的硬币，主要因为？",
+        "options": [
+          "硬币一定漂起",
+          "眼睛射出强光",
+          "水使碗沿消失",
+          "光路发生折射"
+        ],
+        "answer": 3,
+        "explanation": "硬币发出或反射的光经水面折射后进入眼睛。",
+        "topic": "phy-shallow",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-lens-diagnosis-0",
+        "prompt": "中间厚、边缘薄的常用透镜是？",
+        "options": [
+          "凹透镜",
+          "平面镜",
+          "不透明屏",
+          "凸透镜"
+        ],
+        "answer": 3,
+        "explanation": "按相对厚度分类，中央厚的是凸透镜。",
+        "topic": "phy-lens",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-lens-diagnosis-1",
+        "prompt": "平行光经凹透镜后通常？",
+        "options": [
+          "不再有能量",
+          "一定原路返回",
+          "发散",
+          "会聚为实焦点"
+        ],
+        "answer": 2,
+        "explanation": "凹透镜对光有发散作用。",
+        "topic": "phy-lens",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-focus-diagnosis-0",
+        "prompt": "凸透镜两侧焦点相距20 cm，焦距为？",
+        "options": [
+          "40 cm",
+          "5 cm",
+          "10 cm",
+          "20 cm"
+        ],
+        "answer": 2,
+        "explanation": "两焦点间距为2f，所以f=10 cm。",
+        "topic": "phy-focus",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-focus-diagnosis-1",
+        "prompt": "平行主光轴的光经凸透镜后通过？",
+        "options": [
+          "镜面上的像点",
+          "另一侧焦点",
+          "入射侧任意点",
+          "光心且立刻反向"
+        ],
+        "answer": 1,
+        "explanation": "平行主轴的光折射后经过远侧焦点。",
+        "topic": "phy-focus",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-imaging-diagnosis-0",
+        "prompt": "f=10 cm，u=30 cm，像的性质为？",
+        "options": [
+          "正立等大虚像",
+          "倒立缩小实像",
+          "倒立放大实像",
+          "正立放大虚像"
+        ],
+        "answer": 1,
+        "explanation": "30>2×10，物在二倍焦距外，成倒立缩小实像。",
+        "topic": "phy-imaging",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-imaging-diagnosis-1",
+        "prompt": "f=10 cm，u=6 cm，能看到哪类像？",
+        "options": [
+          "正立放大虚像",
+          "倒立缩小实像",
+          "倒立等大实像",
+          "一定完全不成像"
+        ],
+        "answer": 0,
+        "explanation": "u<f时，成与物同侧的正立放大虚像。",
+        "topic": "phy-imaging",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-lens-lab-diagnosis-0",
+        "prompt": "物从u=3f移到u=1.5f，重新找清晰实像时应把光屏？",
+        "options": [
+          "移得离透镜更远",
+          "移得离透镜更近",
+          "始终不动",
+          "移到物体同侧"
+        ],
+        "answer": 0,
+        "explanation": "实像范围内物近像远像变大。",
+        "topic": "phy-lens-lab",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-lens-lab-diagnosis-1",
+        "prompt": "实验调高度应使哪些位置大致等高？",
+        "options": [
+          "烛台底部、镜架底部、屏架底部",
+          "只让光屏与桌面等高",
+          "只看镜片最高点",
+          "烛焰中心、光心、光屏中心"
+        ],
+        "answer": 3,
+        "explanation": "中心大致等高可使像落在屏中央附近。",
+        "topic": "phy-lens-lab",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-applications-diagnosis-0",
+        "prompt": "照相机感光部件上得到的通常是？",
+        "options": [
+          "正立放大虚像",
+          "正立等大虚像",
+          "只有影子没有像",
+          "倒立缩小实像"
+        ],
+        "answer": 3,
+        "explanation": "远处物体通常在二倍焦距外，成倒立缩小实像。",
+        "topic": "phy-applications",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-applications-diagnosis-1",
+        "prompt": "用凸透镜直接看字，得到正立放大虚像，字应在？",
+        "options": [
+          "恰好焦点上",
+          "任意位置",
+          "焦点以内",
+          "二倍焦距以外"
+        ],
+        "answer": 2,
+        "explanation": "放大镜的正立放大虚像条件为u<f。",
+        "topic": "phy-applications",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-eye-diagnosis-0",
+        "prompt": "近视眼看远处物体时，像通常落在视网膜的？",
+        "options": [
+          "表面外任意处",
+          "正好中央且永远清楚",
+          "前方",
+          "后方"
+        ],
+        "answer": 2,
+        "explanation": "近视眼看远处时会聚过早，像落在视网膜前。",
+        "topic": "phy-eye",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-eye-diagnosis-1",
+        "prompt": "近视通常用哪种镜片矫正？",
+        "options": [
+          "平面镜",
+          "凹透镜",
+          "凸透镜",
+          "不透明片"
+        ],
+        "answer": 1,
+        "explanation": "凹透镜发散光，使会聚位置后移到视网膜。",
+        "topic": "phy-eye",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-instruments-diagnosis-0",
+        "prompt": "望远镜中靠近眼睛的透镜叫？",
+        "options": [
+          "反射面",
+          "目镜",
+          "物镜",
+          "光屏"
+        ],
+        "answer": 1,
+        "explanation": "靠近眼睛的是目镜，靠近被观察物体的是物镜。",
+        "topic": "phy-instruments",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-instruments-diagnosis-1",
+        "prompt": "本课开普勒望远镜的物镜先把远物成什么像？",
+        "options": [
+          "缩小实像",
+          "放大虚像",
+          "等大虚像",
+          "没有像"
+        ],
+        "answer": 0,
+        "explanation": "远物在二倍焦距以外，物镜先形成缩小实像。",
+        "topic": "phy-instruments",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-invisible-diagnosis-0",
+        "prompt": "热成像仪主要探测？",
+        "options": [
+          "红外线",
+          "可听声",
+          "次声",
+          "液态水"
+        ],
+        "answer": 0,
+        "explanation": "物体辐射的红外线可携带温度相关信息。",
+        "topic": "phy-invisible",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-invisible-diagnosis-1",
+        "prompt": "紫外线使钞票中的荧光物质发光，利用的是？",
+        "options": [
+          "声音的反射",
+          "水的凝固",
+          "镜面等距成像",
+          "紫外线的荧光作用"
+        ],
+        "answer": 3,
+        "explanation": "紫外线可以激发某些荧光物质发出可见光。",
+        "topic": "phy-invisible",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-temperature-diagnosis-0",
+        "prompt": "用普通实验液体温度计测水温，正确的是？",
+        "options": [
+          "示数稳定后留在水中读数",
+          "玻璃泡紧压烧杯底",
+          "刚放入立刻读数",
+          "取出放桌上再读"
+        ],
+        "answer": 0,
+        "explanation": "玻璃泡应充分浸没、不碰底壁，待稳定后在液体中读。",
+        "topic": "phy-temperature",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-temperature-diagnosis-1",
+        "prompt": "−5 ℃与−10 ℃相比，哪个温度高？",
+        "options": [
+          "−10 ℃",
+          "一样高",
+          "不能比较",
+          "−5 ℃"
+        ],
+        "answer": 3,
+        "explanation": "数轴上−5在−10右侧，−5 ℃更高。",
+        "topic": "phy-temperature",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-cooling-diagnosis-0",
+        "prompt": "某杯水0 min为80 ℃，4 min为63 ℃，共降低？",
+        "options": [
+          "143 ℃",
+          "4 ℃",
+          "17 min",
+          "17 ℃"
+        ],
+        "answer": 3,
+        "explanation": "降低的温度为80−63=17 ℃。",
+        "topic": "phy-cooling",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-cooling-diagnosis-1",
+        "prompt": "温度—时间图像通常横轴表示？",
+        "options": [
+          "水的质量",
+          "速度",
+          "时间",
+          "温度"
+        ],
+        "answer": 2,
+        "explanation": "本图像横轴为时间，纵轴为温度，需同时关注单位。",
+        "topic": "phy-cooling",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-evaporation-diagnosis-0",
+        "prompt": "研究空气流动对蒸发的影响，合理的是？",
+        "options": [
+          "同时改变温度和面积",
+          "只比较不同液体颜色",
+          "同种液体同温同表面积，一份吹风一份不吹",
+          "一份热水吹风另一份冷水不吹"
+        ],
+        "answer": 2,
+        "explanation": "只改变空气流动，其余条件尽量一致，才可比较。",
+        "topic": "phy-evaporation",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-evaporation-diagnosis-1",
+        "prompt": "蒸发发生在液体的？",
+        "options": [
+          "只能在100 ℃时",
+          "表面",
+          "内部所有位置",
+          "只能在底部"
+        ],
+        "answer": 1,
+        "explanation": "蒸发是液体表面的汽化，非只在100 ℃发生。",
+        "topic": "phy-evaporation",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-boiling-diagnosis-0",
+        "prompt": "一定气压下水正在持续沸腾，通常？",
+        "options": [
+          "不断凝固",
+          "吸热但温度不变",
+          "不吸热也不放热",
+          "持续吸热且温度必不断升高"
+        ],
+        "answer": 1,
+        "explanation": "沸腾时仍吸热，在一定气压下温度保持沸点。",
+        "topic": "phy-boiling",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-boiling-diagnosis-1",
+        "prompt": "标准大气压下水的沸点是？",
+        "options": [
+          "100 ℃",
+          "0 ℃",
+          "任何条件都为80 ℃",
+          "−100 ℃"
+        ],
+        "answer": 0,
+        "explanation": "标准大气压是必要条件，水沸点约100 ℃。",
+        "topic": "phy-boiling",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-liquid-diagnosis-0",
+        "prompt": "壶嘴外看到的白气主要是？",
+        "options": [
+          "小水滴",
+          "单个可见的水蒸气分子",
+          "烟灰",
+          "小冰块"
+        ],
+        "answer": 0,
+        "explanation": "看得见的白气主要由水蒸气遇冷液化的小水滴组成。",
+        "topic": "phy-liquid",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-liquid-diagnosis-1",
+        "prompt": "气态变为液态的过程叫？",
+        "options": [
+          "熔化",
+          "升华",
+          "凝固",
+          "液化"
+        ],
+        "answer": 3,
+        "explanation": "液化是气态到液态，并放热。",
+        "topic": "phy-liquid",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-melting-diagnosis-0",
+        "prompt": "正在熔化的冰水混合物继续吸热，通常？",
+        "options": [
+          "温度立刻超过100 ℃",
+          "冰不断增加",
+          "完全不吸热",
+          "温度不变，冰逐渐减少"
+        ],
+        "answer": 3,
+        "explanation": "在标准大气压的熔化平台，冰吸热变水，温度约0 ℃不变。",
+        "topic": "phy-melting",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-melting-diagnosis-1",
+        "prompt": "液态水结冰属于？",
+        "options": [
+          "熔化，放热",
+          "液化，吸热",
+          "凝固，放热",
+          "凝固，吸热"
+        ],
+        "answer": 2,
+        "explanation": "液态到固态是凝固，凝固放热。",
+        "topic": "phy-melting",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-sublimation-diagnosis-0",
+        "prompt": "水蒸气直接形成霜，属于？",
+        "options": [
+          "液化，吸热",
+          "升华，放热",
+          "凝华，放热",
+          "凝固，吸热"
+        ],
+        "answer": 2,
+        "explanation": "水蒸气为气态，霜为固态，直接气到固是凝华并放热。",
+        "topic": "phy-sublimation",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-sublimation-diagnosis-1",
+        "prompt": "固态直接变为气态，叫？",
+        "options": [
+          "液化",
+          "升华",
+          "凝华",
+          "熔化"
+        ],
+        "answer": 1,
+        "explanation": "升华不经过液态，并需要吸热。",
+        "topic": "phy-sublimation",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-water-cycle-diagnosis-0",
+        "prompt": "水蒸气遇冷形成云中的小水滴，属于？",
+        "options": [
+          "凝固",
+          "液化",
+          "熔化",
+          "升华"
+        ],
+        "answer": 1,
+        "explanation": "气态水变成液态小水滴，叫液化。",
+        "topic": "phy-water-cycle",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-water-cycle-diagnosis-1",
+        "prompt": "高山冰雪变成融水，首先发生？",
+        "options": [
+          "熔化",
+          "凝华",
+          "液化",
+          "凝固"
+        ],
+        "answer": 0,
+        "explanation": "冰雪由固态变液态是熔化。",
+        "topic": "phy-water-cycle",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-length-diagnosis-0",
+        "prompt": "两端读数2.00 cm、5.35 cm，物长为？",
+        "options": [
+          "5.35 cm",
+          "7.35 cm",
+          "3.35 m",
+          "3.35 cm"
+        ],
+        "answer": 3,
+        "explanation": "长度=末读数−初读数=5.35−2.00=3.35 cm。",
+        "topic": "phy-length",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-length-diagnosis-1",
+        "prompt": "1 mm等于多少米？",
+        "options": [
+          "0.1 m",
+          "1000 m",
+          "0.001 m",
+          "0.01 m"
+        ],
+        "answer": 2,
+        "explanation": "毫米是米的千分之一。",
+        "topic": "phy-length",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-error-diagnosis-0",
+        "prompt": "3.41、3.43、3.42 cm的平均值为？",
+        "options": [
+          "3.43 cm",
+          "3.420000 m",
+          "3.42 cm",
+          "10.26 cm"
+        ],
+        "answer": 2,
+        "explanation": "总和10.26 cm除以3，得3.42 cm。",
+        "topic": "phy-error",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-error-diagnosis-1",
+        "prompt": "关于测量误差，正确的是？",
+        "options": [
+          "只要仪器新就不存在",
+          "可以减小但不能完全消除",
+          "可以用平均法完全消除",
+          "全是粗心造成的错误"
+        ],
+        "answer": 1,
+        "explanation": "正确测量也有误差，减小不等于消除。",
+        "topic": "phy-error",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-time-diagnosis-0",
+        "prompt": "摆20个完整来回用32.0 s，平均一次来回为？",
+        "options": [
+          "16.0 s",
+          "1.60 s",
+          "0.625 s",
+          "640 s"
+        ],
+        "answer": 1,
+        "explanation": "平均周期=32.0÷20=1.60 s。",
+        "topic": "phy-time",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-time-diagnosis-1",
+        "prompt": "0.5 h等于？",
+        "options": [
+          "1800 s",
+          "30 s",
+          "50 s",
+          "300 s"
+        ],
+        "answer": 0,
+        "explanation": "0.5×3600=1800 s。",
+        "topic": "phy-time",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-speed-diagnosis-0",
+        "prompt": "72 km/h等于？",
+        "options": [
+          "20 m/s",
+          "259.2 m/s",
+          "72 m/s",
+          "2 m/s"
+        ],
+        "answer": 0,
+        "explanation": "72÷3.6=20 m/s。",
+        "topic": "phy-speed",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-speed-diagnosis-1",
+        "prompt": "10 s通过50 m，平均快慢用v=s/t算得？",
+        "options": [
+          "0.2 m/s",
+          "500 m/s",
+          "40 m/s",
+          "5 m/s"
+        ],
+        "answer": 3,
+        "explanation": "v=50÷10=5 m/s。",
+        "topic": "phy-speed",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-uniform-diagnosis-0",
+        "prompt": "0、2、4 s时路程为0、6、12 m，匀速模型的速度为？",
+        "options": [
+          "6 m/s",
+          "2 m/s",
+          "12 m/s",
+          "3 m/s"
+        ],
+        "answer": 3,
+        "explanation": "任意对应区间速度均为6÷2=3 m/s。",
+        "topic": "phy-uniform",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-uniform-diagnosis-1",
+        "prompt": "s—t图像的水平段表示该段？",
+        "options": [
+          "一直匀速向前",
+          "一定向后运动",
+          "路程不再增加，物体静止",
+          "速度无限大"
+        ],
+        "answer": 2,
+        "explanation": "路程随时间不增加，此段速度为0。",
+        "topic": "phy-uniform",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-average-diagnosis-0",
+        "prompt": "人先用10 s走20 m，再用30 s走60 m，全程平均速度？",
+        "options": [
+          "80 m/s",
+          "0.5 m/s",
+          "2 m/s",
+          "4 m/s"
+        ],
+        "answer": 2,
+        "explanation": "总路程80 m，总时间40 s，平均速度2 m/s。",
+        "topic": "phy-average",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-average-diagnosis-1",
+        "prompt": "长100 m列车完全通过300 m桥，车头共行驶？",
+        "options": [
+          "100 m",
+          "400 m",
+          "300 m",
+          "200 m"
+        ],
+        "answer": 1,
+        "explanation": "从车头上桥到车尾离桥，车头走桥长加车长。",
+        "topic": "phy-average",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-reference-diagnosis-0",
+        "prompt": "坐在行驶列车座位上的人，相对车厢通常？",
+        "options": [
+          "无法选车厢作参照物",
+          "静止",
+          "一定加速",
+          "一定后退"
+        ],
+        "answer": 1,
+        "explanation": "乘客相对车厢的位置不变，因此相对车厢静止。",
+        "topic": "phy-reference",
+        "difficulty": "standard",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      },
+      {
+        "id": "phy-reference-diagnosis-1",
+        "prompt": "判断机械运动前，应先明确？",
+        "options": [
+          "参照物",
+          "温度计分度值",
+          "物体颜色",
+          "物体能否发光"
+        ],
+        "answer": 0,
+        "explanation": "运动与静止是相对参照物而言的。",
+        "topic": "phy-reference",
+        "difficulty": "basic",
+        "origin": "本项目原创；与应用练习共享题目，诊断结果不计课程达标"
+      }
+    ]
+  }
+}

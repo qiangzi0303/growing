@@ -2,6 +2,29 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const D=require('../app/src/main/assets/web/app-design/math-data.js'),E=require('../app/src/main/assets/web/app-design/diagnosis-engine.js'),g=E.graph(D);
 
+for(const [subject,data] of [['math',D],['physics',require('../app/src/main/assets/web/app-design/physics-data.js')]]){
+  test(`${subject}: assessment always asks every target twice, with identical paths for right and wrong answers`,()=>{
+    const graph=E.graph(data);
+    for(const chapter of data.chapters){
+      const paths=[];
+      for(const correct of [true,false]){
+        let session=E.createAssessment(graph,chapter.nodes.map(n=>n.id)),view;const path=[];
+        while((view=E.inspect(graph,session)).next){
+          assert.equal(E.assessmentCredit(graph,session),null);
+          const q=view.next.question;path.push(q.id);
+          session=E.restore(graph,JSON.stringify(E.answer(graph,session,q.id,correct?q.answer:null)));
+        }
+        assert.equal(path.length,chapter.nodes.length*2);assert.equal(view.limitReached,false);
+        assert(Object.values(E.assessmentCredit(graph,session)).every(value=>value===(correct?1:0)));
+        assert.equal(E.assessmentCredit(graph,{...session,closed:true}),null);
+        assert.equal(E.assessmentCredit(graph,E.undo(graph,session)),null);
+        paths.push(path);
+      }
+      assert.deepEqual(paths[0],paths[1]);
+    }
+  });
+}
+
 test('verified outline covers 11 chapters and all 43 textbook sections',()=>{
   assert.equal(D.chapters.length,11);
   assert.equal(D.chapters.reduce((s,c)=>s+c.sections.length,0),43);

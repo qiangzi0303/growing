@@ -8,6 +8,7 @@
   const chapter=D.chapters.find(c=>c.id===(params.get('chapter')||(physics?D.chapters[0].id:'math-8b-10')));
   if(!chapter){screen.innerHTML=`<section class="panel"><h2>没有找到这个${subjectName}章节</h2><a href="units.html?subject=${subject}">返回${subjectName}目录 →</a></section>`;return;}
   const KEY=(physics?'growing-diagnosis-physics-v1:':'growing-diagnosis-year8-v1:')+chapter.id;
+  const RESULT_KEY='growing-diagnosis-v1:'+chapter.id;
   const studyLink=(c=chapter,id='')=>'study.html?'+new URLSearchParams({subject,term:c.term,unit:c.id,v:'shared-ai-1',...(id?{node:id}:{})});
   const courseLink=n=>{const c=D.chapters.find(c=>c.id===n.chapter);return c?`<a class="link-button" href="${studyLink(c,n.id)}">打开${esc(c.title)}课程</a>`:'';};
   const availableIds=new Set(chapter.nodes.map(n=>n.id));
@@ -29,15 +30,28 @@
   let mode=['diagnosis','panorama'].includes(params.get('mode'))?params.get('mode'):'graph';
   let panoramaRange=params.get('range')==='year'?'year':'chapter';
   const panorama=window.GrowingPanorama.create(g);
-  let scope='1',target=params.has('chapter')&&!params.has('node')?'chapter':selected,limit=16,session=null,active=false,feedback='',observer=null;
-  try{const saved=localStorage.getItem(KEY);if(saved){session=E.restore(g,saved);active=E.inspect(g,session).canContinue&&!session.closed;}}
+  let scope='1',target=params.has('chapter')&&!params.has('node')?'chapter':selected,session=null,active=false,feedback='',observer=null;
+  try{const saved=localStorage.getItem(KEY);if(saved){session=E.restore(g,saved);if(!session.protocol&&E.inspect(g,session).canContinue){session=null;note.hidden=false;note.textContent='旧版未完成记录仍保留在本机。请新开一次固定题序评测，全部完成后查看报告。';}else{if(E.inspect(g,session).canContinue)session={...session,closed:false};active=E.inspect(g,session).canContinue;}}}
   catch(error){note.hidden=false;note.textContent='未能恢复本机诊断记录（记录版本、格式或浏览器存储不可用）。可以重新诊断；原课程记录未改动。';}
   function save(){
     try{localStorage.setItem(KEY,JSON.stringify(session));}
     catch(error){note.hidden=false;note.textContent='浏览器暂时无法保存诊断。仍可完成本轮，关闭页面后可能无法恢复；原课程记录未改动。';}
+    const credit=E.assessmentCredit(g,session);
+    if(!credit)return;
+    try{
+      const saved=JSON.parse(localStorage.getItem(RESULT_KEY)||'{"version":1,"records":{}}');
+      const records=saved.version===1&&saved.records&&typeof saved.records==='object'?saved.records:{};
+      for(const [id,value] of Object.entries(credit)){
+        if(!chapter.nodes.some(n=>n.id===id))continue;
+        let previous=null;try{previous=E.assessmentCredit(g,records[id]);}catch(error){/* Replace invalid evidence. */}
+        if(!previous||value>(previous[id]??-1))records[id]=session;
+      }
+      localStorage.setItem(RESULT_KEY,JSON.stringify({version:1,records}));
+    }catch(error){note.hidden=false;note.textContent='本轮已完成，但排行榜评测记录未能保存，请检查浏览器存储后重试。';}
   }
   const state=()=>session?E.inspect(g,session):null;
-  const status=id=>state()?.states[id]||'untested';
+  const visibleState=()=>{const s=state();return s&&!s.canContinue?s:null;};
+  const status=id=>visibleState()?.states[id]||'untested';
   function switchMode(value){mode=value;feedback='';render();}
   function locate(id){selected=id;target=id;if(mode!=='panorama')mode='graph';render();if(mode==='panorama')panorama.center();else document.getElementById('node-detail').scrollIntoView({block:'nearest'});}
   function render(){
@@ -48,7 +62,7 @@
       if(b.dataset.mode===mode)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
     });
     try{history.replaceState(null,'',graphFile+'?'+new URLSearchParams({chapter:chapter.id,node:selected,mode,...(mode==='panorama'?{range:panoramaRange}:{})}));}catch(error){/* file browsing can restrict history */}
-    screen.innerHTML=mode==='graph'?graphMarkup():mode==='panorama'?panorama.markup({chapter,range:panoramaRange,selected,states:state()?.states||{}})+detailMarkup():diagnosisMarkup();
+    screen.innerHTML=mode==='graph'?graphMarkup():mode==='panorama'?panorama.markup({chapter,range:panoramaRange,selected,states:visibleState()?.states||{}})+detailMarkup():diagnosisMarkup();
     if(mode==='graph'){
       observer=new ResizeObserver(drawLines);observer.observe(document.querySelector('.graph-board'));
       requestAnimationFrame(drawLines);
@@ -62,7 +76,7 @@
     walk(selected,scope==='all'?g.byId.size:Number(scope));
     const pre=g.order.filter(id=>ancestors.has(id));
     const after=g.next.get(selected).map(e=>e.to);
-    const n=g.byId.get(selected),s=state();
+    const n=g.byId.get(selected),s=visibleState();
     const node=id=>`<button type="button" class="graph-node ${id===selected?'selected':''}" data-node="${id}" data-status="${s?.states[id]||'untested'}" aria-pressed="${id===selected}"><strong>${esc(title(id))}</strong><small>${labels[s?.states[id]||'untested']}</small></button>`;
     const relations=g.pre.get(selected);
     return `<div class="graph-layout">
@@ -80,7 +94,7 @@
     </div>`;
   }
   function detailMarkup(){
-    const n=g.byId.get(selected),s=state(),relations=g.pre.get(selected);
+    const n=g.byId.get(selected),s=visibleState(),relations=g.pre.get(selected);
     return `<aside class="panel detail" id="node-detail" aria-labelledby="detail-title"><p class="eyebrow">${esc(n.section)}</p><h2 class="detail-heading" id="detail-title">${esc(n.title)}</h2>${chip(n.id,s?.states[n.id]||'untested')}
         <h3>学会后应能做到</h3><p>${esc(n.criterion)}</p>
         <h3>为什么需要这些先修</h3>${relations.length?`<ul class="relation-list">${relations.map(e=>`<li><button class="text-button" data-locate="${e.from}">${esc(title(e.from))}</button> · ${e.strength==='hard'?'必要':'辅助'}<br>${esc(e.reason)}</li>`).join('')}</ul>`:'<p class="small">这是本图谱的基础点，尚未向前细分。</p>'}
@@ -103,31 +117,33 @@
   }
   function diagnosisMarkup(){
     const s=state();
-    return `<div class="diagnosis-shell">${s&&active&&s.next?questionMarkup(s):s&&!active&&s.finished?reportMarkup(s):setupMarkup(s)}</div>`;
+    return `<div class="diagnosis-shell">${s&&active&&s.next?questionMarkup(s):s&&!s.canContinue?reportMarkup(s):setupMarkup(s)}</div>`;
   }
   function setupMarkup(s){
-    return `<section class="panel setup"><p class="eyebrow">定位薄弱环节 · 每点最多两题</p><h2>从哪里开始检查？</h2>
-      <ol class="step-list"><li>先做目标知识点的题，不要求先做完整张卷子。</li><li>未通过就换一道基础题确认；两题未通过，再往必要先修查。</li><li>按“先基础、后应用”的顺序复习，再回测目标。</li></ol>
-      <div class="field-row"><label>选择目标<select id="target-select"><option value="chapter" ${target==='chapter'?'selected':''}>${esc(chapter.title)}整章初筛（${chapter.nodes.length}个知识点）</option>${[...new Set([...availableNodes,g.byId.get(selected)])].map(n=>`<option value="${n.id}" ${target===n.id?'selected':''}>${esc(n.title)}${n.chapter===chapter.id?'':'（先修/跨章）'}</option>`).join('')}</select></label><label>本轮题量上限<select id="limit-select">${[8,16,32].map(x=>`<option value="${x}" ${limit===x?'selected':''}>最多 ${x} 题</option>`).join('')}</select></label></div>
-      <p class="small">遇到不熟悉的题，可以选择“暂时不会”。答错一次不直接判薄弱；一道题通过也不等于正式掌握。整章初筛遇到薄弱点会优先查先修，可能达上限仍有知识点未测。</p>
+    if(target!=='chapter'&&!chapter.nodes.some(n=>n.id===target))target='chapter';
+    return `<section class="panel setup"><p class="eyebrow">定位薄弱环节 · 每点固定两题</p><h2>从哪里开始检查？</h2>
+      <ol class="step-list"><li>选择整章或一个知识点，每个目标固定两题。</li><li>所有人按相同顺序作答，答题中不提示对错或诊断标签。</li><li>全部提交后统一查看诊断报告与逐题解析。</li></ol>
+      <div class="field-row"><label>选择目标<select id="target-select"><option value="chapter" ${target==='chapter'?'selected':''}>${esc(chapter.title)}整章评测（${chapter.nodes.length*2}题）</option>${chapter.nodes.map(n=>`<option value="${n.id}" ${target===n.id?'selected':''}>${esc(n.title)}（2题）</option>`).join('')}</select></label></div>
+      <p class="small">遇到不熟悉的题，可以选择“暂时不会”。本轮必须完成全部题目后才显示报告；可以关闭页面后续答。诊断结果按各知识点已完成评测的最好正确比例计入排行榜，占总分30%。</p>
       ${s?`<div class="empty-state">已有本轮记录：作答 ${s.asked.length} 题。${s.canContinue&&!session.closed?'可以继续上次诊断。':'可查看本轮结果。'}新开诊断会替换这份诊断记录。</div>`:''}
       <div class="actions"><button class="primary" id="start">${s?'新开一次诊断':'开始诊断 →'}</button>${s?`<button id="resume">${s.canContinue&&!session.closed?'继续上次诊断':'查看本轮结果'}</button>`:''}</div>
-      <p class="save-hint">独立于分式、英语原有学习记录。复测使用同一小题库，熟悉题目可能影响结果。</p></section>`;
+      <p class="save-hint">完成后请返回学习中心同步，学生和已绑定家长即可查看更新后的排行榜。复测使用同一小题库，熟悉题目可能影响结果。</p></section>`;
   }
   function questionMarkup(s){
     const item=s.next,q=item.question;
-    const why=item.attempt===2?'上一题未通过；换一道基础题确认，暂不下薄弱结论。':item.parent?`“${title(item.parent)}”两题未通过，检查它的必要先修：${title(item.topic)}。`:'从你选择的目标开始检查。';
-    return `<section class="panel" aria-labelledby="question-title"><div class="progress-top"><p>已完成 ${s.asked.length} 题 / 最多 ${session.limit} 题</p><span class="chip">${esc(title(item.topic))} · 第${item.attempt}次</span></div><progress value="${s.asked.length}" max="${session.limit}" aria-label="本轮作答进度"></progress>
-      <p class="reason">为什么问这道题：${esc(why)}</p><h2 class="question-title" id="question-title" tabindex="-1">${esc(q.prompt)}</h2>
+    return `<section class="panel" aria-labelledby="question-title"><div class="progress-top"><p>已完成 ${s.asked.length} 题 / 共 ${session.limit} 题</p><span class="chip">第 ${s.asked.length+1} 题</span></div><progress value="${s.asked.length}" max="${session.limit}" aria-label="本轮作答进度"></progress>
+      <h2 class="question-title" id="question-title" tabindex="-1">${esc(q.prompt)}</h2>
       <form id="answer-form"><fieldset class="options"><legend>选择一个答案</legend>${q.options.map((x,i)=>`<label class="option"><input type="radio" name="choice" value="${i}" required><span class="letter">${'ABCD'[i]}</span><span>${esc(x)}</span></label>`).join('')}<label class="option unsure"><input type="radio" name="choice" value="unsure" required><span>暂时不会 / 不确定</span></label></fieldset>
-      <p class="feedback" aria-live="polite">${esc(feedback)}</p><div class="actions"><button class="primary" type="submit">提交，继续检查 →</button><button type="button" id="undo" ${!s.asked.length?'disabled':''}>撤销上一题</button><button type="button" id="finish" ${!s.asked.length?'disabled':''}>先看已有结果</button></div></form>
+      <p class="feedback" aria-live="polite">${esc(feedback)}</p><div class="actions"><button class="primary" type="submit">${s.asked.length+1===session.limit?'完成评测，查看诊断报告':'提交，继续作答 →'}</button><button type="button" id="undo" ${!s.asked.length?'disabled':''}>撤销上一题</button></div></form>
       <p class="save-hint">每题提交后保存，可刷新续答。为避免提示影响复测，解析会在本轮结果中展示。</p></section>`;
   }
   function reportMarkup(s){
     const groups=name=>s.order.filter(id=>(s.states[id]||'untested')===name);
     const pending=groups('pending'),untested=groups('untested');
+    const credit=E.assessmentCredit(g,session);
     return `<section class="panel report"><p class="eyebrow">本轮学习线索 · 不是掌握认证</p><h2 tabindex="-1" id="report-title">知道下一步该练什么。</h2><p class="summary-intro">已作答 ${s.asked.length} / 最多 ${session.limit} 题。${s.limitReached?'已到题量上限，尚有内容未确认。':session.closed?'本轮提前结束，结论只基于已作答部分。':'本轮目标的检查路径已结束；未测先修仍保留未测。'}</p>
       <div class="summary-stats">${[['weak','需补学'],['shaky','不稳'],['screened','初筛通过'],['untested','未测']].map(([key,label])=>`<div class="stat"><strong>${groups(key).length}</strong><span>${label}</span></div>`).join('')}</div>
+      ${credit?`<p class="notice">本轮图谱诊断正确率 ${(Object.values(credit).reduce((a,b)=>a+b,0)/session.targets.length*100).toFixed(1)}%。排行榜按本章全部知识点的已完成评测最好正确比例计分，诊断占总分30%，未测知识点记0。请返回学习中心同步后查看名次。</p>`:'<p class="small">这是旧版初筛记录；新开一次评测并全部完成后，才能计入图谱诊断排行榜分项。</p>'}
       ${pending.length?`<p class="notice">待复测 ${pending.length} 个：${pending.map(title).map(esc).join('、')}。每点只有一题未通过，证据不足，不能判为薄弱。</p>`:''}
       <section class="result-section"><h3>可能卡住的基础环节</h3>${s.roots.length?s.roots.map(r=>`<div class="root-card"><h3>${esc(title(r.id))}</h3><p>两题未通过（包含“暂时不会”）。${r.uncertain.length?`它的必要先修“${r.uncertain.map(title).map(esc).join('、')}”尚未全部初筛通过，原因可能还在更前面。`:'本试点中没有更前的已确认薄弱先修；仍只是候选线索。'}</p><button class="text-button" data-locate="${r.id}">看关系与复习卡 →</button></div>`).join(''):'<p class="empty-state">本轮没有确认的薄弱基础点。初筛通过不等于掌握；待复测和未测部分仍需保留。</p>'}</section>
       <section class="result-section"><h3>建议复习顺序</h3>${s.path.length?`<ol class="learning-path">${s.path.map(id=>`<li><strong>${esc(title(id))}</strong>${chip(id,s.states[id])}<button class="text-button" data-locate="${id}">复习 →</button></li>`).join('')}</ol><p class="small">按先修顺序排列已发现的薄弱与不稳点；复习卡只是提醒，建议结合原课程练习。</p>`:'<p class="small">暂未形成补学路径。可继续原课程；若仍有疑问，单独诊断相关先修点。</p>'}
@@ -150,12 +166,11 @@
       screen.innerHTML=`<div class="diagnosis-shell">${setupMarkup(state())}</div>`;return;}
     if(b.id==='start'){
       const targets=target==='chapter'?chapter.nodes.map(n=>n.id):[target];
-      session=E.create(g,targets,limit);active=true;feedback='';save();render();
+      session=E.createAssessment(g,targets);active=true;feedback='';save();render();
     }else if(b.id==='resume'){active=!session.closed&&!!state().next;render();}
     else if(b.id==='undo'){session=E.undo(g,session);active=true;feedback='已撤销上一题，请重新选择。';save();render();}
-    else if(b.id==='finish'){session={...session,closed:true};active=false;save();render();}
     else if(b.id==='continue'){session={...session,closed:false};active=true;save();render();}
-    else if(b.id==='retry'){session=E.create(g,session.targets,session.limit);active=true;feedback='';save();render();}
+    else if(b.id==='retry'){session=E.createAssessment(g,session.targets);active=true;feedback='';save();render();}
     else if(b.id==='new'){active=false;screen.innerHTML=`<div class="diagnosis-shell">${setupMarkup(state())}</div>`;}
   });
   document.addEventListener('change',event=>{
@@ -165,7 +180,6 @@
     else if(el.id==='graph-depth'){scope=el.value;render();}
     else if(el.id==='node-select'){selected=el.value;target=selected;render();}
     else if(el.id==='target-select')target=el.value;
-    else if(el.id==='limit-select')limit=Number(el.value);
   });
   document.addEventListener('submit',event=>{
     if(event.target.id!=='answer-form')return;event.preventDefault();
@@ -173,7 +187,7 @@
     const item=state().next,choice=field==='unsure'?null:Number(field);
     session=E.answer(g,session,item.question.id,choice);save();
     active=!!state().next;
-    feedback=choice===item.question.answer?'上一题已通过，继续检查下一个知识点。':item.attempt===1?'上一题未通过，先用基础题确认。':'已记录，接下来检查必要先修。';
+    feedback='';
     render();document.getElementById(active?'question-title':'report-title')?.focus();
   });
   addEventListener('pagehide',()=>panorama.destroy());

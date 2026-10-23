@@ -20,6 +20,20 @@
       "angle-bisector",
       "isosceles",
       "equilateral"
+    ],
+    "diagnosisTopics": [
+      "tri-lines",
+      "tri-angles",
+      "tri-inequality",
+      "congruence",
+      "cong-sss",
+      "cong-sas",
+      "cong-asa",
+      "cong-hl",
+      "perp-bisector",
+      "angle-bisector",
+      "isosceles",
+      "equilateral"
     ]
   },
   {
@@ -31,6 +45,14 @@
     "termName": "八年级上册",
     "kind": "math",
     "topics": [
+      "square-root",
+      "root-estimate",
+      "cube-root",
+      "real-types",
+      "real-line",
+      "approximate"
+    ],
+    "diagnosisTopics": [
       "square-root",
       "root-estimate",
       "cube-root",
@@ -51,6 +73,11 @@
       "pythagoras",
       "pyth-converse",
       "pyth-apply"
+    ],
+    "diagnosisTopics": [
+      "pythagoras",
+      "pyth-converse",
+      "pyth-apply"
     ]
   },
   {
@@ -66,6 +93,12 @@
       "quadrants",
       "translation",
       "reflection"
+    ],
+    "diagnosisTopics": [
+      "coordinates",
+      "quadrants",
+      "translation",
+      "reflection"
     ]
   },
   {
@@ -77,6 +110,15 @@
     "termName": "八年级上册",
     "kind": "math",
     "topics": [
+      "function-variable",
+      "linear-function",
+      "line-graph",
+      "line-monotone",
+      "line-coefficients",
+      "line-model",
+      "line-system"
+    ],
+    "diagnosisTopics": [
       "function-variable",
       "linear-function",
       "line-graph",
@@ -101,6 +143,14 @@
       "frequency",
       "histogram",
       "vision-study"
+    ],
+    "diagnosisTopics": [
+      "survey",
+      "charts",
+      "price-study",
+      "frequency",
+      "histogram",
+      "vision-study"
     ]
   },
   {
@@ -112,6 +162,11 @@
     "termName": "八年级下册",
     "kind": "math",
     "topics": [
+      "random-event",
+      "probability",
+      "frequency-prob"
+    ],
+    "diagnosisTopics": [
       "random-event",
       "probability",
       "frequency-prob"
@@ -134,6 +189,16 @@
       "midline",
       "trapezoid",
       "iso-trapezoid"
+    ],
+    "diagnosisTopics": [
+      "parallelogram",
+      "parallel-judge",
+      "rectangle",
+      "rhombus",
+      "square",
+      "midline",
+      "trapezoid",
+      "iso-trapezoid"
     ]
   },
   {
@@ -145,6 +210,12 @@
     "termName": "八年级下册",
     "kind": "math",
     "topics": [
+      "factor",
+      "factor-concept",
+      "factor-difference",
+      "factor-perfect"
+    ],
+    "diagnosisTopics": [
       "factor",
       "factor-concept",
       "factor-difference",
@@ -171,6 +242,19 @@
       "multiply",
       "equation",
       "extra"
+    ],
+    "diagnosisTopics": [
+      "definition",
+      "meaning",
+      "zero",
+      "property",
+      "sign",
+      "reduce",
+      "common",
+      "add",
+      "multiply",
+      "equation",
+      "extraneous"
     ]
   },
   {
@@ -186,6 +270,12 @@
       "radical-simplify",
       "radical-multiply",
       "radical-add"
+    ],
+    "diagnosisTopics": [
+      "radical-domain",
+      "radical-simplify",
+      "radical-multiply",
+      "radical-add"
     ]
   },
   {
@@ -197,6 +287,16 @@
     "termName": "八年级上册",
     "kind": "physics",
     "topics": [
+      "phy-source",
+      "phy-medium",
+      "phy-echo",
+      "phy-pitch",
+      "phy-loudness",
+      "phy-timbre",
+      "phy-noise",
+      "phy-ultrasound"
+    ],
+    "diagnosisTopics": [
       "phy-source",
       "phy-medium",
       "phy-echo",
@@ -223,6 +323,15 @@
       "phy-mirror-lab",
       "phy-reflection",
       "phy-diffuse"
+    ],
+    "diagnosisTopics": [
+      "phy-spectrum",
+      "phy-rgb",
+      "phy-straight",
+      "phy-mirror",
+      "phy-mirror-lab",
+      "phy-reflection",
+      "phy-diffuse"
     ]
   },
   {
@@ -234,6 +343,18 @@
     "termName": "八年级上册",
     "kind": "physics",
     "topics": [
+      "phy-refraction",
+      "phy-shallow",
+      "phy-lens",
+      "phy-focus",
+      "phy-imaging",
+      "phy-lens-lab",
+      "phy-applications",
+      "phy-eye",
+      "phy-instruments",
+      "phy-invisible"
+    ],
+    "diagnosisTopics": [
       "phy-refraction",
       "phy-shallow",
       "phy-lens",
@@ -263,6 +384,16 @@
       "phy-melting",
       "phy-sublimation",
       "phy-water-cycle"
+    ],
+    "diagnosisTopics": [
+      "phy-temperature",
+      "phy-cooling",
+      "phy-evaporation",
+      "phy-boiling",
+      "phy-liquid",
+      "phy-melting",
+      "phy-sublimation",
+      "phy-water-cycle"
     ]
   },
   {
@@ -274,6 +405,15 @@
     "termName": "八年级上册",
     "kind": "physics",
     "topics": [
+      "phy-length",
+      "phy-error",
+      "phy-time",
+      "phy-speed",
+      "phy-uniform",
+      "phy-average",
+      "phy-reference"
+    ],
+    "diagnosisTopics": [
       "phy-length",
       "phy-error",
       "phy-time",

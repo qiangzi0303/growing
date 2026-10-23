@@ -7,6 +7,7 @@ local.properties
 keystore.properties
 .env
 node_modules/
+__pycache__/
 server/data/
 *.log
 .DS_Store

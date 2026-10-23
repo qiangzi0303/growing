@@ -34,13 +34,24 @@
     if(!Number.isInteger(limit)||limit<1||limit>32)throw Error('题量上限无效');
     return {version:g.data.version,targets:targets.slice(),limit,answers:[],closed:false};
   }
+  function createAssessment(g,targets){
+    return {...create(g,targets,targets.length*2),protocol:'complete-assessment-v1'};
+  }
   function inspect(g,s){
     if(!s||s.version!==g.data.version)throw Error('诊断版本不匹配');
     create(g,s.targets,s.limit);
     if(!Array.isArray(s.answers)||s.answers.length>s.limit||typeof s.closed!=='boolean')throw Error('作答记录格式错误');
+    if(s.protocol!==undefined&&s.protocol!=='complete-assessment-v1')throw Error('诊断协议不匹配');
+    const assessment=s.protocol==='complete-assessment-v1';
+    if(assessment&&s.limit!==s.targets.length*2)throw Error('评测题量不匹配');
     const queue=s.targets.slice(), states={}, attempts={}, asked=[], reasons={};
     s.targets.forEach(id=>{reasons[id]=null;});
     function item(){
+      if(assessment){
+        if(asked.length>=s.limit)return null;
+        const id=s.targets[asked.length%s.targets.length],round=Math.floor(asked.length/s.targets.length);
+        return {topic:id,question:g.bank.get(id)[round],attempt:round+1,parent:null};
+      }
       while(queue.length&&states[queue[0]]&&states[queue[0]]!=='pending')queue.shift();
       if(asked.length>=s.limit||!queue.length)return null;
       const id=queue[0],count=(attempts[id]||[]).length;
@@ -52,7 +63,11 @@
       const id=current.topic, correct=a.choice===current.question.answer;
       const evidence={...a,topic:id,correct};asked.push(evidence);
       (attempts[id]||(attempts[id]=[])).push(evidence);
-      if(correct){states[id]=current.attempt===1?'screened':'shaky';queue.shift();}
+      if(assessment){
+        const records=attempts[id],count=records.filter(a=>a.correct).length;
+        states[id]=records.length<2?'pending':count===2?'screened':count===1?'shaky':'weak';
+      }
+      else if(correct){states[id]=current.attempt===1?'screened':'shaky';queue.shift();}
       else if(current.attempt===1)states[id]='pending';
       else{
         states[id]='weak';queue.shift();
@@ -73,7 +88,7 @@
     const path=order.filter(id=>['weak','shaky'].includes(status(id)));
     const soft=[...new Set(weak.flatMap(id=>g.pre.get(id).filter(e=>e.strength==='soft'&&status(e.from)==='untested').map(e=>e.from)))];
     return {next:s.closed?null:pending,canContinue:!!pending,finished:s.closed||!pending,states,attempts,asked,order,roots,path,soft,
-      limitReached:asked.length>=s.limit&&queue.length>0,remainingTargets:s.targets.filter(id=>['pending','untested'].includes(status(id)))};
+      limitReached:!assessment&&asked.length>=s.limit&&queue.length>0,remainingTargets:s.targets.filter(id=>['pending','untested'].includes(status(id)))};
   }
   function answer(g,s,qid,choice){
     const state=inspect(g,s);
@@ -82,5 +97,11 @@
   }
   function undo(g,s){const result={...s,closed:false,answers:s.answers.slice(0,-1)};inspect(g,result);return result;}
   function restore(g,text){const value=JSON.parse(text);inspect(g,value);return value;}
-  return {graph,create,inspect,answer,undo,restore};
+  function assessmentCredit(g,s){
+    if(!s||s.protocol!=='complete-assessment-v1'||s.closed!==false)return null;
+    const result=inspect(g,s);
+    if(result.canContinue||s.answers.length!==s.targets.length*2)return null;
+    return Object.fromEntries(s.targets.map(id=>[id,result.attempts[id].filter(a=>a.correct).length/2]));
+  }
+  return {graph,create,createAssessment,inspect,answer,undo,restore,assessmentCredit};
 });

@@ -14,6 +14,7 @@ export interface Env extends ReleaseEnv {
 const nativeOrigin = "https://appassets.androidplatform.net";
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 export const allowedKey = (key: string) => ["growing-math-lessons-v1", "growing-physics-lessons-v1", "fraction-minute-v1", "wordops_8A_unit3"].includes(key) ||
+  /^growing-diagnosis-v1:(math-8a-0[1-5]|math-8b-(?:0[6-9]|1[01])|physics-8a-0[1-5])$/.test(key) ||
   /^growing-(english-course|unit-rewards)-v1:(english-8a-0[1-8]|math-8[ab]-\d{2}|physics-8a-0[1-5])$/.test(key) ||
   (key.startsWith("growing-activity-v1:") && uuid.test(key.slice("growing-activity-v1:".length))) || handwriting.KEY.test(key);
 const json = (data: unknown, status = 200, headers?: HeadersInit) => Response.json(data, { status, headers });
