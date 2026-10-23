@@ -5,8 +5,34 @@
   const isNative=!!native,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let user=null,token='',authMode='login',generation=0,syncing=false,timer,conflicts=[],management,parentRequest=0;
   const hint=text=>{$('#message').textContent=text;};
+  async function downloadApk(button){
+    button.disabled=true;button.textContent='正在准备下载…';hint('');
+    try{
+      const response=await fetch(base+'/downloads/update.json',{cache:'no-store',credentials:'omit'});
+      if(!response.ok)throw Error(response.status===404?'安装包尚未发布，请稍后再来。':response.status===503?'新版正在分发，请稍后重试下载。':'暂时无法查询版本，请重试下载。');
+      const release=await response.json(),filename='growing-'+release.versionName+'.apk';
+      if(release.schemaVersion!==1||release.packageName!=='com.qiangzi0303.growing'||!Number.isSafeInteger(release.versionCode)||typeof release.versionName!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(release.versionName)||release.apkUrl!==filename||!Number.isSafeInteger(release.sizeBytes)||release.sizeBytes<=0)throw Error('安装包信息不完整，请稍后重试。');
+      const link=document.createElement('a');link.href=base+'/downloads/'+filename;link.download=filename;link.hidden=true;
+      document.body.appendChild(link);link.click();link.remove();
+      hint('已请求下载，完成后打开 APK 安装。若未开始，请重试下载。');
+    }catch(error){hint('下载未开始：'+error.message);}
+    finally{button.disabled=false;button.textContent='下载 APK';}
+  }
   const metaKey=id=>'growing-cloud-meta-v1:'+id;
   const sessionKey='growing-cloud-session-v1',bindingKey='growing-cloud-binding-v1';
+  const needsRole=profile=>profile.role!=='Admin'&&(profile.roleSelectionRequired!==false||!['Student','Parent'].includes(profile.role));
+  function checkNativeBinding(profile){
+    const binding=isNative&&raw.getItem(bindingKey);
+    if(binding&&binding!==profile.id&&profile.role==='Student')throw Error('此本机账号已关联另一个学生云账号，请使用对应账号。');
+  }
+  async function rememberNativeSession(profile){
+    if(!isNative)return;
+    if(!needsRole(profile)){
+      try{checkNativeBinding(profile);}catch(error){await api('/auth/logout',{method:'POST'});token='';raw.removeItem(sessionKey);throw error;}
+      if(profile.role==='Student')raw.setItem(bindingKey,profile.id);
+    }
+    raw.setItem(sessionKey,JSON.stringify({token,user:profile}));
+  }
   function read(key,fallback){try{return JSON.parse(raw.getItem(key)||'null')??fallback;}catch{throw Error('本机同步配置无法读取，请先备份原记录。');}}
   async function api(path,options={}){
     const response=await fetch(base+'/api'+path,{...options,credentials:isNative?'omit':'same-origin',headers:{'Content-Type':'application/json','X-Growing-Client':'1',...(token?{Authorization:'Bearer '+token}:{}),...options.headers}});
@@ -28,7 +54,7 @@
   function currentMeta(){return read(metaKey(user.id),{});}
   function setMeta(meta){raw.setItem(metaKey(user.id),JSON.stringify(meta));}
   async function sync(){
-    if(!user||user.role!=='Student'||syncing)return;
+    if(!user||needsRole(user)||user.role!=='Student'||syncing)return;
     const version=generation,id=user.id;syncing=true;
     try{
       const rows=await api('/student/state');if(version!==generation)return;
@@ -79,9 +105,14 @@
   window.GrowingCloud={storage,activity};
   function auth(){clearInterval(timer);$('#logout').hidden=true;$('#settings').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent='PC · 手机网页 · Android';
     if(isNative&&!base){$('#app').innerHTML='<section class="panel"><h1>云服务尚未配置</h1><p>此安装包需要先配置服务端 HTTPS 地址，再登录云账号同步学习记录。</p><a class="button" href="../app-design/index.html">返回离线学习</a></section>';return;}
-    $('#app').innerHTML=`<section class="panel auth"><p class="muted">成长 · 学习与陪伴</p><h1>${authMode==='login'?'欢迎回来':'创建云账号'}</h1><p>学生继续学习，家长看见进步。</p><form id="auth"><label>用户名<input name="username" autocomplete="username" minlength="2" maxlength="24" required></label><label>密码<input name="password" type="password" autocomplete="${authMode==='login'?'current-password':'new-password'}" minlength="8" maxlength="128" required></label>${authMode==='register'?'<label>称呼<input name="displayName" maxlength="40" required></label><label>身份<select name="role"><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label>':''}${isNative?'<label><input name="consent" type="checkbox" style="display:inline;width:auto" required> 将此本机账号关联到云账号，同步课程记录（AI 密钥不上传）</label>':''}<button class="primary" type="submit">${authMode==='login'?'登录':'注册并登录'}</button></form><p><button id="switch-auth">${authMode==='login'?'还没有云账号？注册':'已有云账号？登录'}</button></p><p class="muted">云账号与旧版本机账号独立；不会上传本机密码或 AI 密钥。</p></section>`;
+    $('#app').innerHTML=`<section class="panel auth"><p class="muted">成长 · 学习与陪伴</p><h1>${authMode==='login'?'欢迎回来':'创建云账号'}</h1><p>学生继续学习，家长看见进步。</p><form id="auth"><label>用户名<input name="username" autocomplete="username" minlength="2" maxlength="24" required></label><label>密码<input name="password" type="password" autocomplete="${authMode==='login'?'current-password':'new-password'}" minlength="8" maxlength="128" required></label>${authMode==='register'?'<label>称呼<input name="displayName" maxlength="40" required></label><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label>':''}${isNative?'<label><input name="consent" type="checkbox" style="display:inline;width:auto" required> 同意登录云账号；学生身份将关联本机学习记录（AI 密钥不上传）</label>':''}<button class="primary" type="submit">${authMode==='login'?'登录':'注册并登录'}</button></form><p><button id="switch-auth">${authMode==='login'?'还没有云账号？注册':'已有云账号？登录'}</button></p><p class="muted">云账号与旧版本机账号独立；不会上传本机密码或 AI 密钥。</p></section>`;
   }
-  async function enter(profile,view='management'){management?.dispose();clearInterval(timer);user=profile;generation++;const version=generation;management=GrowingManagement.create(api,esc,()=>generation===version);$('#logout').hidden=false;$('#settings').hidden=!['Parent','Admin'].includes(user.role);$('#admin-navigation').hidden=user.role!=='Admin';$('#identity').textContent=user.displayName+' · '+({Parent:'家长',Student:'学生',Admin:'管理员'}[user.role]);hint('');
+  async function enter(profile,view='management'){management?.dispose();clearInterval(timer);user=null;generation++;const version=generation;await rememberNativeSession(profile);if(version!==generation)return;user=profile;$('#logout').hidden=false;hint('');
+    if(needsRole(user)){
+      $('#settings').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent=user.displayName+' · 待确认身份';
+      $('#app').innerHTML='<section class="panel auth"><h1>请选择你的身份</h1><p>继续使用前，请确认你是学生还是家长。保存到云端后，下次登录无需重复选择。</p><form id="choose-role"><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label><button type="submit" class="primary">保存身份并继续</button></form></section>';return;
+    }
+    management=GrowingManagement.create(api,esc,()=>generation===version);$('#settings').hidden=!['Parent','Admin'].includes(user.role);$('#admin-navigation').hidden=user.role!=='Admin';$('#identity').textContent=user.displayName+' · '+({Parent:'家长',Student:'学生',Admin:'管理员'}[user.role]);
     document.querySelectorAll('[data-admin-view]').forEach(button=>{const active=button.dataset.adminView===view;button.classList.toggle('primary',active);button.setAttribute('aria-pressed',String(active));});
     if(user.role==='Student'){await student();if(version===generation)timer=setInterval(sync,15000);}else if(user.role==='Admin'){
       if(view==='student')await student();else if(view==='parent')await parent();else if(view==='settings')parentSettings();else await management.admin($('#app'));
@@ -121,15 +152,23 @@
     hint('');$('#app').innerHTML='<div class="actions"><button id="parent-home">‹ 返回我的孩子</button></div><h1>设置</h1><section class="panel"><h2>添加孩子</h2><p class="muted">绑定为可选操作，可以稍后再添加。请让孩子在学生端生成绑定码。</p><form id="bind" class="actions"><label>学生提供的绑定码<input name="code" minlength="12" maxlength="12" autocomplete="off" required></label><button type="submit" class="primary">绑定孩子</button></form></section>';
   }
   async function report(id){const area=$('#report');if(area)await management.student(area,id,user.role==='Admin');}
-  document.addEventListener('submit',async event=>{if(!['auth','bind','student-search'].includes(event.target.id))return;event.preventDefault();const button=event.target.querySelector('button[type=submit]');button.disabled=true;
+  document.addEventListener('submit',async event=>{if(!['auth','choose-role','bind','student-search'].includes(event.target.id))return;event.preventDefault();const button=event.target.querySelector('button[type=submit]');button.disabled=true;
     try{const values=Object.fromEntries(new FormData(event.target));if(event.target.id==='auth'){
       const result=await api('/auth/'+authMode,{method:'POST',body:JSON.stringify(values)});
-      if(isNative){const binding=raw.getItem(bindingKey);if(binding&&binding!==result.user.id){token=result.token;await api('/auth/logout',{method:'POST'});token='';throw Error('此本机账号已关联另一个云账号，请使用对应账号。');}if(result.user.role!=='Student'){token=result.token;await api('/auth/logout',{method:'POST'});token='';throw Error('APK 本机记录只能关联学生云账号；家长请用网站登录。');}raw.setItem(bindingKey,result.user.id);token=result.token;raw.setItem(sessionKey,JSON.stringify({token,user:result.user}));}
+      if(isNative)token=result.token;
       await enter(result.user);
+    }else if(event.target.id==='choose-role'){
+      const version=generation;
+      if(!['Student','Parent'].includes(values.role))throw Error('请选择学生或家长。');
+      checkNativeBinding({...user,role:values.role});
+      const profile=await api('/auth/role',{method:'POST',body:JSON.stringify({role:values.role})});
+      if(version!==generation)return;
+      await enter(profile);
     }else if(event.target.id==='student-search'){if(user?.role==='Admin')await parent(String(values.q).trim());}
     else{const version=generation;await api('/parent/children',{method:'POST',body:JSON.stringify(values)});if(version!==generation)return;await parent();if(version===generation)hint('孩子已添加。');}}catch(e){hint(e.message);}finally{button.disabled=false;}
   });
   document.addEventListener('click',async event=>{const b=event.target.closest('button');if(!b)return;try{
+    if(b.id==='download-apk')await downloadApk(b);
     if(b.id==='switch-auth'){authMode=authMode==='login'?'register':'login';auth();}
     if(b.dataset.adminView)await adminView(b.dataset.adminView);
     if(b.id==='settings'){if(user?.role==='Admin')await adminView('settings');else parentSettings();}

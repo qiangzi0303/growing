@@ -24,6 +24,7 @@ export function connect(binding: D1Database): Database {
 
 export interface User {
   id: string; username: string; displayName: string; role: "Student" | "Parent" | "Admin";
+  roleConfirmed: number;
   passwordHash: string;
 }
 export interface Document {
@@ -33,9 +34,12 @@ export class HttpError extends Error {
   constructor(public status: number, message: string, public extra: object = {}) { super(message); }
 }
 export function profile(user: User) {
-  return { id: user.id, username: user.username, displayName: user.displayName, role: user.role };
+  return { id: user.id, username: user.username, displayName: user.displayName, role: user.role, roleSelectionRequired: requiresRoleSelection(user) };
 }
-const userFields = '"Id" AS id, "Username" AS username, "DisplayName" AS "displayName", CASE WHEN EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"="GrowingUsers"."Id") THEN \'Admin\' ELSE "Role" END AS role, "PasswordHash" AS "passwordHash"';
+export function requiresRoleSelection(user: User) {
+  return user.role !== 'Admin' && (user.roleConfirmed !== 1 || !['Student','Parent'].includes(user.role));
+}
+const userFields = '"Id" AS id, "Username" AS username, "DisplayName" AS "displayName", CASE WHEN EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"="GrowingUsers"."Id") THEN \'Admin\' ELSE "Role" END AS role, "RoleConfirmed" AS "roleConfirmed", "PasswordHash" AS "passwordHash"';
 const documentFields = '"Key" AS key, "Value" AS value, "Revision" AS revision, "UpdatedAt" AS "updatedAt"';
 function documents(rows: Document[]): Document[] {
   return rows.map(row => ({ ...row, updatedAt: new Date(row.updatedAt).toISOString() }));
@@ -43,7 +47,7 @@ function documents(rows: Document[]): Document[] {
 export class Store {
   constructor(public db: Database) {}
   async ready() {
-    await this.db.query('SELECT "Id" FROM "GrowingUsers" LIMIT 1');
+    await this.db.query('SELECT "Id", "RoleConfirmed" FROM "GrowingUsers" LIMIT 1');
     for (const table of ['GrowingAdministrators','GrowingDailySnapshots','GrowingRewardConfirmations','GrowingRankings']) await this.db.query(`SELECT 1 FROM "${table}" LIMIT 0`);
   }
   async findUser(normalized: string) {
@@ -51,7 +55,7 @@ export class Store {
   }
   async register(user: User) {
     try {
-      await this.db.query(`INSERT INTO "GrowingUsers" ("Id","Username","NormalizedName","DisplayName","Role","PasswordHash","CreatedAt","SearchName") VALUES (?1,?2,?3,?4,?5,?6,${nowSql},?7)`,
+      await this.db.query(`INSERT INTO "GrowingUsers" ("Id","Username","NormalizedName","DisplayName","Role","PasswordHash","CreatedAt","SearchName","RoleConfirmed") VALUES (?1,?2,?3,?4,?5,?6,${nowSql},?7,1)`,
         [user.id, user.username, user.username.toUpperCase(), user.displayName, user.role, user.passwordHash, user.displayName.toUpperCase()]);
     } catch (error) {
       if (String(error).includes('UNIQUE constraint failed: GrowingUsers.NormalizedName')) throw new HttpError(409, "用户名已被使用。");
@@ -60,6 +64,14 @@ export class Store {
   }
   async createSession(hash: string, userId: string, expires: string) {
     await this.db.query('INSERT INTO "GrowingSessions" ("TokenHash","UserId","ExpiresAt") VALUES (?1,?2,?3)', [hash, userId, expires]);
+  }
+  async confirmRole(id: string, role: 'Student' | 'Parent') {
+    await this.db.query('UPDATE "GrowingUsers" SET "Role"=?2,"RoleConfirmed"=1 WHERE "Id"=?1 AND "RoleConfirmed"=0 AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" WHERE "UserId"=?1)', [id, role]);
+    const [saved] = await this.db.query<User>(`SELECT ${userFields} FROM "GrowingUsers" WHERE "Id"=?1`, [id]);
+    if (!saved) throw new HttpError(401, '云登录已失效，请重新登录。');
+    if (saved.role === 'Admin') throw new HttpError(403, '管理员无需选择身份。');
+    if (requiresRoleSelection(saved) || saved.role !== role) throw new HttpError(409, '身份已在其他设备确认，请刷新后继续。');
+    return saved;
   }
   async authenticate(hash: string) {
     return (await this.db.query<User>(`SELECT ${userFields} FROM "GrowingUsers" WHERE "Id"=(SELECT "UserId" FROM "GrowingSessions" WHERE "TokenHash"=?1 AND "ExpiresAt">${nowSql})`, [hash]))[0];

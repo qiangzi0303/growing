@@ -55,6 +55,11 @@ before(async () => {
   const [migrated]=await db.query<any>('SELECT * FROM "GrowingRankings" WHERE "StudentId"=?1',[fixture]);
   assert.equal(migrated.Score,5500);assert.equal(migrated.DiagnosisDone,0);assert.equal(migrated.DiagnosisTotal,12);
   assert.equal((await db.query<any>('SELECT "Value" FROM "GrowingDocuments" WHERE "StudentId"=?1',[fixture]))[0].Value,'{"preserved":true}');
+  const roleMigration=await readFile(new URL('../migrations/0005_role_confirmation.sql',import.meta.url),'utf8');
+  await db.batch(roleMigration.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
+  const [legacyRole]=await db.query<any>('SELECT "Role", "RoleConfirmed" FROM "GrowingUsers" WHERE "Id"=?1',[fixture]);
+  assert.equal(legacyRole.Role,'Student');assert.equal(legacyRole.RoleConfirmed,0);
+  assert.equal((await db.query<any>('SELECT "Value" FROM "GrowingDocuments" WHERE "StudentId"=?1',[fixture]))[0].Value,'{"preserved":true}');
   await db.batch(['GrowingRankings','GrowingDocuments'].map(table=>({sql:`DELETE FROM "${table}" WHERE "StudentId"=?1`,params:[fixture]})));
   await db.query('DELETE FROM "GrowingUsers" WHERE "Id"=?1',[fixture]);
 });
@@ -102,6 +107,58 @@ test("registration, case-insensitive login, secure cookie, token hashing and log
   assert.equal((await call("/api/auth/logout", "POST", undefined, student.token)).status, 204);
   assert.equal((await call("/api/auth/me", "GET", undefined, student.token)).status, 401);
 });
+test('legacy users must confirm a role before business access; selection persists across sessions without changing documents',async()=>{
+  assert.equal((await call('/api/auth/role','POST',{role:'Student'})).status,401);
+  for(const role of ['Student','Parent']){
+    const s=await register();assert.equal(s.user.roleSelectionRequired,false);
+    await call('/api/student/state/growing-math-lessons-v1','PUT',{revision:0,value:'{"preserved":true}'},s.token);
+    await db.query('UPDATE "GrowingUsers" SET "RoleConfirmed"=0 WHERE "Id"=?1',[s.user.id]);
+    const login=await (await call('/api/auth/login','POST',{username:s.name,password})).json() as any;
+    assert.equal(login.user.roleSelectionRequired,true);
+    assert.equal((await (await call('/api/auth/me','GET',undefined,s.token)).json() as any).roleSelectionRequired,true);
+    for(const path of ['/api/student/state','/api/parent/children','/learn/app-design/index.html'])
+      assert.equal((await call(path,'GET',undefined,login.token)).status,403);
+    assert.equal((await call('/api/student/state/growing-math-lessons-v1','PUT',{revision:1,value:'{}'},s.token)).status,403);
+    for(const invalid of ['',null,'Admin','student'])assert.equal((await call('/api/auth/role','POST',{role:invalid},s.token)).status,400);
+    const csrf=await handler(new Request('https://learn.test/api/auth/role',{method:'POST',headers:{Authorization:'Bearer '+s.token},body:JSON.stringify({role})}),env,context);
+    assert.equal(csrf.status,400);
+    const saved=await call('/api/auth/role','POST',{role,id:'ignored',roleConfirmed:0},login.token);
+    assert.equal(saved.status,200,await saved.clone().text());
+    const profile=await saved.json() as any;assert.equal(profile.id,s.user.id);assert.equal(profile.role,role);assert.equal(profile.roleSelectionRequired,false);
+    const [stored]=await db.query<any>('SELECT "Role","RoleConfirmed" FROM "GrowingUsers" WHERE "Id"=?1',[s.user.id]);
+    assert.equal(stored.Role,role);assert.equal(stored.RoleConfirmed,1);
+    assert.equal((await call('/api/auth/role','POST',{role},s.token)).status,200);
+    assert.equal((await call('/api/auth/role','POST',{role:role==='Student'?'Parent':'Student'},s.token)).status,409);
+    const again=await (await call('/api/auth/login','POST',{username:s.name,password})).json() as any;
+    assert.equal(again.user.roleSelectionRequired,false);assert.equal(again.user.role,role);
+    assert.equal((await call(role==='Student'?'/api/student/state':'/api/parent/children','GET',undefined,again.token)).status,200);
+    assert.equal((await call(role==='Student'?'/api/parent/children':'/api/student/state','GET',undefined,again.token)).status,403);
+    assert.equal((await new Store(db).state(s.user.id))[0].value,'{"preserved":true}');
+  }
+});
+
+test('role confirmation is atomic across devices, cannot target another account, and leaves admins exempt',async()=>{
+  const s=await register(),other=await register();
+  await db.query('UPDATE "GrowingUsers" SET "RoleConfirmed"=0 WHERE "Id" IN (?1,?2)',[s.user.id,other.user.id]);
+  const responses=await Promise.all(['Student','Parent'].map(role=>call('/api/auth/role','POST',{role,userId:other.user.id},s.token)));
+  assert.deepEqual(responses.map(r=>r.status).sort(),[200,409]);
+  assert.equal((await (await call('/api/auth/me','GET',undefined,other.token)).json() as any).roleSelectionRequired,true);
+  await db.query('INSERT INTO "GrowingAdministrators" ("UserId") VALUES (?1)',[other.user.id]);
+  const admin=await (await call('/api/auth/me','GET',undefined,other.token)).json() as any;
+  assert.equal(admin.role,'Admin');assert.equal(admin.roleSelectionRequired,false);
+  assert.equal((await call('/api/admin/overview','GET',undefined,other.token)).status,200);
+  assert.equal((await call('/api/auth/role','POST',{role:'Student'},other.token)).status,403);
+  assert.equal((await (await call('/api/auth/me','GET',undefined,other.token)).json() as any).role,'Admin');
+  assert.equal((await call('/api/auth/logout','POST',undefined,other.token)).status,204);
+});
+
+test('registration rejects an omitted role instead of silently defaulting to student',async()=>{
+  for(const role of [undefined,'','Admin']){
+    const response=await call('/api/auth/register','POST',{username:'no_role_'+(++counter),displayName:'未选身份',password,role});
+    assert.equal(response.status,400);
+  }
+});
+
 test("students are isolated; concurrent stale writes cannot overwrite and tombstones keep revisions", async () => {
   const a = await register(), b = await register(), path = "/api/student/state/growing-math-lessons-v1";
   const responses = await Promise.all([call(path, "PUT", { revision: 0, value: '{"topics":{"one":{"seen":true}}}' }, a.token), call(path, "PUT", { revision: 0, value: "{}" }, a.token)]);

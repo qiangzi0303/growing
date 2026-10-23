@@ -1,4 +1,4 @@
-import { connect, Store, HttpError, profile, type Database, type User } from "./database";
+import { connect, Store, HttpError, profile, requiresRoleSelection, type Database, type User } from "./database";
 import { hash, passwordHash, random, sessionCookie, sessionToken, verifyPassword } from "./auth";
 import { buildReport } from "./reports";
 import { Administration } from "./administration";
@@ -94,7 +94,7 @@ export function createHandler(database: (env: Env) => Database = env => {
         if (path.endsWith("register")) {
           const display = typeof data.displayName === "string" ? data.displayName.trim() : "";
           if (!display || display.length > 40 || (data.role !== "Student" && data.role !== "Parent")) error(400, "请填写有效的姓名和身份。");
-          user = { id: crypto.randomUUID(), username: name, displayName: display, role: data.role as User["role"], passwordHash: await passwordHash(data.password as string) };
+          user = { id: crypto.randomUUID(), username: name, displayName: display, role: data.role as User["role"], roleConfirmed: 1, passwordHash: await passwordHash(data.password as string) };
           await store.register(user);
         } else {
           const found = await store.findUser(name.toUpperCase());
@@ -111,6 +111,13 @@ export function createHandler(database: (env: Env) => Database = env => {
       const user = tokenHash ? await store.authenticate(tokenHash) : undefined;
       if (!user) error(401, "云登录已失效，请重新登录。");
       const current = user!;
+      if (path === '/api/auth/role' && request.method === 'POST') {
+        const data = await body(request);
+        if (data.role !== 'Student' && data.role !== 'Parent') error(400, '请选择学生或家长。');
+        return decorate(json(profile(await store.confirmRole(current.id, data.role as 'Student' | 'Parent'))), request);
+      }
+      if (requiresRoleSelection(current) && !(path === '/api/auth/me' && request.method === 'GET') && !(path === '/api/auth/logout' && request.method === 'POST'))
+        error(403, '请先选择学生或家长身份。');
       if (path.startsWith("/api/admin/") && current.role !== "Admin") error(403, "需要管理员权限。");
       if (path.startsWith("/api/student/") && current.role !== "Student") error(403, "当前账号没有权限。");
       if (path.startsWith("/learn/") && current.role !== "Student" && current.role !== "Admin") error(403, "当前账号没有权限。");
