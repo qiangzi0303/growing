@@ -21,10 +21,13 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.webkit.WebViewAssetLoader;
@@ -36,10 +39,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.json.JSONObject;
 
 public final class MainActivity extends Activity {
     private static final String ORIGIN="https://appassets.androidplatform.net";
     private static final String HOME=ORIGIN+"/assets/web/app-design/index.html";
+    private static final String CLOUD=ORIGIN+"/assets/web/cloud/index.html";
     private final ExecutorService executor=Executors.newSingleThreadExecutor();
     private AccountStore accounts;
     private LinearLayout root;
@@ -51,6 +56,7 @@ public final class MainActivity extends Activity {
     private volatile long epoch=0;
     private boolean registering=false;
     private AppUpdater updater;
+    private volatile String pendingRegistration;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -104,19 +110,31 @@ public final class MainActivity extends Activity {
         EditText name=input("用户名（2—24 个字符）",false);name.setContentDescription("用户名");form.addView(name);
         EditText password=input("密码（至少 8 个字符）",true);password.setContentDescription("密码");form.addView(password);
         EditText confirm=input("再次输入密码",true);confirm.setContentDescription("确认密码");if(registering)form.addView(confirm);
+        RadioGroup roles=new RadioGroup(this);roles.setContentDescription("账号身份");
+        RadioButton student=new RadioButton(this);student.setId(View.generateViewId());student.setText("我是学生");roles.addView(student);
+        RadioButton parent=new RadioButton(this);parent.setId(View.generateViewId());parent.setText("我是家长");roles.addView(parent);
+        CheckBox consent=new CheckBox(this);consent.setText("同意联网注册并将身份保存到后台；学生学习记录将同步，AI 密钥不上传。");consent.setContentDescription("同意云账号注册");
+        if(registering){form.addView(text("请选择身份（必选）",16,Color.rgb(80,110,70)));form.addView(roles);form.addView(consent);}
         TextView error=text("",14,Color.rgb(160,90,60));error.setPadding(0,dp(12),0,dp(8));form.addView(error);
-        Button submit=button(registering?"注册并开始学习":"登录");form.addView(submit);
+        Button submit=button(registering?"注册并保存身份":"登录");form.addView(submit);
         Button toggle=button(registering?"已有账号？去登录":"还没有账号？注册");form.addView(toggle);
         Button updates=button("检查更新 · "+BuildConfig.VERSION_NAME);updates.setOnClickListener(v->updater.check(true));form.addView(updates);
-        TextView note=text("本机账号 · 学习记录按账号分别保存\n覆盖安装新版会保留账号与学习记录；卸载或清除应用数据会删除本机记录。",12,Color.rgb(125,136,118));note.setPadding(0,dp(22),0,0);note.setLineSpacing(dp(3),1);form.addView(note);
+        TextView note=text("新用户需联网注册并确认学生或家长身份。旧版本机账号登录后需关联云账号、完成身份确认；完成后学生课程仍可离线使用。\n覆盖安装新版会保留账号与学习记录；卸载或清除应用数据会删除本机记录。",12,Color.rgb(125,136,118));note.setPadding(0,dp(22),0,0);note.setLineSpacing(dp(3),1);form.addView(note);
         toggle.setOnClickListener(v->{registering=!registering;showLogin();});
         submit.setOnClickListener(v->{
+            if(registering&&roles.getCheckedRadioButtonId()==-1){error.setText("请选择学生或家长身份。");return;}
+            if(registering&&!consent.isChecked()){error.setText("请先同意联网注册并保存身份。");return;}
             String username=name.getText().toString();char[] secret=password.getText().toString().toCharArray();
             if(registering && !Arrays.equals(secret,confirm.getText().toString().toCharArray())){Arrays.fill(secret,'\0');error.setText("两次输入的密码不一致。");return;}
-            boolean register=registering;submit.setEnabled(false);toggle.setEnabled(false);error.setText("正在验证，请稍候…");
+            boolean register=registering;String role=roles.getCheckedRadioButtonId()==student.getId()?"Student":"Parent";
+            char[] registrationSecret=register?secret.clone():null;
+            submit.setEnabled(false);toggle.setEnabled(false);error.setText("正在验证，请稍候…");
             executor.execute(()->{
-                try{String id=accounts.authenticate(username,secret,register);runOnUiThread(()->{if(isFinishing()||isDestroyed())return;currentId=id;epoch++;showLearning();});}
+                try{String id=accounts.authenticate(username,secret,register);
+                    String registration=register?new JSONObject().put("username",username.trim()).put("password",new String(registrationSecret)).put("displayName",username.trim()).put("role",role).toString():null;
+                    runOnUiThread(()->{if(isFinishing()||isDestroyed())return;pendingRegistration=registration;currentId=id;epoch++;showLearning();});}
                 catch(Exception e){String message=e.getMessage();runOnUiThread(()->{if(isFinishing()||isDestroyed())return;error.setText(message==null?"操作未完成，请重试。":message);submit.setEnabled(true);toggle.setEnabled(true);});}
+                finally{if(registrationSecret!=null)Arrays.fill(registrationSecret,'\0');}
             });
         });
     }
@@ -158,21 +176,34 @@ public final class MainActivity extends Activity {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){return loader.shouldInterceptRequest(request.getUrl());}
             @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
                 Uri url=request.getUrl();
+                NativeIdentity identity=accounts.identity(currentId);
+                if(request.isForMainFrame()&&ORIGIN.equals(url.getScheme()+"://"+url.getHost())&&url.getPath()!=null&&url.getPath().startsWith("/assets/web/")
+                        &&!url.getPath().startsWith("/assets/web/cloud/")&&(identity==null||identity.role.equals("Parent"))){view.loadUrl(CLOUD);return true;}
                 if("https".equals(url.getScheme())&&"appassets.androidplatform.net".equals(url.getHost())&&url.getPath()!=null&&url.getPath().startsWith("/assets/web/"))return false;
                 if(request.isForMainFrame()&&"https".equals(url.getScheme())){try{startActivity(new Intent(Intent.ACTION_VIEW,url));}catch(Exception ignored){}}
                 return true;
             }
-            @Override public void onPageFinished(WebView view,String url){boolean home=HOME.equals(url);back.setVisibility(home?View.INVISIBLE:View.VISIBLE);screenTitle.setText(home?"":url.contains("word-ops")?"英语 · Unit 3":url.contains("fraction-ops")?"数学 · 分式":url.contains("subject=english")||url.contains("english-course")?"英语":url.contains("subject=physics")||url.contains("physics-")?"物理":url.contains("math-course")||url.contains("knowledge")||url.contains("subject=math")?"数学":"成长课堂");}
+            @Override public void onPageFinished(WebView view,String url){boolean home=HOME.equals(url),cloud=CLOUD.equals(url);back.setVisibility(home||cloud?View.INVISIBLE:View.VISIBLE);screenTitle.setText(cloud?"云账号与身份":home?"":url.contains("word-ops")?"英语 · Unit 3":url.contains("fraction-ops")?"数学 · 分式":url.contains("subject=english")||url.contains("english-course")?"英语":url.contains("subject=physics")||url.contains("physics-")?"物理":url.contains("math-course")||url.contains("knowledge")||url.contains("subject=math")?"数学":"成长课堂");}
         });
         loadHome();
     }
-    public void loadHome(){if(web!=null)web.loadUrl(HOME);}
+    public void loadHome(){if(web!=null){NativeIdentity identity=accounts.identity(currentId);web.loadUrl(identity!=null&&identity.role.equals("Student")?HOME:CLOUD);}}
+    synchronized String takeRegistration(String id,long value){
+        if(!isSession(id,value))return "";
+        String result=pendingRegistration;pendingRegistration=null;return result==null?"":result;
+    }
+    String identityAccount(String id,long value){NativeIdentity identity=isSession(id,value)?accounts.identity(id):null;return identity==null?"":identity.id;}
+    void confirmIdentity(String id,long value,String profile) throws Exception {
+        if(!isSession(id,value))throw new SecurityException("登录已失效。");
+        accounts.confirmIdentity(id,profile);
+    }
     public boolean isSession(String id,long value){return id!=null&&id.equals(currentId)&&value==epoch;}
     public void showAccount(){
         if(currentId==null)return;
         SharedPreferences settings=getSharedPreferences("settings-v1-"+currentId,MODE_PRIVATE);
         LinearLayout form=column();form.setPadding(dp(24),dp(8),dp(24),0);
-        TextView note=text("本机账号："+accounts.currentName()+"\n版本："+BuildConfig.VERSION_NAME+"\n\n课程、内置音频和练习可离线使用。单词朗读使用手机语音引擎，离线使用需先安装英语语音数据。AI 评分和答疑需要联网并配置自己的 DeepSeek API Key。密钥只保存在此账号的本机设置中。",14,Color.rgb(80,100,75));form.addView(note);
+        NativeIdentity identity=accounts.identity(currentId);
+        TextView note=text("本机账号："+accounts.currentName()+"\n身份："+(identity==null?"待确认":identity.role.equals("Student")?"学生":identity.role.equals("Parent")?"家长":"管理员")+"\n版本："+BuildConfig.VERSION_NAME+"\n\n学生课程、内置音频和练习可离线使用。单词朗读使用手机语音引擎，离线使用需先安装英语语音数据。AI 评分和答疑需要联网并配置自己的 DeepSeek API Key。密钥只保存在此账号的本机设置中。",14,Color.rgb(80,100,75));form.addView(note);
         Button voice=button("朗读设置 / 英语试读");voice.setOnClickListener(v->showSpeechSettings());form.addView(voice);
         Button updates=button("检查更新");updates.setOnClickListener(v->updater.check(true));form.addView(updates);
         Button cloud=button("云同步 / 家长关联");form.addView(cloud);
@@ -204,10 +235,10 @@ public final class MainActivity extends Activity {
         if(speech!=null){speech.close();speech=null;}
         if(web!=null){web.stopLoading();web.removeJavascriptInterface("GrowingNative");web.removeJavascriptInterface("GrowingSpeech");web.destroy();web=null;}
     }
-    @Override public void onBackPressed(){if(web!=null&&!HOME.equals(web.getUrl()))loadHome();else super.onBackPressed();}
+    @Override public void onBackPressed(){if(web!=null&&!HOME.equals(web.getUrl())&&!CLOUD.equals(web.getUrl()))loadHome();else super.onBackPressed();}
     @Override protected void onPause(){if(speech!=null)speech.interrupt();if(web!=null)web.onPause();super.onPause();}
     @Override protected void onResume(){super.onResume();if(web!=null)web.onResume();}
     @Override protected void onStart(){super.onStart();updater.onStart();}
     @Override protected void onStop(){updater.onStop();super.onStop();}
-    @Override protected void onDestroy(){if(updater!=null)updater.close();destroyWeb();executor.shutdown();super.onDestroy();}
+    @Override protected void onDestroy(){pendingRegistration=null;if(updater!=null)updater.close();destroyWeb();executor.shutdown();super.onDestroy();}
 }

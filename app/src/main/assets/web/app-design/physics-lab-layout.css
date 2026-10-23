@@ -1,0 +1,82 @@
+/* Keep the model and its controls together on tablets and larger screens. */
+.lab-parameters{margin-top:14px}
+.lab>.bottom,.lab>.bottom-grid{grid-template-columns:minmax(0,1fr);margin-top:16px}
+.stage-bottom{justify-content:flex-end}
+
+@media(min-width:740px) and (min-height:520px){
+  .lab-workspace{
+    --workspace-height:520px;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) clamp(280px,36%,360px);
+    gap:14px;
+    height:var(--workspace-height);
+    align-items:stretch;
+    scroll-margin-top:12px;
+  }
+  .lab-observation{min-width:0;min-height:0;display:flex;flex-direction:column;gap:10px}
+  .lab-observation>.scene-card{flex:1;min-height:0;display:flex;flex-direction:column}
+  .scene-card>.scene{flex:1;height:0;min-height:140px;aspect-ratio:auto}
+  .scene-head,.scene-bottom{flex-shrink:0;padding:10px 14px}
+  .scene-bottom{gap:10px}
+  .lab-observation>.stats{margin:0;gap:8px}
+  .lab-observation .stat{padding:10px 12px}
+  .lab-observation .stat strong{font-size:18px;margin:4px 0}
+  .lab-parameters{
+    margin:0;
+    height:100%;
+    min-height:0;
+    padding:16px;
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior-y:contain;
+    scrollbar-gutter:stable;
+    scroll-padding-block:14px;
+  }
+  .lab-parameters .control{margin:12px 0}
+  .lab-parameters .control label{font-size:13px;margin-bottom:4px}
+  .lab-parameters input[type=range]{height:44px;min-height:44px;margin:0}
+  .lab-parameters .card-head{margin-bottom:10px}
+  .lab-parameters .experiment-tip,.lab-parameters .tip{margin:10px 0 14px}
+  .sound-workspace .lab-observation{display:grid;grid-template-rows:minmax(110px,.95fr) minmax(165px,1.05fr) auto;gap:8px}
+  .sound-workspace .stage{height:auto;min-height:0;border-radius:16px}
+  .sound-workspace .wave-card{min-height:0;margin:0;padding:10px 12px;overflow:auto;overscroll-behavior-y:contain}
+  .sound-workspace .wave{height:clamp(65px,10vh,105px);margin-top:0}
+  .sound-workspace .wave-heading{flex-wrap:wrap;gap:4px}
+  .sound-workspace .speed-comparison{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;margin:6px 0}
+  .sound-workspace .speed-key{gap:6px 10px}
+  .sound-workspace .stat{padding:8px 10px}
+  .sound-workspace .stat span,.sound-workspace .stat em{display:block;font-size:10px;line-height:1.3}
+  .sound-workspace .stat strong{line-height:1.2;margin:3px 0}
+  .sound-workspace .stage-top{top:10px;left:12px;right:12px;flex-wrap:wrap;gap:4px}
+  .sound-workspace .stage-bottom{bottom:10px;left:12px;right:12px}
+  .sound-workspace .stage-bottom button{min-height:44px}
+}
+
+@media(min-width:740px) and (min-height:520px) and (max-width:1366px){
+  .top{padding:12px 18px;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px}
+  .top h1{font-size:22px;letter-spacing:0}
+  .top .eyebrow{font-size:9px;margin-bottom:3px}
+  .top>div>p:last-child:not(.eyebrow){display:none}
+  .top nav{gap:6px}
+  .top nav button{font-size:12px;padding:8px 10px}
+  .top nav a{font-size:12px;padding:8px 4px}
+  .layout{grid-template-columns:minmax(0,1fr);padding:12px 18px;gap:12px}
+  .sidebar{display:flex;align-items:center;gap:12px;margin:0;min-width:0}
+  .sidebar>.goals,.sidebar>.source,.sidebar>.side-note,.sidebar-toggle{display:none}
+  .sidebar>label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .sidebar>select{flex:0 0 158px;width:158px;min-height:44px;padding:8px;margin:0}
+  .nav-label{flex:0 0 auto;font-size:11px}
+  .topics,.chapter-nav{display:flex;flex:1;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;gap:6px;margin:0;padding:0 0 4px;scrollbar-width:thin}
+  .topics button,.chapter-nav button{flex:0 0 auto;min-height:44px;padding:8px 12px;text-align:left;justify-content:flex-start;white-space:nowrap;gap:7px}
+  .topics strong,.chapter-nav strong{font-size:12px}
+  .topics small,.chapter-nav small,.chapter-nav button span:first-child{display:none}
+  .lab>.heading,.lab>.lab-heading{margin-bottom:12px;gap:10px}
+  .lab h2{font-size:21px}
+  .lab>.heading p,.lab>.lab-heading p{font-size:12px;line-height:1.6;margin-top:4px}
+}
+
+@media(min-width:740px) and (min-height:520px) and (max-height:680px){
+  .top{padding:8px 18px}
+  .top .eyebrow,.lab>.heading p,.lab>.lab-heading p{display:none}
+  .top h1{font-size:20px}
+}

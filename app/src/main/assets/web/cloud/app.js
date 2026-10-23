@@ -22,6 +22,8 @@
   const sessionKey='growing-cloud-session-v1',bindingKey='growing-cloud-binding-v1';
   const needsRole=profile=>profile.role!=='Admin'&&(profile.roleSelectionRequired!==false||!['Student','Parent'].includes(profile.role));
   function checkNativeBinding(profile){
+    const identity=isNative&&native.identityAccount?.();
+    if(identity&&identity!==profile.id)throw Error('此本机账号已关联另一个云账号，请使用原云账号，或退出本机账号后切换。');
     const binding=isNative&&raw.getItem(bindingKey);
     if(binding&&binding!==profile.id&&profile.role==='Student')throw Error('此本机账号已关联另一个学生云账号，请使用对应账号。');
   }
@@ -32,6 +34,10 @@
       if(profile.role==='Student')raw.setItem(bindingKey,profile.id);
     }
     raw.setItem(sessionKey,JSON.stringify({token,user:profile}));
+    if(!needsRole(profile)&&native.confirmIdentity){
+      const saved=JSON.parse(native.confirmIdentity(JSON.stringify(profile)));
+      if(!saved.ok)throw Error(saved.error||'身份未保存在本机，请重试。');
+    }
   }
   function read(key,fallback){try{return JSON.parse(raw.getItem(key)||'null')??fallback;}catch{throw Error('本机同步配置无法读取，请先备份原记录。');}}
   async function api(path,options={}){
@@ -105,7 +111,7 @@
   window.GrowingCloud={storage,activity};
   function auth(){clearInterval(timer);$('#logout').hidden=true;$('#settings').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent='PC · 手机网页 · Android';
     if(isNative&&!base){$('#app').innerHTML='<section class="panel"><h1>云服务尚未配置</h1><p>此安装包需要先配置服务端 HTTPS 地址，再登录云账号同步学习记录。</p><a class="button" href="../app-design/index.html">返回离线学习</a></section>';return;}
-    $('#app').innerHTML=`<section class="panel auth"><p class="muted">成长 · 学习与陪伴</p><h1>${authMode==='login'?'欢迎回来':'创建云账号'}</h1><p>学生继续学习，家长看见进步。</p><form id="auth"><label>用户名<input name="username" autocomplete="username" minlength="2" maxlength="24" required></label><label>密码<input name="password" type="password" autocomplete="${authMode==='login'?'current-password':'new-password'}" minlength="8" maxlength="128" required></label>${authMode==='register'?'<label>称呼<input name="displayName" maxlength="40" required></label><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label>':''}${isNative?'<label><input name="consent" type="checkbox" style="display:inline;width:auto" required> 同意登录云账号；学生身份将关联本机学习记录（AI 密钥不上传）</label>':''}<button class="primary" type="submit">${authMode==='login'?'登录':'注册并登录'}</button></form><p><button id="switch-auth">${authMode==='login'?'还没有云账号？注册':'已有云账号？登录'}</button></p><p class="muted">云账号与旧版本机账号独立；不会上传本机密码或 AI 密钥。</p></section>`;
+    $('#app').innerHTML=`<section class="panel auth"><p class="muted">成长 · 学习与陪伴</p><h1>${authMode==='login'?'欢迎回来':'创建云账号'}</h1><p>${isNative&&!native.identityAccount?.()?'请先关联云账号、确认学生或家长身份；后台保存成功后才能继续。旧版本机记录会保留。':'学生继续学习，家长看见进步。'}</p><form id="auth"><label>用户名<input name="username" autocomplete="username" minlength="2" maxlength="24" required></label><label>密码<input name="password" type="password" autocomplete="${authMode==='login'?'current-password':'new-password'}" minlength="8" maxlength="128" required></label>${authMode==='register'?'<label>称呼<input name="displayName" maxlength="40" required></label><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label>':''}${isNative?'<label><input name="consent" type="checkbox" style="display:inline;width:auto" required> 同意登录云账号；学生身份将关联本机学习记录（AI 密钥不上传）</label>':''}<button class="primary" type="submit">${authMode==='login'?'登录':'注册并登录'}</button></form><p><button id="switch-auth">${authMode==='login'?'还没有云账号？注册':'已有云账号？登录'}</button></p><p class="muted">旧版本机账号需关联云账号。本机记录和 AI 密钥保留；只有在此填写的云账号密码会发送到后台。</p></section>`;
   }
   async function enter(profile,view='management'){management?.dispose();clearInterval(timer);user=null;generation++;const version=generation;await rememberNativeSession(profile);if(version!==generation)return;user=profile;$('#logout').hidden=false;hint('');
     if(needsRole(user)){
@@ -189,5 +195,13 @@
   }catch(e){hint(e.message);}});
   setInterval(()=>{try{tick();}catch(e){hint('活跃时长未保存：'+e.message);}},10000);
   window.addEventListener('online',sync);
-  (async()=>{try{if(isNative){if(!base){auth();return;}const session=read(sessionKey,null);token=session?.token||'';}const profile=await api('/auth/me');await enter(profile);}catch(e){auth();if(e.status!==401)hint(e.message);}})();
+  (async()=>{try{if(isNative){if(!base){auth();return;}
+    // The native form already collected an explicit role and cloud-registration consent.
+    // Transfer credentials once in memory; never persist the plaintext password.
+    const pending=native.takeRegistration?.();
+    if(pending){const values=JSON.parse(pending);authMode='register';auth();
+      for(const name of ['username','password','displayName','role'])$('#auth').elements[name].value=values[name];
+      $('#auth').elements.consent.checked=true;$('#auth').requestSubmit();return;}
+    const session=read(sessionKey,null);token=session?.token||'';
+  }const profile=await api('/auth/me');await enter(profile);}catch(e){auth();if(e.status!==401)hint(e.message);}})();
 })();

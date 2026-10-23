@@ -1,8 +1,8 @@
 # GitHub 自动打包与 Cloudflare APK 更新
 
-网站下载页：https://growing-platform.qiangzi0303.workers.dev/download.html
+网站下载页：https://007yx.com/download.html
 
-固定更新清单：https://growing-platform.qiangzi0303.workers.dev/downloads/update.json
+固定更新清单：https://007yx.com/downloads/update.json
 
 APK 和清单在同一站点公开下载，无需登录，手机不必访问 GitHub。
 
@@ -18,7 +18,9 @@ Worker 验证文件大小与 SHA-256，将 APK 保存到 APK_FILES KV，将不�
 
 PC 网站顶部提供“下载 APK”。适用于 Android 8.0 及以上。已安装者直接覆盖安装，不要卸载旧版或清除应用数据，以保留原账号、学习记录与 AI 设置。
 
-新 APK 从 update-site.json 内置真实更新地址，也可用 GROWING_UPDATE_URL 构建变量覆盖。应用冷启动或从后台返回时自动检查（短暂切换有 30 秒间隔），发现更高版本后提示“下载更新 / 稍后”。点击后浏览器下载 APK，再按 Android 系统提示确认安装。普通应用不能静默覆盖自身。
+新 APK 从 update-site.json 内置 https://007yx.com/downloads/update.json，GitHub 正式构建固定使用此文件，不再读取仓库变量 GROWING_UPDATE_URL，避免旧配置覆盖。自定义本地构建仍可用同名环境变量覆盖。应用冷启动或从后台返回时自动检查（短暂切换有 30 秒间隔），发现更高版本后提示“下载更新 / 稍后”。点击后浏览器下载 APK，再按 Android 系统提示确认安装。普通应用不能静默覆盖自身。
+
+已经安装的旧 APK 仍使用其内置的旧域名；覆盖安装新版后才切换到 007yx.com。保留旧域名的更新清单和下载服务，使尚未升级的设备也能取得新版。
 
 **早期安装版（例如 1.0.6）没有更新代码或站点配置，需先手动覆盖安装一次包含此功能的新版。** 旧代码不会因服务器配置而自动获得新功能；之后无需再去 GitHub 查找安装包。
 

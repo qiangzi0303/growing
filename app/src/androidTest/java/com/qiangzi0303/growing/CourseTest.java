@@ -25,6 +25,7 @@ public class CourseTest {
     private void ready(ActivityScenario<MainActivity> s,String expression) throws Exception {for(int i=0;i<100;i++){if("true".equals(js(s,expression)))return;Thread.sleep(200);}fail("Packaged course or native bridge did not load");}
     @Test public void offlineCourseAndRewards() throws Exception {
         AccountStore accounts=new AccountStore(ApplicationProvider.getApplicationContext());accounts.logout();accounts.authenticate("course_check","Course-Test-Password-2026".toCharArray(),true);
+        IdentityFixtures.student(accounts);
         try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
             ready(s,"!!document.querySelector('.subjects')");
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=math&term=upper&unit=math-8a-03'");

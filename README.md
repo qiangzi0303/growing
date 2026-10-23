@@ -28,7 +28,7 @@ APK 通过 Android 原生 `TextToSpeech` 朗读单词、例句及数学的设备
 
 点击“下载更新”使用手机浏览器从 Cloudflare 站点下载 APK，下载后打开文件，允许浏览器安装应用并按 Android 系统提示覆盖安装。当前实现不静默安装，也不在后台自动下载。公开下载不需要登录或访问密钥，更新检查不上传本机账号、AI 密钥和学习记录。已有 1.0.6 需先手动覆盖安装含此功能的版本，之后才能自动检查。
 
-更新地址已在 [update-site.json](update-site.json) 配置为 `https://growing-platform.qiangzi0303.workers.dev/downloads/update.json`，或由构建环境变量 `GROWING_UPDATE_URL` 覆盖。只接受相同 HTTPS 站点（含端口）的 APK 链接，`apkUrl` 支持相对路径。GitHub 构建后自动将 APK 与清单发布到 Cloudflare，无需手机访问 GitHub。完整配置见 [自有站点更新说明](docs/self-hosted-updates.md)。
+更新地址已在 [update-site.json](update-site.json) 配置为 `https://007yx.com/downloads/update.json`。GitHub 正式构建固定使用此文件；自定义本地构建仍可用环境变量 `GROWING_UPDATE_URL` 覆盖。只接受相同 HTTPS 站点（含端口）的 APK 链接，`apkUrl` 支持相对路径。旧版覆盖升级后切换到新域名，旧域名继续为未升级设备提供更新。GitHub 构建后自动将 APK 与清单发布到 Cloudflare，无需手机访问 GitHub。完整配置见 [自有站点更新说明](docs/self-hosted-updates.md)。
 
 - 固定包名：`com.qiangzi0303.growing`。Debug 使用 `.debug` 后缀，与发布版分开。
 - 每次主分支提交触发 GitHub Actions，`versionCode` 由工作流 `run_number` 递增。

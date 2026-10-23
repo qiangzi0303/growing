@@ -15,6 +15,17 @@ public final class AccountStore {
     public AccountStore(Context context) { prefs = context.getSharedPreferences("accounts-v1", Context.MODE_PRIVATE); }
     public String currentId() { return prefs.getString("session.id", null); }
     public String currentName() { return prefs.getString("session.name", ""); }
+    NativeIdentity identity(String accountId) {
+        try { return new NativeIdentity(new JSONObject(prefs.getString("identity."+accountId, ""))); }
+        catch (Exception e) { return null; }
+    }
+    synchronized void confirmIdentity(String accountId, String profile) throws Exception {
+        if (accountId == null || !accountId.equals(currentId())) throw new SecurityException("登录已失效。");
+        NativeIdentity confirmed = new NativeIdentity(new JSONObject(profile));
+        confirmed.requireSameAccount(identity(accountId));
+        if (!prefs.edit().putString("identity."+accountId, confirmed.json()).commit())
+            throw new IllegalStateException("身份未能保存在本机，请重试。");
+    }
     public void logout() {
         if (!prefs.edit().remove("session.id").remove("session.name").commit()) throw new IllegalStateException("无法保存退出状态，请重试。");
     }

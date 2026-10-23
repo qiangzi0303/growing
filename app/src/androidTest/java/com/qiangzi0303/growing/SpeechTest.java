@@ -33,6 +33,7 @@ public class SpeechTest {
         Context context=ApplicationProvider.getApplicationContext();
         AccountStore accounts=new AccountStore(context);
         if(accounts.currentId()==null)accounts.authenticate("speech_student","Speech-Test-Password-2026".toCharArray(),true);
+        IdentityFixtures.student(accounts);
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             boolean ready=false;
             for(int i=0;i<60;i++){

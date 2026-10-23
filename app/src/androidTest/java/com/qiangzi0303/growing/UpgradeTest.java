@@ -40,15 +40,15 @@ public class UpgradeTest {
     }
     @Test public void seed() throws Exception{
         AccountStore accounts=new AccountStore(context());
-        // Register through the real native form before testing the storage path.
+        // The real native registration must not create an account without a role.
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             scenario.onActivity(activity->{View decor=activity.getWindow().getDecorView();find(decor,"还没有账号？注册").performClick();});
-            scenario.onActivity(activity->{View decor=activity.getWindow().getDecorView();((EditText)find(decor,"用户名")).setText("ui_student");((EditText)find(decor,"密码")).setText(PASSWORD);((EditText)find(decor,"确认密码")).setText(PASSWORD);find(decor,"注册并开始学习").performClick();});
-            ready(scenario);
-            assertEquals("ui_student",accounts.currentName());
+            scenario.onActivity(activity->{View decor=activity.getWindow().getDecorView();((EditText)find(decor,"用户名")).setText("ui_student");((EditText)find(decor,"密码")).setText(PASSWORD);((EditText)find(decor,"确认密码")).setText(PASSWORD);find(decor,"注册并保存身份").performClick();});
+            assertNull("No role selection must not create a login session",accounts.currentId());
         }
         accounts.logout();
         String alice=accounts.authenticate("upgrade_alice",PASSWORD.toCharArray(),true);
+        IdentityFixtures.student(accounts);
         assertNotNull(alice);assertEquals(alice,accounts.currentId());
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             ready(scenario);
@@ -57,6 +57,7 @@ public class UpgradeTest {
         }
         accounts.logout();
         accounts.authenticate("upgrade_bob",PASSWORD.toCharArray(),true);
+        IdentityFixtures.student(accounts);
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             ready(scenario);assertEquals("null",js(scenario,"localStorage.getItem('upgrade.english')"));
             js(scenario,"localStorage.setItem('upgrade.english','bob-English')");

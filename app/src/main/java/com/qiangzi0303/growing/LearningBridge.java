@@ -42,6 +42,12 @@ public final class LearningBridge {
     }
     @JavascriptInterface public String aiKey() { try{authorize();return settings.getString("ai.key","");}catch(Exception e){return "";} }
     @JavascriptInterface public String cloudApiUrl() { try{authorize();return BuildConfig.CLOUD_API_URL;}catch(Exception e){return "";} }
+    @JavascriptInterface public String takeRegistration() { try{authorize();return activity.takeRegistration(accountId,session);}catch(Exception e){return "";} }
+    @JavascriptInterface public String identityAccount() { try{authorize();return activity.identityAccount(accountId,session);}catch(Exception e){return "";} }
+    @JavascriptInterface public String confirmIdentity(String profile) {
+        try{authorize();activity.confirmIdentity(accountId,session,profile);return "{\"ok\":true}";}
+        catch(Exception e){return "{\"ok\":false,\"error\":\"身份未保存，或此本机账号已关联其他云账号，请使用原云账号重试。\"}";}
+    }
     @JavascriptInterface public void configureAi() { try{authorize();activity.runOnUiThread(activity::showAccount);}catch(Exception ignored){} }
     @JavascriptInterface public void home() { try{authorize();activity.runOnUiThread(activity::loadHome);}catch(Exception ignored){} }
 }
