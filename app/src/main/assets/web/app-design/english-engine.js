@@ -5,9 +5,11 @@
   const variants={humour:['humor'],programme:['program'],'sec.':['sec']};
   const matches=(word,answer)=>[word,...(variants[word]||[])].some(w=>normalize(w)===normalize(answer));
   function restore(raw){
-    if(raw==null)return {version:1,words:{},lessons:{}};
+    if(raw==null)return {version:1,words:{},lessons:{},feynman:{}};
     if(raw.version!==1||!raw.words||!raw.lessons||Array.isArray(raw.words)||Array.isArray(raw.lessons)||typeof raw.words!=='object'||typeof raw.lessons!=='object')throw Error('学习记录格式无法识别，原记录已保留');
-    return {version:1,words:{...raw.words},lessons:{...raw.lessons}};
+    if(raw.feynman!==undefined&&(!raw.feynman||typeof raw.feynman!=='object'||Array.isArray(raw.feynman)))throw Error('概念复述记录格式无法识别，原记录已保留');
+    if(Object.values(raw.feynman||{}).some(r=>!r||typeof r!=='object'||Array.isArray(r)||r.draft!==undefined&&typeof r.draft!=='string'||r.attempts!==undefined&&!Array.isArray(r.attempts)))throw Error('概念复述记录格式无法识别，原记录已保留');
+    return {version:1,words:{...raw.words},lessons:{...raw.lessons},feynman:{...raw.feynman}};
   }
   const wordPassed=(word,record)=>!word.optional&&record?.protocol==='seven-recalls'&&Array.isArray(record.answers)&&record.answers.length===7&&record.answers.every(a=>typeof a==='string'&&matches(word.word,a));
   const lessonPassed=(lesson,record)=>record?.protocol==='three-correct'&&Array.isArray(record.answers)&&record.answers.length===lesson.questions.length&&record.answers.every((a,i)=>a===lesson.questions[i].answer);

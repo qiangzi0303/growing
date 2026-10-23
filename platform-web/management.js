@@ -22,6 +22,10 @@
         const [report,growth,rewards]=all?[all.report,all.growth,all.rewards]:await Promise.all([api(prefix+'/report'),api(prefix+'/growth?days=30'),api(prefix+'/rewards')]);
         if(!current())return;
         root.innerHTML=`${all?`<h2>${esc(all.student.displayName)}的学习情况</h2>`:''}${summary(report)}<section class="panel growth"><h2>成长曲线</h2><div class="actions chart-controls"><label>时间范围<select data-days><option value="7">近 7 天</option><option value="30" selected>近 30 天</option><option value="90">近 90 天</option></select></label><label>学科<select data-subject><option>数学</option><option>英语</option><option>物理</option></select></label><label>指标<select data-metric><option value="mastered">已掌握（项）</option><option value="read">已读 / 已记录（项）</option><option value="practice">练习记录（条）</option><option value="minutes">学习时长（分钟）</option></select></label></div><div data-chart></div><p class="muted">${esc(growth.note)}</p></section><section class="panel"><h2>奖励与家长核销</h2><p class="muted">${esc(rewards.note)}</p><div data-rewards></div></section><button data-refresh-report>刷新学习情况</button>`;
+        const rankingRoot=document.createElement('section');root.insertBefore(rankingRoot,root.querySelector('.growth'));
+        GrowingRankings.mount(rankingRoot,api,esc,current,prefix+'/rankings','孩子的排行榜');
+        const handwritingRoot=document.createElement('section');root.append(handwritingRoot);
+        GrowingHandwritingView.mount(handwritingRoot,api,esc,current,prefix);
         let chartData=growth,chartRequest=0;
         const draw=()=>{
           const subject=root.querySelector('[data-subject]').value,metric=root.querySelector('[data-metric]').value;

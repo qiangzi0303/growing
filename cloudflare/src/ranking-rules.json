@@ -1,0 +1,1920 @@
+[
+  {
+    "id": "math-8a-01",
+    "title": "三角形",
+    "subject": "math",
+    "subjectName": "数学",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "math",
+    "topics": [
+      "tri-lines",
+      "tri-angles",
+      "tri-inequality",
+      "congruence",
+      "cong-sss",
+      "cong-sas",
+      "cong-asa",
+      "cong-hl",
+      "perp-bisector",
+      "angle-bisector",
+      "isosceles",
+      "equilateral"
+    ]
+  },
+  {
+    "id": "math-8a-02",
+    "title": "实数的初步认识",
+    "subject": "math",
+    "subjectName": "数学",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "math",
+    "topics": [
+      "square-root",
+      "root-estimate",
+      "cube-root",
+      "real-types",
+      "real-line",
+      "approximate"
+    ]
+  },
+  {
+    "id": "math-8a-03",
+    "title": "勾股定理",
+    "subject": "math",
+    "subjectName": "数学",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "math",
+    "topics": [
+      "pythagoras",
+      "pyth-converse",
+      "pyth-apply"
+    ]
+  },
+  {
+    "id": "math-8a-04",
+    "title": "平面直角坐标系",
+    "subject": "math",
+    "subjectName": "数学",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "math",
+    "topics": [
+      "coordinates",
+      "quadrants",
+      "translation",
+      "reflection"
+    ]
+  },
+  {
+    "id": "math-8a-05",
+    "title": "一次函数",
+    "subject": "math",
+    "subjectName": "数学",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "math",
+    "topics": [
+      "function-variable",
+      "linear-function",
+      "line-graph",
+      "line-monotone",
+      "line-coefficients",
+      "line-model",
+      "line-system"
+    ]
+  },
+  {
+    "id": "math-8b-06",
+    "title": "数据的收集、整理与描述",
+    "subject": "math",
+    "subjectName": "数学",
+    "term": "lower",
+    "termName": "八年级下册",
+    "kind": "math",
+    "topics": [
+      "survey",
+      "charts",
+      "price-study",
+      "frequency",
+      "histogram",
+      "vision-study"
+    ]
+  },
+  {
+    "id": "math-8b-07",
+    "title": "认识概率",
+    "subject": "math",
+    "subjectName": "数学",
+    "term": "lower",
+    "termName": "八年级下册",
+    "kind": "math",
+    "topics": [
+      "random-event",
+      "probability",
+      "frequency-prob"
+    ]
+  },
+  {
+    "id": "math-8b-08",
+    "title": "四边形",
+    "subject": "math",
+    "subjectName": "数学",
+    "term": "lower",
+    "termName": "八年级下册",
+    "kind": "math",
+    "topics": [
+      "parallelogram",
+      "parallel-judge",
+      "rectangle",
+      "rhombus",
+      "square",
+      "midline",
+      "trapezoid",
+      "iso-trapezoid"
+    ]
+  },
+  {
+    "id": "math-8b-09",
+    "title": "因式分解",
+    "subject": "math",
+    "subjectName": "数学",
+    "term": "lower",
+    "termName": "八年级下册",
+    "kind": "math",
+    "topics": [
+      "factor",
+      "factor-concept",
+      "factor-difference",
+      "factor-perfect"
+    ]
+  },
+  {
+    "id": "math-8b-10",
+    "title": "分式",
+    "subject": "math",
+    "subjectName": "数学",
+    "term": "lower",
+    "termName": "八年级下册",
+    "kind": "fraction",
+    "topics": [
+      "definition",
+      "domain",
+      "zero",
+      "property",
+      "reduce",
+      "common",
+      "sign",
+      "add",
+      "multiply",
+      "equation",
+      "extra"
+    ]
+  },
+  {
+    "id": "math-8b-11",
+    "title": "二次根式",
+    "subject": "math",
+    "subjectName": "数学",
+    "term": "lower",
+    "termName": "八年级下册",
+    "kind": "math",
+    "topics": [
+      "radical-domain",
+      "radical-simplify",
+      "radical-multiply",
+      "radical-add"
+    ]
+  },
+  {
+    "id": "physics-8a-01",
+    "title": "声现象",
+    "subject": "physics",
+    "subjectName": "物理",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "physics",
+    "topics": [
+      "phy-source",
+      "phy-medium",
+      "phy-echo",
+      "phy-pitch",
+      "phy-loudness",
+      "phy-timbre",
+      "phy-noise",
+      "phy-ultrasound"
+    ]
+  },
+  {
+    "id": "physics-8a-02",
+    "title": "光现象",
+    "subject": "physics",
+    "subjectName": "物理",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "physics",
+    "topics": [
+      "phy-spectrum",
+      "phy-rgb",
+      "phy-straight",
+      "phy-mirror",
+      "phy-mirror-lab",
+      "phy-reflection",
+      "phy-diffuse"
+    ]
+  },
+  {
+    "id": "physics-8a-03",
+    "title": "光的折射 透镜",
+    "subject": "physics",
+    "subjectName": "物理",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "physics",
+    "topics": [
+      "phy-refraction",
+      "phy-shallow",
+      "phy-lens",
+      "phy-focus",
+      "phy-imaging",
+      "phy-lens-lab",
+      "phy-applications",
+      "phy-eye",
+      "phy-instruments",
+      "phy-invisible"
+    ]
+  },
+  {
+    "id": "physics-8a-04",
+    "title": "物态变化",
+    "subject": "physics",
+    "subjectName": "物理",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "physics",
+    "topics": [
+      "phy-temperature",
+      "phy-cooling",
+      "phy-evaporation",
+      "phy-boiling",
+      "phy-liquid",
+      "phy-melting",
+      "phy-sublimation",
+      "phy-water-cycle"
+    ]
+  },
+  {
+    "id": "physics-8a-05",
+    "title": "物体的运动",
+    "subject": "physics",
+    "subjectName": "物理",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "physics",
+    "topics": [
+      "phy-length",
+      "phy-error",
+      "phy-time",
+      "phy-speed",
+      "phy-uniform",
+      "phy-average",
+      "phy-reference"
+    ]
+  },
+  {
+    "id": "english-8a-01",
+    "title": "Friendship",
+    "subject": "english",
+    "subjectName": "英语",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "english",
+    "rules": {
+      "words": [
+        {
+          "id": "friendship",
+          "word": "friendship"
+        },
+        {
+          "id": "honest",
+          "word": "honest"
+        },
+        {
+          "id": "cheerful",
+          "word": "cheerful"
+        },
+        {
+          "id": "humorous",
+          "word": "humorous"
+        },
+        {
+          "id": "caring",
+          "word": "caring"
+        },
+        {
+          "id": "truth",
+          "word": "truth"
+        },
+        {
+          "id": "joke",
+          "word": "joke"
+        },
+        {
+          "id": "laugh",
+          "word": "laugh"
+        },
+        {
+          "id": "unhappy",
+          "word": "unhappy"
+        },
+        {
+          "id": "lie",
+          "word": "lie"
+        },
+        {
+          "id": "person",
+          "word": "person"
+        },
+        {
+          "id": "thought",
+          "word": "thought"
+        },
+        {
+          "id": "seat",
+          "word": "seat"
+        },
+        {
+          "id": "schoolwork",
+          "word": "schoolwork"
+        },
+        {
+          "id": "patient",
+          "word": "patient"
+        },
+        {
+          "id": "understand",
+          "word": "understand"
+        },
+        {
+          "id": "bit",
+          "word": "bit"
+        },
+        {
+          "id": "a little bit",
+          "word": "a little bit"
+        },
+        {
+          "id": "funny",
+          "word": "funny"
+        },
+        {
+          "id": "sense",
+          "word": "sense"
+        },
+        {
+          "id": "humour",
+          "word": "humour"
+        },
+        {
+          "id": "sense of humour",
+          "word": "sense of humour"
+        },
+        {
+          "id": "bored",
+          "word": "bored"
+        },
+        {
+          "id": "energetic",
+          "word": "energetic"
+        },
+        {
+          "id": "active",
+          "word": "active"
+        },
+        {
+          "id": "encourage",
+          "word": "encourage"
+        },
+        {
+          "id": "believe",
+          "word": "believe"
+        },
+        {
+          "id": "secret",
+          "word": "secret"
+        },
+        {
+          "id": "keep secrets",
+          "word": "keep secrets"
+        },
+        {
+          "id": "worse",
+          "word": "worse"
+        },
+        {
+          "id": "worst",
+          "word": "worst"
+        },
+        {
+          "id": "height",
+          "word": "height"
+        },
+        {
+          "id": "sec.",
+          "word": "sec."
+        },
+        {
+          "id": "test",
+          "word": "test"
+        },
+        {
+          "id": "badminton",
+          "word": "badminton"
+        },
+        {
+          "id": "however",
+          "word": "however"
+        },
+        {
+          "id": "balloon",
+          "word": "balloon"
+        },
+        {
+          "id": "scared",
+          "word": "scared"
+        },
+        {
+          "id": "fight",
+          "word": "fight"
+        },
+        {
+          "id": "dead",
+          "word": "dead"
+        },
+        {
+          "id": "attack",
+          "word": "attack"
+        },
+        {
+          "id": "danger",
+          "word": "danger"
+        },
+        {
+          "id": "brave",
+          "word": "brave"
+        },
+        {
+          "id": "get along with sb",
+          "word": "get along with sb"
+        },
+        {
+          "id": "nod",
+          "word": "nod"
+        },
+        {
+          "id": "once",
+          "word": "once"
+        },
+        {
+          "id": "feeling",
+          "word": "feeling"
+        },
+        {
+          "id": "thoughtful",
+          "word": "thoughtful"
+        }
+      ],
+      "lessons": [
+        {
+          "id": "reading",
+          "answers": [
+            "She helps me with my schoolwork.",
+            "laugh",
+            "外貌→品质及事例→感受"
+          ]
+        },
+        {
+          "id": "forms",
+          "answers": [
+            "happier",
+            "biggest",
+            "more interesting"
+          ]
+        },
+        {
+          "id": "comparison",
+          "answers": [
+            "the tallest",
+            "much",
+            "students"
+          ]
+        },
+        {
+          "id": "suffixes",
+          "answers": [
+            "-less",
+            "boring",
+            "to help"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "english-8a-02",
+    "title": "School life",
+    "subject": "english",
+    "subjectName": "英语",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "english",
+    "rules": {
+      "words": [
+        {
+          "id": "plastic",
+          "word": "plastic"
+        },
+        {
+          "id": "cheap",
+          "word": "cheap"
+        },
+        {
+          "id": "environment",
+          "word": "environment"
+        },
+        {
+          "id": "few",
+          "word": "few"
+        },
+        {
+          "id": "drama",
+          "word": "drama"
+        },
+        {
+          "id": "foreign",
+          "word": "foreign"
+        },
+        {
+          "id": "as ... as ...",
+          "word": "as ... as ..."
+        },
+        {
+          "id": "French",
+          "word": "French"
+        },
+        {
+          "id": "German",
+          "word": "German"
+        },
+        {
+          "id": "forward",
+          "word": "forward"
+        },
+        {
+          "id": "look forward to",
+          "word": "look forward to"
+        },
+        {
+          "id": "go",
+          "word": "go"
+        },
+        {
+          "id": "have a go",
+          "word": "have a go"
+        },
+        {
+          "id": "earthquake",
+          "word": "earthquake"
+        },
+        {
+          "id": "offer",
+          "word": "offer"
+        },
+        {
+          "id": "programme",
+          "word": "programme"
+        },
+        {
+          "id": "plenty",
+          "word": "plenty"
+        },
+        {
+          "id": "plenty of",
+          "word": "plenty of"
+        },
+        {
+          "id": "hands-on",
+          "word": "hands-on"
+        },
+        {
+          "id": "attention",
+          "word": "attention"
+        },
+        {
+          "id": "pay attention to",
+          "word": "pay attention to"
+        },
+        {
+          "id": "boring",
+          "word": "boring"
+        },
+        {
+          "id": "aware",
+          "word": "aware"
+        },
+        {
+          "id": "be aware of",
+          "word": "be aware of"
+        },
+        {
+          "id": "importance",
+          "word": "importance"
+        },
+        {
+          "id": "Japanese",
+          "word": "Japanese"
+        },
+        {
+          "id": "carefully",
+          "word": "carefully"
+        },
+        {
+          "id": "ourselves",
+          "word": "ourselves"
+        },
+        {
+          "id": "develop",
+          "word": "develop"
+        },
+        {
+          "id": "junior",
+          "word": "junior"
+        },
+        {
+          "id": "rocket",
+          "word": "rocket"
+        },
+        {
+          "id": "least",
+          "word": "least"
+        },
+        {
+          "id": "Italian",
+          "word": "Italian"
+        },
+        {
+          "id": "international",
+          "word": "international"
+        },
+        {
+          "id": "vacation",
+          "word": "vacation"
+        },
+        {
+          "id": "textbook",
+          "word": "textbook"
+        },
+        {
+          "id": "search",
+          "word": "search"
+        },
+        {
+          "id": "finish",
+          "word": "finish"
+        },
+        {
+          "id": "American",
+          "word": "American"
+        },
+        {
+          "id": "hamburger",
+          "word": "hamburger"
+        },
+        {
+          "id": "pizza",
+          "word": "pizza"
+        },
+        {
+          "id": "salad",
+          "word": "salad"
+        },
+        {
+          "id": "chopstick",
+          "word": "chopstick"
+        },
+        {
+          "id": "movie",
+          "word": "movie"
+        },
+        {
+          "id": "difference",
+          "word": "difference"
+        },
+        {
+          "id": "lunchtime",
+          "word": "lunchtime"
+        },
+        {
+          "id": "cookie",
+          "word": "cookie"
+        },
+        {
+          "id": "fork",
+          "word": "fork"
+        },
+        {
+          "id": "spoon",
+          "word": "spoon"
+        },
+        {
+          "id": "suggestion",
+          "word": "suggestion"
+        },
+        {
+          "id": "uniform",
+          "word": "uniform"
+        },
+        {
+          "id": "improve",
+          "word": "improve"
+        },
+        {
+          "id": "suggest",
+          "word": "suggest"
+        },
+        {
+          "id": "provide",
+          "word": "provide"
+        }
+      ],
+      "lessons": [
+        {
+          "id": "reading",
+          "answers": [
+            "learning",
+            "One has smaller classes than the other.",
+            "to"
+          ]
+        },
+        {
+          "id": "amount",
+          "answers": [
+            "fewer",
+            "the least",
+            "more"
+          ]
+        },
+        {
+          "id": "equality",
+          "answers": [
+            "important",
+            "much",
+            "A is shorter than B."
+          ]
+        },
+        {
+          "id": "writing",
+          "answers": [
+            "creating",
+            "Japanese",
+            "for"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "english-8a-03",
+    "title": "To be a good learner",
+    "subject": "english",
+    "subjectName": "英语",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "legacy-english",
+    "topics": [
+      "adverbs",
+      "reflexives",
+      "formation",
+      "patterns",
+      "reading"
+    ],
+    "tests": [
+      "v1",
+      "v2",
+      "v3",
+      "v4",
+      "v5",
+      "v6",
+      "patterns",
+      "adverbs",
+      "reflexives",
+      "formation",
+      "reading"
+    ]
+  },
+  {
+    "id": "english-8a-04",
+    "title": "Hands-on fun",
+    "subject": "english",
+    "subjectName": "英语",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "english",
+    "rules": {
+      "words": [
+        {
+          "id": "mooncake",
+          "word": "mooncake"
+        },
+        {
+          "id": "shelf",
+          "word": "shelf"
+        },
+        {
+          "id": "rose",
+          "word": "rose"
+        },
+        {
+          "id": "tape",
+          "word": "tape"
+        },
+        {
+          "id": "glue",
+          "word": "glue"
+        },
+        {
+          "id": "complete",
+          "word": "complete"
+        },
+        {
+          "id": "DIY",
+          "word": "DIY"
+        },
+        {
+          "id": "crazy",
+          "word": "crazy"
+        },
+        {
+          "id": "be crazy about",
+          "word": "be crazy about"
+        },
+        {
+          "id": "born",
+          "word": "born"
+        },
+        {
+          "id": "mistake",
+          "word": "mistake"
+        },
+        {
+          "id": "power cut",
+          "word": "power cut"
+        },
+        {
+          "id": "fill ... with",
+          "word": "fill ... with"
+        },
+        {
+          "id": "unlucky",
+          "word": "unlucky"
+        },
+        {
+          "id": "instead",
+          "word": "instead"
+        },
+        {
+          "id": "course",
+          "word": "course"
+        },
+        {
+          "id": "mess",
+          "word": "mess"
+        },
+        {
+          "id": "in a mess",
+          "word": "in a mess"
+        },
+        {
+          "id": "lamp",
+          "word": "lamp"
+        },
+        {
+          "id": "catch one's eye",
+          "word": "catch one's eye"
+        },
+        {
+          "id": "surprise",
+          "word": "surprise"
+        },
+        {
+          "id": "impossible",
+          "word": "impossible"
+        },
+        {
+          "id": "nearly",
+          "word": "nearly"
+        },
+        {
+          "id": "can",
+          "word": "can"
+        },
+        {
+          "id": "everywhere",
+          "word": "everywhere"
+        },
+        {
+          "id": "chalk",
+          "word": "chalk"
+        },
+        {
+          "id": "mark",
+          "word": "mark"
+        },
+        {
+          "id": "brush",
+          "word": "brush"
+        },
+        {
+          "id": "instructions",
+          "word": "instructions"
+        },
+        {
+          "id": "dangerous",
+          "word": "dangerous"
+        },
+        {
+          "id": "usual",
+          "word": "usual"
+        },
+        {
+          "id": "method",
+          "word": "method"
+        },
+        {
+          "id": "not only ... but also ...",
+          "word": "not only ... but also ..."
+        },
+        {
+          "id": "tie",
+          "word": "tie"
+        },
+        {
+          "id": "dye",
+          "word": "dye"
+        },
+        {
+          "id": "untie",
+          "word": "untie"
+        },
+        {
+          "id": "product",
+          "word": "product"
+        },
+        {
+          "id": "workshop",
+          "word": "workshop"
+        },
+        {
+          "id": "reduce",
+          "word": "reduce"
+        },
+        {
+          "id": "waste",
+          "word": "waste"
+        },
+        {
+          "id": "joy",
+          "word": "joy"
+        },
+        {
+          "id": "reason",
+          "word": "reason"
+        },
+        {
+          "id": "result",
+          "word": "result"
+        },
+        {
+          "id": "glove",
+          "word": "glove"
+        },
+        {
+          "id": "finger",
+          "word": "finger"
+        }
+      ],
+      "lessons": [
+        {
+          "id": "reading",
+          "answers": [
+            "阅读DIY资料并参加线上课程",
+            "with",
+            "about"
+          ]
+        },
+        {
+          "id": "imperatives",
+          "answers": [
+            "Read",
+            "Don’t leave",
+            "make"
+          ]
+        },
+        {
+          "id": "advice",
+          "answers": [
+            "ask",
+            "turn off",
+            "You had better not run."
+          ]
+        },
+        {
+          "id": "prefixes",
+          "answers": [
+            "impossible",
+            "buying",
+            "but also"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "english-8a-05",
+    "title": "Wild animals",
+    "subject": "english",
+    "subjectName": "英语",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "english",
+    "rules": {
+      "words": [
+        {
+          "id": "wild",
+          "word": "wild"
+        },
+        {
+          "id": "eagle",
+          "word": "eagle"
+        },
+        {
+          "id": "fox",
+          "word": "fox"
+        },
+        {
+          "id": "shark",
+          "word": "shark"
+        },
+        {
+          "id": "wolf",
+          "word": "wolf"
+        },
+        {
+          "id": "king",
+          "word": "king"
+        },
+        {
+          "id": "tiny",
+          "word": "tiny"
+        },
+        {
+          "id": "birth",
+          "word": "birth"
+        },
+        {
+          "id": "round-the-clock",
+          "word": "round-the-clock"
+        },
+        {
+          "id": "weigh",
+          "word": "weigh"
+        },
+        {
+          "id": "satisfying",
+          "word": "satisfying"
+        },
+        {
+          "id": "in the wild",
+          "word": "in the wild"
+        },
+        {
+          "id": "face",
+          "word": "face"
+        },
+        {
+          "id": "serious",
+          "word": "serious"
+        },
+        {
+          "id": "even if",
+          "word": "even if"
+        },
+        {
+          "id": "easily",
+          "word": "easily"
+        },
+        {
+          "id": "sick",
+          "word": "sick"
+        },
+        {
+          "id": "live on",
+          "word": "live on"
+        },
+        {
+          "id": "mainly",
+          "word": "mainly"
+        },
+        {
+          "id": "as a result",
+          "word": "as a result"
+        },
+        {
+          "id": "government",
+          "word": "government"
+        },
+        {
+          "id": "action",
+          "word": "action"
+        },
+        {
+          "id": "take action",
+          "word": "take action"
+        },
+        {
+          "id": "thanks to",
+          "word": "thanks to"
+        },
+        {
+          "id": "effort",
+          "word": "effort"
+        },
+        {
+          "id": "increase",
+          "word": "increase"
+        },
+        {
+          "id": "protection",
+          "word": "protection"
+        },
+        {
+          "id": "in danger",
+          "word": "in danger"
+        },
+        {
+          "id": "fat",
+          "word": "fat"
+        },
+        {
+          "id": "once in a while",
+          "word": "once in a while"
+        },
+        {
+          "id": "manage",
+          "word": "manage"
+        },
+        {
+          "id": "whale",
+          "word": "whale"
+        },
+        {
+          "id": "hunt",
+          "word": "hunt"
+        },
+        {
+          "id": "meaningful",
+          "word": "meaningful"
+        },
+        {
+          "id": "accept",
+          "word": "accept"
+        },
+        {
+          "id": "drop",
+          "word": "drop"
+        },
+        {
+          "id": "blue whale",
+          "word": "blue whale"
+        },
+        {
+          "id": "risk",
+          "word": "risk"
+        },
+        {
+          "id": "at risk",
+          "word": "at risk"
+        },
+        {
+          "id": "Indian",
+          "word": "Indian"
+        },
+        {
+          "id": "disaster",
+          "word": "disaster"
+        },
+        {
+          "id": "pollution",
+          "word": "pollution"
+        },
+        {
+          "id": "certain",
+          "word": "certain"
+        },
+        {
+          "id": "illness",
+          "word": "illness"
+        }
+      ],
+      "lessons": [
+        {
+          "id": "reading",
+          "answers": [
+            "Bamboo.",
+            "Setting up nature reserves.",
+            "to"
+          ]
+        },
+        {
+          "id": "verb-to",
+          "answers": [
+            "to protect",
+            "not to hurt",
+            "taking"
+          ]
+        },
+        {
+          "id": "purpose",
+          "answers": [
+            "to watch",
+            "Why does she work hard?",
+            "To learn"
+          ]
+        },
+        {
+          "id": "object-to",
+          "answers": [
+            "to wait",
+            "laugh",
+            "not to disturb"
+          ]
+        },
+        {
+          "id": "writing",
+          "answers": [
+            "kindness",
+            "danger",
+            "Reduce pollution in rivers."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "english-8a-06",
+    "title": "Seasons",
+    "subject": "english",
+    "subjectName": "英语",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "english",
+    "rules": {
+      "words": [
+        {
+          "id": "snowy",
+          "word": "snowy"
+        },
+        {
+          "id": "hide",
+          "word": "hide"
+        },
+        {
+          "id": "shower",
+          "word": "shower"
+        },
+        {
+          "id": "lazy",
+          "word": "lazy"
+        },
+        {
+          "id": "pool",
+          "word": "pool"
+        },
+        {
+          "id": "upon",
+          "word": "upon"
+        },
+        {
+          "id": "as",
+          "word": "as"
+        },
+        {
+          "id": "temperature",
+          "word": "temperature"
+        },
+        {
+          "id": "sofa",
+          "word": "sofa"
+        },
+        {
+          "id": "snowman",
+          "word": "snowman"
+        },
+        {
+          "id": "blow",
+          "word": "blow"
+        },
+        {
+          "id": "shine",
+          "word": "shine"
+        },
+        {
+          "id": "smell",
+          "word": "smell"
+        },
+        {
+          "id": "heat",
+          "word": "heat"
+        },
+        {
+          "id": "sudden",
+          "word": "sudden"
+        },
+        {
+          "id": "snowball",
+          "word": "snowball"
+        },
+        {
+          "id": "fog",
+          "word": "fog"
+        },
+        {
+          "id": "divide",
+          "word": "divide"
+        },
+        {
+          "id": "divide ... into ...",
+          "word": "divide ... into ..."
+        },
+        {
+          "id": "end",
+          "word": "end"
+        },
+        {
+          "id": "growth",
+          "word": "growth"
+        },
+        {
+          "id": "as well as",
+          "word": "as well as"
+        },
+        {
+          "id": "connect",
+          "word": "connect"
+        },
+        {
+          "id": "be connected with",
+          "word": "be connected with"
+        },
+        {
+          "id": "positive",
+          "word": "positive"
+        },
+        {
+          "id": "effect",
+          "word": "effect"
+        },
+        {
+          "id": "average",
+          "word": "average"
+        },
+        {
+          "id": "wet",
+          "word": "wet"
+        },
+        {
+          "id": "degree",
+          "word": "degree"
+        },
+        {
+          "id": "sunshine",
+          "word": "sunshine"
+        },
+        {
+          "id": "snowstorm",
+          "word": "snowstorm"
+        },
+        {
+          "id": "get around",
+          "word": "get around"
+        },
+        {
+          "id": "awful",
+          "word": "awful"
+        },
+        {
+          "id": "order",
+          "word": "order"
+        },
+        {
+          "id": "take care",
+          "word": "take care"
+        },
+        {
+          "id": "frozen",
+          "word": "frozen"
+        },
+        {
+          "id": "thick",
+          "word": "thick"
+        },
+        {
+          "id": "deep",
+          "word": "deep"
+        },
+        {
+          "id": "throw",
+          "word": "throw"
+        }
+      ],
+      "lessons": [
+        {
+          "id": "reading",
+          "answers": [
+            "拟人",
+            "snow / grow",
+            "Autumn."
+          ]
+        },
+        {
+          "id": "sv-svo",
+          "answers": [
+            "S+V",
+            "snowmen",
+            "地点状语"
+          ]
+        },
+        {
+          "id": "linking",
+          "answers": [
+            "sweet",
+            "S+V+P",
+            "The soup smells good."
+          ]
+        },
+        {
+          "id": "weather",
+          "answers": [
+            "foggy",
+            "What is the weather like?",
+            "零下五度"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "english-8a-07",
+    "title": "The natural world",
+    "subject": "english",
+    "subjectName": "英语",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "english",
+    "rules": {
+      "words": [
+        {
+          "id": "penguin",
+          "word": "penguin"
+        },
+        {
+          "id": "climate",
+          "word": "climate"
+        },
+        {
+          "id": "include",
+          "word": "include"
+        },
+        {
+          "id": "around",
+          "word": "around"
+        },
+        {
+          "id": "hold",
+          "word": "hold"
+        },
+        {
+          "id": "return",
+          "word": "return"
+        },
+        {
+          "id": "get rid of",
+          "word": "get rid of"
+        },
+        {
+          "id": "store",
+          "word": "store"
+        },
+        {
+          "id": "act",
+          "word": "act"
+        },
+        {
+          "id": "therefore",
+          "word": "therefore"
+        },
+        {
+          "id": "sadly",
+          "word": "sadly"
+        },
+        {
+          "id": "ton",
+          "word": "ton"
+        },
+        {
+          "id": "harm",
+          "word": "harm"
+        },
+        {
+          "id": "wildlife",
+          "word": "wildlife"
+        },
+        {
+          "id": "quite a few",
+          "word": "quite a few"
+        },
+        {
+          "id": "noisy",
+          "word": "noisy"
+        },
+        {
+          "id": "system",
+          "word": "system"
+        },
+        {
+          "id": "cause",
+          "word": "cause"
+        },
+        {
+          "id": "north-east",
+          "word": "north-east"
+        },
+        {
+          "id": "cover",
+          "word": "cover"
+        },
+        {
+          "id": "lead",
+          "word": "lead"
+        },
+        {
+          "id": "lead to",
+          "word": "lead to"
+        },
+        {
+          "id": "create",
+          "word": "create"
+        },
+        {
+          "id": "set up",
+          "word": "set up"
+        },
+        {
+          "id": "balanced",
+          "word": "balanced"
+        },
+        {
+          "id": "project",
+          "word": "project"
+        },
+        {
+          "id": "knowledge",
+          "word": "knowledge"
+        },
+        {
+          "id": "sir",
+          "word": "sir"
+        },
+        {
+          "id": "madam",
+          "word": "madam"
+        },
+        {
+          "id": "kill",
+          "word": "kill"
+        },
+        {
+          "id": "solve",
+          "word": "solve"
+        },
+        {
+          "id": "environmental",
+          "word": "environmental"
+        }
+      ],
+      "lessons": [
+        {
+          "id": "reading",
+          "answers": [
+            "Living and non-living things.",
+            "Kidneys.",
+            "to"
+          ]
+        },
+        {
+          "id": "double-object",
+          "answers": [
+            "间接宾语",
+            "to",
+            "for"
+          ]
+        },
+        {
+          "id": "complement",
+          "answers": [
+            "宾语补足语",
+            "She gave me a pen.",
+            "S+V+O+C"
+          ]
+        },
+        {
+          "id": "conjunctions",
+          "answers": [
+            "but",
+            "so",
+            "Because it rained, we stayed home."
+          ]
+        },
+        {
+          "id": "writing",
+          "answers": [
+            "carefully",
+            "friendly",
+            "Keep rubbish out of the water."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "english-8a-08",
+    "title": "Safe and sound",
+    "subject": "english",
+    "subjectName": "英语",
+    "term": "upper",
+    "termName": "八年级上册",
+    "kind": "english",
+    "rules": {
+      "words": [
+        {
+          "id": "sound",
+          "word": "sound"
+        },
+        {
+          "id": "safe and sound",
+          "word": "safe and sound"
+        },
+        {
+          "id": "emergency",
+          "word": "emergency"
+        },
+        {
+          "id": "situation",
+          "word": "situation"
+        },
+        {
+          "id": "lightning",
+          "word": "lightning"
+        },
+        {
+          "id": "office",
+          "word": "office"
+        },
+        {
+          "id": "homeless",
+          "word": "homeless"
+        },
+        {
+          "id": "coach",
+          "word": "coach"
+        },
+        {
+          "id": "road",
+          "word": "road"
+        },
+        {
+          "id": "accident",
+          "word": "accident"
+        },
+        {
+          "id": "state",
+          "word": "state"
+        },
+        {
+          "id": "fireman",
+          "word": "fireman"
+        },
+        {
+          "id": "traffic",
+          "word": "traffic"
+        },
+        {
+          "id": "terrible",
+          "word": "terrible"
+        },
+        {
+          "id": "shake",
+          "word": "shake"
+        },
+        {
+          "id": "thunder",
+          "word": "thunder"
+        },
+        {
+          "id": "shout",
+          "word": "shout"
+        },
+        {
+          "id": "fear",
+          "word": "fear"
+        },
+        {
+          "id": "in fear",
+          "word": "in fear"
+        },
+        {
+          "id": "direction",
+          "word": "direction"
+        },
+        {
+          "id": "in all directions",
+          "word": "in all directions"
+        },
+        {
+          "id": "silent",
+          "word": "silent"
+        },
+        {
+          "id": "if",
+          "word": "if"
+        },
+        {
+          "id": "nervous",
+          "word": "nervous"
+        },
+        {
+          "id": "beat",
+          "word": "beat"
+        },
+        {
+          "id": "say to oneself",
+          "word": "say to oneself"
+        },
+        {
+          "id": "calm",
+          "word": "calm"
+        },
+        {
+          "id": "calm down",
+          "word": "calm down"
+        },
+        {
+          "id": "since",
+          "word": "since"
+        },
+        {
+          "id": "weak",
+          "word": "weak"
+        },
+        {
+          "id": "voice",
+          "word": "voice"
+        },
+        {
+          "id": "except",
+          "word": "except"
+        },
+        {
+          "id": "smoke",
+          "word": "smoke"
+        },
+        {
+          "id": "burn",
+          "word": "burn"
+        },
+        {
+          "id": "put out",
+          "word": "put out"
+        },
+        {
+          "id": "heavily",
+          "word": "heavily"
+        },
+        {
+          "id": "guess",
+          "word": "guess"
+        },
+        {
+          "id": "hat",
+          "word": "hat"
+        },
+        {
+          "id": "clear",
+          "word": "clear"
+        },
+        {
+          "id": "policeman",
+          "word": "policeman"
+        },
+        {
+          "id": "ache",
+          "word": "ache"
+        },
+        {
+          "id": "postman",
+          "word": "postman"
+        },
+        {
+          "id": "airport",
+          "word": "airport"
+        },
+        {
+          "id": "passport",
+          "word": "passport"
+        },
+        {
+          "id": "report",
+          "word": "report"
+        },
+        {
+          "id": "so far",
+          "word": "so far"
+        },
+        {
+          "id": "including",
+          "word": "including"
+        },
+        {
+          "id": "sign",
+          "word": "sign"
+        },
+        {
+          "id": "avoid",
+          "word": "avoid"
+        },
+        {
+          "id": "wound",
+          "word": "wound"
+        },
+        {
+          "id": "bleed",
+          "word": "bleed"
+        },
+        {
+          "id": "press",
+          "word": "press"
+        },
+        {
+          "id": "warn",
+          "word": "warn"
+        }
+      ],
+      "lessons": [
+        {
+          "id": "reading",
+          "answers": [
+            "Waited for help.",
+            "事件发生顺序",
+            "down"
+          ]
+        },
+        {
+          "id": "past-continuous",
+          "answers": [
+            "was reading",
+            "were playing",
+            "Was he sleeping?"
+          ]
+        },
+        {
+          "id": "when-while",
+          "answers": [
+            "began",
+            "was washing",
+            "While I was waiting, a bus arrived."
+          ]
+        },
+        {
+          "id": "writing",
+          "answers": [
+            "snowstorm",
+            "playing",
+            "not to swim"
+          ]
+        }
+      ]
+    }
+  }
+]

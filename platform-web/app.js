@@ -99,7 +99,11 @@
       return;
     }
     $('#app').innerHTML=`<h1>今天，也向前一步</h1><p class="muted">先完成同步，再开始学习。离线变更会留在本机，联网后可以重试。</p><div class="sync" id="sync-status" role="status">正在检查云端记录…</div><div id="conflicts"></div><section class="panel"><div class="actions"><button id="start-course" class="primary">进入数学、英语与物理课堂 →</button><button id="sync-now">立即同步</button>${isNative?'<a class="button" href="../app-design/index.html">返回 APK 离线课堂</a>':''}</div></section><section class="panel"><h2>与家长一起看见成长</h2><p>生成限时绑定码，让家长在自己的账号中添加你。</p><button id="invite">生成家长绑定码</button><p id="family-code"></p><div id="parents"></div></section>`;
-    await sync();await parentsList();
+    const rankingRoot=document.createElement('section');rankingRoot.id='student-rankings';$('#app').insertBefore(rankingRoot,$('#app').lastElementChild);
+    const studentGeneration=generation;
+    await sync();
+    if(studentGeneration!==generation||!rankingRoot.isConnected)return;
+    await Promise.all([parentsList(),GrowingRankings.mount(rankingRoot,api,esc,()=>studentGeneration===generation,'/student/rankings','我的排行榜',sync)]);
   }
   async function parentsList(){const rows=await api('/student/parents');if(!$('#parents'))return;$('#parents').innerHTML=rows.map(p=>`<p>${esc(p.displayName)} <button data-revoke="${esc(p.id)}">解除绑定</button></p>`).join('');}
   async function parent(query='',page=1){

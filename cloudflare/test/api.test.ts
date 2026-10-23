@@ -5,6 +5,8 @@ import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { createHandler, type Env } from "../src/index";
 import { connect, type Database, Store, nowSql } from "../src/database";
 import { hash, passwordHash, verifyPassword } from "../src/auth";
+import { rankingStatements } from '../src/rankings';
+import rankingRules from '../src/ranking-rules.json';
 
 const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: 'export default {fetch(){return new Response("ok")}}', compatibilityDate: '2026-10-22', d1Databases: ['DB'] }));
 let db: Database;
@@ -40,8 +42,33 @@ before(async () => {
   const sql = await readFile(new URL('../migrations/0001_initial.sql', import.meta.url), 'utf8');
   const statements = sql.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql}));
   await db.batch(statements); await db.batch(statements);
+  const rankings=await readFile(new URL('../migrations/0003_rankings.sql',import.meta.url),'utf8');
+  await db.batch(rankings.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
 });
 after(async () => { await mf.dispose(); });
+
+test('handwritten originals sync independently; parents see only bound children and credentials never sync',async()=>{
+  const student=await register(),parent=await register('Parent'),other=await register('Parent');
+  const key='growing-handwriting-v1:'+crypto.randomUUID();
+  const original={version:1,subject:'math',unitId:'math-8a-01',mode:'solution',prompt:'求解 x² = 4，写出过程',pages:[[{tool:'pen',width:4,points:[[10,10,.2],[50,60,.8]]}]],revision:0,recognition:null,grades:[],updatedAt:new Date().toISOString()};
+  const path='/api/student/state/'+key;
+  assert.equal((await call(path,'PUT',{revision:0,value:JSON.stringify(original)},student.token)).status,200);
+  assert.equal((await call(path,'PUT',{revision:0,value:JSON.stringify(original)},student.token)).status,409);
+  const rows=await (await call('/api/student/state','GET',undefined,student.token)).json() as any[];assert.deepEqual(JSON.parse(rows.find(d=>d.key===key).value),original);
+  assert.deepEqual((await (await call('/api/student/rankings','GET',undefined,student.token)).json() as any).boards,[]);
+  for(const bad of [{...original,apiKey:'must-not-upload'},{...original,unitId:'math-8a-99'},{...original,pages:[[{tool:'pen',width:4,points:[[999,1,.5]]}]]}])assert.equal((await call(path,'PUT',{revision:1,value:JSON.stringify(bad)},student.token)).status,400);
+  assert.equal((await call('/api/student/state/growing-vision-ai-v1','PUT',{revision:0,value:'{"key":"not-uploaded"}'},student.token)).status,400);
+  await call('/api/parent/children','POST',{code:await invite(student.token)},parent.token);
+  const parentPath='/api/parent/children/'+student.user.id+'/handwriting';
+  const list=await (await call(parentPath,'GET',undefined,parent.token)).json() as any;assert.equal(list.total,1);assert.equal(list.rows[0].pages,1);assert.equal(list.rows[0].original,undefined);
+  const detail=await (await call(parentPath+'?key='+key,'GET',undefined,parent.token)).json() as any;assert.deepEqual(detail.original,original);
+  assert.equal((await call(parentPath+'?key='+key,'GET',undefined,other.token)).status,404);
+  assert.equal((await call(parentPath,'GET',undefined,student.token)).status,403);
+  assert.equal((await call(parentPath+'?key=bad','GET',undefined,parent.token)).status,400);
+  assert.equal((await call(parentPath+'?page=0','GET',undefined,parent.token)).status,400);
+  await call('/api/student/parents/'+parent.user.id,'DELETE',undefined,student.token);
+  assert.equal((await call(parentPath+'?key='+key,'GET',undefined,parent.token)).status,404);
+});
 
 test("password hashes are salted; correct password verifies and incorrect does not", async () => {
   const a = await passwordHash(password), b = await passwordHash(password);
@@ -288,4 +315,70 @@ test("parent confirmations verify stored rewards and binding, are idempotent and
   assert.equal((await call(prefix+'/confirm-redemption','POST',payload,p.token)).status,404);
   assert.equal((await call(prefix+'/growth','GET',undefined,p.token)).status,404);
   assert.equal((await (await call('/api/admin/redemptions?student='+s.user.id,'GET',undefined,a.token)).json() as any).total,1);
+});
+
+test('rankings use real D1 scoring, ties, privacy, pagination and bound-parent authorization',async()=>{
+  const a=await register(),b=await register(),c=await register(),parent=await register('Parent'),stranger=await register('Parent');
+  const rule=rankingRules.find(r=>r.id==='physics-8a-05')!;
+  const save=async(s:any,quiz:number,revision=0)=>{
+    const topics=Object.fromEntries(rule.topics!.map(id=>[id,{seen:true,bestQuiz:quiz,attempts:[{score:8,feedback:'解释准确',criticalErrors:[]}]}]));
+    const response=await call('/api/student/state/growing-physics-lessons-v1','PUT',{revision,value:JSON.stringify({topics})},s.token);
+    assert.equal(response.status,200,await response.clone().text());
+  };
+  await save(a,3);await save(b,3);await save(c,0);
+  const path='/api/student/rankings?board='+rule.id;
+  const first=await (await call(path,'GET',undefined,a.token)).json() as any;
+  assert.equal(first.self.rank,1);assert.equal(first.self.score,100);assert.equal(first.total,3);
+  assert.deepEqual(first.rows.map((r:any)=>r.rank),[1,1,3]);
+  assert.equal(first.rows.filter((r:any)=>r.isSelf).length,1);
+  const text=JSON.stringify(first);for(const secret of [a.user.id,b.user.id,c.user.id,b.name,c.name,'解释准确','passwordHash'])assert.ok(!text.includes(secret));
+  assert.ok(first.rows.filter((r:any)=>!r.isSelf).every((r:any)=>/^同学 [A-F0-9]{8}$/.test(r.label)));
+  const overview=await (await call('/api/student/rankings','GET',undefined,a.token)).json() as any;
+  assert.deepEqual(overview.boards.map((r:any)=>r.id).sort(),[rule.id,'physics:upper'].sort());
+  assert.equal((await call('/api/student/rankings?board=math:upper','GET',undefined,a.token)).status,404);
+  assert.equal((await call(path+'&page=0','GET',undefined,a.token)).status,400);
+  assert.equal((await call(path)).status,401);
+  assert.equal((await call(path,'GET',undefined,parent.token)).status,403);
+  assert.equal((await call('/api/admin/leaderboards/rebuild','POST',undefined,a.token)).status,403);
+  const pp='/api/parent/children/'+a.user.id+'/rankings';
+  assert.equal((await call(pp,'GET',undefined,parent.token)).status,404);
+  await call('/api/parent/children','POST',{code:await invite(a.token)},parent.token);
+  assert.equal((await call(pp,'GET',undefined,parent.token)).status,200);
+  const family=await (await call(pp+'?board='+rule.id,'GET',undefined,parent.token)).json() as any;
+  assert.equal(family.self.label,a.name);assert.equal(family.self.rank,1);
+  assert.equal((await call(pp,'GET',undefined,stranger.token)).status,404);
+  await call('/api/student/parents/'+parent.user.id,'DELETE',undefined,a.token);
+  assert.equal((await call(pp,'GET',undefined,parent.token)).status,404);
+  // More than a page of participants: own rank must remain visible off-page.
+  for(let i=0;i<20;i++){
+    const id=crypto.randomUUID(),name='ranking_'+id.slice(0,8);
+    await db.query(`INSERT INTO "GrowingUsers" ("Id","Username","NormalizedName","DisplayName","Role","PasswordHash","CreatedAt") SELECT ?1,?2,?2,?2,'Student',"PasswordHash",${nowSql} FROM "GrowingUsers" WHERE "Id"=?3`,[id,name,a.user.id]);
+    await db.batch(rankingStatements(id,[{key:'growing-physics-lessons-v1',value:JSON.stringify({topics:Object.fromEntries(rule.topics!.map(id=>[id,{seen:true,bestQuiz:3,attempts:[]}]))}),revision:1,updatedAt:new Date().toISOString()}]));
+  }
+  const last=await (await call(path,'GET',undefined,c.token)).json() as any;
+  assert.equal(last.rows.length,20);assert.equal(last.self.rank,23);assert.equal(last.total,23);assert.equal(last.self.score,30);
+  const second=await (await call(path+'&page=2','GET',undefined,c.token)).json() as any;
+  assert.equal(second.rows.length,3);assert.ok(second.rows.some((r:any)=>r.isSelf));
+  await save(c,3,1);assert.equal((await (await call(path,'GET',undefined,c.token)).json() as any).self.rank,1);
+  await call('/api/student/state/growing-physics-lessons-v1','PUT',{revision:2,value:null},c.token);
+  assert.equal((await call(path,'GET',undefined,c.token)).status,404);
+});
+
+test('historical rank rebuild is idempotent, admin-only and guarded against concurrent newer sync',async()=>{
+  const admin=await register('Parent'),student=await register();
+  await db.query('INSERT INTO "GrowingAdministrators" ("UserId") VALUES (?1)',[admin.user.id]);
+  const rule=rankingRules.find(r=>r.id==='math-8a-03')!,key='growing-math-lessons-v1';
+  const value=JSON.stringify({topics:{[rule.topics![0]]:{seen:true,bestQuiz:3,attempts:[]}}});
+  await db.query(`INSERT INTO "GrowingDocuments" ("StudentId","Key","Value","Revision","UpdatedAt") VALUES (?1,?2,?3,1,${nowSql})`,[student.user.id,key,value]);
+  for(let run=0;run<2;run++){
+    let page:number|null=1;
+    while(page!==null){const response=await call('/api/admin/leaderboards/rebuild?page='+page,'POST',undefined,admin.token);assert.equal(response.status,200);page=(await response.json() as any).nextPage;}
+  }
+  const path='/api/student/rankings?board='+rule.id;
+  assert.ok((await call(path,'GET',undefined,student.token)).ok);
+  const oldDocs=await new Store(db).state(student.user.id);
+  await call('/api/student/state/'+key,'PUT',{revision:1,value:null},student.token);
+  await db.batch(rankingStatements(student.user.id,oldDocs,0));
+  assert.equal((await call(path,'GET',undefined,student.token)).status,404);
+  assert.equal((await db.query('SELECT "Value" FROM "GrowingDocuments" WHERE "StudentId"=?1 AND "Key"=?2',[student.user.id,key]))[0].Value,null);
 });

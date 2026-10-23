@@ -1,12 +1,12 @@
 # PC、H5、APK、家长与管理员后台
 
-## 当前线上状态（2026-10-22）
+## 线上入口（2026-10-23）
 
-Worker 和网页入口已发布到 **https://growing-platform.qiangzi0303.workers.dev**，服务名为 `growing-platform`。当前发布版本为 `db095138-087e-4ce3-9313-0af147e73daa`，使用 D1 数据库和 APK_FILES KV。
+Worker 和网页入口使用 **https://007yx.com**，服务名为 `growing-platform`，使用 D1 数据库和 APK_FILES KV。原地址 **https://growing-platform.qiangzi0303.workers.dev** 继续提供服务，以兼容已安装 APK 的云同步与自动更新。
 
 数据库已使用 **Cloudflare D1（SQLite）**，名称 `growing-db`，ID `4c05083b-7ab5-4175-b3d6-9ac944b61716`，Worker 绑定名为 `DB`。迁移已执行，`/api/health` 与 `/api/ready` 均返回 200。33 项线上 API 与浏览器检查通过，覆盖注册、同步、家长绑定、核销与管理员权限；电脑和手机截图已检查，临时测试账号已清理。
 
-无需 PostgreSQL、Neon、Hyperdrive 或数据库密码。已按用户指定授权正式管理员账号，新增或撤销授权见下文；当前使用默认 workers.dev 地址，自定义域名尚未配置。
+无需 PostgreSQL、Neon、Hyperdrive 或数据库密码。已按用户指定授权正式管理员账号，新增或撤销授权见下文；自定义域名配置为 `007yx.com/*` 到此 Worker 的路由。
 
 ## 已实现的范围
 

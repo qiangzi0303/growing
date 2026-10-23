@@ -17,6 +17,19 @@ async function manifest(version:number){return {schemaVersion:1,packageName:'com
 before(async()=>{
   db=connect(await mf.getD1Database('DB') as unknown as D1Database);
   files=await mf.getKVNamespace('APK_FILES') as unknown as KVNamespace;
+  // Miniflare's Node RPC stream may reject after early cancel (ERR_INVALID_STATE).
+  // Consume the tiny real KV fixture when the handler discards it, so cleanup
+  // finishes before the next test. Production code still cancels streamed APKs.
+  const realFiles=files;
+  const drainOnCancel=(stream:ReadableStream|null)=>{
+    if(stream)stream.cancel=async()=>{const reader=stream.getReader();try{while(!(await reader.read()).done){/* Drain fixture bytes. */}}finally{reader.releaseLock();}};
+    return stream;
+  };
+  files=new Proxy(realFiles,{get(target,property){
+    if(property==='getWithMetadata')return async(...args:any[])=>{const result=await (target.getWithMetadata as any)(...args);if(args[1]?.type==='stream')drainOnCancel(result.value);return result;};
+    if(property==='get')return async(...args:any[])=>{const value=await (target.get as any)(...args);return args[1]?.type==='stream'?drainOnCancel(value):value;};
+    const value=Reflect.get(target,property);return typeof value==='function'?value.bind(target):value;
+  }});
   const sql=await readFile(new URL('../migrations/0002_app_releases.sql',import.meta.url),'utf8');
   await db.query(sql);
   env={APK_FILES:files,APK_PUBLISH_TOKEN:token,ASSETS:{fetch:async()=>new Response('asset')},AUTH_LIMITER:{limit:async()=>({success:true})}} as unknown as Env;

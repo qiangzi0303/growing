@@ -3,6 +3,7 @@ from pathlib import Path
 import shutil
 repo = Path(__file__).resolve().parents[1]
 source = repo / 'platform-web'
+shutil.copyfile(repo / 'app/src/main/assets/web/app-design/handwriting-core.js', source / 'handwriting-core.js')
 target = repo / 'app/src/main/assets/web/cloud'
 target.mkdir(parents=True, exist_ok=True)
 for file in source.iterdir():

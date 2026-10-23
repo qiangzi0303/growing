@@ -5,6 +5,7 @@
   "compatibility_date": "2026-10-22",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "routes": [{ "pattern": "007yx.com/*", "zone_name": "007yx.com" }],
   "kv_namespaces": [{ "binding": "APK_FILES", "id": "d4791757e7614d3f91d25e069610de66" }],
   "d1_databases": [{
     "binding": "DB",

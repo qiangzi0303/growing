@@ -19,7 +19,7 @@ export function buildReport(docs: Document[]) {
   const addDays = (report: typeof math, days: unknown) => {
     for (const [date, ms] of Object.entries(obj(days))) report.dailyMinutes[date] = (report.dailyMinutes[date] ?? 0) + Math.min(num(ms), 86_400_000) / 60_000;
   };
-  for (const doc of docs.filter(d => d.value !== null && !d.key.startsWith("growing-activity-v1:"))) {
+  for (const doc of docs.filter(d => d.value !== null && !d.key.startsWith("growing-activity-v1:") && !d.key.startsWith('growing-handwriting-v1:'))) {
     try {
       const parsed = JSON.parse(doc.value!);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw Error("Invalid record");

@@ -12,6 +12,21 @@ vm.runInContext([...wordHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)][0][
 const unit=legacy.window.UNIT3;
 rules.__legacy={fractionTopics:legacy.window.MINUTE_DATA.topics.map(t=>t.id),words:unit.words.map(w=>({id:w.id,word:w.en})),
   seenIds:[...unit.words.map(w=>w.id),...unit.lessons.flatMap(l=>l.cards.map(c=>c.id))],tests:[...unit.groups,...unit.lessons].map(l=>l.id)};
+const math=require(path.join(web,'math-data.js')),physics=require(path.join(web,'physics-data.js'));
+vm.runInContext(fs.readFileSync(path.join(web,'curriculum.js'),'utf8'),context);
+const curriculum=context.window.GrowingCurriculum,ranking=[];
+for(const [subject,course] of Object.entries(curriculum))for(const [term,book] of Object.entries(course.terms)){
+  if(!book.verified)continue;
+  for(const u of book.units){
+    const row={id:u.id,title:u.title,subject,subjectName:course.name,term,termName:book.name};
+    if(subject==='english')Object.assign(row,u.number===3?{kind:'legacy-english',topics:unit.topics.map(t=>t.id),tests:rules.__legacy.tests}:{kind:'english',rules:rules[u.id]});
+    else if(u.id==='math-8b-10')Object.assign(row,{kind:'fraction',topics:rules.__legacy.fractionTopics});
+    else Object.assign(row,{kind:subject,topics:(subject==='math'?math:physics).chapters.find(c=>c.id===u.id).nodes.map(n=>n.id)});
+    ranking.push(row);
+  }
+}
+const rankingTarget=path.join(root,'cloudflare/src/ranking-rules.json'),rankingOutput=JSON.stringify(ranking,null,2)+'\n';
+if(!fs.existsSync(rankingTarget)||fs.readFileSync(rankingTarget,'utf8')!==rankingOutput)fs.writeFileSync(rankingTarget,rankingOutput);
 const target=path.join(root,'cloudflare/src/english-rules.json'),output=JSON.stringify(rules,null,2)+'\n';
 if(!fs.existsSync(target)||fs.readFileSync(target,'utf8')!==output)fs.writeFileSync(target,output);
 console.log('English reporting rules exported from packaged lessons.');

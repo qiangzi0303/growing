@@ -3,6 +3,8 @@ import { hash, passwordHash, random, sessionCookie, sessionToken, verifyPassword
 import { buildReport } from "./reports";
 import { Administration } from "./administration";
 import { appRelease, type ReleaseEnv } from "./releases";
+import { Rankings } from "./rankings";
+import handwriting from '../../app/src/main/assets/web/app-design/handwriting-core.js';
 
 export interface Env extends ReleaseEnv {
   ASSETS: Fetcher;
@@ -13,7 +15,7 @@ const nativeOrigin = "https://appassets.androidplatform.net";
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 export const allowedKey = (key: string) => ["growing-math-lessons-v1", "growing-physics-lessons-v1", "fraction-minute-v1", "wordops_8A_unit3"].includes(key) ||
   /^growing-(english-course|unit-rewards)-v1:(english-8a-0[1-8]|math-8[ab]-\d{2}|physics-8a-0[1-5])$/.test(key) ||
-  (key.startsWith("growing-activity-v1:") && uuid.test(key.slice("growing-activity-v1:".length)));
+  (key.startsWith("growing-activity-v1:") && uuid.test(key.slice("growing-activity-v1:".length))) || handwriting.KEY.test(key);
 const json = (data: unknown, status = 200, headers?: HeadersInit) => Response.json(data, { status, headers });
 const error = (status: number, message: string): never => { throw new HttpError(status, message); };
 async function body(request: Request): Promise<Record<string, unknown>> {
@@ -47,6 +49,7 @@ function validateDocument(key: string, value: unknown, revision: unknown) {
     for (const child of Object.values(item.value)) if (child && typeof child === "object") stack.push({ value: child, depth: item.depth + 1 });
   }
   if (key === "fraction-minute-v1" && Object.hasOwn(data, "connection")) error(400, "请移除本机 AI 连接配置后再同步。");
+  if (handwriting.KEY.test(key) && ((value as string).length > 900000 || !handwriting.validate(data))) error(400, '手写原稿格式无效或超过限制。');
 }
 export function createHandler(database: (env: Env) => Database = env => {
   if (!env.DB) error(503, "数据库尚未配置。");
@@ -120,7 +123,32 @@ export function createHandler(database: (env: Env) => Database = env => {
       };
       const days = () => { const n = Number(url.searchParams.get('days') ?? 30); if (![7,30,90].includes(n)) error(400, '请选择 7、30 或 90 天。'); return n; };
       const page = () => { const n = Number(url.searchParams.get('page') ?? 1); if (!Number.isSafeInteger(n) || n < 1 || n > 100000) error(400, '页码无效。'); return n; };
-      if (path === '/api/admin/overview' && request.method === 'GET') result = json(await admin.overview());
+      const rankings=new Rankings(db);
+      const rankingResponse=async(id:string)=>{
+        const board=url.searchParams.get('board');
+        return json(board===null?await rankings.list(id):await rankings.board(id,board,page()));
+      };
+      if(path==='/api/student/rankings'&&request.method==='GET') result=await rankingResponse(current.id);
+      else if(/^\/api\/(parent\/children|admin\/students)\/[^/]+\/rankings$/.test(path)&&request.method==='GET'){
+        const id=path.split('/')[4];if(!uuid.test(id))error(404,'未找到学生。');
+        await childState(id);result=await rankingResponse(id);
+      }
+      else if(/^\/api\/(parent\/children|admin\/students)\/[^/]+\/handwriting$/.test(path)&&request.method==='GET'){
+        const id=path.split('/')[4];if(!uuid.test(id))error(404,'未找到学生。');
+        const docs=(await childState(id)).filter(d=>handwriting.KEY.test(d.key)&&d.value!==null);
+        const key=url.searchParams.get('key');
+        if(key!==null){
+          if(!handwriting.KEY.test(key))error(400,'手写记录编号无效。');
+          const found=docs.find(d=>d.key===key);if(!found)error(404,'未找到手写原稿。');
+          const original=JSON.parse(found!.value!);if(!handwriting.validate(original))error(400,'手写原稿无法读取。');
+          result=json({key,original});
+        }else{
+          const rows=docs.flatMap(d=>{try{const original=JSON.parse(d.value!);if(!handwriting.validate(original))return [];return [{key:d.key,unitId:original.unitId,subject:original.subject,title:original.prompt.slice(0,120),pages:original.pages.length,updatedAt:original.updatedAt,grade:original.grades.filter((g:any)=>g.revision===original.revision).at(-1)??null}];}catch{return [];}}).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
+          const n=page();result=json({page:n,pageSize:10,total:rows.length,rows:rows.slice((n-1)*10,n*10)});
+        }
+      }
+      else if(path==='/api/admin/leaderboards/rebuild'&&request.method==='POST')result=json(await rankings.rebuild(page()));
+      else if (path === '/api/admin/overview' && request.method === 'GET') result = json(await admin.overview());
       else if (path === '/api/admin/members' && request.method === 'GET') {
         const q = url.searchParams.get('q') ?? '', role = url.searchParams.get('role') ?? '';
         if (q.length > 40 || !['','Student','Parent','Admin'].includes(role)) error(400, '筛选条件无效。');
