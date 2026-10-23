@@ -35,10 +35,10 @@ public class NativeRoleTest {
     }
     private void ready(ActivityScenario<MainActivity> s,String condition) throws Exception {
         for(int i=0;i<100;i++){if("true".equals(js(s,condition)))return;Thread.sleep(100);}
-        fail("Native identity UI did not reach: "+condition);
+        fail("Native identity UI did not reach: "+condition+"; state="+js(s,"JSON.stringify({url:location.href,documentId:window.qaDocumentId,calls:window.qaCalls,message:document.querySelector('#message')?.textContent,role:document.querySelector('#choose-role select')?.value,body:document.body.innerText.slice(0,1000)})"));
     }
     private void mockCloud(ActivityScenario<MainActivity> s){
-        String script="(()=>{const original=fetch.bind(window);let p=JSON.parse(localStorage.getItem('growing-cloud-session-v1')||'null')?.user||{id:'00000000-0000-4000-8000-000000000001',username:'qa',displayName:'QA',role:'Student',roleSelectionRequired:true};window.qaFail=false;window.qaCalls=[];window.fetch=async(input,init={})=>{const u=new URL(String(input),location.href);if(!u.pathname.startsWith('/api/'))return original(input,init);const path=u.pathname.slice(4);qaCalls.push(path);let code=200,data={};if(path==='/auth/me'){if(localStorage.getItem('growing-cloud-session-v1'))data=p;else{code=401;data={error:'请登录'};}}else if(path==='/auth/login')data={token:'qa-only-token',user:p};else if(path==='/auth/role'){if(qaFail){code=503;data={error:'保存失败，请重试'};}else{p={...p,role:JSON.parse(init.body).role,roleSelectionRequired:false};data=p;}}else if(['/student/state','/student/parents','/parent/children'].includes(path))data=[];else if(path==='/student/rankings')data={boards:[]};return new Response(JSON.stringify(data),{status:code,headers:{'Content-Type':'application/json'}});};})();";
+        String script="(()=>{window.qaDocumentId=Math.random();const original=fetch.bind(window);let p=JSON.parse(localStorage.getItem('growing-cloud-session-v1')||'null')?.user||{id:'00000000-0000-4000-8000-000000000001',username:'qa',displayName:'QA',role:'Student',roleSelectionRequired:true};window.qaFail=false;window.qaCalls=[];window.fetch=async(input,init={})=>{const u=new URL(String(input),location.href);if(!u.pathname.startsWith('/api/'))return original(input,init);const path=u.pathname.slice(4);qaCalls.push(path);let code=200,data={};if(path==='/auth/me'){if(localStorage.getItem('growing-cloud-session-v1'))data=p;else{code=401;data={error:'请登录'};}}else if(path==='/auth/login')data={token:'qa-only-token',user:p};else if(path==='/auth/role'){if(qaFail){code=503;data={error:'保存失败，请重试'};}else{p={...p,role:JSON.parse(init.body).role,roleSelectionRequired:false};data=p;}}else if(['/student/state','/student/parents','/parent/children'].includes(path))data=[];else if(path==='/student/rankings')data={boards:[]};return new Response(JSON.stringify(data),{status:code,headers:{'Content-Type':'application/json'}});};})();";
         s.onActivity(a->{WebView w=web(a.getWindow().getDecorView());WebViewCompat.addDocumentStartJavaScript(w,script,Collections.singleton("https://appassets.androidplatform.net"));w.reload();});
     }
     @Test public void nativeRegistrationRequiresAnExplicitRoleAndCloudConsent() throws Exception {
@@ -57,9 +57,10 @@ public class NativeRoleTest {
     private void confirmLegacy(String role) throws Exception {
         AccountStore accounts=accounts();accounts.logout();String id=accounts.authenticate("legacy_"+Long.toString(System.nanoTime(),36),"Native-Test-Password".toCharArray(),true);
         try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
-            mockCloud(s);ready(s,"!!document.querySelector('#auth')");
+            mockCloud(s);ready(s,"typeof window.qaDocumentId==='number' && !!document.querySelector('#auth')");
             assertNull(accounts.identity(id));
-            js(s,"location.href='../app-design/index.html'");ready(s,"location.pathname.endsWith('/cloud/index.html') && !!document.querySelector('#auth')");
+            String before=js(s,"window.qaDocumentId");
+            js(s,"location.href='../app-design/index.html'");ready(s,"window.qaDocumentId!=="+before+" && location.pathname.endsWith('/cloud/index.html') && !!document.querySelector('#auth')");
             js(s,"document.querySelector('[name=username]').value='qa';document.querySelector('[name=password]').value='Native-Test-Password';document.querySelector('[name=consent]').checked=true;document.querySelector('#auth').requestSubmit()");
             ready(s,"!!document.querySelector('#choose-role')");
             assertEquals("true",js(s,"!qaCalls.some(p=>p.startsWith('/student/')||p.startsWith('/parent/'))"));
@@ -68,9 +69,9 @@ public class NativeRoleTest {
             js(s,"qaFail=false;document.querySelector('#choose-role').requestSubmit()");
             ready(s,role.equals("Parent")?"!!document.querySelector('#children')":"!!document.querySelector('#start-course')");
             assertEquals(role,accounts.identity(id).role);
-            s.onActivity(MainActivity::loadHome);
-            ready(s,role.equals("Parent")?"!!document.querySelector('#children')":"!!document.querySelector('.subjects')");
-            if(role.equals("Parent")){js(s,"location.href='../app-design/index.html'");ready(s,"location.pathname.endsWith('/cloud/index.html') && !!document.querySelector('#children')");}
+            before=js(s,"window.qaDocumentId");s.onActivity(MainActivity::loadHome);
+            ready(s,"window.qaDocumentId!=="+before+" && "+(role.equals("Parent")?"!!document.querySelector('#children')":"!!document.querySelector('.subjects')"));
+            if(role.equals("Parent")){before=js(s,"window.qaDocumentId");js(s,"location.href='../app-design/index.html'");ready(s,"window.qaDocumentId!=="+before+" && location.pathname.endsWith('/cloud/index.html') && !!document.querySelector('#children')");}
         }
         try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
             if(role.equals("Parent"))mockCloud(s);
