@@ -10,6 +10,9 @@ vm.runInContext(fractionScript.slice(0,fractionScript.indexOf('window.MINUTE_LES
 const wordHtml=fs.readFileSync(path.join(root,'app/src/main/assets/web/word-ops-unit3/index.html'),'utf8');
 vm.runInContext([...wordHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)][0][1],legacy);
 const unit=legacy.window.UNIT3;
+const summaryLegacy={words:unit.words.map(({id,en,cn})=>({id,en,cn})),lessons:unit.lessons.map(({id,title})=>({id,title}))};
+const summaryTarget=path.join(web,'unit-summary-legacy.js'),summaryOutput='/* Generated from the original Unit 3 classroom. */\nwindow.GrowingSummaryLegacy='+JSON.stringify(summaryLegacy)+';\n';
+if(!fs.existsSync(summaryTarget)||fs.readFileSync(summaryTarget,'utf8')!==summaryOutput)fs.writeFileSync(summaryTarget,summaryOutput);
 rules.__legacy={fractionTopics:legacy.window.MINUTE_DATA.topics.map(t=>t.id),words:unit.words.map(w=>({id:w.id,word:w.en})),
   seenIds:[...unit.words.map(w=>w.id),...unit.lessons.flatMap(l=>l.cards.map(c=>c.id))],tests:[...unit.groups,...unit.lessons].map(l=>l.id)};
 const math=require(path.join(web,'math-data.js')),physics=require(path.join(web,'physics-data.js'));

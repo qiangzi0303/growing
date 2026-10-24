@@ -65,6 +65,23 @@
     finally{clearTimeout(timer);if(doubtRequest===controller){doubtRequest=null;if(view==='doubts')paint();}}
   }
   let feynmanRequest=null;
+  // Per-unit foreground time; old records remain unknown rather than being backfilled.
+  let timeTick=Date.now(),timeAction=Date.now();
+  function saveStudyTime(){
+    const now=Date.now(),elapsed=Math.max(0,Math.min(now-timeTick,10000,timeAction+60000-timeTick));timeTick=now;
+    if(!elapsed||document.hidden||!document.hasFocus()||view==='settings'||doubtRequest||feynmanRequest)return;
+    try{
+      const latest=read(),learning=latest.learningTime||{version:1,days:{}},day=new Date(now).toLocaleDateString('sv-SE');
+      const previous=learning.days[day]??0;if(!Number.isFinite(previous)||previous<0)throw Error('学习计时异常');
+      learning.days[day]=previous+elapsed;latest.learningTime=learning;
+      localStorage.setItem(key,JSON.stringify(latest));state=latest;
+    }catch(error){status('本次学习计时未保存：'+error.message);}
+  }
+  for(const event of ['pointerdown','keydown','touchstart'])document.addEventListener(event,()=>{timeAction=Date.now();},{passive:true});
+  document.addEventListener('visibilitychange',()=>{timeTick=Date.now();});
+  window.addEventListener('focus',()=>{timeTick=Date.now();timeAction=timeTick;});
+  window.addEventListener('pagehide',saveStudyTime);
+  setInterval(saveStudyTime,10000);
   const cancelFeynman=()=>{feynmanRequest?.abort();feynmanRequest=null;};
   const validExplanation=a=>a&&Number.isInteger(a.score)&&a.score>=0&&a.score<=10&&typeof a.feedback==='string'&&Array.isArray(a.criticalErrors)&&a.criticalErrors.every(x=>typeof x==='string');
   function feynmanMarkup(){const r=state.feynman[activeLesson.id]||{},last=(r.attempts||[]).at(-1);
@@ -139,5 +156,8 @@
   window.addEventListener('storage',e=>{if(e.key!==key)return;try{state=read();if(view!=='quiz'&&view!=='recall')paint();window.UnitRewards.update(id);}catch(error){status('外部存档暂无法读取：'+error.message);}});
   window.addEventListener('pagehide',()=>{stopSpeech();cancelDoubt();cancelFeynman();});
   window.UnitRewards.register(id,{title:`Unit ${unit.number} ${unit.title}`,rule:'每个必会词条连续7次闭卷默写正确计1项；每节原创检测3/3正确计1项。标星词不计入分母。',progress});
+  const requestedNode=new URLSearchParams(location.search).get('node');
+  if(requestedNode?.startsWith('word:')){const target=words.find(w=>w.id===requestedNode.slice(5));if(target){selected=target;view='words';}}
+  if(requestedNode?.startsWith('lesson:')){const target=lessons.find(l=>l.id===requestedNode.slice(7));if(target){activeLesson=target;view='lesson';}}
   paint();window.UnitRewards.update(id);
 })();

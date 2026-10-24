@@ -496,3 +496,27 @@ test('parents add multiple children by verified student credentials without stud
     assert.equal((await call('/api/parent/children/'+student.user.id+'/report','GET',undefined,other.token)).status,404);
   }
 });
+
+// Unit reports use exactly the same family and administrator boundaries as child state.
+test('unit reports are read-only and enforce role, family binding and admin revocation',async()=>{
+  const s=await register(), p=await register('Parent'), other=await register('Parent'), a=await administrator();
+  const route='/api/parent/children/'+s.user.id+'/unit-report', adminRoute='/api/admin/students/'+s.user.id+'/unit-report';
+  assert.equal((await call(route)).status,401);
+  assert.equal((await call(route,'GET',undefined,s.token)).status,403);
+  assert.equal((await call(route,'GET',undefined,p.token)).status,404);
+  assert.equal((await call(adminRoute,'GET',undefined,p.token)).status,403);
+  await bindStudent(s,p);
+  const path='/api/student/state/growing-math-lessons-v1';
+  assert.equal((await call(path,'PUT',{revision:0,value:JSON.stringify({version:1,topics:{'tri-lines':{seen:true}},tools:{days:{'2026-10-24':{'tri-lines':{ms:60000}}}}})},s.token)).status,200);
+  for(const [target,token] of [[route,p.token],[adminRoute,a.token],[route,a.token]]){
+    const response=await call(target,'GET',undefined,token);assert.equal(response.status,200);
+    const data=await response.json() as any;assert.equal(data.units[0].activeMinutes,1);assert.equal(data.units[0].mastered,0);assert.equal(data.units[0].id,'math-8a-01');
+    assert.equal(data.units[0].topics,undefined);
+  }
+  assert.equal((await call(route,'GET',undefined,other.token)).status,404);
+  assert.equal((await call('/api/admin/students/'+p.user.id+'/unit-report','GET',undefined,a.token)).status,404);
+  await pg.query('DELETE FROM "GrowingAdministrators" WHERE "UserId"=?1',[a.user.id]);
+  assert.equal((await call(adminRoute,'GET',undefined,a.token)).status,403);
+  await call('/api/student/parents/'+p.user.id,'DELETE',undefined,s.token);
+  assert.equal((await call(route,'GET',undefined,p.token)).status,404);
+});

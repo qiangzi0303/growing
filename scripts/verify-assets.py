@@ -3,6 +3,8 @@ import re
 
 root=Path(__file__).resolve().parents[1]
 web=root/'app/src/main/assets/web'
+for name in ['unit-summary.html','unit-summary.css','unit-summary-core.js','unit-summary.js','unit-summary-legacy.js']:
+    if not (web/'app-design'/name).is_file():raise SystemExit('Missing unit summary asset: '+name)
 for name in ['english-course.html','english-course.css','english-course.js','english-vocabulary.js','english-lessons.js','english-engine.js']:
     if not (web/'app-design'/name).is_file():raise SystemExit('Missing English learning asset: '+name)
 for name in ['physics-course.html','physics-knowledge.html','physics-sound-lab.html','physics-explore-lab.html','physics-course.css','physics-builder.js','physics-data.js','physics-figures.js']+['physics-'+chapter+'.js' for chapter in ['sound','light','lenses','thermal','motion']]:

@@ -23,6 +23,7 @@
   document.getElementById('catalog-back').href='units.html?subject='+subject+'&term='+chapter.term;
   document.getElementById('catalog-back').textContent='← '+subjectName+'目录';
   document.getElementById('chapter-study').href=studyLink();
+  document.querySelector('.chapter-picker').insertAdjacentHTML('beforeend',`<a href="unit-summary.html?subject=${subject}&unit=${chapter.id}">单元总结 →</a>`);
   const labels={untested:'未测',pending:'待复测',screened:'初筛通过',shaky:'不稳',weak:'需补学'};
   const title=id=>g.byId.get(id).title;
   const chip=(id,status)=>`<span class="chip ${status}">${esc(labels[status])}</span>`;

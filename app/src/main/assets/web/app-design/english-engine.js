@@ -9,7 +9,8 @@
     if(raw.version!==1||!raw.words||!raw.lessons||Array.isArray(raw.words)||Array.isArray(raw.lessons)||typeof raw.words!=='object'||typeof raw.lessons!=='object')throw Error('学习记录格式无法识别，原记录已保留');
     if(raw.feynman!==undefined&&(!raw.feynman||typeof raw.feynman!=='object'||Array.isArray(raw.feynman)))throw Error('概念复述记录格式无法识别，原记录已保留');
     if(Object.values(raw.feynman||{}).some(r=>!r||typeof r!=='object'||Array.isArray(r)||r.draft!==undefined&&typeof r.draft!=='string'||r.attempts!==undefined&&!Array.isArray(r.attempts)))throw Error('概念复述记录格式无法识别，原记录已保留');
-    return {version:1,words:{...raw.words},lessons:{...raw.lessons},feynman:{...raw.feynman}};
+    if(raw.learningTime!==undefined&&(!raw.learningTime||raw.learningTime.version!==1||!raw.learningTime.days||typeof raw.learningTime.days!=='object'||Array.isArray(raw.learningTime.days)))throw Error('学习计时记录格式无法识别，原记录已保留');
+    return {version:1,words:{...raw.words},lessons:{...raw.lessons},feynman:{...raw.feynman},...(raw.learningTime?{learningTime:{...raw.learningTime,days:{...raw.learningTime.days}}}:{})};
   }
   const wordPassed=(word,record)=>!word.optional&&record?.protocol==='seven-recalls'&&Array.isArray(record.answers)&&record.answers.length===7&&record.answers.every(a=>typeof a==='string'&&matches(word.word,a));
   const lessonPassed=(lesson,record)=>record?.protocol==='three-correct'&&Array.isArray(record.answers)&&record.answers.length===lesson.questions.length&&record.answers.every((a,i)=>a===lesson.questions[i].answer);

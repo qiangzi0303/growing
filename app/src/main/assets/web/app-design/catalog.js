@@ -32,7 +32,7 @@
         <div class="list-heading"><h2 id="unit-list-title">${book.name}<span> / ${course.label}目录</span></h2><p>${book.units.length?book.units.length+' '+(book.verified?(hasGraph?'章':'个单元'):'个预留单元'):'目录待补充'}${available?`<span class="available-count"> · ${available} ${hasGraph?'章':'个'}可学习</span>`:''}</p></div>
         <ol class="unit-list">${book.units.map(unit=>`<li><div class="unit-row ${unit.entry?'is-ready':''}" data-unit="${unit.id}">
           <span class="unit-number" aria-hidden="true">${String(unit.number).padStart(2,'0')}</span>
-          <div class="unit-copy"><span class="unit-label">${label(unit)}</span><div class="unit-title"><h3><a class="unit-course-link" href="${studyLink(unit)}">${escape(unit.title)}</a></h3>${window.UnitRewards.placeholder(unit.id)}</div><p>${escape(unit.summary)}</p></div>
+          <div class="unit-copy"><span class="unit-label">${label(unit)}</span><div class="unit-title"><h3><a class="unit-course-link" href="${studyLink(unit)}">${escape(unit.title)}</a></h3>${book.verified&&unit.entry?`<a class="unit-reward-trigger" href="unit-summary.html?subject=${subject}&unit=${unit.id}">单元总结 →</a>`:''}${window.UnitRewards.placeholder(unit.id)}</div><p>${escape(unit.summary)}</p></div>
           <span class="unit-state">${state(unit)}</span><span class="unit-arrow" aria-hidden="true">↗</span>
         </div></li>`).join('')}</ol>
       </section>
@@ -47,11 +47,14 @@
   if(!unit){fail();return;}
   document.title=`${unit.title} · ${course.name} · 成长`;
   const knowledgeLink=graphFile+'?'+new URLSearchParams({chapter:unit.id});
-  const toolbar=`<header class="study-toolbar"><a class="back-link" href="${catalogLink()}">← ${course.name}目录</a><div class="study-location"><span>${book.name} · ${label(unit)}</span><strong>${escape(unit.title)}</strong></div>${hasGraph?`<a class="knowledge-link" href="${knowledgeLink}">图谱 · 诊断</a>`:''}<a class="home-link" href="index.html?v=${viewVersion}">选择课程</a></header>`;
+  const toolbar=`<header class="study-toolbar"><a class="back-link" href="${catalogLink()}">← ${course.name}目录</a><div class="study-location"><span>${book.name} · ${label(unit)}</span><strong>${escape(unit.title)}</strong></div>${unit.entry?`<a class="knowledge-link" href="unit-summary.html?subject=${subject}&unit=${unit.id}">单元总结</a>`:''}${hasGraph?`<a class="knowledge-link" href="${knowledgeLink}">图谱 · 诊断</a>`:''}<a class="home-link" href="index.html?v=${viewVersion}">选择课程</a></header>`;
   if(unit.entry){
     document.body.classList.add('has-course');
     const tools=hasGraph?`<section class="study-tools" aria-label="${escape(unit.title)}知识图谱与诊断入口"><div><strong>${escape(unit.title)} · 知识图谱与诊断</strong><p>看知识关联，找出卡住的那一步</p></div><nav aria-label="选择${course.name}工具"><a href="${knowledgeLink}">知识图谱 →</a><a class="diagnosis-button" href="${knowledgeLink}&mode=diagnosis">薄弱点诊断 →</a></nav></section>`:'';
-    const frameEntry=unit.entry+(hasGraph&&unit.id!=='math-8b-10'&&params.get('node')?'&node='+encodeURIComponent(params.get('node')):'')+(unit.entry.includes('?')?'&':'?')+'v='+viewVersion;
+    const route=new URLSearchParams(unit.entry.split('?')[1]||'');
+    if(params.get('node'))route.set('node',params.get('node'));
+    route.set('v',viewVersion);
+    const frameEntry=unit.entry.split('?')[0]+'?'+route;
     target.innerHTML=`${toolbar}${tools}<iframe class="course-frame" title="${escape(course.name+' · '+unit.title+'完整学习页')}" src="${escape(frameEntry)}" allow="autoplay"></iframe>`;
     return;
   }

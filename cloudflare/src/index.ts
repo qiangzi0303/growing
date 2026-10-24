@@ -1,6 +1,7 @@
 import { connect, Store, HttpError, profile, requiresRoleSelection, type Database, type User } from "./database";
 import { hash, passwordHash, random, sessionCookie, sessionToken, verifyPassword } from "./auth";
 import { buildReport } from "./reports";
+import { buildUnitReports } from "./unit-reports";
 import { Administration } from "./administration";
 import { appRelease, type ReleaseEnv } from "./releases";
 import { Rankings } from "./rankings";
@@ -154,6 +155,10 @@ export function createHandler(database: (env: Env) => Database = env => {
           const rows=docs.flatMap(d=>{try{const original=JSON.parse(d.value!);if(!handwriting.validate(original))return [];return [{key:d.key,unitId:original.unitId,subject:original.subject,title:original.prompt.slice(0,120),pages:original.pages.length,updatedAt:original.updatedAt,grade:original.grades.filter((g:any)=>g.revision===original.revision).at(-1)??null}];}catch{return [];}}).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
           const n=page();result=json({page:n,pageSize:10,total:rows.length,rows:rows.slice((n-1)*10,n*10)});
         }
+      }
+      else if(/^\/api\/(parent\/children|admin\/students)\/[^/]+\/unit-report$/.test(path)&&request.method==='GET'){
+        const id=path.split('/')[4];if(!uuid.test(id))error(404,'未找到学生。');
+        result=json(buildUnitReports(await childState(id)));
       }
       else if(path==='/api/admin/leaderboards/rebuild'&&request.method==='POST')result=json(await rankings.rebuild(page()));
       else if (path === '/api/admin/overview' && request.method === 'GET') result = json(await admin.overview());

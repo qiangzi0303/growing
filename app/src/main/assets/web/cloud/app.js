@@ -115,26 +115,37 @@
   }
   window.GrowingCloud={storage,activity};
   function hideRankings(){$('#my-rankings').hidden=true;$('#rankings-dialog').close();$('#rankings-content').replaceChildren();}
-  function auth(){clearInterval(timer);hideRankings();$('#logout').hidden=true;$('#settings').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent='PC · 手机网页 · Android';
+  function auth(){clearInterval(timer);hideRankings();$('#logout').hidden=true;$('#settings').hidden=true;$('#learning-reports').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent='PC · 手机网页 · Android';
     if(isNative&&!base){$('#app').innerHTML='<section class="panel"><h1>云服务尚未配置</h1><p>此安装包需要先配置服务端 HTTPS 地址，再登录云账号同步学习记录。</p><a class="button" href="../app-design/index.html">返回离线学习</a></section>';return;}
     $('#app').innerHTML=`<section class="panel auth"><p class="muted">成长 · 学习与陪伴</p><h1>${authMode==='login'?'欢迎回来':'创建云账号'}</h1><p>${isNative&&!native.identityAccount?.()?'旧本机账号已登录，还需确认云账号身份。已有云账号请在下方登录，登录后选择学生或家长；没有云账号请点「注册」，注册时选择身份。后台保存成功后才能继续，原学习记录会保留。':'学生继续学习，家长看见进步。'}</p><form id="auth"><label>用户名<input name="username" autocomplete="username" minlength="2" maxlength="24" required></label><label>密码<input name="password" type="password" autocomplete="${authMode==='login'?'current-password':'new-password'}" minlength="8" maxlength="128" required></label>${authMode==='register'?'<label>称呼<input name="displayName" maxlength="40" required></label><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label>':''}${isNative?'<label><input name="consent" type="checkbox" style="display:inline;width:auto" required> 同意登录云账号；学生身份将关联本机学习记录（AI 密钥不上传）</label>':''}<button class="primary" type="submit">${authMode==='login'?'登录':'注册并登录'}</button></form><p><button id="switch-auth">${authMode==='login'?'还没有云账号？注册':'已有云账号？登录'}</button></p><p class="muted">旧版本机账号需关联云账号。本机记录和 AI 密钥保留；只有在此填写的云账号密码会发送到后台。</p></section>`;
   }
-  async function enter(profile,view='management'){management?.dispose();clearInterval(timer);hideRankings();user=null;generation++;const version=generation;await rememberNativeSession(profile);if(version!==generation)return;user=profile;$('#logout').hidden=false;hint('');
+  async function enter(profile,view=location.hash==='#learning-reports'?'reports':'management'){management?.dispose();clearInterval(timer);hideRankings();user=null;generation++;const version=generation;await rememberNativeSession(profile);if(version!==generation)return;user=profile;$('#logout').hidden=false;$('#learning-reports').hidden=true;hint('');
     if(needsRole(user)){
       $('#settings').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent=user.displayName+' · 待确认身份';
       $('#app').innerHTML='<section class="panel auth"><h1>请选择你的身份</h1><p>继续使用前，请确认你是学生还是家长。保存到云端后，下次登录无需重复选择。</p><form id="choose-role"><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label><button type="submit" class="primary">保存身份并继续</button></form></section>';return;
     }
     management=GrowingManagement.create(api,esc,()=>generation===version);$('#settings').hidden=!['Parent','Admin'].includes(user.role);$('#admin-navigation').hidden=user.role!=='Admin';$('#identity').textContent=user.displayName+' · '+({Parent:'家长',Student:'学生',Admin:'管理员'}[user.role]);
     $('#my-rankings').hidden=user.role!=='Student';
+    $('#learning-reports').hidden=!['Parent','Admin'].includes(user.role);
+    $('#learning-reports').setAttribute('aria-pressed',String(view==='reports'));
+    history.replaceState(null,'',location.pathname+location.search+(view==='reports'&&user.role!=='Student'?'#learning-reports':''));
     document.querySelectorAll('[data-admin-view]').forEach(button=>{const active=button.dataset.adminView===view;button.classList.toggle('primary',active);button.setAttribute('aria-pressed',String(active));});
-    if(user.role==='Student'){await student();if(version===generation)timer=setInterval(sync,15000);}else if(user.role==='Admin'){
+    if(view==='reports'&&['Admin','Parent'].includes(user.role)){
+      $('#app').innerHTML='<div class="actions"><button id="parent-home">‹ 返回看板</button></div><div id="unit-reports-page"></div>';
+      await GrowingUnitReports.mount($('#unit-reports-page'),api,esc,()=>generation===version,user.role==='Admin');
+    }else if(user.role==='Student'){await student();if(version===generation)timer=setInterval(sync,15000);}else if(user.role==='Admin'){
       if(view==='student')await student();else if(view==='parent')await parent();else if(view==='settings')parentSettings();else await management.admin($('#app'));
-    }else await parent();
+    }else if(view==='settings')parentSettings();else await parent();
   }
   async function adminView(view){
     if(user?.role!=='Admin')return;
     const version=generation,profile=await api('/auth/me');if(version!==generation)return;
     await enter(profile,profile.role==='Admin'?view:'management');
+  }
+  async function reportsView(){
+    if(!['Admin','Parent'].includes(user?.role))return;
+    const version=generation,profile=await api('/auth/me');if(version!==generation)return;
+    await enter(profile,'reports');
   }
   async function student(showHome=!isNative){
     if(user.role==='Admin'){
@@ -198,9 +209,10 @@
     if(b.id==='download-apk')await downloadApk(b);
     if(b.id==='switch-auth'){authMode=authMode==='login'?'register':'login';auth();}
     if(b.dataset.adminView)await adminView(b.dataset.adminView);
-    if(b.id==='settings'){if(user?.role==='Admin')await adminView('settings');else parentSettings();}
+    if(b.id==='learning-reports')await reportsView();
+    if(b.id==='settings'){if(user?.role==='Admin')await adminView('settings');else if(user?.role==='Parent')await enter(user,'settings');}
     if(b.id==='add-child')parentSettings();
-    if(b.id==='parent-home'){if(user?.role==='Admin')await adminView('parent');else if(user?.role==='Parent'){hint('');await parent();}}
+    if(b.id==='parent-home'){if(user?.role==='Admin')await adminView('parent');else if(user?.role==='Parent')await enter(user,'management');}
     if(b.dataset.childPage&&user?.role==='Admin')await parent($('#student-search [name=q]').value,Number(b.dataset.childPage));
     if(b.id==='logout'){await api('/auth/logout',{method:'POST'});generation++;clearInterval(timer);user=null;token='';raw.removeItem(sessionKey);auth();hint('已退出云账号，本机记录保留。');}
     if(b.id==='sync-now')await sync();

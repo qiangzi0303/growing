@@ -1670,6 +1670,7 @@ window.ChapterRewards=(()=>{
   const style=document.createElement('style');style.textContent='.course-return-nav{box-sizing:border-box;max-width:1200px;margin:auto;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px;font:13px/1.5 "Microsoft YaHei",sans-serif}.course-return-nav a{display:inline-flex;align-items:center;min-height:44px;color:inherit;text-decoration:none;border-bottom:1px solid #718c59}.course-return-nav a:focus-visible{outline:3px solid #e4b96a;outline-offset:3px}@media(max-width:520px){.course-return-nav{padding:8px 15px;font-size:12px}}';
   style.textContent+='.course-return-nav{position:relative;z-index:4;flex-shrink:0;width:100%}';
   style.textContent+='.course-return-nav{flex-wrap:wrap}';nav.append(handwriting);
+  const summary=document.createElement('a');summary.href=prefix+'unit-summary.html?'+new URLSearchParams({subject,unit:id});summary.target='_top';summary.textContent='单元总结 →';nav.append(summary);
   document.head.append(style);(document.getElementById('app')||document.body).prepend(nav);
 })();
   </script>
@@ -2202,7 +2203,12 @@ window.ChapterRewards=(()=>{
   window.addEventListener('pageshow',()=>{wordPageActive=true;syncWordClock();syncQuizClock();if(current==='card'&&deck?.kind==='word'&&state.wordRuns[deck.cards[cardIndex].id]?.phase==='memorize')renderCard();});
   window.addEventListener('pagehide',()=>{const hadWordClock=!!wordClock;wordPageActive=false;pauseWordClock();pauseQuizClock();if(hadWordClock)save();saveDraft();stopWordTimer();stopVoice();cancelAI();});
   learningClock=Learning.create(()=>state.learningTime,learningEligible,save);
-  save();renderHome();
+  save();
+  const requestedNode=new URLSearchParams(location.search).get('node');
+  const requestedWord=requestedNode?.startsWith('word:')?D.words.find(w=>w.id===requestedNode.slice(5)):null;
+  const requestedLesson=requestedNode?.startsWith('lesson:')?D.lessons.find(l=>l.id===requestedNode.slice(7)):null;
+  if(requestedWord)startCards(requestedWord.group,D.words.filter(w=>w.group===requestedWord.group).findIndex(w=>w.id===requestedWord.id));
+  else if(requestedLesson)startCards(requestedLesson.id);else renderHome();
 })();
   </script>
 </body>

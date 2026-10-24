@@ -38,6 +38,7 @@ export function buildReport(docs: Document[]) {
         }
       }
       if (doc.key.startsWith("growing-english-course-v1:")) {
+        addDays(english, data.learningTime?.days);
         english.read += Object.keys(obj(data.words)).length;
         english.practice += Object.keys(obj(data.lessons)).length;
         const unit = rules[doc.key.slice("growing-english-course-v1:".length)];
