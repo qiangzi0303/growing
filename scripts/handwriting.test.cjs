@@ -9,7 +9,7 @@ test('every verified curriculum unit has distinct subject-specific handwritten t
     const supported=Object.values(context.window.GrowingCurriculum[subject].terms).filter(t=>t.verified).flatMap(t=>t.units.map(u=>u.id));
     assert.deepEqual([...supported].sort(),C.units(subject).sort());
     for(const unit of supported){
-      const tasks=T.forUnit(subject,unit);assert.ok(tasks.length>=2,unit);
+      const tasks=T.forUnit(subject,unit).filter(t=>!t.source);assert.ok(tasks.length>=2,unit);
       for(const task of tasks){
         assert.ok(task.title.length>3&&task.prompt.length>70&&task.prompt.length<=6000,task.id);
         assert.ok(!ids.has(task.id)&&!all.has(task.prompt),'tasks must not repeat across units');ids.add(task.id);all.add(task.prompt);

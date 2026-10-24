@@ -9,8 +9,11 @@
   const strings=(v,n,max)=>Array.isArray(v)&&v.length<=n&&v.every(x=>str(x,max));
   const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).every(k=>keys.includes(k))&&keys.every(k=>Object.hasOwn(v,k));
   const timestamp=v=>str(v,30)&&Number.isFinite(Date.parse(v));
+  const knowledgeNodes={definition:'分式的定义',meaning:'分式有意义',zero:'分式的值为零',property:'分式基本性质',sign:'分式符号变化',reduce:'分式约分',common:'通分与公分母',add:'分式加减',multiply:'分式乘除',equation:'分式方程',extraneous:'增根与检验'};
+  const knowledgeStatus=score=>score===null?'未判定':score<60?'薄弱':score<80?'不稳':'本题通过';
+  function knowledge(v){return Array.isArray(v)&&v.length>0&&v.length<=11&&new Set(v.map(k=>k?.nodeId)).size===v.length&&v.every(k=>exact(k,['nodeId','score','feedback'])&&Object.hasOwn(knowledgeNodes,k.nodeId)&&(k.score===null||integer(k.score,100))&&str(k.feedback,1200)&&k.feedback.trim().length>0);}
   function grade(v){
-    return exact(v,['revision','at','score','parts','feedback','needsReview'])&&integer(v.revision,1e9)&&timestamp(v.at)&&str(v.feedback,8000)&&typeof v.needsReview==='boolean'&&
+    return exact(v,['revision','at','score','parts','feedback','needsReview',...(Object.hasOwn(v||{},'knowledge')?['knowledge']:[])])&&(!Object.hasOwn(v,'knowledge')||!v.needsReview&&knowledge(v.knowledge))&&integer(v.revision,1e9)&&timestamp(v.at)&&str(v.feedback,8000)&&typeof v.needsReview==='boolean'&&
       (v.needsReview?v.score===null&&v.parts===null:integer(v.score,100)&&Array.isArray(v.parts)&&v.parts.length===4&&v.parts.every(x=>integer(x,100))&&v.parts.reduce((a,b)=>a+b,0)===v.score);
   }
   function validate(d){
@@ -26,7 +29,24 @@
     }
     const r=d.recognition;
     if(r!==null&&(!exact(r,['revision','text','uncertain','confirmed'])||r.revision!==d.revision||!str(r.text,18000)||!strings(r.uncertain,40,400)||typeof r.confirmed!=='boolean'))return false;
-    return Array.isArray(d.grades)&&d.grades.length<=10&&d.grades.every(g=>grade(g)&&g.revision<=d.revision&&(!g.needsReview?g.parts.every((p,i)=>p<=(d.mode==='essay'?[25,20,35,20]:[20,30,30,20])[i]):true));
+    return Array.isArray(d.grades)&&d.grades.length<=10&&d.grades.every(g=>grade(g)&&(!g.knowledge||d.subject==='math'&&d.unitId==='math-8b-10')&&g.revision<=d.revision&&(!g.needsReview?g.parts.every((p,i)=>p<=(d.mode==='essay'?[25,20,35,20]:[20,30,30,20])[i]):true));
+  }
+  // Only a complete assessment of this exact bank prompt may label curriculum nodes.
+  function matchesKnowledge(g,task){return grade(g)&&task?.nodes?.length>0&&knowledge(g.knowledge)&&g.knowledge.length===task.nodes.length&&g.knowledge.every(k=>task.nodes.includes(k.nodeId));}
+  function evidence(documents,tasks){
+    const latest=new Map();
+    for(const d of documents){
+      if(!validate(d)||d.subject!=='math'||d.unitId!=='math-8b-10'||!d.recognition?.confirmed||!d.recognition.text.trim()||!d.pages.some(p=>p.some(s=>s.tool==='pen')))continue;
+      const task=tasks.find(t=>t.prompt===d.prompt&&t.nodes?.length);if(!task)continue;
+      for(const g of d.grades){
+        if(g.revision!==d.revision||g.needsReview||!matchesKnowledge(g,task))continue;
+        for(const k of g.knowledge){
+          if(k.score===null)continue; // Missing evidence cannot erase an earlier reliable result.
+          const prior=latest.get(k.nodeId);if(!prior||Date.parse(g.at)>=Date.parse(prior.at))latest.set(k.nodeId,{...k,at:g.at,taskId:task.id,title:task.title});
+        }
+      }
+    }
+    return [...latest.values()];
   }
   function create(subject,unitId,prompt=''){return {version:1,subject,unitId,mode:subject==='english'?'essay':'solution',prompt,pages:[[]],revision:0,recognition:null,grades:[],updatedAt:new Date().toISOString()};}
   function count(d){return d.pages.reduce((sum,page)=>sum+page.reduce((n,s)=>n+s.points.length,0),0);}
@@ -37,5 +57,5 @@
       for(let i=0;i<s.points.length;i++){const p=s.points[i],prev=s.points[Math.max(0,i-1)],w=s.width*(s.tool==='eraser'?1:.35+.65*p[2]);ctx.lineWidth=w;ctx.beginPath();if(i===0){ctx.arc(p[0],p[1],w/2,0,Math.PI*2);ctx.fill();}else{ctx.moveTo(prev[0],prev[1]);ctx.lineTo(p[0],p[1]);ctx.stroke();}}
     }ctx.globalCompositeOperation='source-over';
   }
-  return {PREFIX,KEY,WIDTH,HEIGHT,MAX_POINTS,MAX_PAGES,units,validate,grade,create,count,change,draw};
+  return {PREFIX,KEY,WIDTH,HEIGHT,MAX_POINTS,MAX_PAGES,units,validate,grade,create,count,change,draw,knowledgeNodes,knowledgeStatus,matchesKnowledge,evidence};
 });

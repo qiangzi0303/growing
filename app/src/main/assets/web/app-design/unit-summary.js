@@ -11,11 +11,17 @@
   let filter='all',summary,visible=12;
   const load=name=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=name;s.onload=resolve;s.onerror=()=>reject(Error('课程资源加载失败，请检查连接后刷新。'));document.head.append(s);});
   const read=key=>{const raw=localStorage.getItem(key);return raw===null?null:JSON.parse(raw);};
+  const handwritten=()=>{
+    const H=window.GrowingHandwriting,documents=[];
+    if(!H||unit.id!=='math-8b-10')return [];
+    for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(H.KEY.test(key)){try{documents.push(read(key));}catch{/* Preserve unreadable originals. */}}}
+    return H.evidence(documents,window.GrowingFractionPaperTasks.tasks);
+  };
   const href=node=>{const url=new URL(unit.entry,location.href);url.searchParams.set('node',node.id);return unit.entry.split('?')[0]+'?'+url.searchParams;};
   function refresh(){
     try{
       if(subject==='english')summary=unit.number===3?E.legacyEnglish({data:window.GrowingSummaryLegacy,raw:read('wordops_8A_unit3'),engine:window.GrowingEnglishEngine}):E.english({words:window.GrowingEnglishVocabulary[unit.number],lessons:window.GrowingEnglishLessons[unit.number],raw:read('growing-english-course-v1:'+unit.id),engine:window.GrowingEnglishEngine});
-      else{const data=subject==='physics'?window.GrowingPhysics:window.GrowingMath;summary=E.math({subject,chapter:data.chapters.find(c=>c.id===unit.id),data,read,diagnosis:window.GrowingDiagnosis});}
+      else{const data=subject==='physics'?window.GrowingPhysics:window.GrowingMath;summary=E.math({subject,chapter:data.chapters.find(c=>c.id===unit.id),data,read,diagnosis:window.GrowingDiagnosis,handwriting:handwritten()});}
       render();
     }catch{fail('本机学习记录暂时无法读取，原记录未改动。请检查存储权限或修复存档后刷新。');}
   }
@@ -30,7 +36,7 @@
       <p class="summary-hint">点击上方数字筛选，点击下方节点直接进入对应学习内容。未测不表示不会；诊断初筛通过与课程达标分别标注。</p>
       ${summary.warnings.map(w=>`<p class="summary-warning" role="status">${esc(w)}</p>`).join('')}${counts.unknown?`<p class="summary-warning">${counts.unknown}个节点的记录不可用，未计为未测或已通过。</p>`:''}
       <section aria-labelledby="summary-list-title"><div class="summary-list-heading"><h2 id="summary-list-title">${filter==='all'?'全部节点':E.labels[filter]}</h2><button type="button" data-filter="all">查看全部</button></div><p id="summary-count" class="summary-hint" aria-live="polite"></p><ul class="summary-nodes" id="summary-nodes"></ul><button type="button" id="summary-more" hidden></button></section>
-      <footer class="summary-footer">${esc(summary.note||'诊断以最近一轮直接作答为先，其他节点参考已保存的历史诊断和课程记录；未完成的一题证据仅列待复测。')}<br>仅汇总当前账号在本设备上的已保存记录；重新进入或同步后会更新。不修改原稿、奖励或学习记录。</footer>`;
+      <footer class="summary-footer">${esc(summary.note||(unit.id==='math-8b-10'?'实卷按当前原稿的最近有效知识点评分标出薄弱、不稳；需要复核的结果不改变已有判定。本题通过不等于课程达标。其他节点参考诊断与课程记录。':'诊断以最近一轮直接作答为先，其他节点参考已保存的历史诊断和课程记录；未完成的一题证据仅列待复测。'))}<br>仅汇总当前账号在本设备上的已保存记录；重新进入或同步后会更新。不修改原稿、奖励或学习记录。</footer>`;
     renderRows();
   }
   function renderRows(){
@@ -50,6 +56,7 @@
   (async()=>{
     try{
       const files=subject==='english'?unit.number===3?['english-engine.js','unit-summary-legacy.js']:['english-engine.js','english-vocabulary.js','english-lessons.js']:subject==='physics'?['physics-builder.js','physics-sound.js','physics-light.js','physics-lenses.js','physics-thermal.js','physics-motion.js','physics-data.js','diagnosis-engine.js']:['knowledge-data.js','math-builder.js','math-upper.js','math-lower.js','math-data.js','diagnosis-engine.js'];
+      if(unit.id==='math-8b-10')files.push('handwriting-core.js','fraction-paper-tasks.js');
       for(const f of files)await load(f);refresh();
       window.addEventListener('pageshow',refresh);window.addEventListener('storage',refresh);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
     }catch(e){fail(e.message);}

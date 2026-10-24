@@ -15,7 +15,15 @@
     if(c.attempts.length)return result('weak','AI解释尚未达标，需回看讲解');
     return result();
   }
-  function math({subject,chapter,data,read,diagnosis}){
+  function withHandwriting(summary,evidence=[]){
+    const rows=summary.rows.map(row=>{
+      const k=evidence.find(k=>k.nodeId===row.id);if(!k||k.score===null)return row;
+      const detail='实卷手写评测 · '+k.score+'/100 · '+k.feedback;
+      return k.score<80?{...row,...result(k.score<60?'weak':'shaky',detail)}:{...row,detail:row.detail+'；'+detail+'（仅本题通过）'};
+    });
+    return {...summary,rows};
+  }
+  function math({subject,chapter,data,read,diagnosis,handwriting=[]}){
     const warnings=[],get=key=>{try{return read(key);}catch{warnings.push('部分记录无法读取，原记录未改动。');return undefined;}};
     const fraction=chapter.id==='math-8b-10',raw=get(fraction?'fraction-minute-v1':subject==='physics'?'growing-physics-lessons-v1':'growing-math-lessons-v1');
     const valid=raw===null||raw&&raw.topics&&typeof raw.topics==='object'&&!Array.isArray(raw.topics)&&(fraction||raw.version===1);
@@ -41,7 +49,7 @@
     const saved=get((subject==='physics'?'growing-diagnosis-physics-v1:':'growing-diagnosis-year8-v1:')+chapter.id);
     if(saved){try{const s=diagnosis.inspect(g,saved);for(const [id,state] of Object.entries(s.states))states[id]={state,historical:false};if(s.canContinue)warnings.push('最近一轮诊断尚未完成；仅展示已作答证据，单题结果列为待复测。');}catch{warnings.push('最近一轮诊断记录暂不可用，未据此判定掌握。');}}
     for(const row of rows){const s=states[row.id];if(!s)continue;const mapped={weak:'weak',shaky:'shaky',pending:'pending',screened:'passed'}[s.state];if(mapped)Object.assign(row,result(mapped,(s.historical?'历史诊断 · ':'最近诊断 · ')+({weak:'两题均未通过',shaky:'两题通过一题',pending:'证据未齐，请完成复测',screened:'初筛通过，不等于课程达标'}[s.state])));}
-    return {rows,warnings:[...new Set(warnings)]};
+    return withHandwriting({rows,warnings:[...new Set(warnings)]},handwriting);
   }
   function english({words,lessons,raw,engine}){
     let state;try{state=engine.restore(raw);}catch{return {rows:[...words.filter(w=>!w.optional).map(w=>({id:'word:'+w.id,title:w.word,section:'词汇 · '+w.meaning})),...lessons.map(l=>({id:'lesson:'+l.id,title:l.title,section:'阅读与语法'}))].map(n=>({...n,...result('unknown','学习记录无法读取')})),warnings:['学习记录格式无法识别，原记录未改动。']};}
@@ -65,5 +73,5 @@
     }
     return {rows,warnings:[],note:'Unit 3沿用原课堂标准：词汇7次默写正确，知识关卡考核达到80%。只看过词卡不计通过。'};
   }
-  return {labels,math,english,legacyEnglish};
+  return {labels,math,english,legacyEnglish,withHandwriting};
 });

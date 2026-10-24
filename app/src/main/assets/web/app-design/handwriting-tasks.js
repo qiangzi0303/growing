@@ -1,5 +1,5 @@
 /* Original supplementary tasks matched to the verified local curriculum. */
-(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.GrowingHandwritingTasks=factory();})(globalThis,()=>{
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./fraction-paper-tasks.js'));else root.GrowingHandwritingTasks=factory(root.GrowingFractionPaperTasks);})(globalThis,papers=>{
   'use strict';
   const bank={
     'math-8a-01':[
@@ -101,7 +101,8 @@
   };
   function forUnit(subject,unitId){
     if(!['math','physics','english'].includes(subject)||!unitId?.startsWith(subject+'-'))return [];
-    return (bank[unitId]||[]).map(([title,prompt],i)=>({id:unitId+'-hand-'+(i+1),title,prompt}));
+    const original=(bank[unitId]||[]).map(([title,prompt],i)=>({id:unitId+'-hand-'+(i+1),title,prompt}));
+    return subject==='math'&&unitId==='math-8b-10'?[...(papers?.tasks||[]),...original]:original;
   }
   return {forUnit};
 });

@@ -6,8 +6,9 @@ import { Administration } from "./administration";
 import { appRelease, type ReleaseEnv } from "./releases";
 import { Rankings } from "./rankings";
 import handwriting from '../../app/src/main/assets/web/app-design/handwriting-core.js';
+import { recognize, type VisionEnv } from './handwriting-vision';
 
-export interface Env extends ReleaseEnv {
+export interface Env extends ReleaseEnv, VisionEnv {
   ASSETS: Fetcher;
   DB?: D1Database;
   AUTH_LIMITER: { limit(options: { key: string }): Promise<{ success: boolean }> };
@@ -20,15 +21,15 @@ export const allowedKey = (key: string) => ["growing-math-lessons-v1", "growing-
   (key.startsWith("growing-activity-v1:") && uuid.test(key.slice("growing-activity-v1:".length))) || handwriting.KEY.test(key);
 const json = (data: unknown, status = 200, headers?: HeadersInit) => Response.json(data, { status, headers });
 const error = (status: number, message: string): never => { throw new HttpError(status, message); };
-async function body(request: Request): Promise<Record<string, unknown>> {
-  if (Number(request.headers.get("Content-Length")) > 2_200_000) error(413, "请求内容过大。");
+async function body(request: Request, limit = 2_200_000): Promise<Record<string, unknown>> {
+  if (Number(request.headers.get("Content-Length")) > limit) error(413, "请求内容过大。");
   if (!request.body) error(400, "请求内容为空。");
   const reader = request.body!.getReader(), decoder = new TextDecoder();
   let size = 0, text = "";
   while (true) {
     const { done, value } = await reader.read(); if (done) break;
     size += value.byteLength;
-    if (size > 2_200_000) { await reader.cancel(); error(413, "请求内容过大。"); }
+    if (size > limit) { await reader.cancel(); error(413, "请求内容过大。"); }
     text += decoder.decode(value, { stream: true });
   }
   try {
@@ -56,7 +57,7 @@ function validateDocument(key: string, value: unknown, revision: unknown) {
 export function createHandler(database: (env: Env) => Database = env => {
   if (!env.DB) error(503, "数据库尚未配置。");
   return connect(env.DB!);
-}) {
+}, aiFetch: typeof fetch = fetch) {
   return async (request: Request, env: Env, ctx: Pick<ExecutionContext, "waitUntil">): Promise<Response> => {
     let db: Database | undefined;
     try {
@@ -124,6 +125,10 @@ export function createHandler(database: (env: Env) => Database = env => {
       if (path.startsWith("/learn/") && current.role !== "Student" && current.role !== "Admin") error(403, "当前账号没有权限。");
       if (path.startsWith("/api/parent/") && current.role !== "Parent" && !(current.role === "Admin" && (request.method === "GET" || ["/api/parent/children", "/api/parent/children/account"].includes(path) && request.method === "POST"))) error(403, "当前账号没有权限。");
       let result: Response;
+      if (path === '/api/handwriting/ai' && request.method === 'POST') {
+        if (current.role !== 'Student' && current.role !== 'Admin') error(403,'当前账号没有识别权限。');
+        return decorate(await recognize(await body(request,8_100_000),env,current.id,request.signal,aiFetch),request);
+      }
       const admin = new Administration(db);
       const childState = async (id: string) => {
         if (current.role !== 'Admin') return store.childState(current.id, id);

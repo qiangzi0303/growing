@@ -117,6 +117,18 @@ D1 原子 `batch` 与学生级版本校验保证学习存档并发更新，失�
 
 本地预览先运行 `npm run db:local` 初始化本地数据库，再执行 `npx wrangler dev --local`。本地 D1 与远程 D1 独立。自动化 API 测试使用 Miniflare 临时 D1，不连接正式数据库。
 
+## 手写图片识别与文字评分
+
+图片识别调用登录后的 POST /api/handwriting/ai，只允许学生及管理员。识别时发送全部 PNG 页面，逐页转录并提示不清楚处；用户核对确认后，评分复用已有三科共用的 GrowingCourseAI DeepSeek 连接，仅发送题目和核对文字，不再单独配置手写评分模型。英语第四项评价标点与格式，不根据文字猜测书写美丑。
+
+视觉配置从 NumaAI llm_models 与关联的 AIProvider 提取，保存在 Worker Secret HANDWRITING_VISION_MODELS，格式是按优先级排列的 JSON 数组，每项含 name、model、endpoint、apiKey、customHeaders、additionalConfig。地址严格为保存的 endpoint 追加 /chat/completions。图片使用完整 PNG Data URL。上游异常、限流、空响应、截断或无效转录会尝试下一个已保存模型；全部失败保留原稿，不产生分数。不会向页面返回上游凭据、原始错误或思考内容。
+
+本地使用 Git 忽略的 cloudflare/.dev.vars；JSON 数组使用 dotenv 单引号包裹。不要将密钥写入源码、前端、学习存档、命令参数或 Git。正式发布需单独设置同名 Worker Secret，本地配置不会自动上传。
+
+2026-10-24 核查用户指定的 glm-4.6v-flashx,deepseek-flash：NumaAI 未保存前一个名称；已提取后者的实际配置与密钥，真实 PNG 调用可识别手写数字。未擅自替换为其他 GLM 型号；grsai-banana2 为生成图片配置，本流程不调用。
+
+接口限制为最多 8 页 PNG、每页 1,000,000 字符、总请求 8,100,000 字节，每账号每分钟最多 6 次（Cloudflare 各位置分别计数）。其他学习存档接口保持原大小限制。原稿、确认、知识点评估及同步权限沿用既有逻辑。
+
 ## APK 接入
 
 仓库 `platform-site.json` 的 `apiBaseUrl` 已设为 `https://growing-platform.qiangzi0303.workers.dev`。新 APK 使用该地址。也可在构建环境变量或 GitHub Repository Variable 中设置 `GROWING_CLOUD_URL`。旧 APK 的内置配置不会因修改服务器而自动改变，需要覆盖安装新版。

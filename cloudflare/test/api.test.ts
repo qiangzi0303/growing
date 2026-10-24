@@ -12,9 +12,20 @@ import diagnosisRules from '../src/diagnosis-rules.json';
 
 const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: 'export default {fetch(){return new Response("ok")}}', compatibilityDate: '2026-10-22', d1Databases: ['DB'] }));
 let db: Database;
-const handler = createHandler(() => db);
+let aiMode = 'ok', aiRequests: {url:string;headers:Headers;data:any}[] = [];
+const handler = createHandler(() => db, (async (url: string | URL | Request, options?: RequestInit) => {
+  aiRequests.push({url:String(url),headers:new Headers(options?.headers),data:JSON.parse(options?.body as string)});
+  if(aiMode==='network')throw Error('upstream-private-details');
+  if(aiMode==='failure')return new Response('upstream-private-details',{status:401});
+  if(aiMode==='forbidden')return new Response('upstream-private-details',{status:403});
+  if(aiMode==='invalid')return Response.json({not:'a completion'});
+  if(aiMode==='large')return new Response('x'.repeat(256001));
+  const content=aiMode==='bad-recognition'?'{"text":"","uncertain":[]}':'{"text":"第1页：x=2","uncertain":[]}';
+  return Response.json({choices:[{finish_reason:aiMode==='truncated'?'length':'stop',message:{content:aiMode==='empty'?'':content,reasoning_content:'private reasoning'}}],private:'must-not-return'});
+}) as typeof fetch);
 const pg = { query: async <T = Record<string, any>>(sql: string, params: unknown[] = []) => ({ rows: await db.query<T>(sql, params) }) };
 let limited = false;
+let aiLimited = false;
 const env = {
   ASSETS: { fetch: async (request: Request) => {
     const path = new URL(request.url).pathname;
@@ -24,6 +35,8 @@ const env = {
     } catch { return new Response("Not found", { status: 404 }); }
   } },
   AUTH_LIMITER: { limit: async () => ({ success: !limited }) },
+  AI_LIMITER: { limit: async () => ({ success: !aiLimited }) },
+  HANDWRITING_VISION_MODELS: JSON.stringify([{name:'test-vision',model:'test-vision',endpoint:'https://vision.test/v1',apiKey:'server-only-test-secret'}]),
 } as unknown as Env;
 const context = { waitUntil: (_promise: Promise<unknown>) => {} };
 let counter = 0;
@@ -65,6 +78,46 @@ before(async () => {
 });
 after(async () => { await mf.dispose(); });
 
+test('handwriting vision authenticates, validates images, protects credentials and falls back', async()=>{
+  const student=await register(),parent=await register('Parent'),path='/api/handwriting/ai';
+  const input={kind:'recognize',subject:'math',unitId:'math-8b-10',prompt:'计算 2+3',pages:['data:image/png;base64,iVBORw0KGgoAAA==','data:image/png;base64,iVBORw0KGgoAAA==']};
+  const count=aiRequests.length;
+  assert.equal((await call(path,'POST',input)).status,401);
+  assert.equal((await call(path,'POST',input,parent.token)).status,403);
+  assert.equal((await call(path,'POST',input,student.token,{'X-Growing-Client':''})).status,400);
+  for(const patch of [{pages:[]},{pages:Array(9).fill(input.pages[0])},{pages:['https://private.test/image.png']},{pages:['data:image/svg+xml;base64,AA==']},{unitId:'other'},{subject:'other'},{kind:'grade'},{prompt:''},{model:'override'},{endpoint:'https://private.test'},{key:'client-key'},{messages:[]}])
+    assert.equal((await call(path,'POST',{...input,...patch},student.token)).status,400);
+  assert.equal(aiRequests.length,count);
+  const response=await call(path,'POST',input,student.token);
+  assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'no-store');
+  const output=await response.json() as any;assert.deepEqual(output,{text:'第1页：x=2',uncertain:[]});
+  const sent=aiRequests.at(-1)!;
+  assert.equal(sent.url,'https://vision.test/v1/chat/completions');
+  assert.equal(sent.headers.get('Authorization'),'Bearer server-only-test-secret');
+  assert.equal(sent.data.model,'test-vision');assert.equal(sent.data.stream,false);
+  assert.equal(sent.data.messages[1].content.filter((c:any)=>c.type==='image_url').length,2);
+  assert.equal(sent.data.messages[1].content[2].image_url.url,input.pages[0]);
+  assert.equal((await call(path,'POST',input,undefined,{Cookie:student.response.headers.get('set-cookie')!.split(';')[0]})).status,200);
+  const native=await call(path,'POST',input,student.token,{Origin:'https://appassets.androidplatform.net'});
+  assert.equal(native.status,200);assert.equal(native.headers.get('access-control-allow-origin'),'https://appassets.androidplatform.net');
+  const before=aiRequests.length;
+  aiLimited=true;assert.equal((await call(path,'POST',input,student.token)).status,429);aiLimited=false;
+  const config=env.HANDWRITING_VISION_MODELS!;
+  env.HANDWRITING_VISION_MODELS='';assert.equal((await call(path,'POST',input,student.token)).status,503);env.HANDWRITING_VISION_MODELS=config;
+  assert.equal(aiRequests.length,before);
+  for(const mode of ['failure','forbidden','network','invalid','large','truncated','empty','bad-recognition']){
+    aiMode=mode;const failed=await call(path,'POST',input,student.token);assert.equal(failed.status,502);
+    const message=await failed.text();assert.ok(!message.includes('private'));assert.ok(!message.includes('server-only-test-secret'));
+  }
+  aiMode='ok';
+  env.HANDWRITING_VISION_MODELS=JSON.stringify([...JSON.parse(config),...JSON.parse(config)]);
+  let tried=0;
+  const fallback=createHandler(()=>db,(async(...args:Parameters<typeof fetch>)=>{tried++;return tried===1?new Response('private',{status:429}):Response.json({choices:[{finish_reason:'stop',message:{content:'{"text":"2","uncertain":[]}'}}]});}) as typeof fetch);
+  const retry=await fallback(new Request('https://learn.test'+path,{method:'POST',headers:{'X-Growing-Client':'1',Authorization:'Bearer '+student.token},body:JSON.stringify(input)}),env,context);
+  assert.equal(retry.status,200);assert.equal(tried,2);env.HANDWRITING_VISION_MODELS=config;
+  assert.equal((await call(path,'POST',input,student.token,{'Content-Length':'8100001'})).status,413);
+});
+
 test('handwritten originals sync independently; parents see only bound children and credentials never sync',async()=>{
   const student=await register(),parent=await register('Parent'),other=await register('Parent');
   const key='growing-handwriting-v1:'+crypto.randomUUID();
@@ -86,6 +139,22 @@ test('handwritten originals sync independently; parents see only bound children 
   assert.equal((await call(parentPath+'?page=0','GET',undefined,parent.token)).status,400);
   await call('/api/student/parents/'+parent.user.id,'DELETE',undefined,student.token);
   assert.equal((await call(parentPath+'?key='+key,'GET',undefined,parent.token)).status,404);
+});
+
+test('per-node handwritten assessment syncs and remains restricted to bound families',async()=>{
+  const student=await register(),parent=await register('Parent'),other=await register('Parent');
+  const key='growing-handwriting-v1:'+crypto.randomUUID(),at=new Date().toISOString();
+  const grade={revision:0,at,score:65,parts:[15,20,20,10],feedback:'第2步通分错误',needsReview:false,knowledge:[{nodeId:'add',score:45,feedback:'通分后应保留减号'},{nodeId:'sign',score:70,feedback:'分母变号需同时改变分子符号'}]};
+  const original={version:1,subject:'math',unitId:'math-8b-10',mode:'solution',prompt:'计算分式并写出过程',pages:[[{tool:'pen',width:4,points:[[10,10,.5]]}]],revision:0,recognition:{revision:0,text:'解题过程',uncertain:[],confirmed:true},grades:[grade],updatedAt:at};
+  const path='/api/student/state/'+key;
+  assert.equal((await call(path,'PUT',{revision:0,value:JSON.stringify(original)},student.token)).status,200);
+  for(const bad of [{...original,unitId:'math-8a-01'},{...original,grades:[{...grade,knowledge:[{...grade.knowledge[0],nodeId:'other-unit'}]}]},{...original,grades:[{...grade,knowledge:[grade.knowledge[0],grade.knowledge[0]]}]}])assert.equal((await call(path,'PUT',{revision:1,value:JSON.stringify(bad)},student.token)).status,400);
+  await call('/api/parent/children','POST',{code:await invite(student.token)},parent.token);
+  const endpoint='/api/parent/children/'+student.user.id+'/handwriting';
+  const detail=await (await call(endpoint+'?key='+key,'GET',undefined,parent.token)).json() as any;
+  assert.deepEqual(detail.original.grades[0].knowledge,grade.knowledge);
+  assert.equal((await call(endpoint+'?key='+key,'GET',undefined,other.token)).status,404);
+  assert.deepEqual((await (await call('/api/student/rankings','GET',undefined,student.token)).json() as any).boards,[]);
 });
 
 test("password hashes are salted; correct password verifies and incorrect does not", async () => {

@@ -24,7 +24,7 @@
   document.getElementById('catalog-back').textContent='← '+subjectName+'目录';
   document.getElementById('chapter-study').href=studyLink();
   document.querySelector('.chapter-picker').insertAdjacentHTML('beforeend',`<a href="unit-summary.html?subject=${subject}&unit=${chapter.id}">单元总结 →</a>`);
-  const labels={untested:'未测',pending:'待复测',screened:'初筛通过',shaky:'不稳',weak:'需补学'};
+  const labels={untested:'未测',pending:'待复测',screened:'初筛通过',shaky:'不稳',weak:'薄弱'};
   const title=id=>g.byId.get(id).title;
   const chip=(id,status)=>`<span class="chip ${status}">${esc(labels[status])}</span>`;
   let selected=g.byId.has(params.get('node'))?params.get('node'):!physics&&chapter.number===10?'add':chapter.nodes[0].id;
@@ -52,10 +52,21 @@
   }
   const state=()=>session?E.inspect(g,session):null;
   const visibleState=()=>{const s=state();return s&&!s.canContinue?s:null;};
-  const status=id=>visibleState()?.states[id]||'untested';
+  let handwriting=new Map();
+  function refreshHandwriting(){
+    handwriting=new Map();const H=window.GrowingHandwriting;
+    if(!H||chapter.id!=='math-8b-10')return;
+    const documents=[];
+    try{for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(H.KEY.test(key)){try{documents.push(JSON.parse(localStorage.getItem(key)));}catch{/* Keep unreadable originals. */}}}
+      handwriting=new Map(H.evidence(documents,window.GrowingFractionPaperTasks.tasks).map(k=>[k.nodeId,k]));
+    }catch{/* Diagnosis remains available if local originals cannot be read. */}
+  }
+  const status=id=>{const k=handwriting.get(id);return k?.score!==null&&k?.score<80?k.score<60?'weak':'shaky':visibleState()?.states[id]||'untested';};
+  const displayStates=()=>Object.assign({},visibleState()?.states||{},Object.fromEntries([...handwriting].filter(([,k])=>k.score!==null&&k.score<80).map(([id])=>[id,status(id)])));
   function switchMode(value){mode=value;feedback='';render();}
   function locate(id){selected=id;target=id;if(mode!=='panorama')mode='graph';render();if(mode==='panorama')panorama.center();else document.getElementById('node-detail').scrollIntoView({block:'nearest'});}
   function render(){
+    refreshHandwriting();
     observer?.disconnect();
     panorama.destroy();
     document.body.classList.toggle('is-panorama',mode==='panorama');
@@ -63,7 +74,7 @@
       if(b.dataset.mode===mode)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
     });
     try{history.replaceState(null,'',graphFile+'?'+new URLSearchParams({chapter:chapter.id,node:selected,mode,...(mode==='panorama'?{range:panoramaRange}:{})}));}catch(error){/* file browsing can restrict history */}
-    screen.innerHTML=mode==='graph'?graphMarkup():mode==='panorama'?panorama.markup({chapter,range:panoramaRange,selected,states:visibleState()?.states||{}})+detailMarkup():diagnosisMarkup();
+    screen.innerHTML=mode==='graph'?graphMarkup():mode==='panorama'?panorama.markup({chapter,range:panoramaRange,selected,states:displayStates()})+detailMarkup():diagnosisMarkup();
     if(mode==='graph'){
       observer=new ResizeObserver(drawLines);observer.observe(document.querySelector('.graph-board'));
       requestAnimationFrame(drawLines);
@@ -78,7 +89,7 @@
     const pre=g.order.filter(id=>ancestors.has(id));
     const after=g.next.get(selected).map(e=>e.to);
     const n=g.byId.get(selected),s=visibleState();
-    const node=id=>`<button type="button" class="graph-node ${id===selected?'selected':''}" data-node="${id}" data-status="${s?.states[id]||'untested'}" aria-pressed="${id===selected}"><strong>${esc(title(id))}</strong><small>${labels[s?.states[id]||'untested']}</small></button>`;
+    const node=id=>`<button type="button" class="graph-node ${id===selected?'selected':''}" data-node="${id}" data-status="${status(id)}" aria-pressed="${id===selected}"><strong>${esc(title(id))}</strong><small>${labels[status(id)]}${handwriting.get(id)?.score!==null&&handwriting.get(id)?.score<80?' · 手写评测':''}</small></button>`;
     const relations=g.pre.get(selected);
     return `<div class="graph-layout">
       <section class="panel" aria-labelledby="map-title">
@@ -89,14 +100,16 @@
           <div class="graph-columns"><div class="graph-column"><p class="column-label">先修知识</p>${pre.map(node).join('')||'<p class="graph-empty">本图谱未继续拆分先修</p>'}</div><div class="graph-column"><p class="column-label">当前知识点</p>${node(selected)}</div><div class="graph-column"><p class="column-label">直接后续</p>${after.map(node).join('')||'<p class="graph-empty">本图谱的终点</p>'}</div></div>
         </div>
         <label class="small">快速定位 <select id="node-select" aria-label="选择知识点">${[...new Set([...availableNodes, g.byId.get(selected)])].map(item=>`<option value="${item.id}" ${item.id===selected?'selected':''}>${esc(item.title)}${item.chapter===chapter.id?'':'（先修/跨章）'}</option>`).join('')}</select></label>
-        <p class="small">颜色与标签仅表示本轮直接答题证据；未作答的先修不会自动算通过。</p>
+        <p class="small">颜色与标签参考本轮诊断；有实卷手写评测时，薄弱与不稳优先标出。未作答的先修不会自动算通过。</p>
       </section>
       ${detailMarkup()}
     </div>`;
   }
   function detailMarkup(){
     const n=g.byId.get(selected),s=visibleState(),relations=g.pre.get(selected);
-    return `<aside class="panel detail" id="node-detail" aria-labelledby="detail-title"><p class="eyebrow">${esc(n.section)}</p><h2 class="detail-heading" id="detail-title">${esc(n.title)}</h2>${chip(n.id,s?.states[n.id]||'untested')}
+    const k=handwriting.get(n.id),H=window.GrowingHandwriting;
+    return `<aside class="panel detail" id="node-detail" aria-labelledby="detail-title"><p class="eyebrow">${esc(n.section)}</p><h2 class="detail-heading" id="detail-title">${esc(n.title)}</h2>${chip(n.id,status(n.id))}
+        ${k?`<section data-handwriting-evidence><h3>实卷手写评测 · ${H.knowledgeStatus(k.score)}${k.score===null?'':' · '+k.score+'/100'}</h3><p>${esc(k.feedback)}</p><a href="handwriting.html?${new URLSearchParams({subject,unit:chapter.id,task:k.taskId})}">重做这道实卷题 →</a><p class="small">本题通过不等于课程达标；薄弱、不稳按当前原稿的最近有效知识点评测更新。</p></section>`:''}
         <h3>学会后应能做到</h3><p>${esc(n.criterion)}</p>
         <h3>为什么需要这些先修</h3>${relations.length?`<ul class="relation-list">${relations.map(e=>`<li><button class="text-button" data-locate="${e.from}">${esc(title(e.from))}</button> · ${e.strength==='hard'?'必要':'辅助'}<br>${esc(e.reason)}</li>`).join('')}</ul>`:'<p class="small">这是本图谱的基础点，尚未向前细分。</p>'}
         <h3>复习卡</h3><div class="review-box">${esc(n.review)}<p>${esc(n.example)}</p></div>
@@ -192,5 +205,6 @@
     render();document.getElementById(active?'question-title':'report-title')?.focus();
   });
   addEventListener('pagehide',()=>panorama.destroy());
+  addEventListener('pageshow',()=>render());addEventListener('storage',()=>render());
   render();
 })();
