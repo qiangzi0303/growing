@@ -3,6 +3,8 @@ import re
 
 root=Path(__file__).resolve().parents[1]
 web=root/'app/src/main/assets/web'
+for name in ['growth-assessment.html','growth-assessment.css','growth-assessment-core.js','growth-assessment-original.js','growth-quadrant-data.js','growth-quadrant-core.js','growth-quadrant-LICENSE.txt']:
+    if not (web/'app-design'/name).is_file():raise SystemExit('Missing growth assessment asset: '+name)
 for name in ['unit-summary.html','unit-summary.css','unit-summary-core.js','unit-summary.js','unit-summary-legacy.js']:
     if not (web/'app-design'/name).is_file():raise SystemExit('Missing unit summary asset: '+name)
 for name in ['english-course.html','english-course.css','english-course.js','english-vocabulary.js','english-lessons.js','english-engine.js']:
