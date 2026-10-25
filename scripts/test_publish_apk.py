@@ -34,7 +34,9 @@ class PublisherTests(unittest.TestCase):
                     return Response(b'wrong bytes' if corrupt else payload)
                 return Response(b'{}')
 
-        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2]/'.nmai/tmp') as folder:
+        temp_root = Path(__file__).resolve().parents[2]/'.nmai/tmp'
+        temp_root.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=temp_root) as folder:
             folder = Path(folder)
             (folder/manifest['apkUrl']).write_bytes(payload)
             path = folder/'update.json'
