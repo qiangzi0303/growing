@@ -171,6 +171,7 @@ class Release:
     def validate(self):
         self.run('Release orchestration tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_release.py'])
         self.run('APK distribution tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_publish_apk.py'])
+        self.run('GitHub transport tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_release_github.py'])
         for script in ('sync-platform.py', 'build-worker-assets.py', 'verify-assets.py'):
             self.run(script, [sys.executable, REPO / 'scripts' / script])
         tests = ['test-platform', 'handwriting.test', 'unit-summary.test', 'rewards.test', 'year8.test', 'panorama.test',

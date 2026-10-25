@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import time
 import urllib.error
 import urllib.request
 from urllib.parse import urlsplit
@@ -58,13 +59,22 @@ def request(path, method='GET', body=None):
         'Authorization': 'Bearer ' + token(), 'Accept': 'application/vnd.github+json',
         'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28',
         'User-Agent': 'Growing-Release/1.0'})
-    try:
-        with opener.open(req, timeout=45) as response:
-            raw = response.read()
-            return json.loads(raw) if raw else {'ok': True}
-    except urllib.error.HTTPError as error:
-        # Never dump response/request bodies that may contain private material.
-        raise RuntimeError(f'GitHub HTTP {error.code}: {method} {path.split("?")[0]}') from None
+    # Git object writes are content-addressed and safe to retry after a lost
+    # response. Workflow dispatches are deliberately excluded to avoid duplicates.
+    retryable = method == 'GET' or ('/git/' in path and method in ('POST', 'PATCH'))
+    for attempt in range(4):
+        try:
+            with opener.open(req, timeout=60) as response:
+                raw = response.read()
+                return json.loads(raw) if raw else {'ok': True}
+        except urllib.error.HTTPError as error:
+            if not retryable or error.code not in (429, 500, 502, 503, 504) or attempt == 3:
+                raise RuntimeError(f'GitHub HTTP {error.code}: {method} {path.split("?")[0]}') from None
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            if not retryable or attempt == 3:
+                raise RuntimeError('GitHub network request failed: ' + method + ' ' + path.split('?')[0]) from None
+        print('GitHub connection interrupted; retrying the same content-addressed request.', flush=True)
+        time.sleep((2, 5, 10)[attempt])
 
 
 def publish(directory):
@@ -73,6 +83,24 @@ def publish(directory):
         return subprocess.check_output(['git', '-C', str(directory), *args], timeout=120)
 
     remote = request('repos/' + REPO + '/git/ref/heads/main')['object']['sha']
+    checkpoint = Path(directory).resolve().parent / '.nmai/releases/github-objects.json'
+    uploaded = set()
+    created = time.time()
+    if checkpoint.exists():
+        saved = json.loads(checkpoint.read_text(encoding='utf-8'))
+        if saved.get('repository') == REPO and saved.get('base') == remote and 0 <= created - saved.get('created', 0) < 21600:
+            uploaded.update(saved.get('objects', []))
+            created = saved['created']
+
+    def remember(blob):
+        uploaded.add(blob)
+        checkpoint.parent.mkdir(parents=True, exist_ok=True)
+        temporary = checkpoint.with_suffix('.tmp')
+        temporary.write_text(json.dumps({'repository': REPO, 'base': remote_base,
+                                        'created': created, 'objects': sorted(uploaded)}), encoding='utf-8')
+        temporary.replace(checkpoint)
+
+    remote_base = remote
     subprocess.run(['git', '-C', str(directory), 'merge-base', '--is-ancestor', remote, 'HEAD'],
                    check=True, capture_output=True, timeout=30)
     commits = git('rev-list', '--reverse', remote + '..HEAD').decode().splitlines()
@@ -116,11 +144,13 @@ def publish(directory):
                 tree.append({'path': path, 'mode': '100644', 'type': 'blob', 'sha': None})
                 continue
             entry = entries[path]
-            blob = request('repos/' + REPO + '/git/blobs', 'POST', {
-                'content': base64.b64encode(git('cat-file', 'blob', entry['sha'])).decode(),
-                'encoding': 'base64'})
-            if blob['sha'] != entry['sha']:
-                raise RuntimeError('Git blob identity mismatch')
+            if entry['sha'] not in uploaded:
+                blob = request('repos/' + REPO + '/git/blobs', 'POST', {
+                    'content': base64.b64encode(git('cat-file', 'blob', entry['sha'])).decode(),
+                    'encoding': 'base64'})
+                if blob['sha'] != entry['sha']:
+                    raise RuntimeError('Git blob identity mismatch')
+                remember(entry['sha'])
             tree.append({'path': path, **entry})
         created = request('repos/' + REPO + '/git/trees', 'POST', {
             'base_tree': git('rev-parse', parent + '^{tree}').decode().strip(), 'tree': tree})
