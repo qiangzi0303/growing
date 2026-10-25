@@ -9,6 +9,9 @@ import urllib.error
 import urllib.request
 from urllib.parse import urlsplit
 
+MAX_APK_BYTES = 100 * 1024 * 1024
+SINGLE_FILE_BYTES = 25 * 1024 * 1024
+PART_BYTES = 20 * 1024 * 1024
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *_args, **_kwargs): return None
@@ -32,8 +35,8 @@ def main():
     apk = args.manifest.parent/filename
     data = apk.read_bytes()
     digest = hashlib.sha256(data).hexdigest()
-    if not data or len(data) > 25*1024*1024 or len(data) != manifest['sizeBytes'] or digest != manifest['sha256']:
-        raise ValueError('APK size or checksum does not match manifest, or exceeds 25 MiB')
+    if not data or len(data) > MAX_APK_BYTES or len(data) != manifest['sizeBytes'] or digest != manifest['sha256']:
+        raise ValueError('APK size or checksum does not match manifest, or exceeds 100 MiB')
     token = os.environ.get('APK_PUBLISH_TOKEN', '')
     if not args.verify_only and not token:
         raise RuntimeError('APK_PUBLISH_TOKEN is required; never pass it on the command line')
@@ -58,7 +61,18 @@ def main():
         raise RuntimeError('Site request failed')
 
     if not args.verify_only:
-        send('/api/releases/files/'+digest+'.apk','PUT',data,True)
+        if len(data) <= SINGLE_FILE_BYTES:
+            send('/api/releases/files/'+digest+'.apk','PUT',data,True)
+        else:
+            parts = []
+            count = (len(data) + PART_BYTES - 1) // PART_BYTES
+            for index, offset in enumerate(range(0, len(data), PART_BYTES), 1):
+                part = data[offset:offset+PART_BYTES]
+                checksum = hashlib.sha256(part).hexdigest()
+                print(f'Uploading APK part {index}/{count}.', flush=True)
+                send('/api/releases/parts/'+checksum,'PUT',part,True)
+                parts.append({'sha256':checksum,'sizeBytes':len(part)})
+            send('/api/releases/files/'+digest+'.apk/complete','POST',json.dumps({'parts':parts}).encode('utf-8'),True)
         send('/api/releases/publish','POST',json.dumps(manifest,ensure_ascii=False).encode('utf-8'),True)
     for delay in [2,4,8,16,30,0]:
         remote = json.loads(send('/downloads/update.json'))

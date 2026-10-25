@@ -170,6 +170,7 @@ class Release:
 
     def validate(self):
         self.run('Release orchestration tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_release.py'])
+        self.run('APK distribution tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_publish_apk.py'])
         for script in ('sync-platform.py', 'build-worker-assets.py', 'verify-assets.py'):
             self.run(script, [sys.executable, REPO / 'scripts' / script])
         tests = ['test-platform', 'handwriting.test', 'unit-summary.test', 'rewards.test', 'year8.test', 'panorama.test',
@@ -255,7 +256,7 @@ class Release:
         with zipfile.ZipFile(io.BytesIO(gh.download(selected[0]['archive_download_url']))) as archive:
             for entry in archive.infolist():
                 target = (folder / entry.filename).resolve()
-                if not target.is_relative_to(folder.resolve()) or entry.file_size > 30 * 1024 * 1024:
+                if not target.is_relative_to(folder.resolve()) or entry.file_size > 110 * 1024 * 1024:
                     raise RuntimeError('Unsafe APK artifact archive entry')
             archive.extractall(folder)
         return folder

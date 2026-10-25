@@ -107,9 +107,10 @@ def publish(directory):
             entries[path.decode('utf-8')] = {'mode': mode, 'type': kind, 'sha': blob}
         tree = []
         # Disable rename detection so renamed files are represented as delete + add.
-        for path in git('diff', '--no-renames', '--name-only', '-z', parent, sha).split(b'\0'):
-            if not path:
-                continue
+        changed = [path for path in git('diff', '--no-renames', '--name-only', '-z', parent, sha).split(b'\0') if path]
+        for index, path in enumerate(changed, 1):
+            if index == 1 or index % 25 == 0 or index == len(changed):
+                print(f'GitHub objects: {sha[:8]} {index}/{len(changed)}', flush=True)
             path = path.decode('utf-8')
             if path not in entries:
                 tree.append({'path': path, 'mode': '100644', 'type': 'blob', 'sha': None})
