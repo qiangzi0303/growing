@@ -24,9 +24,11 @@ const diagnosisTarget=path.join(root,'cloudflare/src/diagnosis-rules.json'),diag
 if(!fs.existsSync(diagnosisTarget)||fs.readFileSync(diagnosisTarget,'utf8')!==diagnosisOutput)fs.writeFileSync(diagnosisTarget,diagnosisOutput);
 vm.runInContext(fs.readFileSync(path.join(web,'curriculum.js'),'utf8'),context);
 const curriculum=context.window.GrowingCurriculum,ranking=[];
+const questionUnits=[];
 for(const [subject,course] of Object.entries(curriculum))for(const [term,book] of Object.entries(course.terms)){
   if(!book.verified)continue;
   for(const u of book.units){
+    questionUnits.push({id:u.id,title:u.title,subject,subjectName:course.name,termName:book.name,summary:u.summary,outline:u.outline});
     const row={id:u.id,title:u.title,subject,subjectName:course.name,term,termName:book.name};
     if(subject==='english')Object.assign(row,u.number===3?{kind:'legacy-english',topics:unit.topics.map(t=>t.id),tests:rules.__legacy.tests}:{kind:'english',rules:rules[u.id]});
     else if(u.id==='math-8b-10')Object.assign(row,{kind:'fraction',topics:rules.__legacy.fractionTopics});
@@ -35,8 +37,14 @@ for(const [subject,course] of Object.entries(curriculum))for(const [term,book] o
     if(subject!=='english')row.diagnosisTopics=(subject==='math'?math:physics).chapters.find(c=>c.id===u.id).nodes.map(n=>n.id);
   }
 }
+const questionTarget=path.join(root,'cloudflare/src/question-unit-rules.json'),questionOutput=JSON.stringify(questionUnits,null,2)+'\n';
+if(!fs.existsSync(questionTarget)||fs.readFileSync(questionTarget,'utf8')!==questionOutput)fs.writeFileSync(questionTarget,questionOutput);
 const rankingTarget=path.join(root,'cloudflare/src/ranking-rules.json'),rankingOutput=JSON.stringify(ranking,null,2)+'\n';
 if(!fs.existsSync(rankingTarget)||fs.readFileSync(rankingTarget,'utf8')!==rankingOutput)fs.writeFileSync(rankingTarget,rankingOutput);
 const target=path.join(root,'cloudflare/src/english-rules.json'),output=JSON.stringify(rules,null,2)+'\n';
 if(!fs.existsSync(target)||fs.readFileSync(target,'utf8')!==output)fs.writeFileSync(target,output);
+vm.runInContext(fs.readFileSync(path.join(web,'math-wrong-questions-data.js'),'utf8'),context);
+const wrongTarget=path.join(root,'cloudflare/src/math-wrong-question-rules.json');
+const wrongOutput=JSON.stringify(context.window.GrowingMathWrongQuestions.questions.map(({id,unitId,title,number})=>({id,unitId,title,number})),null,2)+'\n';
+if(!fs.existsSync(wrongTarget)||fs.readFileSync(wrongTarget,'utf8')!==wrongOutput)fs.writeFileSync(wrongTarget,wrongOutput);
 console.log('English reporting rules exported from packaged lessons.');

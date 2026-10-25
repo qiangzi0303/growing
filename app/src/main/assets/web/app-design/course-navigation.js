@@ -16,5 +16,8 @@
   style.textContent+='.course-return-nav{position:relative;z-index:4;flex-shrink:0;width:100%}';
   style.textContent+='.course-return-nav{flex-wrap:wrap}';
   const summary=document.createElement('a');summary.href=prefix+'unit-summary.html?'+new URLSearchParams({subject,unit:id});summary.target='_top';summary.textContent='单元总结 →';nav.append(summary,handwriting);
+  if(subject==='math'&&['math-8a-01','math-8a-02','math-8b-09','math-8b-10'].includes(id)){
+    const wrong=document.createElement('a');wrong.href=prefix+'math-wrong-questions.html?'+new URLSearchParams({unit:id});wrong.target='_top';wrong.textContent='本单元错题 ↗';nav.append(wrong);
+  }
   document.head.append(style);(document.getElementById('app')||document.body).prepend(nav);
 })();

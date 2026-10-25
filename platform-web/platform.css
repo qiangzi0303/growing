@@ -103,3 +103,8 @@ body.admin-console{
   .admin-console #member-password{grid-template-columns:1fr;gap:14px}
   .admin-console .pagination{flex-wrap:wrap;gap:8px;padding:12px}
 }
+
+/* Keep the three study-time columns visible together on phones. */
+[data-study-time] .table-scroll table,.admin-console [data-study-time] .table-scroll table{min-width:0;width:100%;table-layout:fixed}
+[data-study-time] .table-scroll th,.admin-console [data-study-time] .table-scroll th{white-space:normal}
+[data-study-time] .table-scroll th:first-child{width:18%}

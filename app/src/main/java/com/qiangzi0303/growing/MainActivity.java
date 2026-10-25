@@ -20,6 +20,12 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebChromeClient;
+import android.webkit.ValueCallback;
+import android.content.ClipData;
+import android.provider.MediaStore;
+import androidx.core.content.FileProvider;
+import java.io.File;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -57,6 +63,12 @@ public final class MainActivity extends Activity {
     private boolean registering=false;
     private AppUpdater updater;
     private volatile String pendingRegistration;
+    private static final int PHOTO_REQUEST=401;
+    private ValueCallback<Uri[]> photoCallback;
+    private File cameraFile;
+    private Uri cameraUri;
+    private String photoAccount;
+    private long photoEpoch;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -151,11 +163,36 @@ public final class MainActivity extends Activity {
         web=new WebView(this);outer.addView(web,new LinearLayout.LayoutParams(-1,0,1));
         web.setBackgroundColor(Color.rgb(247,248,243));
         web.getSettings().setJavaScriptEnabled(true);web.getSettings().setDomStorageEnabled(true);
-        web.getSettings().setAllowFileAccess(false);web.getSettings().setAllowContentAccess(false);
+        web.getSettings().setAllowFileAccess(false);web.getSettings().setAllowContentAccess(true);
         web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         web.getSettings().setMediaPlaybackRequiresUserGesture(true);
         web.getSettings().setSupportMultipleWindows(false);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
+        web.setWebChromeClient(new WebChromeClient(){
+            @Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params){
+                if(view.getUrl()==null||!view.getUrl().startsWith(ORIGIN+"/assets/web/cloud/"))return false;
+                cancelPhoto();
+                photoCallback=callback;photoAccount=currentId;photoEpoch=epoch;
+                try{
+                    Intent album=new Intent(Intent.ACTION_GET_CONTENT);album.setType("image/*");album.addCategory(Intent.CATEGORY_OPENABLE);
+                    album.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"image/jpeg","image/png","image/webp"});
+                    album.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,params.getMode()==FileChooserParams.MODE_OPEN_MULTIPLE);
+                    Intent camera=new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    if(camera.resolveActivity(getPackageManager())!=null){
+                        File directory=new File(getCacheDir(),"paper-camera");if(!directory.exists()&&!directory.mkdirs())throw new java.io.IOException();
+                        cameraFile=File.createTempFile("paper-",".jpg",directory);
+                        cameraUri=FileProvider.getUriForFile(MainActivity.this,BuildConfig.APPLICATION_ID+".photos",cameraFile);
+                        camera.putExtra(MediaStore.EXTRA_OUTPUT,cameraUri);
+                        camera.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        camera.setClipData(ClipData.newRawUri("试卷照片",cameraUri));
+                        if(params.isCaptureEnabled()){startActivityForResult(camera,PHOTO_REQUEST);return true;}
+                        Intent chooser=Intent.createChooser(album,"选择试卷照片");chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS,new Intent[]{camera});
+                        startActivityForResult(chooser,PHOTO_REQUEST);
+                    }else startActivityForResult(Intent.createChooser(album,"选择试卷照片"),PHOTO_REQUEST);
+                }catch(Exception e){cancelPhoto();Toast.makeText(MainActivity.this,"无法打开相机或相册，请检查是否已安装相机应用。",Toast.LENGTH_LONG).show();}
+                return true;
+            }
+        });
         web.addJavascriptInterface(new LearningBridge(this,currentId,epoch),"GrowingNative");
         speech=new SpeechBridge(this,web,currentId,epoch);
         web.addJavascriptInterface(speech,"GrowingSpeech");
@@ -247,7 +284,27 @@ public final class MainActivity extends Activity {
             .setNeutralButton("安装语音数据",(d,w)->openSpeechSettings(true))
             .setNegativeButton("关闭",null).show();
     }
+    private void cancelPhoto(){
+        if(photoCallback!=null){photoCallback.onReceiveValue(null);photoCallback=null;}
+        if(cameraFile!=null){cameraFile.delete();cameraFile=null;}cameraUri=null;
+    }
+    @Override protected void onActivityResult(int request,int result,Intent data){
+        super.onActivityResult(request,result,data);
+        if(request!=PHOTO_REQUEST||photoCallback==null)return;
+        ValueCallback<Uri[]> callback=photoCallback;photoCallback=null;
+        Uri[] values=null;
+        if(result==RESULT_OK&&isSession(photoAccount,photoEpoch)){
+            if(data!=null&&data.getClipData()!=null){
+                ClipData clips=data.getClipData();int count=clips.getItemCount();
+                if(count>4)Toast.makeText(this,"每批最多选择 4 页试卷，请分批录入。",Toast.LENGTH_LONG).show();
+                else{values=new Uri[count];for(int i=0;i<count;i++)values[i]=clips.getItemAt(i).getUri();}
+            }else if(data!=null&&data.getData()!=null)values=new Uri[]{data.getData()};
+            else if(cameraUri!=null&&cameraFile!=null&&cameraFile.length()>0)values=new Uri[]{cameraUri};
+        }
+        callback.onReceiveValue(values);
+    }
     private void destroyWeb(){
+        cancelPhoto();
         if(speech!=null){speech.close();speech=null;}
         if(web!=null){web.stopLoading();web.removeJavascriptInterface("GrowingNative");web.removeJavascriptInterface("GrowingSpeech");web.destroy();web=null;}
     }

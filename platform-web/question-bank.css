@@ -1,0 +1,15 @@
+.bank-upload{position:relative;display:inline-flex;align-items:center;overflow:hidden;cursor:pointer}
+.bank-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.bank-upload:focus-within{outline:2px solid #2563eb;outline-offset:3px}
+.bank-photos{display:flex;gap:16px;flex-wrap:wrap;padding:0;list-style:none}
+.bank-photos li{display:grid;gap:8px;width:140px}
+.bank-photos img{width:140px;height:180px;object-fit:contain;background:#f6f7f9;border:1px solid #e5e7eb;border-radius:6px}
+.bank-question{border-top:1px solid #e5e7eb;padding:22px 0;overflow-wrap:anywhere}
+.bank-text{white-space:pre-wrap;line-height:1.8;overflow-wrap:anywhere}
+.bank-question textarea{display:block;width:100%;box-sizing:border-box;resize:vertical;font:inherit;padding:12px;border:1px solid #cbd5e1;border-radius:6px}
+.bank-question form{max-width:850px}.bank-question label{display:block;margin:14px 0}
+.bank-question select,[data-filter]{max-width:100%}
+.bank-original{max-width:min(1000px,94vw);width:94vw;box-sizing:border-box;max-height:92vh;overflow:auto}
+.bank-original img{display:block;max-width:100%;height:auto;margin:0 auto 24px}.bank-original::backdrop{background:#0008}
+.bank-original>button{position:sticky;top:0;z-index:1}
+@media(max-width:600px){.bank-photos{gap:12px}.bank-photos li,.bank-photos img{width:120px}.bank-photos img{height:155px}.bank-question input,.bank-question select{width:100%;box-sizing:border-box}}

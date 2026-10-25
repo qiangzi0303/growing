@@ -1,0 +1,87 @@
+(()=>{
+  'use strict';
+  async function photo(file){
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>20*1024*1024)throw Error('请选择 20 MB 以内的 JPG、PNG 或 WebP 照片。');
+    const url=URL.createObjectURL(file),image=new Image();
+    try{
+      image.src=url;await image.decode();
+      if(!image.naturalWidth||image.naturalWidth*image.naturalHeight>64000000)throw Error('照片尺寸过大，请裁剪试卷后再选择。');
+      const canvas=document.createElement('canvas');let scale=Math.min(1,2000/Math.max(image.naturalWidth,image.naturalHeight));
+      for(let attempt=0;attempt<5;attempt++){
+        canvas.width=Math.round(image.naturalWidth*scale);canvas.height=Math.round(image.naturalHeight*scale);
+        const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
+        for(const quality of [.9,.8,.7,.6]){const data=canvas.toDataURL('image/jpeg',quality);if(data.length<=500000)return data;}
+        scale*=.8;
+      }
+      throw Error('照片无法压缩，请裁剪后重试。');
+    }finally{URL.revokeObjectURL(url);}
+  }
+  window.GrowingQuestionBank={async mount(root,api,esc,alive,user){
+    const valid=()=>root.isConnected&&alive();let units=[],studentId='',photos=[],requestId=crypto.randomUUID(),busy=false,rows=[],page=1,unit='all',serial=0,studentPage=1,studentQuery='',attempts=null,repeated=false;
+    const label=id=>{const u=units.find(u=>u.id===id);return u?`${u.subjectName} · ${u.termName} · ${u.title}`:'待归类';};
+    const options=(selected,all=false)=>`${all?'<option value="all">全部单元</option>':''}<option value="" ${selected===''?'selected':''}>待归类</option>${units.map(u=>`<option value="${esc(u.id)}" ${u.id===selected?'selected':''}>${esc(label(u.id))}</option>`).join('')}`;
+    const message=(text,error=false)=>{if(valid()){const el=root.querySelector('[data-bank-status]');el.textContent=text;el.classList.toggle('warning',error);}};
+    root.innerHTML=`<div class="actions"><button id="question-bank-home">‹ 返回${user.role==='Student'?'学习中心':'看板'}</button></div><h1>拍照题库</h1><p class="muted">拍下试卷，自动提取题目并归入对应单元。请拍清题干、选项和图形；录入后可对照原卷核对。</p><section class="panel" data-students></section><div data-bank-work hidden><section class="panel"><h2>拍照录题</h2><p>最多 4 页，按页码顺序添加；长试卷请分批录入，每批最多 40 题。</p><div class="actions"><label class="button bank-upload">拍一页<input type="file" accept="image/jpeg" capture="environment" data-camera></label><label class="button bank-upload">从相册选择<input type="file" accept="image/jpeg,image/png,image/webp" multiple data-album></label></div><ol class="bank-photos" data-photos></ol><button class="primary" data-import disabled>识别并自动入库</button><p class="muted">照片会发送至视觉识别服务并保存在该学生的私有题库。AI 无法确定的单元放入“待归类”，模糊内容会标记，参考答案为空时可自行补充。</p></section><p data-bank-status role="status" aria-live="polite"></p><section class="panel"><div class="actions"><h2>单元题库</h2><label>按单元查看<select data-filter></select></label><button data-refresh>刷新题库</button><label><input type="checkbox" data-repeat> 只看做错 2 次及以上</label></div><p data-count></p><div data-questions></div><div class="actions"><button data-prev>上一页</button><span data-page></span><button data-next>下一页</button></div></section></div><dialog class="bank-original" aria-label="试卷原图"><button data-close-original>关闭原图</button><div data-original></div></dialog>`;
+    const work=root.querySelector('[data-bank-work]');
+    function setBusy(value){busy=value;root.querySelectorAll('[data-import],[data-camera],[data-album],[data-student],[data-student-search] input,[data-student-search] button,[data-student-prev],[data-student-next],[data-remove]').forEach(e=>{e.disabled=value;});root.querySelector('[data-import]').disabled=value||!photos.length;root.querySelector('[data-import]').textContent=value?'正在识别并录入…':'识别并自动入库';}
+    function previews(){root.querySelector('[data-photos]').innerHTML=photos.map((p,i)=>`<li><img src="${esc(p)}" alt="第 ${i+1} 页试卷预览"><span>第 ${i+1} 页</span><button data-remove="${i}" aria-label="移除第 ${i+1} 页">移除</button></li>`).join('');setBusy(false);}
+    async function load(){
+      if(!studentId)return;const n=++serial,id=studentId;root.querySelector('[data-questions]').textContent='正在读取题库…';
+      try{await attempts.load('photo');if(!valid()||n!==serial||id!==studentId)return;const data=await api('/question-bank/questions?'+new URLSearchParams({studentId:id,unitId:unit,page,repeated:repeated?'1':'0'}));if(!valid()||n!==serial||id!==studentId)return;
+        rows=data.rows;root.querySelector('[data-count]').textContent=`共 ${data.total} 题 · ${rows.filter(q=>!q.reviewed).length} 题在本页待核对`;
+        root.querySelector('[data-page]').textContent=`第 ${page} / ${Math.max(1,Math.ceil(data.total/20))} 页`;
+        root.querySelector('[data-prev]').disabled=page<=1;root.querySelector('[data-next]').disabled=page*20>=data.total;
+        root.querySelector('[data-questions]').innerHTML=rows.length?rows.map(q=>`<article class="bank-question"><div class="actions"><strong>${esc(q.number||'未标题号')} · ${esc(label(q.unitId))}</strong><span class="badge">${q.reviewed?'已核对':'待核对'}</span></div><p class="muted">${esc(q.paperTitle)} · ${esc(new Date(q.createdAt).toLocaleDateString('zh-CN'))}</p><p class="bank-text">${esc(q.text)}</p>${q.uncertain.length?(q.reviewed?`<details><summary>AI 原始识别提示（核对前）</summary><p class="bank-text">${esc(q.uncertain.join('\n'))}</p></details>`:`<p class="warning bank-text">${esc(q.uncertain.join('\n'))}</p>`):''}<p class="muted">AI 初次归类依据：${esc(q.reason||'待核对')}</p><div class="actions"><button data-original="${esc(q.paperId)}">查看原卷 · 第 ${q.pages.join('、')} 页</button></div><details><summary>核对 / 修改题目与单元</summary><form data-edit="${esc(q.id)}"><label>题号<input name="number" maxlength="40" value="${esc(q.number)}"></label><label>题目（含选项与小问）<textarea name="text" maxlength="6000" required rows="6">${esc(q.text)}</textarea></label><label>对应单元<select name="unitId">${options(q.unitId)}</select></label><label>参考答案（没有可留空）<textarea name="answer" maxlength="2000" rows="3">${esc(q.answer)}</textarea></label><button type="submit" class="primary">保存并标记已核对</button><p role="status" data-save-status></p></form></details>${q.answer?`<details><summary>查看参考答案</summary><p class="bank-text">${esc(q.answer)}</p></details>`:''}${attempts.markup('photo',q.id)}</article>`).join(''):'<p class="muted">该单元还没有录入题目。拍一张试卷开始吧。</p>';
+      }catch(e){if(valid()&&n===serial){root.querySelector('[data-questions]').textContent='读取失败：'+e.message;root.querySelector('[data-prev]').disabled=true;root.querySelector('[data-next]').disabled=true;}}
+    }
+    async function selectStudent(id){attempts?.dispose();studentId=id;serial++;if(id)attempts=GrowingQuestionAttempts.create(root,api,id,()=>valid()&&studentId===id,()=>load());else attempts=null;page=1;photos=[];requestId=crypto.randomUUID();previews();message('');work.hidden=!id;if(id)await load();}
+    async function students(){
+      const host=root.querySelector('[data-students]');
+      if(user.role==='Student'){host.innerHTML=`<h2>${esc(user.displayName)}的题库</h2>`;await selectStudent(user.id);return;}
+      const admin=user.role==='Admin',data=await api(admin?'/admin/members?'+new URLSearchParams({role:'Student',q:studentQuery,page:studentPage}):'/parent/children');if(!valid())return;
+      const children=admin?data.rows:data;
+      host.innerHTML=`<h2>选择学生</h2>${admin?`<form class="actions" data-student-search><label>搜索学生<input name="q" maxlength="40" value="${esc(studentQuery)}"></label><button type="submit">查询</button></form>`:''}${children.length?`<label>题库所属学生<select data-student>${children.map(c=>`<option value="${esc(c.id)}">${esc(c.displayName)}${admin?'（'+esc(c.username)+'）':''}</option>`).join('')}</select></label>`:'<p>暂无学生，请先在设置中添加孩子。</p>'}${admin?`<div class="actions"><button data-student-prev ${studentPage<=1?'disabled':''}>上一页学生</button><span>第 ${studentPage} 页</span><button data-student-next ${studentPage*data.pageSize>=data.total?'disabled':''}>下一页学生</button></div>`:''}`;
+      await selectStudent(children[0]?.id||'');
+    }
+    root.addEventListener('change',async e=>{
+      if(!valid())return;
+      if(e.target.matches('[data-student]')){if(!busy)await selectStudent(e.target.value);return;}
+      if(e.target.matches('[data-repeat]')){repeated=e.target.checked;page=1;await load();return;}
+      if(e.target.matches('[data-filter]')){unit=e.target.value;page=1;await load();return;}
+      if(!e.target.matches('[data-camera],[data-album]')||busy)return;
+      const files=[...e.target.files];e.target.value='';if(!files.length)return;
+      if(files.length+photos.length>4){message('每批最多 4 页，请先录入当前照片或移除多余页面。',true);return;}
+      setBusy(true);message('正在准备照片…');const id=studentId;
+      try{const added=[];for(const file of files)added.push(await photo(file));if(!valid()||id!==studentId)return;photos.push(...added);requestId=crypto.randomUUID();previews();message('照片已准备好，请确认页序后点击“识别并自动入库”。');}
+      catch(error){message(error.message,true);}finally{if(valid())setBusy(false);}
+    });
+    root.addEventListener('click',async e=>{
+      const b=e.target.closest('button');if(!b||!valid())return;
+      try{
+        if(b.hasAttribute('data-remove')&&!busy){photos.splice(Number(b.dataset.remove),1);requestId=crypto.randomUUID();previews();}
+        if(b.hasAttribute('data-refresh'))await load();
+        if(b.hasAttribute('data-prev')||b.hasAttribute('data-next')){page+=b.hasAttribute('data-prev')?-1:1;await load();}
+        if(b.hasAttribute('data-student-prev')||b.hasAttribute('data-student-next')){studentPage+=b.hasAttribute('data-student-prev')?-1:1;await students();}
+        if(b.hasAttribute('data-close-original'))root.querySelector('dialog').close();
+        if(b.dataset.original){b.disabled=true;try{const paper=await api('/question-bank/papers/'+b.dataset.original+'?'+new URLSearchParams({studentId}));if(!valid())return;
+          const target=root.querySelector('[data-original]');target.innerHTML=`<h2>${esc(paper.title)}</h2>${paper.warnings.map(w=>`<p class="warning">${esc(w)}</p>`).join('')}`;
+          for(const p of paper.pages){if(!/^data:image\/jpeg;base64,\/9j\//.test(p.image))throw Error('原图格式异常');const heading=document.createElement('h3');heading.textContent='第 '+p.page+' 页';const img=document.createElement('img');img.src=p.image;img.alt='第 '+p.page+' 页试卷原图';target.append(heading,img);}root.querySelector('dialog').showModal();
+        }finally{b.disabled=false;}}
+        if(b.hasAttribute('data-import')&&!busy&&photos.length){setBusy(true);message('正在识别题目并匹配单元，请保持页面打开…');
+          try{const result=await api('/question-bank/import',{method:'POST',body:JSON.stringify({studentId,requestId,pages:photos})});if(!valid())return;
+            photos=[];requestId=crypto.randomUUID();previews();unit='all';root.querySelector('[data-filter]').value='all';page=1;await load();
+            const pending=result.questions.filter(q=>!q.unitId).length;message(`${result.duplicate?'这组照片已录入，未重复添加':'已自动录入 '+result.questions.length+' 题'}${pending?'，其中 '+pending+' 题待归类':''}。请对照原卷核对。`);
+          }catch(error){message(error.message+' 照片仍保留，可重试。',true);}finally{if(valid())setBusy(false);}
+        }
+      }catch(error){message(error.message,true);}
+    });
+    root.addEventListener('submit',async e=>{
+      if(!valid())return;
+      if(e.target.matches('[data-student-search]')){e.preventDefault();if(busy)return;studentQuery=new FormData(e.target).get('q');studentPage=1;try{await students();}catch(error){message(error.message,true);}return;}
+      const form=e.target;if(!form.matches('[data-edit]'))return;e.preventDefault();const q=rows.find(q=>q.id===form.dataset.edit);if(!q)return;const button=form.querySelector('button');button.disabled=true;
+      try{await api('/question-bank/questions/'+q.id,{method:'PUT',body:JSON.stringify({...Object.fromEntries(new FormData(form)),studentId,revision:q.revision})});if(valid()){q.revision++;form.querySelector('[data-save-status]').textContent='已保存';await load();}}
+      catch(error){if(valid())form.querySelector('[data-save-status]').textContent=error.message;}finally{button.disabled=false;}
+    });
+    try{units=await api('/question-bank/catalog');if(!valid())return;root.querySelector('[data-filter]').innerHTML=options('all',true);await students();}catch(error){if(valid())root.querySelector('[data-students]').textContent='题库暂时无法打开：'+error.message;}
+  }};
+})();

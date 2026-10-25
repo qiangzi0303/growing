@@ -13,6 +13,11 @@ import diagnosisRules from '../src/diagnosis-rules.json';
 const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: 'export default {fetch(){return new Response("ok")}}', compatibilityDate: '2026-10-22', d1Databases: ['DB'] }));
 let db: Database;
 let aiMode = 'ok', aiRequests: {url:string;headers:Headers;data:any}[] = [];
+let paperOutput:any={title:'混合试卷',warnings:['第2页有图形，请核对原图'],questions:[
+  {number:'1',text:'计算 (x²-1)/(x-1)，其中 x≠1。',answer:'',unitId:'math-8b-10',confidence:.98,reason:'分式化简',uncertain:[],pages:[1]},
+  {number:'2',text:'图中给定条件【不清楚】',answer:'',unitId:'invented-unit',confidence:.99,reason:'不能匹配',uncertain:['图中条件需核对'],pages:[2]},
+  {number:'3',text:'Read about friendship.',answer:'',unitId:'english-8a-01',confidence:.5,reason:'仅凭主题不能确定',uncertain:[],pages:[2]},
+]};
 const handler = createHandler(() => db, (async (url: string | URL | Request, options?: RequestInit) => {
   aiRequests.push({url:String(url),headers:new Headers(options?.headers),data:JSON.parse(options?.body as string)});
   if(aiMode==='network')throw Error('upstream-private-details');
@@ -20,6 +25,7 @@ const handler = createHandler(() => db, (async (url: string | URL | Request, opt
   if(aiMode==='forbidden')return new Response('upstream-private-details',{status:403});
   if(aiMode==='invalid')return Response.json({not:'a completion'});
   if(aiMode==='large')return new Response('x'.repeat(256001));
+  if(aiMode==='paper')return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(paperOutput)}}]});
   const content=aiMode==='bad-recognition'?'{"text":"","uncertain":[]}':'{"text":"第1页：x=2","uncertain":[]}';
   return Response.json({choices:[{finish_reason:aiMode==='truncated'?'length':'stop',message:{content:aiMode==='empty'?'':content,reasoning_content:'private reasoning'}}],private:'must-not-return'});
 }) as typeof fetch);
@@ -75,8 +81,161 @@ before(async () => {
   assert.equal((await db.query<any>('SELECT "Value" FROM "GrowingDocuments" WHERE "StudentId"=?1',[fixture]))[0].Value,'{"preserved":true}');
   await db.batch(['GrowingRankings','GrowingDocuments'].map(table=>({sql:`DELETE FROM "${table}" WHERE "StudentId"=?1`,params:[fixture]})));
   await db.query('DELETE FROM "GrowingUsers" WHERE "Id"=?1',[fixture]);
+  const photoMigration=await readFile(new URL('../migrations/0007_photo_question_bank.sql',import.meta.url),'utf8');
+  const photoStatements=photoMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql}));
+  await db.batch(photoStatements);await db.batch(photoStatements);
+  const timeMigration=await readFile(new URL('../migrations/0008_study_time.sql',import.meta.url),'utf8');
+  const timeStatements=timeMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql}));
+  await db.batch(timeStatements);await db.batch(timeStatements);
+  const attemptMigration=await readFile(new URL('../migrations/0009_question_attempts.sql',import.meta.url),'utf8');
+  const attemptStatements=attemptMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql}));
+  await db.batch(attemptStatements);await db.batch(attemptStatements);
 });
 after(async () => { await mf.dispose(); });
+
+const photoPages=['data:image/jpeg;base64,/9j/AA==','data:image/jpeg;base64,/9j/AQ=='];
+test('question attempts count repeated mistakes per student and keep lifetime mistakes after correct answers',async()=>{
+  const s=await register(),other=await register(),p=await register('Parent'),a=await administrator();await bindStudent(s,p);
+  const path='/api/question-bank/attempts',questionId='1025141010-28';
+  const input={studentId:s.user.id,kind:'math',questionId,attemptId:crypto.randomUUID(),correct:false};
+  const duplicates=await Promise.all([call(path,'POST',input,s.token),call(path,'POST',input,s.token)]);
+  for(const r of duplicates){assert.equal(r.status,200);assert.equal((await r.json() as any).wrongCount,1);}
+  assert.equal((await call(path,'POST',{...input,correct:true},s.token)).status,409);
+  assert.equal((await call(path,'POST',{...input,questionId:'1025141010-29'},s.token)).status,409);
+  let response=await call(path,'POST',{...input,attemptId:crypto.randomUUID()},p.token);assert.equal(response.status,200);
+  let report=await response.json() as any;assert.equal(report.wrongCount,2);assert.equal(report.totalCount,2);
+  response=await call(path,'POST',{...input,attemptId:crypto.randomUUID(),correct:true},s.token);report=await response.json() as any;
+  assert.equal(report.wrongCount,2);assert.equal(report.correctCount,1);assert.equal(report.totalCount,3);
+  assert.equal(report.rows.length,3);assert.equal(report.rows[0].correct,1);assert.ok(report.rows.every((r:any)=>Number.isFinite(Date.parse(r.at))));
+  const repeatedPath='/api/question-bank/repeated?studentId='+s.user.id;
+  const repeated=await (await call(repeatedPath,'GET',undefined,p.token)).json() as any;
+  assert.equal(repeated.total,1);assert.equal(repeated.rows[0].questionId,questionId);assert.equal(repeated.rows[0].wrongCount,2);assert.ok(repeated.rows[0].title.includes('分式'));
+  assert.equal((await call(repeatedPath,'GET',undefined,other.token)).status,404);
+  assert.equal((await call(repeatedPath+'&page=0','GET',undefined,s.token)).status,400);
+  const query='?studentId='+s.user.id+'&kind=math&questionId='+questionId;
+  assert.equal((await call(path+query,'GET',undefined,other.token)).status,404);
+  assert.equal((await call(path,'POST',{...input,attemptId:crypto.randomUUID()},other.token)).status,404);
+  assert.equal((await call(path+query,'GET',undefined,a.token)).status,200);
+  const own=await (await call('/api/question-bank/attempt-stats?studentId='+other.user.id+'&kind=math','GET',undefined,other.token)).json();assert.deepEqual(own,[]);
+  await call('/api/student/parents/'+p.user.id,'DELETE',undefined,s.token);
+  assert.equal((await call(path+query,'GET',undefined,p.token)).status,404);
+  assert.equal((await call(repeatedPath,'GET',undefined,p.token)).status,404);
+  assert.equal((await call(path,'POST',{...input,attemptId:crypto.randomUUID()},p.token)).status,404);
+});
+
+test('question attempts reject forged counters and unknown questions, and history is paginated without losing totals',async()=>{
+  const s=await register(),path='/api/question-bank/attempts';
+  const input={studentId:s.user.id,kind:'math',questionId:'1025141010-01',attemptId:crypto.randomUUID(),correct:false};
+  assert.equal((await call(path,'POST',input)).status,401);
+  for(const patch of [{correct:0},{correct:'false'},{attemptId:'bad'},{wrongCount:100},{totalCount:100},{createdAt:'2020-01-01'}])
+    assert.equal((await call(path,'POST',{...input,...patch},s.token)).status,400);
+  assert.equal((await call(path,'POST',{...input,questionId:'1025141010-99'},s.token)).status,404);
+  assert.equal((await call(path,'POST',{...input,kind:'invented'},s.token)).status,400);
+  for(let i=0;i<23;i++)assert.equal((await call(path,'POST',{...input,attemptId:crypto.randomUUID(),correct:i%2===0},s.token)).status,200);
+  const query='?studentId='+s.user.id+'&kind=math&questionId='+input.questionId;
+  const first=await (await call(path+query,'GET',undefined,s.token)).json() as any;
+  const second=await (await call(path+query+'&page=2','GET',undefined,s.token)).json() as any;
+  assert.equal(first.totalCount,23);assert.equal(first.wrongCount,11);assert.equal(first.correctCount,12);
+  assert.equal(first.rows.length,20);assert.equal(second.rows.length,3);assert.equal(second.totalCount,23);
+  assert.equal(new Set([...first.rows,...second.rows].map(r=>r.attemptId)).size,23);
+  assert.equal((await call(path+query+'&page=0','GET',undefined,s.token)).status,400);
+});
+
+test('photo question mistake counts survive edits and repeated-only filtering is applied before pagination',async()=>{
+  const s=await register(),other=await register();aiMode='paper';
+  let imported:any;try{imported=await (await call('/api/question-bank/import','POST',{studentId:s.user.id,requestId:crypto.randomUUID(),pages:photoPages},s.token)).json();}finally{aiMode='ok';}
+  const q=imported.questions[0],path='/api/question-bank/attempts';
+  for(let i=0;i<2;i++)assert.equal((await call(path,'POST',{studentId:s.user.id,kind:'photo',questionId:q.id,attemptId:crypto.randomUUID(),correct:false},s.token)).status,200);
+  assert.equal((await call(path,'POST',{studentId:other.user.id,kind:'photo',questionId:q.id,attemptId:crypto.randomUUID(),correct:false},other.token)).status,404);
+  const list='/api/question-bank/questions?studentId='+s.user.id+'&repeated=1';
+  let filtered=await (await call(list,'GET',undefined,s.token)).json() as any;assert.equal(filtered.total,1);assert.equal(filtered.rows[0].id,q.id);
+  assert.equal((await call('/api/question-bank/questions/'+q.id,'PUT',{studentId:s.user.id,number:'新题号',text:q.text,answer:q.answer,unitId:'math-8a-01',revision:q.revision},s.token)).status,200);
+  filtered=await (await call(list+'&unitId=math-8a-01','GET',undefined,s.token)).json() as any;assert.equal(filtered.total,1);
+  const counts=await (await call('/api/question-bank/attempt-stats?studentId='+s.user.id+'&kind=photo','GET',undefined,s.token)).json() as any[];
+  assert.equal(counts[0].wrongCount,2);assert.equal(counts[0].questionId,q.id);
+  assert.deepEqual(await (await call('/api/question-bank/attempt-stats?studentId='+s.user.id+'&kind=math','GET',undefined,s.token)).json(),[]);
+});
+
+test('subject time reports keep today and lifetime totals, deduplicate syncs and survive course reset',async()=>{
+  const s=await register(),p=await register('Parent'),a=await administrator();await bindStudent(s,p);
+  const today=new Date(Date.now()+8*3600000).toISOString().slice(0,10),yesterday=new Date(Date.parse(today+'T00:00:00Z')-86400000).toISOString().slice(0,10);
+  const key='growing-activity-v1:'+crypto.randomUUID(),path='/api/student/state/'+key,activity={days:{[yesterday]:{数学:60},[today]:{数学:120,英语:240,物理:30}}};
+  const save=async(key:string,value:any,revision:number)=>{const response=await call('/api/student/state/'+key,'PUT',{revision,value:value===null?null:JSON.stringify(value)},s.token);assert.equal(response.status,200,await response.clone().text());};
+  await save(key,activity,0);await save(key,activity,1);
+  const course='growing-math-lessons-v1';await save(course,{tools:{days:{[today]:{a:{ms:300000}}}}},0);
+  const report=async()=>await (await call('/api/admin/students/'+s.user.id+'/report?days=7','GET',undefined,a.token)).json() as any;
+  let r=await report();assert.equal(r.report.today,today);assert.equal(r.report.timezone,'Asia/Shanghai');
+  assert.equal(r.report.subjects[0].todayMinutes,5);assert.equal(r.report.subjects[0].totalMinutes,6);
+  assert.equal(r.report.subjects[1].todayMinutes,4);assert.equal(r.report.subjects[2].todayMinutes,.5);
+  await save(course,{topics:{}},1);r=await report();assert.equal(r.report.subjects[0].totalMinutes,6);
+  await save(key,null,2);r=await report();assert.equal(r.report.subjects[0].todayMinutes,5);assert.equal(r.report.subjects[1].totalMinutes,4);
+  assert.equal(r.growth.points.at(-1).subjects[0].minutes,5);
+  const parent=await (await call('/api/parent/children/'+s.user.id+'/report','GET',undefined,p.token)).json() as any;assert.deepEqual(parent.subjects,r.report.subjects);
+  const second=await register();const isolated=await (await call('/api/admin/students/'+second.user.id+'/report','GET',undefined,a.token)).json() as any;assert.ok(isolated.report.subjects.every((x:any)=>x.totalMinutes===0&&x.todayMinutes===0));
+});
+test('photo bank authenticates uploads and rejects invalid images or target students before AI',async()=>{
+  const s=await register(),p=await register('Parent'),input={studentId:s.user.id,requestId:crypto.randomUUID(),pages:photoPages},path='/api/question-bank/import';
+  const before=aiRequests.length;
+  assert.equal((await call(path,'POST',input)).status,401);
+  assert.equal((await call(path,'POST',input,p.token)).status,404);
+  assert.equal((await call(path,'POST',input,s.token,{'X-Growing-Client':''})).status,400);
+  for(const patch of [{pages:[]},{pages:Array(5).fill(photoPages[0])},{pages:['https://private.test/photo']},{pages:['data:image/svg+xml;base64,AA==']},{pages:['data:image/jpeg;base64,/9j/'+'A'.repeat(500000)]},{requestId:'invalid'},{model:'override'},{endpoint:'https://private.test'}])
+    assert.equal((await call(path,'POST',{...input,...patch},s.token)).status,400);
+  assert.equal(aiRequests.length,before);
+  aiLimited=true;try{assert.equal((await call(path,'POST',input,s.token)).status,429);}finally{aiLimited=false;}
+  const catalog=await (await call('/api/question-bank/catalog','GET',undefined,s.token)).json() as any[];
+  assert.equal(catalog.length,24);assert.ok(catalog.some(u=>u.id==='math-8b-10'));assert.ok(!catalog.some(u=>u.id.startsWith('english-8b')));
+});
+
+test('photo imports persist originals atomically, classify uncertain questions, deduplicate concurrent retries and allow reviewed corrections',async()=>{
+  const s=await register(),other=await register(),p=await register('Parent'),a=await administrator();await bindStudent(s,p);
+  const input={studentId:s.user.id,requestId:crypto.randomUUID(),pages:photoPages},path='/api/question-bank/import';aiMode='paper';
+  try{
+    const responses=await Promise.all([call(path,'POST',input,p.token),call(path,'POST',{...input,requestId:crypto.randomUUID()},s.token)]);
+    for(const r of responses)assert.equal(r.status,200,await r.clone().text());
+    const [first,second]=await Promise.all(responses.map(r=>r.json())) as any[];
+    assert.equal(first.paperId,second.paperId);assert.equal(first.questions.length,3);assert.ok(first.questions.every((q:any)=>!q.reviewed));
+    assert.deepEqual(first.questions.map((q:any)=>q.unitId),['math-8b-10','','']);
+    assert.ok(first.questions.every((q:any)=>q.answer===''));
+    const sent=aiRequests.at(-1)!;assert.equal(sent.data.messages[1].content.filter((c:any)=>c.type==='image_url').length,2);
+    assert.equal(sent.headers.get('Authorization'),'Bearer server-only-test-secret');
+    assert.equal(JSON.stringify(first).includes('server-only-test-secret'),false);
+    const before=aiRequests.length;
+    const retry=await call(path,'POST',input,s.token);assert.equal(retry.status,200);assert.equal((await retry.json() as any).duplicate,true);assert.equal(aiRequests.length,before);
+    assert.equal((await call(path,'POST',{...input,pages:[photoPages[1]]},s.token)).status,409);
+    const query='?studentId='+s.user.id;
+    const all=await (await call('/api/question-bank/questions'+query,'GET',undefined,s.token)).json() as any;
+    assert.equal(all.total,3);assert.equal((await (await call('/api/question-bank/questions'+query+'&unitId=','GET',undefined,p.token)).json() as any).total,2);
+    const originalPath='/api/question-bank/papers/'+first.paperId+query;
+    const source=await call(originalPath,'GET',undefined,p.token);assert.equal(source.status,200);assert.equal(source.headers.get('cache-control'),'no-store');
+    assert.deepEqual((await source.json() as any).pages.map((p:any)=>p.image),photoPages);
+    for(const token of [other.token])for(const target of [originalPath,'/api/question-bank/questions'+query])assert.equal((await call(target,'GET',undefined,token)).status,404);
+    assert.equal((await call(originalPath,'GET',undefined,a.token)).status,200);
+    const q=all.rows.find((q:any)=>q.unitId===''),edit={studentId:s.user.id,revision:q.revision,number:q.number,text:'核对后的完整题目',answer:'家长补充的答案',unitId:'physics-8a-02'},editPath='/api/question-bank/questions/'+q.id;
+    assert.equal((await call(editPath,'PUT',edit,other.token)).status,404);
+    assert.equal((await call(editPath,'PUT',{...edit,unitId:'made-up'},p.token)).status,400);
+    assert.equal((await call(editPath,'PUT',edit,p.token)).status,200);
+    assert.equal((await call(editPath,'PUT',edit,s.token)).status,409);
+    const corrected=await (await call('/api/question-bank/questions'+query+'&unitId=physics-8a-02','GET',undefined,s.token)).json() as any;
+    assert.equal(corrected.total,1);assert.equal(corrected.rows[0].reviewed,true);assert.equal(corrected.rows[0].text,edit.text);
+    await call('/api/student/parents/'+p.user.id,'DELETE',undefined,s.token);
+    assert.equal((await call(originalPath,'GET',undefined,p.token)).status,404);
+    assert.equal((await call(editPath,'PUT',{...edit,revision:2},p.token)).status,404);
+  }finally{aiMode='ok';}
+});
+
+test('incomplete photo recognition, missing configuration and provider failures leave the bank empty',async()=>{
+  const s=await register(),input={studentId:s.user.id,requestId:crypto.randomUUID(),pages:photoPages},path='/api/question-bank/import',original=structuredClone(paperOutput),config=env.HANDWRITING_VISION_MODELS;
+  try{
+    env.HANDWRITING_VISION_MODELS='[]';assert.equal((await call(path,'POST',input,s.token)).status,503);env.HANDWRITING_VISION_MODELS=config;
+    aiMode='paper';paperOutput={...original,questions:[]};assert.equal((await call(path,'POST',input,s.token)).status,502);
+    paperOutput=structuredClone(original);paperOutput.questions[0].pages=[3];assert.equal((await call(path,'POST',input,s.token)).status,502);
+    paperOutput=original;aiMode='truncated';assert.equal((await call(path,'POST',input,s.token)).status,502);
+    aiMode='failure';const failed=await call(path,'POST',input,s.token);assert.equal(failed.status,502);assert.equal((await failed.text()).includes('upstream-private-details'),false);
+    const rows=await (await call('/api/question-bank/questions?studentId='+s.user.id,'GET',undefined,s.token)).json() as any;assert.equal(rows.total,0);
+    assert.equal((await db.query<any>('SELECT count(*) AS n FROM "GrowingQuestionPages" p JOIN "GrowingQuestionPapers" b ON b."Id"=p."PaperId" WHERE b."StudentId"=?1',[s.user.id]))[0].n,0);
+  }finally{paperOutput=original;env.HANDWRITING_VISION_MODELS=config;aiMode='ok';}
+});
 
 test('handwriting vision authenticates, validates images, protects credentials and falls back', async()=>{
   const student=await register(),parent=await register('Parent'),path='/api/handwriting/ai';

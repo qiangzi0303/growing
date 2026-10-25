@@ -1,5 +1,6 @@
 import { snapshotStatements } from "./analytics";
 import { rankingStatements } from "./rankings";
+import { studyTimeStatements } from './study-time';
 
 export interface Statement { sql: string; params?: unknown[] }
 export const nowSql = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
@@ -48,7 +49,7 @@ export class Store {
   constructor(public db: Database) {}
   async ready() {
     await this.db.query('SELECT "Id", "RoleConfirmed" FROM "GrowingUsers" LIMIT 1');
-    for (const table of ['GrowingAdministrators','GrowingDailySnapshots','GrowingRewardConfirmations','GrowingRankings']) await this.db.query(`SELECT 1 FROM "${table}" LIMIT 0`);
+    for (const table of ['GrowingAdministrators','GrowingDailySnapshots','GrowingRewardConfirmations','GrowingRankings','GrowingStudyTime','GrowingQuestionAttempts']) await this.db.query(`SELECT 1 FROM "${table}" LIMIT 0`);
   }
   async findUser(normalized: string) {
     return (await this.db.query<User>(`SELECT ${userFields} FROM "GrowingUsers" WHERE "NormalizedName"=?1`, [normalized]))[0];
@@ -112,6 +113,7 @@ export class Store {
           { sql: `INSERT INTO "GrowingDocuments" ("StudentId","Key","Value","Revision","UpdatedAt") VALUES (?1,?2,?3,?4,${nowSql})
             ON CONFLICT ("StudentId","Key") DO UPDATE SET "Value"=excluded."Value","Revision"=excluded."Revision","UpdatedAt"=excluded."UpdatedAt" RETURNING ${documentFields}`, params: [student, key, value, revision + 1] },
           ...(!key.startsWith('growing-handwriting-')?snapshotStatements(student, next):[]),
+          ...(!key.startsWith('growing-handwriting-')?studyTimeStatements(student,next,state):[]),
           ...(!key.startsWith('growing-activity-')&&!key.startsWith('growing-unit-rewards-')&&!key.startsWith('growing-handwriting-')?rankingStatements(student,next):[]),
         ]);
         return documents(result[1] as Document[])[0];

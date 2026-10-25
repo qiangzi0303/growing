@@ -30,3 +30,17 @@ test("legacy fraction and Unit 3 mastery stay visible", () => {
   ]);
   assert.equal(r.subjects[0].mastered, 1); assert.equal(r.subjects[1].mastered, 2); assert.equal(r.subjects[1].activeMinutes, 2);
 });
+
+test('today uses Shanghai midnight and cumulative time includes all valid historical dates',()=>{
+  const data=[doc('growing-activity-v1:device',{days:{'2026-10-25':{数学:120,英语:60},'2026-10-26':{数学:30,物理:90}}})];
+  const before=buildReport(data,new Date('2026-10-25T15:59:59Z'));
+  assert.equal(before.today,'2026-10-25');assert.equal(before.subjects[0].todayMinutes,2);assert.equal(before.subjects[0].totalMinutes,2);
+  const after=buildReport(data,new Date('2026-10-25T16:00:00Z'));
+  assert.equal(after.today,'2026-10-26');assert.equal(after.subjects[0].todayMinutes,.5);assert.equal(after.subjects[0].totalMinutes,2.5);
+  assert.equal(after.subjects[1].todayMinutes,0);assert.equal(after.subjects[1].totalMinutes,1);assert.equal(after.subjects[2].todayMinutes,1.5);
+});
+
+test('invalid, future and nonnumeric durations are excluded and each subject day is bounded',()=>{
+  const r=buildReport([doc('growing-activity-v1:device',{days:{'2026-02-30':{数学:60},'not-a-date':{数学:60},'2099-01-01':{数学:60},'2026-10-25':{数学:999999,英语:-3,物理:'60'}}}),doc('growing-activity-v1:other',{days:{'2026-10-25':{数学:86400}}})],new Date('2026-10-25T12:00:00Z'));
+  assert.deepEqual(r.subjects.map(s=>s.totalMinutes),[1440,0,0]);assert.deepEqual(Object.keys(r.subjects[0].dailyMinutes),['2026-10-25']);
+});

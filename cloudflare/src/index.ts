@@ -1,12 +1,14 @@
 import { connect, Store, HttpError, profile, requiresRoleSelection, type Database, type User } from "./database";
 import { hash, passwordHash, random, sessionCookie, sessionToken, verifyPassword } from "./auth";
-import { buildReport } from "./reports";
+import { studyReport } from './study-time';
 import { buildUnitReports } from "./unit-reports";
 import { Administration } from "./administration";
 import { appRelease, type ReleaseEnv } from "./releases";
 import { Rankings } from "./rankings";
 import handwriting from '../../app/src/main/assets/web/app-design/handwriting-core.js';
 import { recognize, type VisionEnv } from './handwriting-vision';
+import { QuestionBank, questionUnits } from './question-bank';
+import { QuestionAttempts } from './question-attempts';
 
 export interface Env extends ReleaseEnv, VisionEnv {
   ASSETS: Fetcher;
@@ -129,6 +131,41 @@ export function createHandler(database: (env: Env) => Database = env => {
         if (current.role !== 'Student' && current.role !== 'Admin') error(403,'当前账号没有识别权限。');
         return decorate(await recognize(await body(request,8_100_000),env,current.id,request.signal,aiFetch),request);
       }
+      if(path.startsWith('/api/question-bank/')){
+        const bank=new QuestionBank(db,current);
+        if(path==='/api/question-bank/catalog'&&request.method==='GET')return decorate(json(questionUnits),request);
+        if(path==='/api/question-bank/import'&&request.method==='POST')
+          return decorate(json(await bank.import(await body(request,2_100_000),env,request.signal,aiFetch)),request);
+        if(path==='/api/question-bank/attempts'&&request.method==='POST'){
+          const data=await body(request,4000),student=await bank.authorize(data.studentId);
+          return decorate(json(await new QuestionAttempts(db,current).record(student,data)),request);
+        }
+        if(/^\/api\/question-bank\/questions\/[a-f0-9-]{36}$/.test(path)&&request.method==='PUT'){
+          const data=await body(request,20000),student=await bank.authorize(data.studentId);
+          return decorate(json(await bank.edit(student,path.split('/').at(-1)!,data)),request);
+        }
+        const student=await bank.authorize(url.searchParams.get('studentId'));
+        if(path==='/api/question-bank/repeated'&&request.method==='GET'){
+          const page=Number(url.searchParams.get('page')||1);
+          if(!Number.isSafeInteger(page)||page<1||page>100000)error(400,'页码无效。');
+          return decorate(json(await new QuestionAttempts(db,current).repeated(student,page)),request);
+        }
+        if(path==='/api/question-bank/attempt-stats'&&request.method==='GET')
+          return decorate(json(await new QuestionAttempts(db,current).stats(student,url.searchParams.get('kind'))),request);
+        if(path==='/api/question-bank/attempts'&&request.method==='GET'){
+          const page=Number(url.searchParams.get('page')||1);
+          if(!Number.isSafeInteger(page)||page<1||page>100000)error(400,'页码无效。');
+          return decorate(json(await new QuestionAttempts(db,current).history(student,url.searchParams.get('kind'),url.searchParams.get('questionId'),page)),request);
+        }
+        if(path==='/api/question-bank/questions'&&request.method==='GET'){
+          const page=Number(url.searchParams.get('page')||1);
+          if(!Number.isSafeInteger(page)||page<1||page>10000)error(400,'页码无效。');
+          return decorate(json(await bank.list(student,url.searchParams.get('unitId')??'all',page,url.searchParams.get('repeated')==='1')),request);
+        }
+        if(/^\/api\/question-bank\/papers\/[a-f0-9-]{36}$/.test(path)&&request.method==='GET')
+          return decorate(json(await bank.paper(student,path.split('/').at(-1)!)),request);
+        error(404,'未找到题库接口。');
+      }
       const admin = new Administration(db);
       const childState = async (id: string) => {
         if (current.role !== 'Admin') return store.childState(current.id, id);
@@ -196,7 +233,7 @@ export function createHandler(database: (env: Env) => Database = env => {
           result = json(await admin.confirm(current.id, id, data.documentKey as string, data.hash as string));
         } else if (request.method === 'GET' && !path.endsWith('/confirm-redemption')) {
           const docs = await childState(id);
-          result = json(path.endsWith('/growth') ? await admin.growth(id, days(), buildReport(docs)) : await admin.rewards(id, docs));
+          result = json(path.endsWith('/growth') ? await admin.growth(id, days(), await studyReport(db,id,docs)) : await admin.rewards(id, docs));
         } else return decorate(json({ error: '不支持的请求方法。' }, 405), request);
       } else if (path.startsWith("/learn/")) {
         if (!["GET", "HEAD"].includes(request.method)) error(405, "不支持的请求方法。");
@@ -238,7 +275,7 @@ export function createHandler(database: (env: Env) => Database = env => {
       } else if (path === "/api/parent/children" && request.method === "GET") result = json(await store.children(current.id));
       else if (/^\/api\/parent\/children\/[^/]+\/report$/.test(path) && request.method === "GET") {
         const id = path.split("/")[4]; if (!uuid.test(id)) error(404, "未找到学生。");
-        result = json(buildReport(await childState(id)));
+        result = json(await studyReport(db,id,await childState(id)));
       } else result = json({ error: "未找到接口。" }, 404);
       return decorate(result, request);
     } catch (e) {

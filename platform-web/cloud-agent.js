@@ -18,7 +18,7 @@
     const now=Date.now(),seconds=Math.min(15,Math.max(0,(now-lastTick)/1000));lastTick=now;
     if(document.hidden||now-lastAction>60000||!subject)return;
     let device=raw.getItem('growing-cloud-device:'+id);if(!device){device=crypto.randomUUID();raw.setItem('growing-cloud-device:'+id,device);}
-    const key='growing-activity-v1:'+device,data=JSON.parse(raw.getItem(key)||'{"days":{}}'),date=new Date().toLocaleDateString('sv-SE');
+    const key='growing-activity-v1:'+device,data=JSON.parse(raw.getItem(key)||'{"days":{}}'),date=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'});
     data.days[date]??={};data.days[date][subject]=(data.days[date][subject]||0)+seconds;raw.setItem(key,JSON.stringify(data));
   }
   async function api(path,options={}){

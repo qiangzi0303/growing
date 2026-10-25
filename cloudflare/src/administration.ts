@@ -1,6 +1,7 @@
 import { Store, HttpError, profile, nowSql, type Database, type User } from "./database";
 import { buildReport } from "./reports";
 import { rewardEntries } from "./analytics";
+import { studyReport } from './study-time';
 
 const roleSql = `CASE WHEN a."UserId" IS NOT NULL THEN 'Admin' ELSE u."Role" END`;
 const memberFields = `u."Id" AS id,u."Username" AS username,u."DisplayName" AS "displayName",${roleSql} AS role,u."CreatedAt" AS "createdAt"`;
@@ -44,11 +45,11 @@ export class Administration {
   }
   async studentReport(id: string, days: number) {
     const student = await this.requireStudent(id);
-    const docs = await new Store(this.db).state(id), report = buildReport(docs);
+    const docs = await new Store(this.db).state(id), report = await studyReport(this.db,id,docs);
     return { student: profile(student), report, growth: await this.growth(id, days, report), rewards: await this.rewards(id, docs) };
   }
   async growth(id: string, days: number, report?: ReturnType<typeof buildReport>) {
-    report ??= buildReport(await new Store(this.db).state(id));
+    report ??= await studyReport(this.db,id,await new Store(this.db).state(id));
     const end = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
     const begin = new Date(Date.parse(end + "T00:00:00Z") - (days - 1) * 86400000).toISOString().slice(0, 10);
     const rows = await this.db.query<any>(`SELECT "Day" AS day,"Subject" AS subject,"Read" AS read,"Mastered" AS mastered,"Practice" AS practice FROM "GrowingDailySnapshots" WHERE "StudentId"=?1 AND "Day">=?2 AND "Day"<=?3 ORDER BY "Day"`, [id, begin, end]);
@@ -60,7 +61,7 @@ export class Administration {
         return { subject: s.subject, minutes: s.dailyMinutes[day] ?? 0, read: snapshot?.read ?? null, mastered: snapshot?.mastered ?? null, practice: snapshot?.practice ?? null };
       }) };
     });
-    return { timezone: "Asia/Shanghai", points, note: "时长沿用已同步课程的按日记录；掌握和练习曲线为当天最后一次成功同步的快照。缺少快照的日期留空，重学或重置可能使数值下降。" };
+    return { timezone: "Asia/Shanghai", points, note: "时长按北京时间汇总，已同步的每日时长独立保留。掌握和练习曲线为当天最后一次成功同步的快照，缺少快照的日期留空；重学或重置可能使掌握和练习数值下降。" };
   }
   async rewards(id: string, docs?: Awaited<ReturnType<Store["state"]>>) {
     const data = await rewardEntries(docs ?? await new Store(this.db).state(id));

@@ -10,9 +10,30 @@
     const memberButton=(id,label)=>`<button class="link-button" data-member="${esc(id)}">${esc(label)}</button>`;
     const pager=(data,type)=>`<div class="actions pagination"><button data-${type}-page="${data.page-1}" ${data.page<=1?'disabled':''}>上一页</button><span>第 ${data.page} 页 · 共 ${data.total} 条</span><button data-${type}-page="${data.page+1}" ${data.page*data.pageSize>=data.total?'disabled':''}>下一页</button></div>`;
     function fail(root,e){if(valid()&&root.isConnected)root.innerHTML=`<p class="warning" role="alert">${esc(e.message)}</p>`;}
+    function duration(minutes){const seconds=Math.floor(Math.max(0,Number(minutes)||0)*60+.0001),hours=Math.floor(seconds/3600),mins=Math.floor(seconds%3600/60),secs=seconds%60;return `${hours?hours+'小时 ':''}${mins}分 ${secs}秒`;}
+    function studyTime(data){return `<section class="panel" data-study-time><h2>各科学习时间</h2><p class="muted">今日：${esc(data.today||'—')}（北京时间）</p>${table(['科目','今日有效学习时间','累计有效学习时间'],data.subjects.map(s=>`<tr><td>${esc(s.subject)}</td><td>${duration(s.todayMinutes)}</td><td>${duration(s.totalMinutes??s.activeMinutes)}</td></tr>`))}<p class="muted">${esc(data.timeNote||'显示最近同步的学习时长，离线未同步时间暂不显示。')}</p></section>`;}
     function listen(root,type,fn){root.addEventListener(type,fn,{signal:controller.signal});}
-    function summary(data){return `<p class="muted">最近同步：${date(data.lastSyncedAt)}</p><div class="cards">${data.subjects.map(s=>`<article class="panel"><span class="badge">${esc(s.subject)}</span><h2>学习记录</h2><span class="metric">${Number(s.mastered)} 项</span><p>已掌握 · 已读/已记录 ${Number(s.read)} 项<br>练习记录 ${Number(s.practice)}<br>有效/活跃时长 ${Number(s.activeMinutes).toFixed(1)} 分钟</p></article>`).join('')}</div><p class="muted">${esc(data.note)}</p>${data.warnings.map(w=>`<p class="warning">${esc(w)}</p>`).join('')}`;}
+    function summary(data){return `<p class="muted">最近同步：${date(data.lastSyncedAt)}</p><div class="cards">${data.subjects.map(s=>`<article class="panel"><span class="badge">${esc(s.subject)}</span><h2>学习记录</h2><span class="metric">${Number(s.mastered)} 项</span><p>已掌握 · 已读/已记录 ${Number(s.read)} 项<br>练习记录 ${Number(s.practice)}</p></article>`).join('')}</div><p class="muted">${esc(data.note)}</p>${data.warnings.map(w=>`<p class="warning">${esc(w)}</p>`).join('')}`;}
     function ledgerTable(rows,links){return table(['学生','确认家长（账号）','奖励','单元 / 设备原称呼','设备时间','云端确认时间'],rows.map(r=>`<tr><td>${links?memberButton(r.studentId,r.studentName):esc(r.studentName||'当前学生')}</td><td>${links?memberButton(r.parentId,r.parentName):esc(r.parentName)}<br><small>${esc(r.parentUsername||'')}</small></td><td>${amount(r)}</td><td>${esc(r.documentKey.split(':')[1])}<br><small>${esc(r.claimedParent)}（自填）</small></td><td>${date(r.claimedAt)}</td><td>${date(r.confirmedAt)}</td></tr>`));}
+    async function repeatedQuestions(root,id,current){
+      let page=1,sequence=0;
+      const active=()=>current()&&root.isConnected;
+      async function load(){
+        const request=++sequence;root.innerHTML='<h2>反复错题（做错 ≥2 次）</h2><p role="status">正在读取…</p>';
+        try{
+          const [data,catalog]=await Promise.all([api('/question-bank/repeated?'+new URLSearchParams({studentId:id,page})),api('/question-bank/catalog')]);if(!active()||request!==sequence)return;
+          root.innerHTML=`<h2>反复错题（做错 ≥2 次）</h2><p>共 ${data.total} 题；按累计错误次数排序，做对后仍保留错误历史。</p>${data.rows.map((q,i)=>`<article class="bank-question"><p><strong>${esc(q.kind==='math'?'数学单元资料':'拍照题库')} · 第 ${esc(q.number)} 题 · 累计做错 ${q.wrongCount} 次</strong></p><p>${esc(q.title)}</p><p class="muted">${esc((()=>{const u=catalog.find(u=>u.id===q.unitId);return u?u.subjectName+' · '+u.termName+' · '+u.title:'待归类';})())} · 作答 ${q.totalCount} 次 · 做对 ${q.correctCount} 次 · 最近 ${date(q.lastAt)}</p><button type="button" data-repeated-history="${i}">查看最近20次作答</button><div data-repeated-history-list="${i}"></div></article>`).join('')||'<p>尚无记录的反复错题。</p>'}<div class="actions"><button data-repeat-page="${page-1}" ${page<=1?'disabled':''}>上一页</button><span>第 ${page} 页</span><button data-repeat-page="${page+1}" ${page*20>=data.total?'disabled':''}>下一页</button></div>`;
+          root.querySelectorAll('[data-repeat-page]').forEach(b=>b.addEventListener('click',()=>{page=Number(b.dataset.repeatPage);load();}));
+          root.querySelectorAll('[data-repeated-history]').forEach(b=>b.addEventListener('click',async()=>{
+            const i=Number(b.dataset.repeatedHistory),q=data.rows[i],target=root.querySelector(`[data-repeated-history-list="${i}"]`);b.disabled=true;
+            try{const history=await api('/question-bank/attempts?'+new URLSearchParams({studentId:id,kind:q.kind,questionId:q.questionId}));if(!active()||request!==sequence)return;
+              target.innerHTML=`<ol>${history.rows.map(r=>`<li>${date(r.at)} · ${r.correct?'做对':'做错'}</li>`).join('')}</ol>`;
+            }catch(e){if(active()&&request===sequence)target.textContent='读取失败：'+e.message;}finally{if(b.isConnected)b.disabled=false;}
+          }));
+        }catch(e){if(active()&&request===sequence)root.innerHTML=`<h2>反复错题</h2><p class="warning">读取失败：${esc(e.message)}</p>`;}
+      }
+      await load();
+    }
     async function student(root,id,isAdmin=false){
       const request=++studentView;root.innerHTML='<p role="status">正在读取学习情况…</p>';
       const current=()=>valid()&&root.isConnected&&request===studentView;
@@ -21,11 +42,14 @@
         const all=isAdmin?await api(prefix+'/report?days=30'):null;
         const [report,growth,rewards]=all?[all.report,all.growth,all.rewards]:await Promise.all([api(prefix+'/report'),api(prefix+'/growth?days=30'),api(prefix+'/rewards')]);
         if(!current())return;
-        root.innerHTML=`${all?`<h2>${esc(all.student.displayName)}的学习情况</h2>`:''}${summary(report)}<section class="panel growth"><h2>成长曲线</h2><div class="actions chart-controls"><label>时间范围<select data-days><option value="7">近 7 天</option><option value="30" selected>近 30 天</option><option value="90">近 90 天</option></select></label><label>学科<select data-subject><option>数学</option><option>英语</option><option>物理</option></select></label><label>指标<select data-metric><option value="mastered">已掌握（项）</option><option value="read">已读 / 已记录（项）</option><option value="practice">练习记录（条）</option><option value="minutes">学习时长（分钟）</option></select></label></div><div data-chart></div><p class="muted">${esc(growth.note)}</p></section><section class="panel"><h2>奖励与家长核销</h2><p class="muted">${esc(rewards.note)}</p><div data-rewards></div></section><button data-refresh-report>刷新学习情况</button>`;
+        root.innerHTML=`${all?`<h2>${esc(all.student.displayName)}的学习情况</h2>`:''}${summary(report)}${studyTime(report)}<section class="panel growth"><h2>成长曲线</h2><div class="actions chart-controls"><label>时间范围<select data-days><option value="7">近 7 天</option><option value="30" selected>近 30 天</option><option value="90">近 90 天</option></select></label><label>学科<select data-subject><option>数学</option><option>英语</option><option>物理</option></select></label><label>指标<select data-metric><option value="mastered">已掌握（项）</option><option value="read">已读 / 已记录（项）</option><option value="practice">练习记录（条）</option><option value="minutes">学习时长（分钟）</option></select></label></div><div data-chart></div><p class="muted">${esc(growth.note)}</p></section><section class="panel"><h2>奖励与家长核销</h2><p class="muted">${esc(rewards.note)}</p><div data-rewards></div></section><button data-refresh-report>刷新学习情况</button>`;
         const rankingRoot=document.createElement('section');root.insertBefore(rankingRoot,root.querySelector('.growth'));
         GrowingRankings.mount(rankingRoot,api,esc,current,prefix+'/rankings','孩子的排行榜');
         const handwritingRoot=document.createElement('section');root.append(handwritingRoot);
         GrowingHandwritingView.mount(handwritingRoot,api,esc,current,prefix);
+        const repeatedRoot=document.createElement('section');repeatedRoot.className='panel';repeatedRoot.dataset.repeatedQuestions='';
+        root.insertBefore(repeatedRoot,root.querySelector('.growth'));
+        repeatedQuestions(repeatedRoot,id,current);
         let chartData=growth,chartRequest=0;
         const draw=()=>{
           const subject=root.querySelector('[data-subject]').value,metric=root.querySelector('[data-metric]').value;
