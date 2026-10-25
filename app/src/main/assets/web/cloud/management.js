@@ -1,7 +1,7 @@
 (()=>{
   'use strict';
   const roles={Student:'学生',Parent:'家长',Admin:'管理员'};
-  window.GrowingManagement={create(api,esc,alive){
+  window.GrowingManagement={create(api,esc,alive,relogin=()=>{}){
     let disposed=false,view=0,studentView=0;
     const controller=new AbortController(),valid=()=>!disposed&&alive();
     const date=v=>v?esc(new Date(v).toLocaleString('zh-CN')):'—';
@@ -67,7 +67,7 @@
       }catch(e){if(current())fail(root,e);}
     }
     async function admin(root){
-      root.innerHTML='<h1>管理中心</h1><p class="muted">查看全站会员、学生进步与家长核销确认。</p><div id="admin-overview" class="cards"></div><nav class="actions admin-tabs" aria-label="管理栏目"><button data-tab="members" class="primary">注册会员</button><button data-tab="ledger">核销确认账本</button></nav><section id="management-body"></section>';
+      root.innerHTML='<header class="admin-heading"><h1>管理中心</h1><p class="muted">全站会员、学生进步与家长核销确认</p></header><div id="admin-overview" class="cards"></div><nav class="actions admin-tabs" aria-label="管理栏目"><button data-tab="members" class="primary">注册会员</button><button data-tab="ledger">核销确认账本</button></nav><section id="management-body"></section>';
       const body=root.querySelector('#management-body');let query='',role='',memberPage=1,ledgerPage=1,filterStudent='',filterParent='';
       const selected=tab=>{root.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('primary',b.dataset.tab===tab);b.setAttribute('aria-pressed',String(b.dataset.tab===tab));});};
       async function overview(){
@@ -78,7 +78,7 @@
       async function members(){
         const seq=++view;studentView++;selected('members');body.innerHTML='<p role="status">正在查询会员…</p>';
         try{const data=await api('/admin/members?'+new URLSearchParams({q:query,role,page:memberPage}));if(!valid()||seq!==view)return;
-          body.innerHTML=`<section class="panel"><h2>注册会员</h2><form id="member-search" class="actions filters"><label>用户名或称呼<input name="q" maxlength="40" value="${esc(query)}" placeholder="搜索会员"></label><label>身份<select name="role">${Object.entries({'':'全部身份',...roles}).map(([key,label])=>`<option value="${key}" ${key===role?'selected':''}>${label}</option>`).join('')}</select></label><button type="submit" class="primary">查询</button></form>${table(['会员','身份','注册时间','最近同步','掌握项数','关联人数'],data.rows.map(m=>`<tr><td>${memberButton(m.id,m.displayName)}<br><small>${esc(m.username)}</small></td><td>${roles[m.role]}</td><td>${date(m.createdAt)}</td><td>${date(m.lastSyncedAt)}</td><td>${m.mastered===null?'尚无快照':m.mastered}</td><td>${m.connections}</td></tr>`))}${pager(data,'members')}<p class="muted">掌握项数来自最近一天的三科快照；没有快照时不推算历史。</p></section>`;
+          body.innerHTML=`<section class="panel admin-data-panel"><form id="member-search" class="actions filters"><label>用户名或称呼<input name="q" maxlength="40" value="${esc(query)}" placeholder="搜索会员"></label><label>身份<select name="role">${Object.entries({'':'全部身份',...roles}).map(([key,label])=>`<option value="${key}" ${key===role?'selected':''}>${label}</option>`).join('')}</select></label><button type="submit" class="primary">查询</button><button type="button" data-reset-search>重置</button></form><div class="admin-table-heading"><h2>注册会员</h2><span class="muted">共 ${Number(data.total)} 位会员</span></div>${table(['会员','身份','注册时间','最近同步','掌握项数','关联人数'],data.rows.map(m=>`<tr><td>${memberButton(m.id,m.displayName)}<br><small>${esc(m.username)}</small></td><td><span class="badge">${roles[m.role]}</span></td><td>${date(m.createdAt)}</td><td>${date(m.lastSyncedAt)}</td><td>${m.mastered===null?'尚无快照':m.mastered}</td><td>${m.connections}</td></tr>`))}${pager(data,'members')}<p class="muted admin-table-note">掌握项数来自最近一天的三科快照；没有快照时不推算历史。</p></section>`;
         }catch(e){if(seq===view)fail(body,e);}
       }
       async function ledger(){
@@ -91,13 +91,31 @@
         const seq=++view;studentView++;body.innerHTML='<p role="status">正在读取会员详情…</p>';
         try{const data=await api('/admin/members/'+id);if(!valid()||seq!==view)return;
           const m=data.member,relations=m.role==='Student'?data.parents:data.children;
-          body.innerHTML=`<section class="panel"><button data-back>← 返回会员列表</button><h2>${esc(m.displayName)} <span class="badge">${roles[m.role]}</span></h2><p>${esc(m.username)} · 注册于 ${date(m.createdAt)}</p><h3>${m.role==='Student'?'关联家长':'关联学生'}</h3><div class="actions">${relations.map(c=>memberButton(c.id,c.displayName)).join('')||'<span class="muted">尚无关联</span>'}</div><p><button data-member-ledger="${m.id}" data-role="${m.role}">查看此会员的核销确认账本</button></p></section><section id="member-learning"></section>`;
+          body.innerHTML=`<section class="panel"><button data-back>← 返回会员列表</button><h2>${esc(m.displayName)} <span class="badge">${roles[m.role]}</span></h2><p>${esc(m.username)} · 注册于 ${date(m.createdAt)}</p><h3>${m.role==='Student'?'关联家长':'关联学生'}</h3><div class="actions">${relations.map(c=>memberButton(c.id,c.displayName)).join('')||'<span class="muted">尚无关联</span>'}</div><p><button data-member-ledger="${m.id}" data-role="${m.role}">查看此会员的核销确认账本</button></p></section><section class="panel"><h2>修改会员密码</h2><p>正在修改 <strong>${esc(m.displayName)}（${esc(m.username)}）</strong> 的登录密码。保存后，该会员需要在各设备重新登录；学习记录、奖励和账号关联保留。</p><form id="member-password" data-member-id="${esc(m.id)}"><label>新密码<input name="newPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><label>确认新密码<input name="confirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><button type="submit" class="primary">保存新密码</button><p data-password-status role="status" aria-live="polite"></p></form></section><section id="member-learning"></section>`;
           if(m.role==='Student')await student(body.querySelector('#member-learning'),id,true);
           else body.querySelector('#member-learning').innerHTML=`<section class="panel"><h2>最近家长确认记录</h2>${ledgerTable(data.confirmations.rows,true)}${data.confirmations.total>20?'<p class="muted">更多记录请查看此会员的核销确认账本。</p>':''}</section>`;
         }catch(e){if(seq===view)fail(body,e);}
       }
-      listen(root,'submit',e=>{if(e.target.id!=='member-search')return;e.preventDefault();const data=new FormData(e.target);query=String(data.get('q')).trim();role=String(data.get('role'));memberPage=1;members();});
+      listen(root,'submit',async e=>{
+        if(e.target.id==='member-password'){
+          e.preventDefault();const form=e.target;if(!valid()||form.dataset.busy)return;
+          const status=form.querySelector('[data-password-status]'),button=form.querySelector('button[type=submit]'),data=Object.fromEntries(new FormData(form));
+          if(data.newPassword.length<8||data.newPassword.length>128||!data.newPassword.trim()){status.textContent='请输入 8—128 位且非全空白的新密码。';return;}
+          if(data.newPassword!==data.confirmPassword){status.textContent='两次输入的新密码不一致。';return;}
+          const seq=view;form.dataset.busy='true';button.disabled=true;button.textContent='正在保存…';form.querySelectorAll('input').forEach(i=>i.disabled=true);status.className='';status.textContent='正在修改密码…';
+          try{
+            const result=await api('/admin/members/'+encodeURIComponent(form.dataset.memberId)+'/password',{method:'POST',body:JSON.stringify(data)});
+            if(!valid())return;
+            if(result.reauthenticate){relogin();return;}
+            if(seq===view&&form.isConnected){form.reset();status.textContent='密码已修改，该会员请使用新密码重新登录。';}
+          }catch(error){if(valid()&&seq===view&&form.isConnected){status.className='warning';status.textContent='未能确认修改结果：'+error.message+'。请保留当前页面，检查后重试。';}}
+          finally{if(form.isConnected){delete form.dataset.busy;button.disabled=false;button.textContent='保存新密码';form.querySelectorAll('input').forEach(i=>i.disabled=false);}}
+          return;
+        }
+        if(e.target.id!=='member-search')return;e.preventDefault();const data=new FormData(e.target);query=String(data.get('q')).trim();role=String(data.get('role'));memberPage=1;members();
+      });
       listen(root,'click',e=>{const b=e.target.closest('button');if(!b||!valid())return;
+        if(b.hasAttribute('data-reset-search')){query='';role='';memberPage=1;members();}
         if(b.dataset.tab==='members'||b.hasAttribute('data-back'))members();
         if(b.dataset.tab==='ledger'){filterStudent='';filterParent='';ledgerPage=1;ledger();overview();}
         if(b.dataset.member)member(b.dataset.member);

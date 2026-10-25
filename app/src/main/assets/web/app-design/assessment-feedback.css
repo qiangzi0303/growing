@@ -1,0 +1,5 @@
+/* Red indicates an explicit error, missing evidence, or a criterion below its maximum. */
+:root{--assessment-gap:#ff9999}
+.assessment-gap,.assessment-gap p,.assessment-gap li,.assessment-gap strong,.assessment-gap span{color:var(--assessment-gap)!important}
+.assessment-gap-title{color:var(--assessment-gap);font-weight:700}
+.assessment-gap-note{border-left:3px solid var(--assessment-gap);padding-left:12px}

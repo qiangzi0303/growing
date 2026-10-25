@@ -1,4 +1,6 @@
 import catalogData from './ranking-rules.json';
+import mathFeedback from '../../app/src/main/assets/web/app-design/math-feedback.js';
+import wordMastery from '../../app/src/main/assets/web/app-design/word-mastery-rules.js';
 import englishData from './english-rules.json';
 import diagnosisData from './diagnosis-rules.json';
 import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
@@ -9,8 +11,7 @@ import type { Document } from './database';
 type Data = Record<string, any>;
 const obj = (v: any): Data => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
 const arr = (v: any): any[] => Array.isArray(v) ? v : [];
-const grade = (a: any) => Number.isInteger(a?.score) && a.score >= 0 && a.score <= 10 &&
-  typeof a.feedback === 'string' && Array.isArray(a.criticalErrors) && a.criticalErrors.every((v: any) => typeof v === 'string');
+const grade = (a: any) => mathFeedback.validGrade(a);
 const pass = (a: any) => grade(a) && a.score >= 8 && !a.criticalErrors.length;
 const validDay = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v;
 const dayOf = (v: any) => {
@@ -20,6 +21,7 @@ const dayOf = (v: any) => {
 };
 const norm = (v: any) => String(v ?? '').trim().toLowerCase().replace(/[’‘]/g, "'").replace(/…/g, '...').replace(/\s*\.\.\.\s*/g, ' ... ').replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ').trim();
 function wordPassed(w: any, r: any, legacy = false) {
+  if(r?.protocol==='word-mastery-v2')return wordMastery.passed(w,r);
   const variants: Data = { humour: ['humour', 'humor'], programme: ['programme', 'program'], 'sec.': ['sec.', 'sec'] };
   const oldNorm = (v: string) => v.normalize('NFKC').trim().replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
   return r?.protocol === 'seven-recalls' && arr(r.answers).length === 7 && r.answers.every((a: any) => typeof a === 'string' && (legacy ?

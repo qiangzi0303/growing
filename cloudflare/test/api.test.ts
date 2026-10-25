@@ -404,6 +404,62 @@ test("admin member filters, pagination and details expose safe profiles and fami
   assert.equal((await call('/api/admin/members/not-a-uuid','GET',undefined,a.token)).status,404);
   assert.equal((await call('/api/admin/students/'+p.user.id+'/report','GET',undefined,a.token)).status,404);
 });
+test('admin password changes revoke all target sessions, preserve student records and reject stale login proofs',async()=>{
+  const a=await administrator(),s=await register(),p=await register('Parent');await bindStudent(s,p);
+  const second=await (await call('/api/auth/login','POST',{username:s.name,password})).json() as any;
+  await call('/api/student/state/growing-math-lessons-v1','PUT',{revision:0,value:'{"topics":{"sentinel":{"seen":true}}}'},s.token);
+  const before=await new Store(db).state(s.user.id),oldHash=(await new Store(db).findUser(s.name.toUpperCase()))!.passwordHash;
+  const newPassword='Changed-Test-Only-1987!';
+  const changed=await call('/api/admin/members/'+s.user.id+'/password','POST',{newPassword,confirmPassword:newPassword},a.token);
+  assert.equal(changed.status,200);assert.deepEqual(await changed.json(),{changed:true,reauthenticate:false});
+  for(const token of [s.token,second.token])assert.equal((await call('/api/auth/me','GET',undefined,token)).status,401);
+  assert.equal((await call('/api/auth/login','POST',{username:s.name,password})).status,401);
+  const logged=await (await call('/api/auth/login','POST',{username:s.name,password:newPassword})).json() as any;
+  assert.equal(logged.user.id,s.user.id);assert.equal(logged.user.role,'Student');
+  assert.deepEqual(await new Store(db).state(s.user.id),before);assert.equal((await new Store(db).parents(s.user.id))[0].id,p.user.id);
+  const updated=(await new Store(db).findUser(s.name.toUpperCase()))!;
+  assert.notEqual(updated.passwordHash,oldHash);assert.ok(!updated.passwordHash.includes(newPassword));assert(await verifyPassword(newPassword,updated.passwordHash));
+  await assert.rejects(new Store(db).createSession(await hash('stale-login-proof'),s.user.id,new Date(Date.now()+60000).toISOString(),oldHash),/登录信息已变更/);
+  assert.equal((await call('/api/auth/me','GET',undefined,a.token)).status,200);
+});
+
+test('password reset requires administrator and matching valid passwords; rejected input leaves credentials intact',async()=>{
+  const a=await administrator(),s=await register(),p=await register('Parent'),path='/api/admin/members/'+s.user.id+'/password';
+  const input={newPassword:'Valid-Test-Only-1987!',confirmPassword:'Valid-Test-Only-1987!'};
+  assert.equal((await call(path,'POST',input)).status,401);
+  for(const token of [s.token,p.token])assert.equal((await call(path,'POST',input,token)).status,403);
+  assert.equal((await call(path,'POST',input,a.token,{'X-Growing-Client':''})).status,400);
+  for(const data of [{},{newPassword:123,confirmPassword:123},{newPassword:'short',confirmPassword:'short'},{newPassword:' '.repeat(8),confirmPassword:' '.repeat(8)},{newPassword:'x'.repeat(129),confirmPassword:'x'.repeat(129)},{...input,confirmPassword:'different'}])
+    assert.equal((await call(path,'POST',data,a.token)).status,400);
+  assert.equal((await call('/api/admin/members/'+crypto.randomUUID()+'/password','POST',input,a.token)).status,404);
+  assert.equal((await call('/api/admin/members/not-a-uuid/password','POST',input,a.token)).status,404);
+  assert.equal((await call(path,'GET',undefined,a.token)).status,404);
+  assert.equal((await call('/api/auth/me','GET',undefined,s.token)).status,200);
+  assert.equal((await call('/api/auth/login','POST',{username:s.name,password})).status,200);
+});
+
+test('admins can reset parent, other admin and own passwords without changing roles or family links',async()=>{
+  const a=await administrator(),p=await register('Parent'),other=await administrator(),s=await register();await bindStudent(s,p);
+  const newPassword='New-Role-Test-Only-1987!';
+  for(const member of [p,other,a]){
+    const response=await call('/api/admin/members/'+member.user.id+'/password','POST',{newPassword,confirmPassword:newPassword},a.token);
+    assert.equal(response.status,200);assert.equal((await response.json() as any).reauthenticate,member===a);
+    if(member===a)assert.ok(response.headers.get('Set-Cookie')?.includes('Max-Age=0'));
+    assert.equal((await call('/api/auth/me','GET',undefined,member.token)).status,401);
+    const login=await call('/api/auth/login','POST',{username:member.name,password:newPassword});assert.equal(login.status,200);
+    const result=await login.json() as any;assert.equal(result.user.role,member===p?'Parent':'Admin');
+    if(member===p)assert.equal((await (await call('/api/parent/children','GET',undefined,result.token)).json() as any[])[0].id,s.user.id);
+  }
+});
+
+test('password and session revocation roll back together when the database transaction fails',async()=>{
+  const s=await register(),original=(await new Store(db).findUser(s.name.toUpperCase()))!.passwordHash;
+  const failing=new Store({...db,batch:statements=>db.batch([...statements,{sql:'SELECT * FROM "__password_reset_test_missing_table__"'}])});
+  await assert.rejects(failing.changePassword(s.user.id,await passwordHash('Rollback-Test-Only-1987!')));
+  assert.equal((await new Store(db).findUser(s.name.toUpperCase()))!.passwordHash,original);
+  assert.equal((await call('/api/auth/me','GET',undefined,s.token)).status,200);
+});
+
 test("daily growth snapshots use Shanghai dates, preserve gaps and allow reset decreases", async () => {
   const a=await administrator(),s=await register(),p=await register('Parent');await bindStudent(s,p);
   const path='/api/student/state/growing-math-lessons-v1';

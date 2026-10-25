@@ -57,7 +57,8 @@
     try{
       const files=subject==='english'?unit.number===3?['english-engine.js','unit-summary-legacy.js']:['english-engine.js','english-vocabulary.js','english-lessons.js']:subject==='physics'?['physics-builder.js','physics-sound.js','physics-light.js','physics-lenses.js','physics-thermal.js','physics-motion.js','physics-data.js','diagnosis-engine.js']:['knowledge-data.js','math-builder.js','math-upper.js','math-lower.js','math-data.js','diagnosis-engine.js'];
       if(unit.id==='math-8b-10')files.push('handwriting-core.js','fraction-paper-tasks.js');
-      for(const f of files)await load(f);refresh();
+      if(subject==='english')await load('word-mastery-rules.js?v=1');
+      for(const f of files)await load(subject==='english'?f+'?v=word-mastery-2':f);refresh();
       window.addEventListener('pageshow',refresh);window.addEventListener('storage',refresh);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
     }catch(e){fail(e.message);}
   })();

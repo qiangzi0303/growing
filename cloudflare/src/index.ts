@@ -105,7 +105,7 @@ export function createHandler(database: (env: Env) => Database = env => {
           user = found!;
         }
         const token = random(32), expiresAt = new Date(Date.now() + 14 * 86400_000).toISOString();
-        await store.createSession(await hash(token), user.id, expiresAt);
+        await store.createSession(await hash(token), user.id, expiresAt, user.passwordHash);
         return decorate(json({ user: profile(user), token, expiresAt }, 200, { "Set-Cookie": sessionCookie(token, request, expiresAt) }), request);
       }
       const token = sessionToken(request);
@@ -171,6 +171,13 @@ export function createHandler(database: (env: Env) => Database = env => {
         const q = url.searchParams.get('q') ?? '', role = url.searchParams.get('role') ?? '';
         if (q.length > 40 || !['','Student','Parent','Admin'].includes(role)) error(400, '筛选条件无效。');
         result = json(await admin.members(q, role, page()));
+      } else if (/^\/api\/admin\/members\/[^/]+\/password$/.test(path) && request.method === 'POST') {
+        const id = path.split('/')[4]; if (!uuid.test(id)) error(404, '未找到会员。');
+        const data = await body(request, 4096);
+        if (typeof data.newPassword !== 'string' || data.newPassword.length < 8 || data.newPassword.length > 128 || !data.newPassword.trim()) error(400, '请输入 8—128 位且非全空白的新密码。');
+        if (data.confirmPassword !== data.newPassword) error(400, '两次输入的新密码不一致。');
+        await store.changePassword(id, await passwordHash(data.newPassword as string));
+        result = json({changed:true,reauthenticate:id===current.id}, 200, id===current.id?{'Set-Cookie':sessionCookie('',request)}:undefined);
       } else if (/^\/api\/admin\/members\/[^/]+$/.test(path) && request.method === 'GET') {
         const id = path.split('/')[4]; if (!uuid.test(id)) error(404, '未找到会员。');
         result = json(await admin.member(id));

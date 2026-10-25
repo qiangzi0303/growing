@@ -3,195 +3,368 @@
     "words": [
       {
         "id": "friendship",
-        "word": "friendship"
+        "word": "friendship",
+        "meaning": "n. 友谊",
+        "pos": "n.",
+        "plurals": [
+          "friendships"
+        ]
       },
       {
         "id": "honest",
-        "word": "honest"
+        "word": "honest",
+        "meaning": "adj. 诚实的，正直的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "cheerful",
-        "word": "cheerful"
+        "word": "cheerful",
+        "meaning": "adj. 快乐的，高兴的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "humorous",
-        "word": "humorous"
+        "word": "humorous",
+        "meaning": "adj. 幽默的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "caring",
-        "word": "caring"
+        "word": "caring",
+        "meaning": "adj. 关心他人的，体贴人的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "truth",
-        "word": "truth"
+        "word": "truth",
+        "meaning": "n. 事实",
+        "pos": "n.",
+        "plurals": [
+          "truths"
+        ]
       },
       {
         "id": "joke",
-        "word": "joke"
+        "word": "joke",
+        "meaning": "n. 笑话，玩笑",
+        "pos": "n.",
+        "plurals": [
+          "jokes"
+        ]
       },
       {
         "id": "laugh",
-        "word": "laugh"
+        "word": "laugh",
+        "meaning": "v. 笑，发笑",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "unhappy",
-        "word": "unhappy"
+        "word": "unhappy",
+        "meaning": "adj. 不开心的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "lie",
-        "word": "lie"
+        "word": "lie",
+        "meaning": "vi. 撒谎",
+        "pos": "vi.",
+        "plurals": []
       },
       {
         "id": "person",
-        "word": "person"
+        "word": "person",
+        "meaning": "n. 人，个人",
+        "pos": "n.",
+        "plurals": [
+          "people",
+          "persons"
+        ]
       },
       {
         "id": "thought",
-        "word": "thought"
+        "word": "thought",
+        "meaning": "n. 想法，主意",
+        "pos": "n.",
+        "plurals": [
+          "thoughts"
+        ]
       },
       {
         "id": "seat",
-        "word": "seat"
+        "word": "seat",
+        "meaning": "n. 座位",
+        "pos": "n.",
+        "plurals": [
+          "seats"
+        ]
       },
       {
         "id": "schoolwork",
-        "word": "schoolwork"
+        "word": "schoolwork",
+        "meaning": "n. 学校作业",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "patient",
-        "word": "patient"
+        "word": "patient",
+        "meaning": "adj. 有耐心的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "understand",
-        "word": "understand"
+        "word": "understand",
+        "meaning": "v. 理解",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "bit",
-        "word": "bit"
+        "word": "bit",
+        "meaning": "n. 小量",
+        "pos": "n.",
+        "plurals": [
+          "bits"
+        ]
       },
       {
         "id": "a little bit",
-        "word": "a little bit"
+        "word": "a little bit",
+        "meaning": "有点儿",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "funny",
-        "word": "funny"
+        "word": "funny",
+        "meaning": "adj. 好笑的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "sense",
-        "word": "sense"
+        "word": "sense",
+        "meaning": "n. 理解力；感觉",
+        "pos": "n.",
+        "plurals": [
+          "senses"
+        ]
       },
       {
         "id": "humour",
-        "word": "humour"
+        "word": "humour",
+        "meaning": "n. 幽默（美式 humor）",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "sense of humour",
-        "word": "sense of humour"
+        "word": "sense of humour",
+        "meaning": "幽默感",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "bored",
-        "word": "bored"
+        "word": "bored",
+        "meaning": "adj. 厌倦的，烦闷的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "energetic",
-        "word": "energetic"
+        "word": "energetic",
+        "meaning": "adj. 精力充沛的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "active",
-        "word": "active"
+        "word": "active",
+        "meaning": "adj. 积极的，活跃的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "encourage",
-        "word": "encourage"
+        "word": "encourage",
+        "meaning": "vt. 鼓励",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "believe",
-        "word": "believe"
+        "word": "believe",
+        "meaning": "vt. 相信",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "secret",
-        "word": "secret"
+        "word": "secret",
+        "meaning": "n. 秘密",
+        "pos": "n.",
+        "plurals": [
+          "secrets"
+        ]
       },
       {
         "id": "keep secrets",
-        "word": "keep secrets"
+        "word": "keep secrets",
+        "meaning": "保密",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "worse",
-        "word": "worse"
+        "word": "worse",
+        "meaning": "adj. 更差的（bad的比较级）",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "worst",
-        "word": "worst"
+        "word": "worst",
+        "meaning": "adj. 最差的（bad的最高级）",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "height",
-        "word": "height"
+        "word": "height",
+        "meaning": "n. 身高，高度",
+        "pos": "n.",
+        "plurals": [
+          "heights"
+        ]
       },
       {
         "id": "sec.",
-        "word": "sec."
+        "word": "sec.",
+        "meaning": "abbr. 秒（second）",
+        "pos": "abbr.",
+        "plurals": []
       },
       {
         "id": "test",
-        "word": "test"
+        "word": "test",
+        "meaning": "n. 测验，考查",
+        "pos": "n.",
+        "plurals": [
+          "tests"
+        ]
       },
       {
         "id": "badminton",
-        "word": "badminton"
+        "word": "badminton",
+        "meaning": "n. 羽毛球运动",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "however",
-        "word": "however"
+        "word": "however",
+        "meaning": "adv. 然而",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "balloon",
-        "word": "balloon"
+        "word": "balloon",
+        "meaning": "n. 气球",
+        "pos": "n.",
+        "plurals": [
+          "balloons"
+        ]
       },
       {
         "id": "scared",
-        "word": "scared"
+        "word": "scared",
+        "meaning": "adj. 害怕，恐惧",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "fight",
-        "word": "fight"
+        "word": "fight",
+        "meaning": "v. 搏斗，打斗；为……斗争",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "dead",
-        "word": "dead"
+        "word": "dead",
+        "meaning": "adj. 死的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "attack",
-        "word": "attack"
+        "word": "attack",
+        "meaning": "v. 攻击，袭击",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "danger",
-        "word": "danger"
+        "word": "danger",
+        "meaning": "n. 危险",
+        "pos": "n.",
+        "plurals": [
+          "dangers"
+        ]
       },
       {
         "id": "brave",
-        "word": "brave"
+        "word": "brave",
+        "meaning": "adj. 勇敢的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "get along with sb",
-        "word": "get along with sb"
+        "word": "get along with sb",
+        "meaning": "与某人和睦相处，关系良好",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "nod",
-        "word": "nod"
+        "word": "nod",
+        "meaning": "v. 点头",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "once",
-        "word": "once"
+        "word": "once",
+        "meaning": "conj. 一……就，一旦",
+        "pos": "conj.",
+        "plurals": []
       },
       {
         "id": "feeling",
-        "word": "feeling"
+        "word": "feeling",
+        "meaning": "n. 情感，感觉",
+        "pos": "n.",
+        "plurals": [
+          "feelings"
+        ]
       },
       {
         "id": "thoughtful",
-        "word": "thoughtful"
+        "word": "thoughtful",
+        "meaning": "adj. 体贴的；深思的",
+        "pos": "adj.",
+        "plurals": []
       }
     ],
     "lessons": [
@@ -233,219 +406,428 @@
     "words": [
       {
         "id": "plastic",
-        "word": "plastic"
+        "word": "plastic",
+        "meaning": "adj. 塑料的；n. 塑料",
+        "pos": "adj. / n.",
+        "plurals": []
       },
       {
         "id": "cheap",
-        "word": "cheap"
+        "word": "cheap",
+        "meaning": "adj. 便宜的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "environment",
-        "word": "environment"
+        "word": "environment",
+        "meaning": "n. 环境",
+        "pos": "n.",
+        "plurals": [
+          "environments"
+        ]
       },
       {
         "id": "few",
-        "word": "few"
+        "word": "few",
+        "meaning": "det./adj./pron. 不多，很少",
+        "pos": "det. / adj. / pron.",
+        "plurals": []
       },
       {
         "id": "drama",
-        "word": "drama"
+        "word": "drama",
+        "meaning": "n. 戏剧，戏，剧",
+        "pos": "n.",
+        "plurals": [
+          "dramas"
+        ]
       },
       {
         "id": "foreign",
-        "word": "foreign"
+        "word": "foreign",
+        "meaning": "adj. 外国的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "as ... as ...",
-        "word": "as ... as ..."
+        "word": "as ... as ...",
+        "meaning": "和……一样……",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "French",
-        "word": "French"
+        "word": "French",
+        "meaning": "n. 法语；法国人",
+        "pos": "n.",
+        "plurals": [
+          "the French"
+        ]
       },
       {
         "id": "German",
-        "word": "German"
+        "word": "German",
+        "meaning": "n. 德语；德国人",
+        "pos": "n.",
+        "plurals": [
+          "Germans"
+        ]
       },
       {
         "id": "forward",
-        "word": "forward"
+        "word": "forward",
+        "meaning": "adv. 向前",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "look forward to",
-        "word": "look forward to"
+        "word": "look forward to",
+        "meaning": "期待",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "go",
-        "word": "go"
+        "word": "go",
+        "meaning": "n. 尝试",
+        "pos": "n.",
+        "plurals": [
+          "goes"
+        ]
       },
       {
         "id": "have a go",
-        "word": "have a go"
+        "word": "have a go",
+        "meaning": "尝试，试图（做某事）",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "earthquake",
-        "word": "earthquake"
+        "word": "earthquake",
+        "meaning": "n. 地震",
+        "pos": "n.",
+        "plurals": [
+          "earthquakes"
+        ]
       },
       {
         "id": "offer",
-        "word": "offer"
+        "word": "offer",
+        "meaning": "vt. 提供",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "programme",
-        "word": "programme"
+        "word": "programme",
+        "meaning": "n. 课程；计划；节目（美式 program）",
+        "pos": "n.",
+        "plurals": [
+          "programmes",
+          "programs"
+        ]
       },
       {
         "id": "plenty",
-        "word": "plenty"
+        "word": "plenty",
+        "meaning": "pron. 大量",
+        "pos": "pron.",
+        "plurals": []
       },
       {
         "id": "plenty of",
-        "word": "plenty of"
+        "word": "plenty of",
+        "meaning": "大量",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "hands-on",
-        "word": "hands-on"
+        "word": "hands-on",
+        "meaning": "adj. 实际操作的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "attention",
-        "word": "attention"
+        "word": "attention",
+        "meaning": "n. 注意，专心，注意力",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "pay attention to",
-        "word": "pay attention to"
+        "word": "pay attention to",
+        "meaning": "注意",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "boring",
-        "word": "boring"
+        "word": "boring",
+        "meaning": "adj. 没趣的，令人厌倦的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "aware",
-        "word": "aware"
+        "word": "aware",
+        "meaning": "adj. 意识到，知道",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "be aware of",
-        "word": "be aware of"
+        "word": "be aware of",
+        "meaning": "意识到",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "importance",
-        "word": "importance"
+        "word": "importance",
+        "meaning": "n. 重要性",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "Japanese",
-        "word": "Japanese"
+        "word": "Japanese",
+        "meaning": "adj. 日本（人）的，日语的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "carefully",
-        "word": "carefully"
+        "word": "carefully",
+        "meaning": "adv. 仔细地，小心地",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "ourselves",
-        "word": "ourselves"
+        "word": "ourselves",
+        "meaning": "pron. 我们自己",
+        "pos": "pron.",
+        "plurals": []
       },
       {
         "id": "develop",
-        "word": "develop"
+        "word": "develop",
+        "meaning": "vt. 形成；v.（使）发展",
+        "pos": "vt. / v.",
+        "plurals": []
       },
       {
         "id": "junior",
-        "word": "junior"
+        "word": "junior",
+        "meaning": "adj. 初级的；青少年的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "rocket",
-        "word": "rocket"
+        "word": "rocket",
+        "meaning": "n. 火箭",
+        "pos": "n.",
+        "plurals": [
+          "rockets"
+        ]
       },
       {
         "id": "least",
-        "word": "least"
+        "word": "least",
+        "meaning": "det./pron. 最少的；adv. 最少",
+        "pos": "det. / pron. / adv.",
+        "plurals": []
       },
       {
         "id": "Italian",
-        "word": "Italian"
+        "word": "Italian",
+        "meaning": "adj. 意大利（人）的，意大利语的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "international",
-        "word": "international"
+        "word": "international",
+        "meaning": "adj. 国际（化）的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "vacation",
-        "word": "vacation"
+        "word": "vacation",
+        "meaning": "n.（美）假期，度假",
+        "pos": "n.",
+        "plurals": [
+          "vacations"
+        ]
       },
       {
         "id": "textbook",
-        "word": "textbook"
+        "word": "textbook",
+        "meaning": "n. 课本，教材",
+        "pos": "n.",
+        "plurals": [
+          "textbooks"
+        ]
       },
       {
         "id": "search",
-        "word": "search"
+        "word": "search",
+        "meaning": "v. 搜索；查找",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "finish",
-        "word": "finish"
+        "word": "finish",
+        "meaning": "v. 完成，做好",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "American",
-        "word": "American"
+        "word": "American",
+        "meaning": "adj. 美国（人）的；n. 美国人",
+        "pos": "adj. / n.",
+        "plurals": [
+          "Americans"
+        ]
       },
       {
         "id": "hamburger",
-        "word": "hamburger"
+        "word": "hamburger",
+        "meaning": "n. 汉堡包",
+        "pos": "n.",
+        "plurals": [
+          "hamburgers"
+        ]
       },
       {
         "id": "pizza",
-        "word": "pizza"
+        "word": "pizza",
+        "meaning": "n. 比萨饼",
+        "pos": "n.",
+        "plurals": [
+          "pizzas"
+        ]
       },
       {
         "id": "salad",
-        "word": "salad"
+        "word": "salad",
+        "meaning": "n. 沙拉",
+        "pos": "n.",
+        "plurals": [
+          "salads"
+        ]
       },
       {
         "id": "chopstick",
-        "word": "chopstick"
+        "word": "chopstick",
+        "meaning": "n. 筷子",
+        "pos": "n.",
+        "plurals": [
+          "chopsticks"
+        ]
       },
       {
         "id": "movie",
-        "word": "movie"
+        "word": "movie",
+        "meaning": "n.（美）电影",
+        "pos": "n.",
+        "plurals": [
+          "movies"
+        ]
       },
       {
         "id": "difference",
-        "word": "difference"
+        "word": "difference",
+        "meaning": "n. 差异，不同（之处）",
+        "pos": "n.",
+        "plurals": [
+          "differences"
+        ]
       },
       {
         "id": "lunchtime",
-        "word": "lunchtime"
+        "word": "lunchtime",
+        "meaning": "n. 午餐时间",
+        "pos": "n.",
+        "plurals": [
+          "lunchtimes"
+        ]
       },
       {
         "id": "cookie",
-        "word": "cookie"
+        "word": "cookie",
+        "meaning": "n.（美）饼干",
+        "pos": "n.",
+        "plurals": [
+          "cookies"
+        ]
       },
       {
         "id": "fork",
-        "word": "fork"
+        "word": "fork",
+        "meaning": "n. 餐叉",
+        "pos": "n.",
+        "plurals": [
+          "forks"
+        ]
       },
       {
         "id": "spoon",
-        "word": "spoon"
+        "word": "spoon",
+        "meaning": "n. 勺，匙",
+        "pos": "n.",
+        "plurals": [
+          "spoons"
+        ]
       },
       {
         "id": "suggestion",
-        "word": "suggestion"
+        "word": "suggestion",
+        "meaning": "n. 建议",
+        "pos": "n.",
+        "plurals": [
+          "suggestions"
+        ]
       },
       {
         "id": "uniform",
-        "word": "uniform"
+        "word": "uniform",
+        "meaning": "n. 校服，制服",
+        "pos": "n.",
+        "plurals": [
+          "uniforms"
+        ]
       },
       {
         "id": "improve",
-        "word": "improve"
+        "word": "improve",
+        "meaning": "v. 改进，改善",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "suggest",
-        "word": "suggest"
+        "word": "suggest",
+        "meaning": "vt. 建议",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "provide",
-        "word": "provide"
+        "word": "provide",
+        "meaning": "vt. 提供",
+        "pos": "vt.",
+        "plurals": []
       }
     ],
     "lessons": [
@@ -487,183 +869,356 @@
     "words": [
       {
         "id": "mooncake",
-        "word": "mooncake"
+        "word": "mooncake",
+        "meaning": "n. 月饼",
+        "pos": "n.",
+        "plurals": [
+          "mooncakes"
+        ]
       },
       {
         "id": "shelf",
-        "word": "shelf"
+        "word": "shelf",
+        "meaning": "n. 架子（复数 shelves）",
+        "pos": "n.",
+        "plurals": [
+          "shelves"
+        ]
       },
       {
         "id": "rose",
-        "word": "rose"
+        "word": "rose",
+        "meaning": "n. 玫瑰（花）",
+        "pos": "n.",
+        "plurals": [
+          "roses"
+        ]
       },
       {
         "id": "tape",
-        "word": "tape"
+        "word": "tape",
+        "meaning": "n. 胶带；vt. 用胶带粘贴",
+        "pos": "n. / vt.",
+        "plurals": []
       },
       {
         "id": "glue",
-        "word": "glue"
+        "word": "glue",
+        "meaning": "n. 胶，胶水；vt.（用胶水）粘合，粘贴",
+        "pos": "n. / vt.",
+        "plurals": []
       },
       {
         "id": "complete",
-        "word": "complete"
+        "word": "complete",
+        "meaning": "adj. 完成，结束；全部的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "DIY",
-        "word": "DIY"
+        "word": "DIY",
+        "meaning": "n. 自己动手（do it yourself）",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "crazy",
-        "word": "crazy"
+        "word": "crazy",
+        "meaning": "adj. 狂热的，迷恋的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "be crazy about",
-        "word": "be crazy about"
+        "word": "be crazy about",
+        "meaning": "热衷于",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "born",
-        "word": "born"
+        "word": "born",
+        "meaning": "adj. 天生的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "mistake",
-        "word": "mistake"
+        "word": "mistake",
+        "meaning": "n. 错误",
+        "pos": "n.",
+        "plurals": [
+          "mistakes"
+        ]
       },
       {
         "id": "power cut",
-        "word": "power cut"
+        "word": "power cut",
+        "meaning": "n. 断电，停电",
+        "pos": "n.",
+        "plurals": [
+          "power cuts"
+        ]
       },
       {
         "id": "fill ... with",
-        "word": "fill ... with"
+        "word": "fill ... with",
+        "meaning": "使……充满",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "unlucky",
-        "word": "unlucky"
+        "word": "unlucky",
+        "meaning": "adj. 不幸的，不顺利的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "instead",
-        "word": "instead"
+        "word": "instead",
+        "meaning": "adv. 反而",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "course",
-        "word": "course"
+        "word": "course",
+        "meaning": "n. 课程",
+        "pos": "n.",
+        "plurals": [
+          "courses"
+        ]
       },
       {
         "id": "mess",
-        "word": "mess"
+        "word": "mess",
+        "meaning": "n. 杂乱，不整洁",
+        "pos": "n.",
+        "plurals": [
+          "messes"
+        ]
       },
       {
         "id": "in a mess",
-        "word": "in a mess"
+        "word": "in a mess",
+        "meaning": "乱七八糟",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "lamp",
-        "word": "lamp"
+        "word": "lamp",
+        "meaning": "n. 灯",
+        "pos": "n.",
+        "plurals": [
+          "lamps"
+        ]
       },
       {
         "id": "catch one's eye",
-        "word": "catch one's eye"
+        "word": "catch one's eye",
+        "meaning": "引起某人注意",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "surprise",
-        "word": "surprise"
+        "word": "surprise",
+        "meaning": "vt. 使惊奇，使感到意外",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "impossible",
-        "word": "impossible"
+        "word": "impossible",
+        "meaning": "adj. 不可能的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "nearly",
-        "word": "nearly"
+        "word": "nearly",
+        "meaning": "adv. 几乎，差不多，将近",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "can",
-        "word": "can"
+        "word": "can",
+        "meaning": "n. 金属容器，塑料容器",
+        "pos": "n.",
+        "plurals": [
+          "cans"
+        ]
       },
       {
         "id": "everywhere",
-        "word": "everywhere"
+        "word": "everywhere",
+        "meaning": "adv./pron. 到处",
+        "pos": "adv. / pron.",
+        "plurals": []
       },
       {
         "id": "chalk",
-        "word": "chalk"
+        "word": "chalk",
+        "meaning": "n. 粉笔",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "mark",
-        "word": "mark"
+        "word": "mark",
+        "meaning": "n. 标记；分数",
+        "pos": "n.",
+        "plurals": [
+          "marks"
+        ]
       },
       {
         "id": "brush",
-        "word": "brush"
+        "word": "brush",
+        "meaning": "n. 刷子，画笔",
+        "pos": "n.",
+        "plurals": [
+          "brushes"
+        ]
       },
       {
         "id": "instructions",
-        "word": "instructions"
+        "word": "instructions",
+        "meaning": "n.（复数）用法说明",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "dangerous",
-        "word": "dangerous"
+        "word": "dangerous",
+        "meaning": "adj. 危险的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "usual",
-        "word": "usual"
+        "word": "usual",
+        "meaning": "adj. 通常的，寻常的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "method",
-        "word": "method"
+        "word": "method",
+        "meaning": "n. 方法",
+        "pos": "n.",
+        "plurals": [
+          "methods"
+        ]
       },
       {
         "id": "not only ... but also ...",
-        "word": "not only ... but also ..."
+        "word": "not only ... but also ...",
+        "meaning": "不仅……而且……",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "tie",
-        "word": "tie"
+        "word": "tie",
+        "meaning": "vt.（用线、绳等）系，拴，捆",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "dye",
-        "word": "dye"
+        "word": "dye",
+        "meaning": "vt. 给……染色；n. 染料，染液",
+        "pos": "vt. / n.",
+        "plurals": []
       },
       {
         "id": "untie",
-        "word": "untie"
+        "word": "untie",
+        "meaning": "vt. 解开",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "product",
-        "word": "product"
+        "word": "product",
+        "meaning": "n. 产品",
+        "pos": "n.",
+        "plurals": [
+          "products"
+        ]
       },
       {
         "id": "workshop",
-        "word": "workshop"
+        "word": "workshop",
+        "meaning": "n. 作坊",
+        "pos": "n.",
+        "plurals": [
+          "workshops"
+        ]
       },
       {
         "id": "reduce",
-        "word": "reduce"
+        "word": "reduce",
+        "meaning": "v. 减少",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "waste",
-        "word": "waste"
+        "word": "waste",
+        "meaning": "n. 浪费，废料",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "joy",
-        "word": "joy"
+        "word": "joy",
+        "meaning": "n. 乐趣，高兴",
+        "pos": "n.",
+        "plurals": [
+          "joys"
+        ]
       },
       {
         "id": "reason",
-        "word": "reason"
+        "word": "reason",
+        "meaning": "n. 理由，原因",
+        "pos": "n.",
+        "plurals": [
+          "reasons"
+        ]
       },
       {
         "id": "result",
-        "word": "result"
+        "word": "result",
+        "meaning": "n. 结果，后果",
+        "pos": "n.",
+        "plurals": [
+          "results"
+        ]
       },
       {
         "id": "glove",
-        "word": "glove"
+        "word": "glove",
+        "meaning": "n. 手套",
+        "pos": "n.",
+        "plurals": [
+          "gloves"
+        ]
       },
       {
         "id": "finger",
-        "word": "finger"
+        "word": "finger",
+        "meaning": "n.（手套的）指部，手指",
+        "pos": "n.",
+        "plurals": [
+          "fingers"
+        ]
       }
     ],
     "lessons": [
@@ -705,179 +1260,339 @@
     "words": [
       {
         "id": "wild",
-        "word": "wild"
+        "word": "wild",
+        "meaning": "adj. 野生的；n. 野生状态，自然环境",
+        "pos": "adj. / n.",
+        "plurals": []
       },
       {
         "id": "eagle",
-        "word": "eagle"
+        "word": "eagle",
+        "meaning": "n. 鹰",
+        "pos": "n.",
+        "plurals": [
+          "eagles"
+        ]
       },
       {
         "id": "fox",
-        "word": "fox"
+        "word": "fox",
+        "meaning": "n. 狐狸",
+        "pos": "n.",
+        "plurals": [
+          "foxes"
+        ]
       },
       {
         "id": "shark",
-        "word": "shark"
+        "word": "shark",
+        "meaning": "n. 鲨鱼",
+        "pos": "n.",
+        "plurals": [
+          "sharks"
+        ]
       },
       {
         "id": "wolf",
-        "word": "wolf"
+        "word": "wolf",
+        "meaning": "n. 狼（复数 wolves）",
+        "pos": "n.",
+        "plurals": [
+          "wolves"
+        ]
       },
       {
         "id": "king",
-        "word": "king"
+        "word": "king",
+        "meaning": "n. 大王；国王",
+        "pos": "n.",
+        "plurals": [
+          "kings"
+        ]
       },
       {
         "id": "tiny",
-        "word": "tiny"
+        "word": "tiny",
+        "meaning": "adj. 极小的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "birth",
-        "word": "birth"
+        "word": "birth",
+        "meaning": "n. 出生",
+        "pos": "n.",
+        "plurals": [
+          "births"
+        ]
       },
       {
         "id": "round-the-clock",
-        "word": "round-the-clock"
+        "word": "round-the-clock",
+        "meaning": "adj. 全天候的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "weigh",
-        "word": "weigh"
+        "word": "weigh",
+        "meaning": "linking v. 有……重",
+        "pos": "linking v.",
+        "plurals": []
       },
       {
         "id": "satisfying",
-        "word": "satisfying"
+        "word": "satisfying",
+        "meaning": "adj. 令人满意的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "in the wild",
-        "word": "in the wild"
+        "word": "in the wild",
+        "meaning": "在野外",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "face",
-        "word": "face"
+        "word": "face",
+        "meaning": "vt. 面临；v. 面对",
+        "pos": "vt. / v.",
+        "plurals": []
       },
       {
         "id": "serious",
-        "word": "serious"
+        "word": "serious",
+        "meaning": "adj. 严重的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "even if",
-        "word": "even if"
+        "word": "even if",
+        "meaning": "即使，尽管",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "easily",
-        "word": "easily"
+        "word": "easily",
+        "meaning": "adv. 很可能；容易地",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "sick",
-        "word": "sick"
+        "word": "sick",
+        "meaning": "adj. 生病的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "live on",
-        "word": "live on"
+        "word": "live on",
+        "meaning": "以吃……为生",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "mainly",
-        "word": "mainly"
+        "word": "mainly",
+        "meaning": "adv. 主要地",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "as a result",
-        "word": "as a result"
+        "word": "as a result",
+        "meaning": "因此",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "government",
-        "word": "government"
+        "word": "government",
+        "meaning": "n. 政府",
+        "pos": "n.",
+        "plurals": [
+          "governments"
+        ]
       },
       {
         "id": "action",
-        "word": "action"
+        "word": "action",
+        "meaning": "n. 行动",
+        "pos": "n.",
+        "plurals": [
+          "actions"
+        ]
       },
       {
         "id": "take action",
-        "word": "take action"
+        "word": "take action",
+        "meaning": "采取行动",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "thanks to",
-        "word": "thanks to"
+        "word": "thanks to",
+        "meaning": "多亏，由于",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "effort",
-        "word": "effort"
+        "word": "effort",
+        "meaning": "n. 努力",
+        "pos": "n.",
+        "plurals": [
+          "efforts"
+        ]
       },
       {
         "id": "increase",
-        "word": "increase"
+        "word": "increase",
+        "meaning": "v. 增加",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "protection",
-        "word": "protection"
+        "word": "protection",
+        "meaning": "n. 保护",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "in danger",
-        "word": "in danger"
+        "word": "in danger",
+        "meaning": "处于危险中",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "fat",
-        "word": "fat"
+        "word": "fat",
+        "meaning": "adj. 胖的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "once in a while",
-        "word": "once in a while"
+        "word": "once in a while",
+        "meaning": "偶尔地，间或",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "manage",
-        "word": "manage"
+        "word": "manage",
+        "meaning": "v. 完成（困难的事）",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "whale",
-        "word": "whale"
+        "word": "whale",
+        "meaning": "n. 鲸",
+        "pos": "n.",
+        "plurals": [
+          "whales"
+        ]
       },
       {
         "id": "hunt",
-        "word": "hunt"
+        "word": "hunt",
+        "meaning": "v. 猎杀",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "meaningful",
-        "word": "meaningful"
+        "word": "meaningful",
+        "meaning": "adj. 重要的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "accept",
-        "word": "accept"
+        "word": "accept",
+        "meaning": "v. 收受，接受",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "drop",
-        "word": "drop"
+        "word": "drop",
+        "meaning": "v.（使）降低；扔下；掉下",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "blue whale",
-        "word": "blue whale"
+        "word": "blue whale",
+        "meaning": "n. 蓝鲸",
+        "pos": "n.",
+        "plurals": [
+          "blue whales"
+        ]
       },
       {
         "id": "risk",
-        "word": "risk"
+        "word": "risk",
+        "meaning": "n. 危险，风险",
+        "pos": "n.",
+        "plurals": [
+          "risks"
+        ]
       },
       {
         "id": "at risk",
-        "word": "at risk"
+        "word": "at risk",
+        "meaning": "有危险",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "Indian",
-        "word": "Indian"
+        "word": "Indian",
+        "meaning": "adj. 印度（人）的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "disaster",
-        "word": "disaster"
+        "word": "disaster",
+        "meaning": "n. 灾害",
+        "pos": "n.",
+        "plurals": [
+          "disasters"
+        ]
       },
       {
         "id": "pollution",
-        "word": "pollution"
+        "word": "pollution",
+        "meaning": "n. 污染",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "certain",
-        "word": "certain"
+        "word": "certain",
+        "meaning": "adj. 某种，某些",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "illness",
-        "word": "illness"
+        "word": "illness",
+        "meaning": "n. 疾病，病",
+        "pos": "n.",
+        "plurals": [
+          "illnesses"
+        ]
       }
     ],
     "lessons": [
@@ -927,159 +1642,296 @@
     "words": [
       {
         "id": "snowy",
-        "word": "snowy"
+        "word": "snowy",
+        "meaning": "adj. 下雪多的；被雪覆盖的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "hide",
-        "word": "hide"
+        "word": "hide",
+        "meaning": "v. 躲避；vt. 藏",
+        "pos": "v. / vt.",
+        "plurals": []
       },
       {
         "id": "shower",
-        "word": "shower"
+        "word": "shower",
+        "meaning": "n. 阵雨",
+        "pos": "n.",
+        "plurals": [
+          "showers"
+        ]
       },
       {
         "id": "lazy",
-        "word": "lazy"
+        "word": "lazy",
+        "meaning": "adj. 懒惰的，懒散的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "pool",
-        "word": "pool"
+        "word": "pool",
+        "meaning": "n. 水塘，池塘",
+        "pos": "n.",
+        "plurals": [
+          "pools"
+        ]
       },
       {
         "id": "upon",
-        "word": "upon"
+        "word": "upon",
+        "meaning": "prep. 在……上",
+        "pos": "prep.",
+        "plurals": []
       },
       {
         "id": "as",
-        "word": "as"
+        "word": "as",
+        "meaning": "conj. 当……时，随着，因为",
+        "pos": "conj.",
+        "plurals": []
       },
       {
         "id": "temperature",
-        "word": "temperature"
+        "word": "temperature",
+        "meaning": "n. 温度",
+        "pos": "n.",
+        "plurals": [
+          "temperatures"
+        ]
       },
       {
         "id": "sofa",
-        "word": "sofa"
+        "word": "sofa",
+        "meaning": "n. 长沙发",
+        "pos": "n.",
+        "plurals": [
+          "sofas"
+        ]
       },
       {
         "id": "snowman",
-        "word": "snowman"
+        "word": "snowman",
+        "meaning": "n. 雪人（复数 snowmen）",
+        "pos": "n.",
+        "plurals": [
+          "snowmen"
+        ]
       },
       {
         "id": "blow",
-        "word": "blow"
+        "word": "blow",
+        "meaning": "v. 吹，刮，吹（气）",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "shine",
-        "word": "shine"
+        "word": "shine",
+        "meaning": "vi. 发光，照耀",
+        "pos": "vi.",
+        "plurals": []
       },
       {
         "id": "smell",
-        "word": "smell"
+        "word": "smell",
+        "meaning": "linking v. 有（或发出）……气味",
+        "pos": "linking v.",
+        "plurals": []
       },
       {
         "id": "heat",
-        "word": "heat"
+        "word": "heat",
+        "meaning": "n. 热；热量",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "sudden",
-        "word": "sudden"
+        "word": "sudden",
+        "meaning": "adj. 突然的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "snowball",
-        "word": "snowball"
+        "word": "snowball",
+        "meaning": "n. 雪球",
+        "pos": "n.",
+        "plurals": [
+          "snowballs"
+        ]
       },
       {
         "id": "fog",
-        "word": "fog"
+        "word": "fog",
+        "meaning": "n. 雾",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "divide",
-        "word": "divide"
+        "word": "divide",
+        "meaning": "v.（使）分开，分成",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "divide ... into ...",
-        "word": "divide ... into ..."
+        "word": "divide ... into ...",
+        "meaning": "把……分成……",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "end",
-        "word": "end"
+        "word": "end",
+        "meaning": "v. 结束，终止",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "growth",
-        "word": "growth"
+        "word": "growth",
+        "meaning": "n. 生长，发育，成长",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "as well as",
-        "word": "as well as"
+        "word": "as well as",
+        "meaning": "除……之外，也，还",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "connect",
-        "word": "connect"
+        "word": "connect",
+        "meaning": "vt. 把……联系起来；v.（使）连接",
+        "pos": "vt. / v.",
+        "plurals": []
       },
       {
         "id": "be connected with",
-        "word": "be connected with"
+        "word": "be connected with",
+        "meaning": "与……有联系",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "positive",
-        "word": "positive"
+        "word": "positive",
+        "meaning": "adj. 正面的；积极的，肯定的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "effect",
-        "word": "effect"
+        "word": "effect",
+        "meaning": "n. 影响，结果",
+        "pos": "n.",
+        "plurals": [
+          "effects"
+        ]
       },
       {
         "id": "average",
-        "word": "average"
+        "word": "average",
+        "meaning": "adj. 平均的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "wet",
-        "word": "wet"
+        "word": "wet",
+        "meaning": "adj. 湿的，潮的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "degree",
-        "word": "degree"
+        "word": "degree",
+        "meaning": "n. 度，度数",
+        "pos": "n.",
+        "plurals": [
+          "degrees"
+        ]
       },
       {
         "id": "sunshine",
-        "word": "sunshine"
+        "word": "sunshine",
+        "meaning": "n. 阳光",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "snowstorm",
-        "word": "snowstorm"
+        "word": "snowstorm",
+        "meaning": "n. 雪暴，暴风雪",
+        "pos": "n.",
+        "plurals": [
+          "snowstorms"
+        ]
       },
       {
         "id": "get around",
-        "word": "get around"
+        "word": "get around",
+        "meaning": "各处走动",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "awful",
-        "word": "awful"
+        "word": "awful",
+        "meaning": "adj. 糟糕的，极讨厌的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "order",
-        "word": "order"
+        "word": "order",
+        "meaning": "v. 订购；n. 点单；所订的货物",
+        "pos": "v. / n.",
+        "plurals": [
+          "orders"
+        ]
       },
       {
         "id": "take care",
-        "word": "take care"
+        "word": "take care",
+        "meaning": "保重",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "frozen",
-        "word": "frozen"
+        "word": "frozen",
+        "meaning": "adj. 结冰的，冷冻的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "thick",
-        "word": "thick"
+        "word": "thick",
+        "meaning": "adj. 厚的；浓的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "deep",
-        "word": "deep"
+        "word": "deep",
+        "meaning": "adj. 厚的，深的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "throw",
-        "word": "throw"
+        "word": "throw",
+        "meaning": "v. 扔",
+        "pos": "v.",
+        "plurals": []
       }
     ],
     "lessons": [
@@ -1121,131 +1973,245 @@
     "words": [
       {
         "id": "penguin",
-        "word": "penguin"
+        "word": "penguin",
+        "meaning": "n. 企鹅",
+        "pos": "n.",
+        "plurals": [
+          "penguins"
+        ]
       },
       {
         "id": "climate",
-        "word": "climate"
+        "word": "climate",
+        "meaning": "n. 气候",
+        "pos": "n.",
+        "plurals": [
+          "climates"
+        ]
       },
       {
         "id": "include",
-        "word": "include"
+        "word": "include",
+        "meaning": "vt. 包括",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "around",
-        "word": "around"
+        "word": "around",
+        "meaning": "adv. 大约",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "hold",
-        "word": "hold"
+        "word": "hold",
+        "meaning": "vt. 容纳；拿着；举行",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "return",
-        "word": "return"
+        "word": "return",
+        "meaning": "vi. 返回，回去，回来",
+        "pos": "vi.",
+        "plurals": []
       },
       {
         "id": "get rid of",
-        "word": "get rid of"
+        "word": "get rid of",
+        "meaning": "清除；摆脱",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "store",
-        "word": "store"
+        "word": "store",
+        "meaning": "vt. 贮存",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "act",
-        "word": "act"
+        "word": "act",
+        "meaning": "vi. 起作用；行动；v. 扮演",
+        "pos": "vi. / v.",
+        "plurals": []
       },
       {
         "id": "therefore",
-        "word": "therefore"
+        "word": "therefore",
+        "meaning": "adv. 因此",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "sadly",
-        "word": "sadly"
+        "word": "sadly",
+        "meaning": "adv. 不幸地；悲伤地",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "ton",
-        "word": "ton"
+        "word": "ton",
+        "meaning": "n. 吨",
+        "pos": "n.",
+        "plurals": [
+          "tons"
+        ]
       },
       {
         "id": "harm",
-        "word": "harm"
+        "word": "harm",
+        "meaning": "vt./n. 伤害，损害",
+        "pos": "vt. / n.",
+        "plurals": []
       },
       {
         "id": "wildlife",
-        "word": "wildlife"
+        "word": "wildlife",
+        "meaning": "n. 野生动物",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "quite a few",
-        "word": "quite a few"
+        "word": "quite a few",
+        "meaning": "相当多，不少",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "noisy",
-        "word": "noisy"
+        "word": "noisy",
+        "meaning": "adj. 充满噪声的，吵闹的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "system",
-        "word": "system"
+        "word": "system",
+        "meaning": "n. 系统；体系",
+        "pos": "n.",
+        "plurals": [
+          "systems"
+        ]
       },
       {
         "id": "cause",
-        "word": "cause"
+        "word": "cause",
+        "meaning": "vt. 使发生，造成，导致；n. 原因，理由",
+        "pos": "vt. / n.",
+        "plurals": [
+          "causes"
+        ]
       },
       {
         "id": "north-east",
-        "word": "north-east"
+        "word": "north-east",
+        "meaning": "n./adj./adv. 东北；东北方的；向东北方",
+        "pos": "n. / adj. / adv.",
+        "plurals": []
       },
       {
         "id": "cover",
-        "word": "cover"
+        "word": "cover",
+        "meaning": "n. 躲避处；罩子",
+        "pos": "n.",
+        "plurals": [
+          "covers"
+        ]
       },
       {
         "id": "lead",
-        "word": "lead"
+        "word": "lead",
+        "meaning": "vi. 造成（后果）",
+        "pos": "vi.",
+        "plurals": []
       },
       {
         "id": "lead to",
-        "word": "lead to"
+        "word": "lead to",
+        "meaning": "导致",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "create",
-        "word": "create"
+        "word": "create",
+        "meaning": "vt. 创建，创造",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "set up",
-        "word": "set up"
+        "word": "set up",
+        "meaning": "建立",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "balanced",
-        "word": "balanced"
+        "word": "balanced",
+        "meaning": "adj. 保持平衡的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "project",
-        "word": "project"
+        "word": "project",
+        "meaning": "n. 项目",
+        "pos": "n.",
+        "plurals": [
+          "projects"
+        ]
       },
       {
         "id": "knowledge",
-        "word": "knowledge"
+        "word": "knowledge",
+        "meaning": "n. 知识",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "sir",
-        "word": "sir"
+        "word": "sir",
+        "meaning": "n. 先生",
+        "pos": "n.",
+        "plurals": [
+          "sirs"
+        ]
       },
       {
         "id": "madam",
-        "word": "madam"
+        "word": "madam",
+        "meaning": "n. 女士",
+        "pos": "n.",
+        "plurals": [
+          "madams"
+        ]
       },
       {
         "id": "kill",
-        "word": "kill"
+        "word": "kill",
+        "meaning": "v. 杀死",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "solve",
-        "word": "solve"
+        "word": "solve",
+        "meaning": "vt. 解决；解答",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "environmental",
-        "word": "environmental"
+        "word": "environmental",
+        "meaning": "adj. 环境的",
+        "pos": "adj.",
+        "plurals": []
       }
     ],
     "lessons": [
@@ -1295,215 +2261,418 @@
     "words": [
       {
         "id": "sound",
-        "word": "sound"
+        "word": "sound",
+        "meaning": "adj. 健康的，无损伤的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "safe and sound",
-        "word": "safe and sound"
+        "word": "safe and sound",
+        "meaning": "安然无恙",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "emergency",
-        "word": "emergency"
+        "word": "emergency",
+        "meaning": "n. 紧急情况",
+        "pos": "n.",
+        "plurals": [
+          "emergencies"
+        ]
       },
       {
         "id": "situation",
-        "word": "situation"
+        "word": "situation",
+        "meaning": "n. 情况",
+        "pos": "n.",
+        "plurals": [
+          "situations"
+        ]
       },
       {
         "id": "lightning",
-        "word": "lightning"
+        "word": "lightning",
+        "meaning": "n. 闪电",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "office",
-        "word": "office"
+        "word": "office",
+        "meaning": "n. 办公室，办公楼",
+        "pos": "n.",
+        "plurals": [
+          "offices"
+        ]
       },
       {
         "id": "homeless",
-        "word": "homeless"
+        "word": "homeless",
+        "meaning": "adj. 无家可归的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "coach",
-        "word": "coach"
+        "word": "coach",
+        "meaning": "n. 长途汽车",
+        "pos": "n.",
+        "plurals": [
+          "coaches"
+        ]
       },
       {
         "id": "road",
-        "word": "road"
+        "word": "road",
+        "meaning": "n. 道路",
+        "pos": "n.",
+        "plurals": [
+          "roads"
+        ]
       },
       {
         "id": "accident",
-        "word": "accident"
+        "word": "accident",
+        "meaning": "n. 事故",
+        "pos": "n.",
+        "plurals": [
+          "accidents"
+        ]
       },
       {
         "id": "state",
-        "word": "state"
+        "word": "state",
+        "meaning": "n. 状态，情况",
+        "pos": "n.",
+        "plurals": [
+          "states"
+        ]
       },
       {
         "id": "fireman",
-        "word": "fireman"
+        "word": "fireman",
+        "meaning": "n. 消防员（复数 firemen）",
+        "pos": "n.",
+        "plurals": [
+          "firemen"
+        ]
       },
       {
         "id": "traffic",
-        "word": "traffic"
+        "word": "traffic",
+        "meaning": "n. 交通",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "terrible",
-        "word": "terrible"
+        "word": "terrible",
+        "meaning": "adj. 可怕的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "shake",
-        "word": "shake"
+        "word": "shake",
+        "meaning": "n./v. 摇动",
+        "pos": "n. / v.",
+        "plurals": [
+          "shakes"
+        ]
       },
       {
         "id": "thunder",
-        "word": "thunder"
+        "word": "thunder",
+        "meaning": "n. 雷声",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "shout",
-        "word": "shout"
+        "word": "shout",
+        "meaning": "v./n. 呼喊，喊叫",
+        "pos": "v. / n.",
+        "plurals": [
+          "shouts"
+        ]
       },
       {
         "id": "fear",
-        "word": "fear"
+        "word": "fear",
+        "meaning": "n. 恐惧，害怕",
+        "pos": "n.",
+        "plurals": [
+          "fears"
+        ]
       },
       {
         "id": "in fear",
-        "word": "in fear"
+        "word": "in fear",
+        "meaning": "恐惧地，害怕地",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "direction",
-        "word": "direction"
+        "word": "direction",
+        "meaning": "n. 方向",
+        "pos": "n.",
+        "plurals": [
+          "directions"
+        ]
       },
       {
         "id": "in all directions",
-        "word": "in all directions"
+        "word": "in all directions",
+        "meaning": "四处，到处",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "silent",
-        "word": "silent"
+        "word": "silent",
+        "meaning": "adj. 安静的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "if",
-        "word": "if"
+        "word": "if",
+        "meaning": "conj. 如果",
+        "pos": "conj.",
+        "plurals": []
       },
       {
         "id": "nervous",
-        "word": "nervous"
+        "word": "nervous",
+        "meaning": "adj. 焦虑的；胆怯的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "beat",
-        "word": "beat"
+        "word": "beat",
+        "meaning": "v.（使）规律作响或运动；用劲敲打",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "say to oneself",
-        "word": "say to oneself"
+        "word": "say to oneself",
+        "meaning": "暗想；自言自语",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "calm",
-        "word": "calm"
+        "word": "calm",
+        "meaning": "v.（使）平静，（使）镇静",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "calm down",
-        "word": "calm down"
+        "word": "calm down",
+        "meaning": "（使）平静，镇静",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "since",
-        "word": "since"
+        "word": "since",
+        "meaning": "conj. 因为，既然",
+        "pos": "conj.",
+        "plurals": []
       },
       {
         "id": "weak",
-        "word": "weak"
+        "word": "weak",
+        "meaning": "adj. 虚弱的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "voice",
-        "word": "voice"
+        "word": "voice",
+        "meaning": "n. 嗓音，说话声，唱歌声",
+        "pos": "n.",
+        "plurals": [
+          "voices"
+        ]
       },
       {
         "id": "except",
-        "word": "except"
+        "word": "except",
+        "meaning": "prep. 除……之外",
+        "pos": "prep.",
+        "plurals": []
       },
       {
         "id": "smoke",
-        "word": "smoke"
+        "word": "smoke",
+        "meaning": "n. 烟",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "burn",
-        "word": "burn"
+        "word": "burn",
+        "meaning": "vi. 着火；v.（使）烧毁，烧伤",
+        "pos": "vi. / v.",
+        "plurals": []
       },
       {
         "id": "put out",
-        "word": "put out"
+        "word": "put out",
+        "meaning": "扑灭，熄灭",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "heavily",
-        "word": "heavily"
+        "word": "heavily",
+        "meaning": "adv. 大量地",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "guess",
-        "word": "guess"
+        "word": "guess",
+        "meaning": "v. 猜测，估计",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "hat",
-        "word": "hat"
+        "word": "hat",
+        "meaning": "n.（常指带檐的）帽子",
+        "pos": "n.",
+        "plurals": [
+          "hats"
+        ]
       },
       {
         "id": "clear",
-        "word": "clear"
+        "word": "clear",
+        "meaning": "vt. 清除，清理",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "policeman",
-        "word": "policeman"
+        "word": "policeman",
+        "meaning": "n.（男）警察（复数 policemen）",
+        "pos": "n.",
+        "plurals": [
+          "policemen"
+        ]
       },
       {
         "id": "ache",
-        "word": "ache"
+        "word": "ache",
+        "meaning": "n./vi. 疼痛",
+        "pos": "n. / vi.",
+        "plurals": [
+          "aches"
+        ]
       },
       {
         "id": "postman",
-        "word": "postman"
+        "word": "postman",
+        "meaning": "n. 邮递员（复数 postmen）",
+        "pos": "n.",
+        "plurals": [
+          "postmen"
+        ]
       },
       {
         "id": "airport",
-        "word": "airport"
+        "word": "airport",
+        "meaning": "n. 机场",
+        "pos": "n.",
+        "plurals": [
+          "airports"
+        ]
       },
       {
         "id": "passport",
-        "word": "passport"
+        "word": "passport",
+        "meaning": "n. 护照",
+        "pos": "n.",
+        "plurals": [
+          "passports"
+        ]
       },
       {
         "id": "report",
-        "word": "report"
+        "word": "report",
+        "meaning": "v./n. 报道；汇报；传闻",
+        "pos": "v. / n.",
+        "plurals": [
+          "reports"
+        ]
       },
       {
         "id": "so far",
-        "word": "so far"
+        "word": "so far",
+        "meaning": "迄今为止",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "including",
-        "word": "including"
+        "word": "including",
+        "meaning": "prep. 包括……在内",
+        "pos": "prep.",
+        "plurals": []
       },
       {
         "id": "sign",
-        "word": "sign"
+        "word": "sign",
+        "meaning": "n. 标牌，指示牌",
+        "pos": "n.",
+        "plurals": [
+          "signs"
+        ]
       },
       {
         "id": "avoid",
-        "word": "avoid"
+        "word": "avoid",
+        "meaning": "vt. 避免，防止",
+        "pos": "vt.",
+        "plurals": []
       },
       {
         "id": "wound",
-        "word": "wound"
+        "word": "wound",
+        "meaning": "n. 伤，伤口",
+        "pos": "n.",
+        "plurals": [
+          "wounds"
+        ]
       },
       {
         "id": "bleed",
-        "word": "bleed"
+        "word": "bleed",
+        "meaning": "vi. 流血，失血",
+        "pos": "vi.",
+        "plurals": []
       },
       {
         "id": "press",
-        "word": "press"
+        "word": "press",
+        "meaning": "v. 按，压",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "warn",
-        "word": "warn"
+        "word": "warn",
+        "meaning": "v. 警告，告诫",
+        "pos": "v.",
+        "plurals": []
       }
     ],
     "lessons": [
@@ -1558,251 +2727,485 @@
     "words": [
       {
         "id": "w1",
-        "word": "learner"
+        "word": "learner",
+        "meaning": "学习者",
+        "pos": "n.",
+        "plurals": [
+          "learners"
+        ]
       },
       {
         "id": "w2",
-        "word": "feed"
+        "word": "feed",
+        "meaning": "喂养；提供食物",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "w3",
-        "word": "fish"
+        "word": "fish",
+        "meaning": "钓鱼；捕鱼",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "w4",
-        "word": "lifetime"
+        "word": "lifetime",
+        "meaning": "一生",
+        "pos": "n.",
+        "plurals": [
+          "lifetimes"
+        ]
       },
       {
         "id": "w5",
-        "word": "journey"
+        "word": "journey",
+        "meaning": "旅程；旅行",
+        "pos": "n.",
+        "plurals": [
+          "journeys"
+        ]
       },
       {
         "id": "w6",
-        "word": "single"
+        "word": "single",
+        "meaning": "单个的；单身的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "w7",
-        "word": "against"
+        "word": "against",
+        "meaning": "逆；反对",
+        "pos": "prep.",
+        "plurals": []
       },
       {
         "id": "w8",
-        "word": "fall behind"
+        "word": "fall behind",
+        "meaning": "落后",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "w9",
-        "word": "successful"
+        "word": "successful",
+        "meaning": "成功的；有成效的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "w10",
-        "word": "drive"
+        "word": "drive",
+        "meaning": "冲劲；动力",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "w11",
-        "word": "guide"
+        "word": "guide",
+        "meaning": "指导；领路",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "w12",
-        "word": "lifelong"
+        "word": "lifelong",
+        "meaning": "终身的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "w13",
-        "word": "inventor"
+        "word": "inventor",
+        "meaning": "发明家",
+        "pos": "n.",
+        "plurals": [
+          "inventors"
+        ]
       },
       {
         "id": "w14",
-        "word": "found"
+        "word": "found",
+        "meaning": "创建；建立",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "w15",
-        "word": "talent"
+        "word": "talent",
+        "meaning": "天资；才能",
+        "pos": "n.",
+        "plurals": [
+          "talents"
+        ]
       },
       {
         "id": "w16",
-        "word": "century"
+        "word": "century",
+        "meaning": "世纪；百年",
+        "pos": "n.",
+        "plurals": [
+          "centuries"
+        ]
       },
       {
         "id": "w17",
-        "word": "set ... apart"
+        "word": "set ... apart",
+        "meaning": "使……与众不同",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "w18",
-        "word": "print"
+        "word": "print",
+        "meaning": "印刷行业；印刷",
+        "pos": "n. / v.",
+        "plurals": []
       },
       {
         "id": "w19",
-        "word": "himself"
+        "word": "himself",
+        "meaning": "他自己",
+        "pos": "pron.",
+        "plurals": []
       },
       {
         "id": "w20",
-        "word": "bookseller"
+        "word": "bookseller",
+        "meaning": "书商",
+        "pos": "n.",
+        "plurals": [
+          "booksellers"
+        ]
       },
       {
         "id": "w21",
-        "word": "in order to"
+        "word": "in order to",
+        "meaning": "为了",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "w22",
-        "word": "return"
+        "word": "return",
+        "meaning": "归还",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "w23",
-        "word": "curious"
+        "word": "curious",
+        "meaning": "好奇的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "w24",
-        "word": "storm"
+        "word": "storm",
+        "meaning": "暴风雨",
+        "pos": "n.",
+        "plurals": [
+          "storms"
+        ]
       },
       {
         "id": "w25",
-        "word": "finding"
+        "word": "finding",
+        "meaning": "调查发现",
+        "pos": "n.",
+        "plurals": [
+          "findings"
+        ]
       },
       {
         "id": "w26",
-        "word": "predict"
+        "word": "predict",
+        "meaning": "预测",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "w27",
-        "word": "countless"
+        "word": "countless",
+        "meaning": "数不尽的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "w28",
-        "word": "invention"
+        "word": "invention",
+        "meaning": "发明",
+        "pos": "n.",
+        "plurals": [
+          "inventions"
+        ]
       },
       {
         "id": "w29",
-        "word": "come as no surprise"
+        "word": "come as no surprise",
+        "meaning": "不足为奇",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "w30",
-        "word": "invent"
+        "word": "invent",
+        "meaning": "发明",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "w31",
-        "word": "for free"
+        "word": "for free",
+        "meaning": "免费",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "w32",
-        "word": "greatness"
+        "word": "greatness",
+        "meaning": "伟大",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "w33",
-        "word": "success"
+        "word": "success",
+        "meaning": "成功",
+        "pos": "n.",
+        "plurals": [
+          "successes"
+        ]
       },
       {
         "id": "w34",
-        "word": "Italian"
+        "word": "Italian",
+        "meaning": "意大利语；意大利人",
+        "pos": "n.",
+        "plurals": [
+          "Italians"
+        ]
       },
       {
         "id": "w35",
-        "word": "themselves"
+        "word": "themselves",
+        "meaning": "他们／她们／它们自己",
+        "pos": "pron.",
+        "plurals": []
       },
       {
         "id": "w36",
-        "word": "conversation"
+        "word": "conversation",
+        "meaning": "交谈；谈话",
+        "pos": "n.",
+        "plurals": [
+          "conversations"
+        ]
       },
       {
         "id": "w37",
-        "word": "translate"
+        "word": "translate",
+        "meaning": "翻译",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "w38",
-        "word": "page"
+        "word": "page",
+        "meaning": "页",
+        "pos": "n.",
+        "plurals": [
+          "pages"
+        ]
       },
       {
         "id": "w39",
-        "word": "badly"
+        "word": "badly",
+        "meaning": "不好地；严重地",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "w40",
-        "word": "yourself"
+        "word": "yourself",
+        "meaning": "你自己",
+        "pos": "pron.",
+        "plurals": []
       },
       {
         "id": "w41",
-        "word": "yourselves"
+        "word": "yourselves",
+        "meaning": "你们自己",
+        "pos": "pron.",
+        "plurals": []
       },
       {
         "id": "w42",
-        "word": "record"
+        "word": "record",
+        "meaning": "录制；记录；纪录",
+        "pos": "v. / n.",
+        "plurals": [
+          "records"
+        ]
       },
       {
         "id": "w43",
-        "word": "printer"
+        "word": "printer",
+        "meaning": "印刷工；印刷商；打印机",
+        "pos": "n.",
+        "plurals": [
+          "printers"
+        ]
       },
       {
         "id": "w44",
-        "word": "slashie"
+        "word": "slashie",
+        "meaning": "斜杠族；多重职业者",
+        "pos": "n.",
+        "plurals": [
+          "slashies"
+        ]
       },
       {
         "id": "w45",
-        "word": "dialect"
+        "word": "dialect",
+        "meaning": "方言",
+        "pos": "n.",
+        "plurals": [
+          "dialects"
+        ]
       },
       {
         "id": "w46",
-        "word": "besides"
+        "word": "besides",
+        "meaning": "除……之外还",
+        "pos": "prep.",
+        "plurals": []
       },
       {
         "id": "w47",
-        "word": "possible"
+        "word": "possible",
+        "meaning": "可能的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "w48",
-        "word": "as ... as possible"
+        "word": "as ... as possible",
+        "meaning": "尽可能……",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "w49",
-        "word": "sentence"
+        "word": "sentence",
+        "meaning": "句子",
+        "pos": "n.",
+        "plurals": [
+          "sentences"
+        ]
       },
       {
         "id": "w50",
-        "word": "rather than"
+        "word": "rather than",
+        "meaning": "而不是",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "w51",
-        "word": "pronunciation"
+        "word": "pronunciation",
+        "meaning": "发音",
+        "pos": "n.",
+        "plurals": [
+          "pronunciations"
+        ]
       },
       {
         "id": "w52",
-        "word": "grammar"
+        "word": "grammar",
+        "meaning": "语法",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "w53",
-        "word": "slowly"
+        "word": "slowly",
+        "meaning": "慢速地；缓慢地",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "w54",
-        "word": "text"
+        "word": "text",
+        "meaning": "文本；文章",
+        "pos": "n.",
+        "plurals": [
+          "texts"
+        ]
       },
       {
         "id": "w55",
-        "word": "speech"
+        "word": "speech",
+        "meaning": "演讲；说话的能力",
+        "pos": "n.",
+        "plurals": [
+          "speeches"
+        ]
       },
       {
         "id": "w56",
-        "word": "aloud"
+        "word": "aloud",
+        "meaning": "出声地；大声地",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "w57",
-        "word": "pronounce"
+        "word": "pronounce",
+        "meaning": "发音",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "w58",
-        "word": "correctly"
+        "word": "correctly",
+        "meaning": "正确地",
+        "pos": "adv.",
+        "plurals": []
       },
       {
         "id": "w59",
-        "word": "spelling"
+        "word": "spelling",
+        "meaning": "拼写",
+        "pos": "n.",
+        "plurals": [
+          "spellings"
+        ]
       },
       {
         "id": "w60",
-        "word": "to one's surprise"
+        "word": "to one's surprise",
+        "meaning": "令某人惊讶的是",
+        "pos": "短语",
+        "plurals": []
       },
       {
         "id": "w61",
-        "word": "repeat"
+        "word": "repeat",
+        "meaning": "重复",
+        "pos": "v.",
+        "plurals": []
       },
       {
         "id": "w62",
-        "word": "tourist"
+        "word": "tourist",
+        "meaning": "游客；观光者",
+        "pos": "n.",
+        "plurals": [
+          "tourists"
+        ]
       }
     ],
     "seenIds": [

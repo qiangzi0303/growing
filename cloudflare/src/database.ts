@@ -62,8 +62,16 @@ export class Store {
       throw error;
     }
   }
-  async createSession(hash: string, userId: string, expires: string) {
-    await this.db.query('INSERT INTO "GrowingSessions" ("TokenHash","UserId","ExpiresAt") VALUES (?1,?2,?3)', [hash, userId, expires]);
+  async createSession(hash: string, userId: string, expires: string, expectedPasswordHash: string) {
+    const rows = await this.db.query('INSERT INTO "GrowingSessions" ("TokenHash","UserId","ExpiresAt") SELECT ?1,?2,?3 WHERE EXISTS (SELECT 1 FROM "GrowingUsers" WHERE "Id"=?2 AND "PasswordHash"=?4) RETURNING "UserId"', [hash, userId, expires, expectedPasswordHash]);
+    if (!rows.length) throw new HttpError(401, '登录信息已变更，请重新登录。');
+  }
+  async changePassword(userId: string, passwordHash: string) {
+    const [updated] = await this.db.batch([
+      {sql:'UPDATE "GrowingUsers" SET "PasswordHash"=?2 WHERE "Id"=?1 RETURNING "Id"',params:[userId,passwordHash]},
+      {sql:'DELETE FROM "GrowingSessions" WHERE "UserId"=?1',params:[userId]},
+    ]);
+    if (!updated.length) throw new HttpError(404, '未找到会员。');
   }
   async confirmRole(id: string, role: 'Student' | 'Parent') {
     await this.db.query('UPDATE "GrowingUsers" SET "Role"=?2,"RoleConfirmed"=1 WHERE "Id"=?1 AND "RoleConfirmed"=0 AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" WHERE "UserId"=?1)', [id, role]);

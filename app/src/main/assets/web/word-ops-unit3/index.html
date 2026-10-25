@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
+<head><link rel="stylesheet" href="../app-design/assessment-feedback.css?v=red-1">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0a0e14">
@@ -325,7 +325,7 @@ nav{display:flex;gap:5px;align-items:center}nav button{background:none;border:1p
       <label class="setting-check"><input type="checkbox" id="autoSpeak"> 进入词卡时自动朗读</label>
       <label class="modal-label" for="speechRate">朗读速度</label>
       <select class="modal-input" id="speechRate"><option value="0.7">慢速</option><option value="0.85">适中</option><option value="1">正常</option></select>
-      <p class="modal-desc">朗读使用浏览器提供的英语语音。复述可按清单自查，AI 评分由本页直接连接 DeepSeek，需要联网。</p>
+      <p class="modal-desc">朗读使用内置英语音频，可离线播放。复述可按清单自查，AI 评分由本页直接连接 DeepSeek，需要联网。</p>
       <div class="settings-history"><button class="btn ghost small" type="button" data-action="study">打开学习日历与曲线</button></div>
       <div id="rewardSettings"></div>
       <div class="reset-zone">
@@ -1734,6 +1734,10 @@ window.ChapterRewards=(()=>{
   });
 })();
   </script>
+  <script src="../app-design/english-audio.js?v=all-audio-1"></script><script src="../app-design/course-speech.js?v=all-audio-1"></script>
+  <link rel="stylesheet" href="../app-design/word-mastery.css?v=1">
+  <script src="../app-design/word-mastery-rules.js?v=1"></script>
+  <script src="../app-design/word-mastery.js?v=1"></script>
   <script data-source="app.js">
 /* 分关学习、考核、错题与费曼复述；无需构建，直接打开 index.html。 */
 (() => {
@@ -1751,11 +1755,11 @@ window.ChapterRewards=(()=>{
   const wordById=new Map(D.words.map(w=>[w.id,w]));
   function restoreRuns(value){
     if(!value||typeof value!=='object')return {};
-    return Object.fromEntries(Object.entries(value).filter(([id,r])=>wordById.has(id)&&r&&['memorize','recall','result'].includes(r.phase)&&Array.isArray(r.answers)&&r.answers.length<=7&&r.answers.every(a=>typeof a==='string')).map(([id,r])=>[id,{phase:r.answers.length===7?'result':r.phase==='result'?'recall':r.phase,answers:r.answers.map(a=>a.slice(0,120)),input:typeof r.input==='string'?r.input.slice(0,120):'',seconds:[10,15].includes(r.seconds)?r.seconds:15,endsAt:Number(r.endsAt)||0,startedAt:Number(r.startedAt)||Date.now(),finishedAt:Number(r.finishedAt)||0}]));
+    return Object.fromEntries(Object.entries(value).filter(([id,r])=>wordById.has(id)&&r&&['memorize','recall','verify','result'].includes(r.phase)&&Array.isArray(r.answers)&&r.answers.length<=7&&r.answers.every(a=>typeof a==='string')).map(([id,r])=>[id,{phase:r.phase==='verify'&&r.answers.length===7?'verify':r.answers.length===7?'result':r.phase==='result'?'recall':r.phase,answers:r.answers.map(a=>a.slice(0,120)),mastery:window.WordMasteryRules.restore(wordById.get(id),r.mastery),input:typeof r.input==='string'?r.input.slice(0,120):'',seconds:[10,15].includes(r.seconds)?r.seconds:15,endsAt:Number(r.endsAt)||0,startedAt:Number(r.startedAt)||Date.now(),finishedAt:Number(r.finishedAt)||0}]));
   }
   function restoreMastered(value){
     if(!value||typeof value!=='object')return {};
-    return Object.fromEntries(Object.entries(value).filter(([id,r])=>wordById.has(id)&&r&&r.protocol==='seven-recalls'&&Array.isArray(r.answers)&&r.answers.length===7&&r.answers.every(a=>typeof a==='string'&&recallCorrect(wordById.get(id),a))).map(([id,r])=>[id,{protocol:'seven-recalls',at:Number(r.at)||Date.now(),answers:r.answers.slice(),seconds:[10,15].includes(r.seconds)?r.seconds:15}]));
+    return Object.fromEntries(Object.entries(value).filter(([id,r])=>wordById.has(id)&&(window.WordMasteryRules.passed(wordById.get(id),r)||r&&r.protocol==='seven-recalls'&&Array.isArray(r.answers)&&r.answers.length===7&&r.answers.every(a=>typeof a==='string'&&recallCorrect(wordById.get(id),a)))).map(([id,r])=>[id,{...r,at:Number(r.at)||Date.now(),answers:r.answers.slice(),seconds:[10,15].includes(r.seconds)?r.seconds:15}]));
   }
   let saved={};
   try {saved=JSON.parse(localStorage.getItem(KEY)||'{}')||{};} catch (_) {saved={};}
@@ -1775,25 +1779,26 @@ window.ChapterRewards=(()=>{
   const Rewards=window.ChapterRewards;
   state.rewards=Rewards.restore(saved.rewards);
   Object.keys(state.wrongs).forEach(id=>{if(!questions.has(id))delete state.wrongs[id];});
-  let current='home', deck=null, cardIndex=0, quiz=null, filter='all', search='',masteryFilter='all';
+  let current='home', deck=null, cardIndex=0, quiz=null, filter='all', search='',masteryFilter='all',wordFlow=null;
   let speechTimer, toastTimer, topicId='adverbs', aiController=null, aiRequest=0, modalFocus=null,wordTimer=null;
   let studyView={date:Study.today(),month:Study.today().slice(0,7),metric:'daily',range:30};
   let wordClock=null,wordPageActive=true;
   let learningClock=null;
   function learningEligible(){
     if(!$('settingsModal').classList.contains('hidden'))return false;
-    if(current==='card')return deck?.kind!=='word'||['memorize','recall'].includes(state.wordRuns[deck.cards[cardIndex].id]?.phase);
+    if(current==='card')return deck?.kind!=='word'||['memorize','recall','verify'].includes(state.wordRuns[deck.cards[cardIndex].id]?.phase);
     return ['quiz','result','wrongbook','feynman'].includes(current);
   }
   function save(){
     Rewards.update(state);
     learningClock?.reconcile();
     syncWordClock();
-    try {localStorage.setItem(KEY,JSON.stringify(state));learningClock?.saved();$('storageNotice').classList.add('hidden');}
-    catch (_) {$('storageNotice').classList.remove('hidden');}
+    try {localStorage.setItem(KEY,JSON.stringify(state));learningClock?.saved();$('storageNotice').classList.add('hidden');return true;}
+    catch (_) {$('storageNotice').classList.remove('hidden');return false;}
   }
   function toast(msg){clearTimeout(toastTimer);$('toast').textContent=msg;$('toast').classList.remove('hidden');toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),3500);}
-  function stopVoice(){clearTimeout(speechTimer);if('speechSynthesis'in window)window.speechSynthesis.cancel();}
+  const speaker=window.GrowingCourseSpeech.create({assets:Object.fromEntries(Object.entries(window.GrowingEnglishAudio||{}).map(([text,a])=>[text,{...a,file:'../app-design/'+a.file}])),onStatus:toast,label:'英语朗读'});
+  function stopVoice(){clearTimeout(speechTimer);speaker.stop();}
   function stopWordTimer(){clearInterval(wordTimer);wordTimer=null;}
   function cancelAI(){if(aiController){aiController.abort();aiController=null;}aiRequest++;}
   function pauseWordClock(){
@@ -1804,7 +1809,7 @@ window.ChapterRewards=(()=>{
     pauseWordClock();
     if(!wordPageActive||document.hidden||current!=='card'||deck?.kind!=='word'||!$('settingsModal').classList.contains('hidden'))return;
     const id=deck.cards[cardIndex].id,run=state.wordRuns[id];
-    if(!run||!['memorize','recall'].includes(run.phase))return;
+    if(!run||!['memorize','recall','verify'].includes(run.phase))return;
     const remaining=run.phase==='memorize'?Math.max(0,run.endsAt-Date.now()):Infinity;
     if(remaining===0)return;
     const now=performance.now();wordClock={id,start:now,limit:now+remaining};
@@ -1818,6 +1823,7 @@ window.ChapterRewards=(()=>{
     if(quiz?.clock&&current==='quiz'&&!quiz.finished&&!quiz.answered&&!document.hidden&&$('settingsModal').classList.contains('hidden'))quiz.clock.started=performance.now();
   }
   function setScene(name){
+    wordFlow?.destroy();wordFlow=null;
     learningClock?.checkpoint();
     const hadWordClock=!!wordClock;pauseWordClock();
     if(current==='feynman'&&name!=='feynman'){saveDraft();cancelAI();}
@@ -1856,13 +1862,13 @@ window.ChapterRewards=(()=>{
   function renderLibrary(){
     setScene('library');
     const mastered=Object.keys(state.mastered).length;
-    $('libraryScene').innerHTML=`<div class="eyebrow">EQUIPMENT / VOCABULARY</div><h1>${masteryFilter==='mastered'?'已经掌握的单词库':'Unit 3 词库'}</h1><p class="lede">“已掌握”表示最近一轮七次独立默写全对。阅读词卡和知识题得分单独记录。</p><div class="filters mastery-filters">${[['all','全部 '+D.words.length],['pending','待掌握 '+(D.words.length-mastered)],['mastered','已掌握 '+mastered]].map(([id,label])=>button(label,'masteryFilter',id,'chip'+(masteryFilter===id?' on':''))).join('')}</div><label class="sr-only" for="wordSearch">搜索单词或中文</label><input class="search-input" id="wordSearch" type="search" placeholder="搜索：pronunciation / 发音…" value="${esc(search)}"><div class="filters">${button('全部分组','filter','all','chip'+(filter==='all'?' on':''))}${D.groups.map(g=>button(g.title,'filter',g.id,'chip'+(filter===g.id?' on':''))).join('')}</div><div class="section-head"><h2>词汇列表</h2><span id="dictionaryCount"></span></div><div id="dictionary" class="dictionary"></div>`;
+    $('libraryScene').innerHTML=`<div class="eyebrow">EQUIPMENT / VOCABULARY</div><h1>${masteryFilter==='mastered'?'已经掌握的单词库':'Unit 3 词库'}</h1><p class="lede">“已掌握”表示完成七次默写、适用的复数默写与词义词类AI评测；历史默写成绩保留。阅读词卡和知识题得分单独记录。</p><div class="filters mastery-filters">${[['all','全部 '+D.words.length],['pending','待掌握 '+(D.words.length-mastered)],['mastered','已掌握 '+mastered]].map(([id,label])=>button(label,'masteryFilter',id,'chip'+(masteryFilter===id?' on':''))).join('')}</div><label class="sr-only" for="wordSearch">搜索单词或中文</label><input class="search-input" id="wordSearch" type="search" placeholder="搜索：pronunciation / 发音…" value="${esc(search)}"><div class="filters">${button('全部分组','filter','all','chip'+(filter==='all'?' on':''))}${D.groups.map(g=>button(g.title,'filter',g.id,'chip'+(filter===g.id?' on':''))).join('')}</div><div class="section-head"><h2>词汇列表</h2><span id="dictionaryCount"></span></div><div id="dictionary" class="dictionary"></div>`;
     renderLibraryList();
   }
   function renderLibraryList(){
     const items=D.words.filter(w=>(filter==='all'||w.group===filter)&&(masteryFilter==='all'||(masteryFilter==='mastered'?!!state.mastered[w.id]:!state.mastered[w.id]))&&normalize(w.en+' '+w.cn+' '+w.tip).includes(normalize(search)));
     $('dictionaryCount').textContent=items.length+' 个词条';
-    $('dictionary').innerHTML=items.length?items.map(w=>`<button class="word-row" data-action="word" data-id="${w.id}">${state.mastered[w.id]?'<em>✓ 七次全对</em>':''}<b>${esc(w.en)}</b><span>${esc(w.pos)} ${esc(w.cn)}</span><span>${state.mastered[w.id]?'已掌握 · '+new Date(state.mastered[w.id].at).toLocaleDateString('zh-CN'):'待掌握 · 进入逐词记忆'}</span></button>`).join(''):`<div class="empty-state">${masteryFilter==='mastered'?'还没有符合筛选条件的已掌握单词。完成一轮七次全对的默写后，会自动加入这里。':'没有找到相关词条，换个筛选条件试试。'}</div>`;
+    $('dictionary').innerHTML=items.length?items.map(w=>`<button class="word-row" data-action="word" data-id="${w.id}">${state.mastered[w.id]?'<em>✓ 已达标</em>':''}<b>${esc(w.en)}</b><span>${esc(w.pos)} ${esc(w.cn)}</span><span>${state.mastered[w.id]?'已掌握 · '+new Date(state.mastered[w.id].at).toLocaleDateString('zh-CN'):'待掌握 · 进入逐词记忆'}</span></button>`).join(''):`<div class="empty-state">${masteryFilter==='mastered'?'还没有符合筛选条件的已掌握单词。完成拼写与词义词类验证后，会自动加入这里。':'没有找到相关词条，换个筛选条件试试。'}</div>`;
   }
   function renderKnowledge(){setScene('knowledge');$('knowledgeScene').innerHTML=`<div class="eyebrow">TACTICS / KNOWLEDGE</div><h1>知识关卡</h1><p class="lede">先看规则与例句，再通过本关考核。看懂之后，试着向隼解释。</p><div class="mission-grid knowledge-grid" style="margin-top:22px">${D.lessons.map((l,i)=>mission(l,i,true)).join('')}</div>`;}
   function startCards(id,index=0){
@@ -1887,7 +1893,7 @@ window.ChapterRewards=(()=>{
       if(run?.phase==='memorize'&&Date.now()>=run.endsAt){run.phase='recall';run.input='';save();}
       content=wordTraining(c);
     }else content=`<div class="wordcard knowledge-card"><div class="eyebrow">规则 / 例句 / 易错点</div><h2>${esc(c.title)}</h2><div class="knowledge-rule">${esc(c.rule)}</div>${c.examples.map(e=>`<div class="word-example"><div class="en">${esc(e[0])}</div><div class="zh">${esc(e[1])}</div></div>`).join('')}<div class="trap"><strong>⚑ 易错提醒</strong><br>${esc(c.trap)}</div></div>`;
-    const phase=deck.kind==='word'?state.wordRuns[c.id]?.phase:null,locked=phase==='memorize'||phase==='recall';
+    const phase=deck.kind==='word'?state.wordRuns[c.id]?.phase:null,locked=phase==='memorize'||phase==='recall'||phase==='verify';
     $('cardScene').innerHTML=`<div class="card-heading">${button('← '+(back==='library'?'词库':'知识关卡'),back,'','text-btn')}<span>${esc(deck.title)} · ${cardIndex+1} / ${deck.cards.length}</span>${deck.kind==='word'?button('已掌握词库','masteredLibrary','','text-btn'):button('本关考核','lessonQuiz',deck.id,'text-btn')}</div>${dots}${content}${locked?'<p class="card-tips">一次专注一个词 · 本轮进度自动保存</p>':`<div class="card-bottom"><button class="btn ghost" data-action="prevCard" ${cardIndex===0?'disabled':''}>◀ 上一张</button>${button(cardIndex===deck.cards.length-1?(deck.kind==='word'?'返回词库':'进入本关考核 ▶'):'下一张 ▶','nextCard')}</div><p class="card-tips">用 ← → 切换卡片 · 学习进度自动保存</p>`}`;
     document.querySelector('[data-action="speakWord"]')?.setAttribute('aria-label','朗读当前单词');
     if(deck.kind==='word'&&phase==='memorize'){
@@ -1897,10 +1903,22 @@ window.ChapterRewards=(()=>{
     if(phase==='recall')$('recallInput')?.focus({preventScroll:true});
     if(phase==='result'&&deck.kind==='word')$('cardScene').querySelector('[data-word-phase="result"]').insertAdjacentHTML('afterend',WordEff.renderWord(state.wordEfficiency,c.id,!!state.mastered[c.id]));
     syncWordClock();
+    if(phase==='verify')wordFlow=window.GrowingWordMastery.mount({element:$('wordMasteryHost'),word:c,practice:state.wordRuns[c.id].mastery||{answers:state.wordRuns[c.id].answers},
+      save:practice=>{state.wordRuns[c.id].mastery=practice;return save();},
+      onComplete:record=>{
+        pauseWordClock();
+        const backup=JSON.parse(JSON.stringify(state)),old=state.mastered[c.id],run=state.wordRuns[c.id];state.mastered[c.id]={...record,seconds:run.seconds};run.phase='result';
+        const timing=WordEff.finish(state.wordEfficiency,c.id,true,!!old,Date.now());Study.recall(state.studyHistory,c.id,true,!!old,Date.now(),timing);
+        if(!save()){Object.assign(state,backup);return false;}
+        const next=D.words[D.words.findIndex(w=>w.id===c.id)+1];
+        if(next){startCards('all',D.words.indexOf(next));toast('本词已掌握，已自动进入本单元下一词。');}else{renderLibrary();toast('已完成本单元最后一个词，当前学习流程结束。');}
+        return true;
+      }});
   }
   function wordStudy(c){
     const en=c.en.split(' ').map(chunk=>`<span class="chunk">${esc(chunk)}</span>`).join(' ');
-    return `<div class="word-en ${c.en.length>14?'long':''}">${en}</div><div class="word-phon">${esc(c.phon)} <span class="word-pos">${esc(c.pos)}</span></div><div class="word-cn">${esc(c.cn)}</div><div class="word-mnemonic"><strong>本词知识点</strong><br>${esc(c.tip)}</div><div class="word-example"><div class="en">${esc(c.ex)}</div><div class="zh">${esc(c.zh)}</div></div>`;
+    const plurals=window.WordMasteryRules.describe(c).plurals;
+    return `<div class="word-en ${c.en.length>14?'long':''}">${en}</div><div class="word-phon">${esc(c.phon)} <span class="word-pos">${esc(c.pos)}</span></div><div class="word-cn">${esc(c.cn)}</div>${plurals.length?`<p>复数：<span lang="en">${plurals.map(esc).join(' / ')}</span></p>`:''}<div class="word-mnemonic"><strong>本词知识点</strong><br>${esc(c.tip)}</div><div class="word-example"><div class="en">${esc(c.ex)}</div><div class="zh">${esc(c.zh)}</div></div>`;
   }
   function relatedExams(c){
     const tags=D.wordFocus?.[c.id]?.tags||[];
@@ -1930,7 +1948,7 @@ window.ChapterRewards=(()=>{
     const composition=[official?'中考真题 '+official+' 题':'',mock?'一模题 '+mock+' 题':'',extra?'教材考点补充 '+extra+' 题':''].filter(Boolean).join('，');
     return `<details class="word-notes" ${open?'open':''}><summary>本词知识与考核 · ${practice.length} 道常考题</summary><div class="word-notes-body">
       <h3>知识应用目标 · ${esc(c.pos)}</h3><p>${esc(focus?.target||c.tip)}</p>
-      <h3>本词怎样考 · 五题清单</h3><p>拼写：限时记忆后独立默写七次，七次全对才加入已掌握词库。</p>
+      <h3>本词怎样考 · 五题清单</h3><p>拼写：限时记忆后独立默写七次，再检查适用的复数形式，隐藏中文后用输入法语音口述词义和词类，经AI判断通过才加入已掌握词库。</p>
       <p class="practice-composition">${esc(composition)}</p><p class="muted">按本词词性、本单元常用搭配与已学基础语法出题。补充题依据教材考点编写，非教材或辅导书原题。</p>
       <ol class="word-core-points">${practice.map(item=>`<li><strong>${esc(item.point)}</strong><span>${item.question.type==='choice'?'选择':'填空'} · ${esc(practiceLabel(item.question))}</span></li>`).join('')}</ol>
       <div class="actions">${button('开始本词 5 题考核','wordQuiz',c.id,'btn ghost small')}${lesson?button('关联知识：'+lesson.title,'cards',lesson.id,'btn ghost small'):''}</div>
@@ -1943,11 +1961,12 @@ window.ChapterRewards=(()=>{
   }
   function wordTraining(c){
     const run=state.wordRuns[c.id],phase=run?.phase||'ready';
-    if(phase==='ready')return `<div class="wordcard word-training" data-word-phase="ready"><div class="eyebrow">ONE WORD / 一次一个词</div><h2>准备记住这个词</h2><div class="word-cn">${esc(c.cn)}</div><p class="study-intro">点击开始后显示英文。时间一到，英文、音标和提示一起消失，然后连续完成七次独立默写。</p><label class="memory-choice" for="wordMemorySeconds">记忆时间<select id="wordMemorySeconds"><option value="10" ${state.settings.memorySeconds===10?'selected':''}>10 秒</option><option value="15" ${state.settings.memorySeconds===15?'selected':''}>15 秒</option></select></label>${button('开始记忆','startWord','','btn')}<p class="card-tips">${c.pos==='短语'?'短语按卡片上的形式默写，包括省略号或所有格。':'拼写时注意完整词形；专有名词保留大写。'}</p>${state.mastered[c.id]?'<p class="mastery-status">✓ 已掌握 · 可重新检测</p>':''}</div>`;
+    if(phase==='verify')return '<div class="wordcard"><div id="wordMasteryHost"></div></div>';
+    if(phase==='ready')return `<div class="wordcard word-training" data-word-phase="ready"><div class="eyebrow">ONE WORD / 一次一个词</div><h2>准备记住这个词</h2><div class="word-cn">${esc(c.cn)}</div><p class="study-intro">点击开始后显示英文。时间一到，英文、音标和提示一起消失，然后完成七次独立默写、适用的复数默写与词义词类口述。</p><label class="memory-choice" for="wordMemorySeconds">记忆时间<select id="wordMemorySeconds"><option value="10" ${state.settings.memorySeconds===10?'selected':''}>10 秒</option><option value="15" ${state.settings.memorySeconds===15?'selected':''}>15 秒</option></select></label>${button('开始记忆','startWord','','btn')}<p class="card-tips">${c.pos==='短语'?'短语按卡片上的形式默写，包括省略号或所有格。':'拼写时注意完整词形；专有名词保留大写。'}</p>${state.mastered[c.id]?'<p class="mastery-status">✓ 已掌握 · 可重新检测</p>':''}</div>`;
     if(phase==='memorize')return `<div class="wordcard word-training" data-word-phase="memorize"><div class="memory-status" role="timer" aria-label="英文显示剩余时间"><span>专心记忆 · 到时自动隐藏</span><strong><span id="memoryCountdown">${Math.max(0,Math.ceil((run.endsAt-Date.now())/1000))}</span> 秒</strong></div>${wordStudy(c)}<div class="card-ctrl">${button('🔊 朗读单词','speakWord','','btn ghost small')}${button('跟读例句','speakExample','','btn ghost small')}</div><p class="card-tips">现在记住拼写；时间结束后开始第 1 次默写。</p></div>${wordNotes(c)}`;
     if(phase==='recall')return `<div class="wordcard word-training recall-card" data-word-phase="recall"><div class="eyebrow">RECALL / 第 ${run.answers.length+1} 次独立默写</div><h2>这个词怎么写？</h2><div class="word-cn">${esc(c.cn)}</div><p class="recall-prompt">${esc(c.pos)} · 只看中文，独立回忆英文${c.pos==='短语'?'短语':''}。</p>${sevenSteps(run)}<label class="recall-label" for="recallInput">第 ${run.answers.length+1} / 7 次</label><input id="recallInput" class="recall-input" type="text" value="${esc(run.input||'')}" maxlength="120" placeholder="输入英文，然后确认" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"><p id="recallError" class="recall-error" role="alert"></p>${button(run.answers.length===6?'提交第 7 次，查看结果':'确认本次默写','submitRecall','','btn')}<p class="recall-note">已提交的内容自动隐藏；七次结束后统一显示结果。</p></div>`;
     const correct=run.answers.map(a=>recallCorrect(c,a)),score=correct.filter(Boolean).length,passed=score===7;
-    return `<div class="wordcard word-training recall-result" data-word-phase="result"><div class="eyebrow">RESULT / 七次默写结果</div><h2 class="${passed?'pass-title':'retry-title'}">${passed?'✓ 七次全对，已加入掌握词库':'本轮还需巩固'}</h2><div class="recall-score">${score}<span> / 7</span></div><p>${passed?'本轮拼写检测通过。继续用例句和知识题检查应用。':'七次全部正确才记为掌握。重新记忆后，再完整检测一轮。'}</p><div class="recall-table" role="table" aria-label="七次默写结果">${run.answers.map((a,i)=>`<div class="recall-result-row" role="row"><span role="cell">第 ${i+1} 次</span><span class="submitted-answer" role="cell">${esc(a)}</span><strong class="${correct[i]?'answer-pass':'answer-fail'}" role="cell">${correct[i]?'✓ 正确':'✗ 错误'}</strong></div>`).join('')}</div><div class="actions">${button('再记忆、再测一轮','retryWord','','btn ghost')}${button('打开已掌握词库','masteredLibrary','','btn ghost')}</div><div class="answer-review"><h3>正确词条与知识点</h3>${wordStudy(c)}</div></div>${wordNotes(c,true)}`;
+    return `<div class="wordcard word-training recall-result" data-word-phase="result"><div class="eyebrow">RESULT / 七次默写结果</div><h2 class="${passed?'pass-title':'retry-title'}">${passed?'✓ 七次全对，已完成本轮验证':'本轮还需巩固'}</h2><div class="recall-score">${score}<span> / 7</span></div><p>${passed?'本轮拼写检测通过。继续用例句和知识题检查应用。':'七次全对后还需完成适用的复数默写及词义词类验证。重新记忆后，再完整检测一轮。'}</p><div class="recall-table" role="table" aria-label="七次默写结果">${run.answers.map((a,i)=>`<div class="recall-result-row" role="row"><span role="cell">第 ${i+1} 次</span><span class="submitted-answer" role="cell">${esc(a)}</span><strong class="${correct[i]?'answer-pass':'answer-fail'}" role="cell">${correct[i]?'✓ 正确':'✗ 错误'}</strong></div>`).join('')}</div><div class="actions">${button('再记忆、再测一轮','retryWord','','btn ghost')}${button('打开已掌握词库','masteredLibrary','','btn ghost')}</div><div class="answer-review"><h3>正确词条与知识点</h3>${wordStudy(c)}</div></div>${wordNotes(c,true)}`;
   }
   function startWord(){
     if(deck?.kind!=='word')return;
@@ -1974,15 +1993,13 @@ window.ChapterRewards=(()=>{
     if(run.answers.length===7){
       run.phase='result';run.finishedAt=Date.now();
       const wasMastered=!!state.mastered[c.id],passed=run.answers.every(a=>recallCorrect(c,a));
-      if(passed)state.mastered[c.id]={protocol:'seven-recalls',at:run.finishedAt,answers:run.answers.slice(),seconds:run.seconds};
-      else delete state.mastered[c.id];
-      const masteryTiming=WordEff.finish(state.wordEfficiency,c.id,passed,wasMastered,run.finishedAt);
-      Study.recall(state.studyHistory,c.id,passed,wasMastered,run.finishedAt,masteryTiming);
+      if(passed){run.phase='verify';run.mastery={answers:run.answers.slice(),pluralAnswer:'',draft:''};}
+      else{const masteryTiming=WordEff.finish(state.wordEfficiency,c.id,false,wasMastered,run.finishedAt);Study.recall(state.studyHistory,c.id,false,wasMastered,run.finishedAt,masteryTiming);}
     }
     save();renderCard();
   }
   function retryWord(){if(deck?.kind!=='word')return;delete state.wordRuns[deck.cards[cardIndex].id];save();renderCard();}
-  function wordRunActive(){return current==='card'&&deck?.kind==='word'&&['memorize','recall'].includes(state.wordRuns[deck.cards[cardIndex].id]?.phase);}
+  function wordRunActive(){return current==='card'&&deck?.kind==='word'&&['memorize','recall','verify'].includes(state.wordRuns[deck.cards[cardIndex].id]?.phase);}
   function wordStudyVisible(){
     if(current!=='card'||deck?.kind!=='word')return false;
     const run=state.wordRuns[deck.cards[cardIndex].id];
@@ -1990,12 +2007,8 @@ window.ChapterRewards=(()=>{
     return run?.phase==='memorize'||run?.phase==='result';
   }
   function wordAudio(w){return ({w17:'set apart',w48:'as often as possible',w60:'to my surprise'})[w.id]||w.en;}
-  function speak(text){
-    if(!('speechSynthesis'in window)){toast('当前浏览器不支持朗读，可以查看音标。');return;}
-    stopVoice();const u=new SpeechSynthesisUtterance(text);u.lang='en-GB';u.rate=state.settings.rate;
-    const voices=speechSynthesis.getVoices();u.voice=voices.find(v=>v.lang==='en-GB')||voices.find(v=>v.lang.startsWith('en'))||null;
-    u.onerror=e=>{if(!['interrupted','canceled'].includes(e.error))toast(e.message||'当前英语语音暂时不可用，请稍后再试。');};speechSynthesis.speak(u);
-  }
+  function speak(text){stopVoice();speaker.play({id:text},{rate:state.settings.rate});}
+
   function selectBalanced(){
     const sample=(test,n)=>D.shuffle(D.questions.filter(test)).slice(0,n);
     return D.shuffle([...sample(q=>q.id.endsWith('-meaning'),4),...sample(q=>q.id.endsWith('-spell'),4),...sample(q=>q.section==='patterns',3),...sample(q=>q.section==='adverbs',3),...sample(q=>q.section==='reflexives',3),...sample(q=>q.section==='formation',2),...sample(q=>q.section==='reading',1)]);
@@ -2104,7 +2117,7 @@ window.ChapterRewards=(()=>{
   function renderAI(box,data){
     const score=Number.isFinite(Number(data.score))?Math.max(0,Math.min(100,Math.round(Number(data.score)))):null;
     const list=(a,cls)=>Array.isArray(a)?'<ul>'+a.slice(0,12).map(x=>`<li class="${cls}">${esc(x)}</li>`).join('')+'</ul>':'';
-    box.innerHTML=`<div class="ai-reply"><h4>🎖 隼的复述点评 · DeepSeek</h4>${score!==null?`<div class="score-line"><span class="big">${score}</span><span>本次理解反馈 / 100</span></div>`:''}<strong class="good">✓ 讲清楚的地方</strong>${list(data.good,'good')}<strong class="bad">⚑ 可以补强的地方</strong>${list(data.gap,'bad')}${data.question?`<p style="margin-top:12px"><strong style="color:var(--cyan)">隼的追问 / 回应</strong><br>${esc(data.question)}</p>`:''}${data.comment?`<p class="accent" style="margin-top:12px">${esc(data.comment)}</p>`:''}</div>`;
+    box.innerHTML=`<div class="ai-reply"><h4>🎖 隼的复述点评 · DeepSeek</h4>${score!==null?`<div class="score-line"><span class="big">${score}</span><span>本次理解反馈 / 100</span></div>`:''}<strong class="good">✓ 讲清楚的地方</strong>${list(data.good,'good')}<strong class="bad assessment-gap">⚑ 可以补强的地方</strong>${list(data.gap,'bad assessment-gap')}${data.question?`<p style="margin-top:12px"><strong style="color:var(--cyan)">隼的追问 / 回应</strong><br>${esc(data.question)}</p>`:''}${data.comment?`<p class="accent" style="margin-top:12px">${esc(data.comment)}</p>`:''}</div>`;
   }
   function renderStudy(preserveScroll=false){const top=$('main').scrollTop;setScene('study');$('studyScene').innerHTML=Study.render(state,studyView);$('studyDetail').insertAdjacentHTML('afterbegin',`<p class="daily-learning-time">本日有效学习 <strong>${Learning.format(state.learningTime.days[studyView.date])}</strong></p>`);$('studyScene').querySelector('.study-definitions').insertAdjacentHTML('beforebegin',Learning.render(state.learningTime,studyView.date,studyView.range)+WordEff.renderHistory(state.wordEfficiency,state.mastered)+Study.efficiencyHistory(state.studyHistory));if(preserveScroll)$('main').scrollTop=top;}
   function settings(){
@@ -2200,8 +2213,8 @@ window.ChapterRewards=(()=>{
   $('settingsForm').addEventListener('submit',e=>{e.preventDefault();state.settings={...state.settings,autoSpeak:$('autoSpeak').checked,rate:Number($('speechRate').value)};save();closeSettings();if(current==='home')renderHome();toast('学习设置已保存。奖励总额请在奖励面板单独保存。');});
   $('settingsModal').addEventListener('click',e=>{if(e.target===$('settingsModal'))closeSettings();});
   document.addEventListener('visibilitychange',()=>{const hadWordClock=!!wordClock;syncQuizClock();syncWordClock();if(!document.hidden){tickWordTimer();if(current==='study')renderStudy(true);}if(hadWordClock)save();});
-  window.addEventListener('pageshow',()=>{wordPageActive=true;syncWordClock();syncQuizClock();if(current==='card'&&deck?.kind==='word'&&state.wordRuns[deck.cards[cardIndex].id]?.phase==='memorize')renderCard();});
-  window.addEventListener('pagehide',()=>{const hadWordClock=!!wordClock;wordPageActive=false;pauseWordClock();pauseQuizClock();if(hadWordClock)save();saveDraft();stopWordTimer();stopVoice();cancelAI();});
+  window.addEventListener('pageshow',()=>{wordPageActive=true;syncWordClock();syncQuizClock();if(current==='card'&&deck?.kind==='word'&&['memorize','verify'].includes(state.wordRuns[deck.cards[cardIndex].id]?.phase))renderCard();});
+  window.addEventListener('pagehide',()=>{wordFlow?.destroy();wordFlow=null;const hadWordClock=!!wordClock;wordPageActive=false;pauseWordClock();pauseQuizClock();if(hadWordClock)save();saveDraft();stopWordTimer();stopVoice();cancelAI();});
   learningClock=Learning.create(()=>state.learningTime,learningEligible,save);
   save();
   const requestedNode=new URLSearchParams(location.search).get('node');

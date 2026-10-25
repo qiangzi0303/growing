@@ -1,6 +1,7 @@
 /* Read-only summaries. Browsing, rewards and unfinished answers never certify mastery. */
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.GrowingUnitSummary=factory();})(globalThis,()=>{
   'use strict';
+  const wordRules=typeof module==='object'&&module.exports?require('./word-mastery-rules.js'):{passed:(w,r)=>globalThis.WordMasteryRules?.passed(w,r)};
   const labels={weak:'薄弱',shaky:'不稳',untested:'未测',pending:'待复测',passed:'已通过',unknown:'记录不可用'};
   const result=(status='untested',detail='暂无已保存的检测记录')=>({status,detail});
   const grade=a=>a&&Number.isInteger(a.score)&&a.score>=0&&a.score<=10&&Array.isArray(a.criticalErrors)&&a.criticalErrors.every(x=>typeof x==='string')&&typeof a.feedback==='string';
@@ -53,9 +54,9 @@
   }
   function english({words,lessons,raw,engine}){
     let state;try{state=engine.restore(raw);}catch{return {rows:[...words.filter(w=>!w.optional).map(w=>({id:'word:'+w.id,title:w.word,section:'词汇 · '+w.meaning})),...lessons.map(l=>({id:'lesson:'+l.id,title:l.title,section:'阅读与语法'}))].map(n=>({...n,...result('unknown','学习记录无法读取')})),warnings:['学习记录格式无法识别，原记录未改动。']};}
-    const rows=words.filter(w=>!w.optional).map(w=>({id:'word:'+w.id,title:w.word,section:'词汇 · '+w.meaning,...(engine.wordPassed(w,state.words[w.id])?result('passed','词汇达标 · 7次闭卷默写正确'):result())}));
+    const rows=words.filter(w=>!w.optional).map(w=>{const r=state.words[w.id];return {id:'word:'+w.id,title:w.word,section:'词汇 · '+w.meaning,...(engine.wordPassed(w,r)?result('passed',r.protocol==='word-mastery-v2'?'词汇达标 · 七次默写、适用的复数与词义词类AI验证通过':'历史词汇达标 · 7次闭卷默写正确'):r?.practice?result('pending','默写或词义词类验证尚未完成'):result())};});
     for(const l of lessons){const c=concept(state.feynman[l.id]);rows.push({id:'lesson:'+l.id,title:l.title,section:'阅读与语法',...(engine.lessonPassed(l,state.lessons[l.id])?result('passed','检测达标 · 3/3正确'):c.passed?result('shaky','概念复述通过，尚需完成应用检测'):c.attempts.length?result('weak','概念复述尚未达标'):result())});}
-    return {rows,warnings:[],note:'词汇按7次默写、阅读语法按3/3检测汇总。旧版未保存的失败轮次无法推断为薄弱。标星选学词不计入。'};
+    return {rows,warnings:[],note:'词汇按七次默写、适用的复数与词义词类AI验证汇总；历史七次默写记录保留。阅读语法按3/3检测汇总，标星选学词不计入。'};
   }
   function legacyEnglish({data,raw,engine}){
     if(raw!==null&&(!raw||typeof raw!=='object'||Array.isArray(raw)))throw Error('Unit 3记录格式无法识别');
@@ -63,15 +64,15 @@
     const match=(word,answer)=>{const norm=x=>String(x??'').normalize('NFKC').trim().replace(/[‘’]/g,"'").replace(/\s*\.\s*\.\s*\.\s*/g,' ... ').replace(/\s+/g,' ');return word.id==='w34'?norm(word.en)===norm(answer):norm(word.en).toLowerCase()===norm(answer).toLowerCase();};
     const rows=data.words.map(w=>{
       const r=raw.mastered?.[w.id],run=raw.wordRuns?.[w.id],answers=Array.isArray(run?.answers)?run.answers:[];
-      const passed=r?.protocol==='seven-recalls'&&Array.isArray(r.answers)&&r.answers.length===7&&r.answers.every(a=>typeof a==='string'&&match(w,a));
+      const passed=wordRules.passed(w,r)||r?.protocol==='seven-recalls'&&Array.isArray(r.answers)&&r.answers.length===7&&r.answers.every(a=>typeof a==='string'&&match(w,a));
       const complete=run?.phase==='result'&&answers.length===7,correct=answers.filter(a=>typeof a==='string'&&match(w,a)).length;
-      return {id:'word:'+w.id,title:w.en,section:'词汇 · '+w.cn,...(passed?result('passed','词汇达标 · 7次闭卷默写正确'):complete?result(correct?'shaky':'weak',`最近默写${correct}/7，需重新巩固`):answers.length?result('pending','默写轮次尚未完成'):result())};
+      return {id:'word:'+w.id,title:w.en,section:'词汇 · '+w.cn,...(passed?result('passed',r.protocol==='word-mastery-v2'?'词汇达标 · 默写、复数与词义词类验证通过':'历史词汇达标 · 7次闭卷默写正确'):run?.phase==='verify'?result('pending','七次默写已完成，复数或词义词类验证待完成'):complete?result(correct?'shaky':'weak',`最近默写${correct}/7，需重新巩固`):answers.length?result('pending','默写轮次尚未完成'):result())};
     });
     for(const l of data.lessons){
       const records=(Array.isArray(raw.records)?raw.records:[]).filter(r=>r.mode==='lesson'&&r.id===l.id&&Number.isFinite(r.score)&&Number.isFinite(r.total)&&r.total>0&&r.score>=0&&r.score<=r.total),last=records.at(-1),best=raw.best?.[l.id];
       rows.push({id:'lesson:'+l.id,title:l.title,section:'知识关卡',...(last?result(last.score/last.total>=.8?'passed':last.score?'shaky':'weak',`最近考核${last.score}/${last.total}，达标线80%`):typeof best==='number'&&best>=0&&best<=100?result(best>=80?'passed':best?'shaky':'weak',`已保存最好成绩${best}%，达标线80%`):result())});
     }
-    return {rows,warnings:[],note:'Unit 3沿用原课堂标准：词汇7次默写正确，知识关卡考核达到80%。只看过词卡不计通过。'};
+    return {rows,warnings:[],note:'Unit 3词汇需七次默写、适用的复数与词义词类AI验证通过，历史默写达标记录保留；知识关卡考核达到80%。只看过词卡不计通过。'};
   }
   return {labels,math,english,legacyEnglish,withHandwriting};
 });

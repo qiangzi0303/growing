@@ -1,4 +1,6 @@
 import catalogData from './ranking-rules.json';
+import mathFeedback from '../../app/src/main/assets/web/app-design/math-feedback.js';
+import wordMastery from '../../app/src/main/assets/web/app-design/word-mastery-rules.js';
 import diagnosisData from './diagnosis-rules.json';
 import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
 import { HttpError, type Database, type Document, type Statement } from './database';
@@ -7,8 +9,7 @@ type Data = Record<string, any>;
 const object = (v: unknown): Data => v && typeof v === 'object' && !Array.isArray(v) ? v as Data : {};
 const array = (v: unknown): any[] => Array.isArray(v) ? v : [];
 const ratio = (v: unknown, max: number) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max ? v / max : 0;
-const grade = (v: any) => v && Number.isInteger(v.score) && v.score >= 8 && v.score <= 10 && typeof v.feedback === 'string' &&
-  Array.isArray(v.criticalErrors) && v.criticalErrors.length === 0;
+const grade = (v: any) => mathFeedback.validGrade(v) && v.score >= 8 && v.criticalErrors.length === 0;
 const normalize = (v: unknown) => typeof v === 'string' ? v.trim().toLowerCase().replace(/[’‘]/g,"'").replace(/…/g,'...')
   .replace(/\s*\.\.\.\s*/g,' ... ').replace(/\s*-\s*/g,'-').replace(/\s+/g,' ').trim() : '';
 const catalog = catalogData as Data[];
@@ -60,7 +61,7 @@ export function masteryBoards(docs: Document[]): Mastery[] {
       started=unit.rules.words.some((w:any)=>Object.hasOwn(words,w.id))||unit.rules.lessons.some((l:any)=>Object.hasOwn(lessons,l.id)||Object.hasOwn(feynman,l.id));
       for (const word of unit.rules.words) {
         const record=words[word.id],variants:Data={humour:['humour','humor'],programme:['programme','program'],'sec.':['sec.','sec']};
-        if (record?.protocol==='seven-recalls'&&array(record.answers).length===7&&record.answers.every((a:unknown)=>typeof a==='string'&&(variants[word.word]??[word.word]).some((v:string)=>normalize(v)===normalize(a))))testDone++;
+        if (wordMastery.passed(word,record)||record?.protocol==='seven-recalls'&&array(record.answers).length===7&&record.answers.every((a:unknown)=>typeof a==='string'&&(variants[word.word]??[word.word]).some((v:string)=>normalize(v)===normalize(a))))testDone++;
       }
       for (const lesson of unit.rules.lessons) {
         if (array(feynman[lesson.id]?.attempts).some(grade))conceptDone++;
