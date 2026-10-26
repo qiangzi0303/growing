@@ -26,13 +26,14 @@
         <div class="subject-stamp" aria-hidden="true">${subject==='physics'?'v = s/t':hasGraph?'x²':'Aa'}</div>
       </header>
       <nav class="term-switch" aria-label="选择学期">${Object.entries(course.terms).map(([key,value])=>`<a href="${catalogLink(key)}" ${key===term?'aria-current="page"':''}>${value.name}<span>${key==='upper'?'上学期':'下学期'}</span></a>`).join('')}</nav>
+      ${subject==='english'?`<section class="knowledge-entry english-animation-entry" aria-label="英语动画记单词"><div><strong>看动作，记单词。</strong><p>17 个空间关系表达 · 16 种行走与奔跑表达</p></div><a class="english-animation-button" href="english-visual-lab.html?term=${term}">动画记单词 →</a></section>`:''}
       ${hasGraph&&book.verified&&book.units.length?`<section class="knowledge-entry" aria-label="${course.name}知识图谱与诊断"><div><strong>学不顺，先找卡住的那一步。</strong><p>${subject==='physics'?'上册5章 · 22节 · 图文微课、知识关联与先修诊断':'上下册11章 · 图文微课、知识关联与先修诊断'}</p></div><div class="knowledge-actions"><a href="${graphFile}?chapter=${book.units[0].id}">知识图谱 ↗</a><a href="${graphFile}?chapter=${book.units[0].id}&mode=diagnosis">先测一下 →</a></div></section>`:''}
       ${!book.verified?`<p class="verification-note"><span aria-hidden="true">ⓘ</span> ${subject==='physics'?'下册暂不开放，当前先学习上册。上册已按2025年第4版核对。':'下册教材目录待核对，目前预留 8 个单元位置，名称与数量以教材为准。'}</p>`:''}
       <section class="unit-section" aria-labelledby="unit-list-title">
         <div class="list-heading"><h2 id="unit-list-title">${book.name}<span> / ${course.label}目录</span></h2><p>${book.units.length?book.units.length+' '+(book.verified?(hasGraph?'章':'个单元'):'个预留单元'):'目录待补充'}${available?`<span class="available-count"> · ${available} ${hasGraph?'章':'个'}可学习</span>`:''}</p></div>
         <ol class="unit-list">${book.units.map(unit=>`<li><div class="unit-row ${unit.entry?'is-ready':''}" data-unit="${unit.id}">
           <span class="unit-number" aria-hidden="true">${String(unit.number).padStart(2,'0')}</span>
-          <div class="unit-copy"><span class="unit-label">${label(unit)}</span><div class="unit-title"><h3><a class="unit-course-link" href="${studyLink(unit)}">${escape(unit.title)}</a></h3>${book.verified&&unit.entry?`<a class="unit-reward-trigger" href="unit-summary.html?subject=${subject}&unit=${unit.id}">单元总结 →</a>`:''}${window.UnitRewards.placeholder(unit.id)}</div><p>${escape(unit.summary)}</p></div>
+          <div class="unit-copy"><span class="unit-label">${label(unit)}</span><div class="unit-title"><h3><a class="unit-course-link" href="${studyLink(unit)}">${escape(unit.title)}</a></h3></div><p>${escape(unit.summary)}</p><div class="unit-actions">${book.verified&&unit.entry?`<a class="unit-reward-trigger" href="unit-summary.html?subject=${subject}&unit=${unit.id}">单元总结 →</a>`:''}${window.UnitRewards.placeholder(unit.id)}</div></div>
           <span class="unit-state">${state(unit)}</span><span class="unit-arrow" aria-hidden="true">↗</span>
         </div></li>`).join('')}</ol>
       </section>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三角形的四心 · 内心 / 外心 / 重心 / 垂心</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="triangle-centers.css">
+<style>
+:root{
+  --primary-gradient:linear-gradient(135deg,#F59E0B 0%,#EAB308 100%);
+  --bg-gradient:linear-gradient(180deg,#0F172A 0%,#422006 50%,#713F12 100%);
+  --accent-amber:#FBBF24;--accent-cyan:#22D3EE;--accent-emerald:#34D399;
+  --accent-rose:#FB7185;--accent-orange:#FB923C;--accent-violet:#A78BFA;
+  --glass-bg:rgba(255,255,255,0.08);--glass-border:rgba(255,255,255,0.15);
+  --text-primary:#F8FAFC;--text-secondary:#CBD5E1;--text-muted:#94A3B8;
+  --panel-bg:rgba(66,32,6,0.6);--panel-border:rgba(245,158,11,0.25);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:Inter,system-ui,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-gradient);color:var(--text-primary)}
+.glass{background:var(--glass-bg);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-border)}
+.btn{background:var(--primary-gradient);transition:all .2s ease;box-shadow:0 4px 14px rgba(245,158,11,.3)}
+.btn:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.btn-ghost{background:rgba(255,255,255,.08);transition:all .2s}
+.btn-ghost:hover{background:rgba(255,255,255,.16)}
+.center-item{transition:all .2s ease;border:1px solid transparent;cursor:pointer}
+.center-item:hover{background:rgba(245,158,11,.15)}
+.center-item.active{background:rgba(245,158,11,.28);border-color:var(--accent-amber)}
+.vertex{cursor:grab}.vertex:active{cursor:grabbing}
+input[type=range]{-webkit-appearance:none;height:5px;border-radius:5px;background:rgba(255,255,255,.2);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#FBBF24,#FDE68A);cursor:pointer;box-shadow:0 0 8px rgba(251,191,36,.7)}
+.toast{position:fixed;top:72px;left:50%;transform:translateX(-50%) translateY(-20px);opacity:0;transition:all .35s cubic-bezier(.2,.8,.3,1);z-index:60;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.panel-slide{transition:all .3s ease}
+.fade-in{animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar{width:7px}::-webkit-scrollbar-thumb{background:rgba(245,158,11,.4);border-radius:4px}
+.chk{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--accent-amber);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.chk.done{background:var(--accent-amber)}
+svg text{user-select:none}
+.sidebar-collapsed{transform:translateX(-100%)}
+</style>
+</head>
+<body>
+<div id="app" class="w-full h-full relative"></div>
+<div id="toast" class="toast glass px-5 py-3 rounded-xl text-sm font-medium"></div>
+<script>
+/* ====== 页面骨架 ====== */
+const app=document.getElementById('app');
+app.innerHTML=`
+<!-- 顶部导航 -->
+<nav class="glass absolute top-0 left-0 right-0 h-14 flex items-center justify-between px-4 z-40" style="border-left:none;border-right:none;border-top:none">
+  <div class="flex items-center gap-3">
+    <a id="labBack" href="math-explore-lab.html?chapter=math-8a-01" class="btn-ghost px-3 py-1.5 rounded-lg text-xs">← 三角形实验室</a>
+    <button id="menuBtn" class="btn-ghost md:hidden w-9 h-9 rounded-lg flex items-center justify-center text-lg">☰</button>
+    <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg" style="background:var(--primary-gradient)">▲</div>
+    <div>
+      <div class="font-bold text-sm leading-tight">三角形的四心</div>
+      <div class="text-[11px]" style="color:var(--text-muted)">内心 · 外心 · 重心 · 垂心</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <button id="resetBtn" class="btn-ghost px-3 py-1.5 rounded-lg text-xs font-medium">↺ 重置</button>
+    <button id="randBtn" class="btn-ghost px-3 py-1.5 rounded-lg text-xs font-medium">🎲 随机</button>
+    <button id="fsBtn" class="btn-ghost px-3 py-1.5 rounded-lg text-xs font-medium hidden sm:block">⛶ 全屏</button>
+    <button id="aboutBtn" class="btn-ghost px-3 py-1.5 rounded-lg text-xs font-medium">ⓘ</button>
+  </div>
+</nav>
+
+<!-- 左侧学习面板 -->
+<aside id="sidebar" class="glass panel-slide absolute left-0 top-14 bottom-0 w-[300px] max-w-[85vw] z-30 overflow-y-auto p-4" style="border-left:none;border-bottom:none;border-top:none">
+  <div class="mb-4">
+    <div class="text-xs font-bold mb-2" style="color:var(--accent-amber)">🎯 学习目标</div>
+    <div id="goals" class="space-y-1.5"></div>
+  </div>
+  <div class="mb-4">
+    <div class="text-xs font-bold mb-2" style="color:var(--accent-amber)">🔆 选择要显示的「心」</div>
+    <div id="centerList" class="space-y-1.5"></div>
+  </div>
+  <div id="infoBox" class="glass rounded-xl p-3 mb-3 fade-in">
+    <div id="infoTitle" class="text-sm font-bold mb-1">点击上方的「心」查看讲解</div>
+    <div id="infoBody" class="text-xs leading-relaxed" style="color:var(--text-secondary)">每个三角形都有许多奇妙的特殊点。拖动画布上的三个顶点 A、B、C，观察它们如何随之移动。</div>
+    <div id="infoFormula" class="mt-2 text-sm"></div>
+  </div>
+  <div class="glass rounded-xl p-3">
+    <div class="text-xs font-bold mb-2" style="color:var(--accent-emerald)">📐 实时数据</div>
+    <div id="liveData" class="text-xs space-y-1" style="color:var(--text-secondary)"></div>
+  </div>
+  <div class="glass rounded-xl p-3 mt-2"><label class="text-xs" for="vertexPick">移动顶点（也可直接拖拽）</label><select id="vertexPick"><option>A</option><option>B</option><option>C</option></select><div class="vertex-controls"><label>水平位置<input id="vertexX" type="range" min="20" max="980" step="1"></label><label>竖直位置<input id="vertexY" type="range" min="20" max="680" step="1"></label></div></div>
+</aside>
+
+<!-- 中央画布 -->
+<main class="absolute inset-0 top-14 flex items-center justify-center" aria-label="四心动态画布">
+  <svg id="board" class="w-full h-full touch-none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="拖动三角形顶点，观察四心位置和辅助线"></svg>
+</main>
+
+<!-- 底部控制条 -->
+<div class="glass panel-slide absolute bottom-0 left-0 right-0 z-30 px-4 py-2.5 flex items-center gap-4 flex-wrap justify-center" style="border-left:none;border-right:none;border-bottom:none">
+  <label class="flex items-center gap-2 text-xs"><input id="tglLabels" type="checkbox" checked class="accent-amber-400"> 顶点标签</label>
+  <label class="flex items-center gap-2 text-xs"><input id="tglEuler" type="checkbox" class="accent-amber-400"> 欧拉线</label>
+  <label class="flex items-center gap-2 text-xs"><input id="tglMedial" type="checkbox" class="accent-amber-400"> 中点三角形</label>
+  <label class="flex items-center gap-2 text-xs">典型形状<select id="shape"><option value="acute">锐角</option><option value="right">直角</option><option value="obtuse">钝角</option><option value="equilateral">等边</option></select></label>
+  <label class="flex items-center gap-2 text-xs">速度<select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label>
+  <button id="stepBtn" class="btn-ghost px-3 py-1.5 rounded-lg text-xs">单步 →</button>
+  <button id="demoBtn" class="btn px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-900">▶ 动态演示</button>
+</div>
+
+<!-- 小测验面板 -->
+<div id="quiz" class="glass panel-slide absolute right-4 bottom-16 w-[360px] max-w-[90vw] max-h-[380px] overflow-y-auto rounded-2xl p-4 z-40 fade-in">
+  <div class="flex items-center justify-between mb-3">
+    <div class="text-sm font-bold" style="color:var(--accent-amber)">🧩 小测验</div>
+    <button id="quizHide" class="btn-ghost w-7 h-7 rounded-lg flex items-center justify-center text-sm">✕</button>
+  </div>
+  <div id="quizBody" class="space-y-3"></div>
+</div>
+<button id="quizFab" class="btn absolute right-4 bottom-16 w-14 h-14 rounded-full z-40 hidden items-center justify-center text-2xl text-slate-900 shadow-xl">🧩</button>
+`;
+/* MAIN_LOGIC */
+/* ====== 几何计算 ====== */
+const svg=document.getElementById('board');
+const SVGNS='http://www.w3.org/2000/svg';
+// 顶点坐标（SVG 用户坐标系，固定虚拟画布 1000x700，再按视口缩放）
+const VW=1000,VH=700;
+svg.setAttribute('viewBox',`0 0 ${VW} ${VH}`);
+svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+const DEFAULT={A:{x:500,y:120},B:{x:200,y:560},C:{x:820,y:520}};
+let P={A:{...DEFAULT.A},B:{...DEFAULT.B},C:{...DEFAULT.C}};
+
+const dist=(p,q)=>Math.hypot(p.x-q.x,p.y-q.y);
+function geometry(){
+  const {A,B,C}=P;
+  const a=dist(B,C), b=dist(A,C), c=dist(A,B); // 对边：a 对 A
+  const peri=a+b+c;
+  // 重心 Centroid
+  const G={x:(A.x+B.x+C.x)/3,y:(A.y+B.y+C.y)/3};
+  // 内心 Incenter（边长加权）
+  const I={x:(a*A.x+b*B.x+c*C.x)/peri,y:(a*A.y+b*B.y+c*C.y)/peri};
+  // 面积（叉积）
+  const area2=(B.x-A.x)*(C.y-A.y)-(B.y-A.y)*(C.x-A.x);
+  const area=Math.abs(area2)/2;
+  // 共线或顶点重合时，外心和垂心没有唯一有限解。
+  if(peri<1e-8||area<1e-6*Math.max(a*a,b*b,c*c,1))return null;
+  const r=area/(peri/2); // 内切圆半径
+  // 外心 Circumcenter
+  const d=2*(A.x*(B.y-C.y)+B.x*(C.y-A.y)+C.x*(A.y-B.y));
+  const ux=((A.x*A.x+A.y*A.y)*(B.y-C.y)+(B.x*B.x+B.y*B.y)*(C.y-A.y)+(C.x*C.x+C.y*C.y)*(A.y-B.y))/d;
+  const uy=((A.x*A.x+A.y*A.y)*(C.x-B.x)+(B.x*B.x+B.y*B.y)*(A.x-C.x)+(C.x*C.x+C.y*C.y)*(B.x-A.x))/d;
+  const O={x:ux,y:uy};
+  const R=dist(O,A); // 外接圆半径
+  // 垂心 Orthocenter： H = A+B+C - 2O
+  const H={x:A.x+B.x+C.x-2*O.x,y:A.y+B.y+C.y-2*O.y};
+  // 各边中点
+  const Ma={x:(B.x+C.x)/2,y:(B.y+C.y)/2}; // 对 A 的边 BC 中点
+  const Mb={x:(A.x+C.x)/2,y:(A.y+C.y)/2};
+  const Mc={x:(A.x+B.x)/2,y:(A.y+B.y)/2};
+  // 垂足（从各顶点到对边）
+  const foot=(V,p1,p2)=>{const dx=p2.x-p1.x,dy=p2.y-p1.y;const t=((V.x-p1.x)*dx+(V.y-p1.y)*dy)/(dx*dx+dy*dy);return{x:p1.x+t*dx,y:p1.y+t*dy};};
+  const Fa=foot(A,B,C),Fb=foot(B,A,C),Fc=foot(C,A,B);
+  // 角平分线与对边交点（内心所在角平分线落点）
+  const biFoot=(V,p1,p2,s1,s2)=>{const t=s1/(s1+s2);return{x:p1.x+t*(p2.x-p1.x),y:p1.y+t*(p2.y-p1.y)};};
+  const Ta=biFoot(A,B,C,c,b),Tb=biFoot(B,A,C,c,a),Tc=biFoot(C,A,B,b,a);
+  return {a,b,c,peri,area,G,I,r,O,R,H,Ma,Mb,Mc,Fa,Fb,Fc,Ta,Tb,Tc};
+}
+/* GEO_END */
+/* ====== 四心元数据 ====== */
+const CENTERS={
+  incenter:{key:'incenter',name:'内心',en:'Incenter',sym:'I',color:'#34D399',on:true,
+    desc:'三条<b>角平分线</b>的交点。它到三边的距离相等，因此是三角形<b>内切圆</b>的圆心，永远在三角形内部。',
+    formula:'r=\\dfrac{2S}{a+b+c}=\\dfrac{S}{s}'},
+  circumcenter:{key:'circumcenter',name:'外心',en:'Circumcenter',sym:'O',color:'#22D3EE',on:false,
+    desc:'三条边<b>垂直平分线</b>的交点。它到三个顶点距离相等，是<b>外接圆</b>的圆心。锐角三角形在内部，直角三角形在斜边中点，钝角三角形在外部。',
+    formula:'R=\\dfrac{abc}{4S}'},
+  centroid:{key:'centroid',name:'重心',en:'Centroid',sym:'G',color:'#FBBF24',on:false,
+    desc:'三条<b>中线</b>的交点，是三角形的「平衡点」。它把每条中线按 <b>2:1</b> 分割（顶点到重心 : 重心到中点）。',
+    formula:'G=\\dfrac{A+B+C}{3}'},
+  orthocenter:{key:'orthocenter',name:'垂心',en:'Orthocenter',sym:'H',color:'#FB7185',on:false,
+    desc:'三条<b>高</b>（顶点到对边的垂线）的交点。锐角三角形在内部，直角三角形恰在直角顶点，钝角三角形在外部。',
+    formula:'\\vec{H}=\\vec{A}+\\vec{B}+\\vec{C}-2\\vec{O}'},
+};
+let activeKey=null;
+
+/* ====== SVG 工具 ====== */
+function el(tag,attrs){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+function line(p1,p2,o){return el('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,...o});}
+function circ(c,r,o){return el('circle',{cx:c.x,cy:c.y,r,...o});}
+function txt(p,s,o){const t=el('text',{x:p.x,y:p.y,...o});t.textContent=s;return t;}
+function clear(n){while(n.firstChild)n.removeChild(n.firstChild);}
+/* META_END */
+/* ====== 渲染 ====== */
+let showLabels=true,showEuler=false,showMedial=false;
+function render(){
+  clear(svg);
+  const picked=P[document.getElementById('vertexPick').value];document.getElementById('vertexX').value=picked.x;document.getElementById('vertexY').value=picked.y;
+  const g=geometry();
+  const {A,B,C}=P;
+  // 背景网格
+  const grid=el('g',{opacity:'0.12'});
+  for(let x=0;x<=VW;x+=50)grid.appendChild(line({x,y:0},{x,y:VH},{stroke:'#67E8F9','stroke-width':1}));
+  for(let y=0;y<=VH;y+=50)grid.appendChild(line({x:0,y},{x:VW,y},{stroke:'#67E8F9','stroke-width':1}));
+  svg.appendChild(grid);
+
+  // 三角形主体
+  const poly=el('polygon',{points:`${A.x},${A.y} ${B.x},${B.y} ${C.x},${C.y}`,
+    fill:'rgba(251,191,36,0.07)',stroke:'#FDE68A','stroke-width':3,'stroke-linejoin':'round'});
+  svg.appendChild(poly);
+  if(!g){
+    drawVertex('A',A);drawVertex('B',B);drawVertex('C',C);
+    svg.appendChild(txt({x:500,y:65},'顶点重合或近乎共线，请拖动顶点恢复三角形',{fill:'#FDE68A','font-size':20,'text-anchor':'middle'}));
+    document.getElementById('liveData').textContent='当前图形退化：四心暂不定义。';
+    return null;
+  }
+
+  // 中点三角形
+  if(showMedial){
+    svg.appendChild(el('polygon',{points:`${g.Ma.x},${g.Ma.y} ${g.Mb.x},${g.Mb.y} ${g.Mc.x},${g.Mc.y}`,
+      fill:'none',stroke:'#A78BFA','stroke-width':2,'stroke-dasharray':'8 5',opacity:0.8}));
+  }
+  // 欧拉线：外心 O、重心 G、垂心 H 共线
+  if(showEuler&&dist(g.O,g.H)>1e-6){
+    const dir={x:g.H.x-g.O.x,y:g.H.y-g.O.y};const L=Math.hypot(dir.x,dir.y)||1;
+    const ext=600;const p1={x:g.O.x-dir.x/L*ext,y:g.O.y-dir.y/L*ext};const p2={x:g.H.x+dir.x/L*ext,y:g.H.y+dir.y/L*ext};
+    svg.appendChild(line(p1,p2,{stroke:'#F8FAFC','stroke-width':2,'stroke-dasharray':'3 7',opacity:0.65}));
+    svg.appendChild(txt({x:(g.O.x+g.H.x)/2+10,y:(g.O.y+g.H.y)/2-10},'欧拉线',{fill:'#F8FAFC','font-size':18,opacity:0.8}));
+  }
+  if(showEuler&&dist(g.O,g.H)<=1e-6)svg.appendChild(txt({x:500,y:65},'等边三角形四心重合，欧拉线方向不唯一',{fill:'#F8FAFC','font-size':20,'text-anchor':'middle'}));
+
+  // 各心专属几何图层
+  const o=CENTERS.incenter;
+  if(o.on)drawIncenter(g);
+  if(CENTERS.circumcenter.on)drawCircum(g);
+  if(CENTERS.centroid.on)drawCentroid(g);
+  if(CENTERS.orthocenter.on)drawOrtho(g);
+
+  // 心的标记点（后画，叠在最上）
+  drawCenterDot(CENTERS.incenter,g.I);
+  if(CENTERS.circumcenter.on)drawCenterDot(CENTERS.circumcenter,g.O);
+  if(CENTERS.centroid.on)drawCenterDot(CENTERS.centroid,g.G);
+  if(CENTERS.orthocenter.on)drawCenterDot(CENTERS.orthocenter,g.H);
+
+  // 顶点
+  drawVertex('A',A);drawVertex('B',B);drawVertex('C',C);
+
+  updateLiveData(g);
+  return g;
+}
+
+function drawCenterDot(c,p){
+  if(!c.on)return;
+  const act=activeKey===c.key;
+  svg.appendChild(circ(p,act?13:10,{fill:c.color,stroke:'#0F172A','stroke-width':2}));
+  if(act)svg.appendChild(circ(p,20,{fill:'none',stroke:c.color,'stroke-width':2,opacity:0.5}));
+  svg.appendChild(txt({x:p.x+16,y:p.y-14},c.sym,{fill:c.color,'font-size':24,'font-weight':700}));
+}
+function drawVertex(name,p){
+  svg.appendChild(circ(p,9,{fill:'#FDE68A',stroke:'#0F172A','stroke-width':2,class:'vertex','data-v':name}));
+  svg.appendChild(circ(p,22,{fill:'transparent',class:'vertex','data-v':name,style:'cursor:grab'}));
+  if(showLabels)svg.appendChild(txt({x:p.x+(name==='B'?-28:14),y:p.y+(name==='A'?-14:28)},name,{fill:'#FDE68A','font-size':26,'font-weight':700}));
+}
+/* RENDER_CORE_END */
+/* ====== 各心专属作图 ====== */
+function drawIncenter(g){
+  const col=CENTERS.incenter.color,dim=activeKey&&activeKey!=='incenter';
+  const op=dim?0.3:1;
+  // 角平分线
+  [[P.A,g.Ta],[P.B,g.Tb],[P.C,g.Tc]].forEach(([v,t])=>
+    svg.appendChild(line(v,t,{stroke:col,'stroke-width':1.6,'stroke-dasharray':'6 5',opacity:0.75*op})));
+  // 内切圆
+  svg.appendChild(circ(g.I,g.r,{fill:'none',stroke:col,'stroke-width':2.2,opacity:op}));
+  // 切点连线（到三边的垂直距离 = r）
+  if(activeKey==='incenter'){
+    // 画 r 半径到一边的垂线段
+    const foot=(V,p1,p2)=>{const dx=p2.x-p1.x,dy=p2.y-p1.y;const tt=((V.x-p1.x)*dx+(V.y-p1.y)*dy)/(dx*dx+dy*dy);return{x:p1.x+tt*dx,y:p1.y+tt*dy};};
+    const fBC=foot(g.I,P.B,P.C);
+    svg.appendChild(line(g.I,fBC,{stroke:col,'stroke-width':2}));
+    svg.appendChild(txt({x:(g.I.x+fBC.x)/2+6,y:(g.I.y+fBC.y)/2},'r',{fill:col,'font-size':20,'font-weight':700}));
+  }
+}
+function drawCircum(g){
+  const col=CENTERS.circumcenter.color,dim=activeKey&&activeKey!=='circumcenter';
+  const op=dim?0.3:1;
+  // 外接圆
+  svg.appendChild(circ(g.O,g.R,{fill:'none',stroke:col,'stroke-width':2.2,opacity:op}));
+  // 垂直平分线（中点 → 外心）
+  [[g.Ma,P.B,P.C],[g.Mb,P.A,P.C],[g.Mc,P.A,P.B]].forEach(([m,p,q])=>{
+    const dx=q.x-p.x,dy=q.y-p.y,L=Math.hypot(dx,dy),v={x:-dy/L*900,y:dx/L*900};
+    svg.appendChild(line({x:m.x-v.x,y:m.y-v.y},{x:m.x+v.x,y:m.y+v.y},{stroke:col,'stroke-width':1.6,'stroke-dasharray':'6 5',opacity:0.75*op}));
+  });
+  [g.Ma,g.Mb,g.Mc].forEach(m=>svg.appendChild(circ(m,4,{fill:col,opacity:op})));
+}
+function drawCentroid(g){
+  const col=CENTERS.centroid.color,dim=activeKey&&activeKey!=='centroid';
+  const op=dim?0.3:1;
+  // 三条中线
+  [[P.A,g.Ma],[P.B,g.Mb],[P.C,g.Mc]].forEach(([v,m])=>
+    svg.appendChild(line(v,m,{stroke:col,'stroke-width':1.8,opacity:0.85*op})));
+  [g.Ma,g.Mb,g.Mc].forEach(m=>svg.appendChild(circ(m,4,{fill:col,opacity:op})));
+}
+function drawOrtho(g){
+  const col=CENTERS.orthocenter.color,dim=activeKey&&activeKey!=='orthocenter';
+  const op=dim?0.3:1;
+  // 三条高（顶点 → 垂足）
+  [[P.A,g.Fa,P.B,P.C],[P.B,g.Fb,P.A,P.C],[P.C,g.Fc,P.A,P.B]].forEach(([v,f,p,q])=>{
+    svg.appendChild(line(v,f,{stroke:col,'stroke-width':1.8,'stroke-dasharray':'6 5',opacity:0.8*op}));
+    svg.appendChild(line(v,g.H,{stroke:col,'stroke-width':1.2,'stroke-dasharray':'4 5',opacity:0.6*op}));
+    svg.appendChild(line(p,f,{stroke:'#CBD5E1','stroke-width':1,'stroke-dasharray':'3 6',opacity:0.45*op}));
+    svg.appendChild(circ(f,4,{fill:col,opacity:op}));
+    // 直角小方块
+    const len=Math.hypot(q.x-p.x,q.y-p.y),u={x:(q.x-p.x)/len*10,y:(q.y-p.y)/len*10},w={x:-u.y,y:u.x};
+    svg.appendChild(el('polyline',{points:`${f.x+u.x},${f.y+u.y} ${f.x+u.x+w.x},${f.y+u.y+w.y} ${f.x+w.x},${f.y+w.y}`,fill:'none',stroke:col,'stroke-width':1.5,opacity:op}));
+  });
+}
+/* DRAW_FNS_END */
+/* ====== 侧栏 UI 构建 ====== */
+const GOALS=['理解四心各自由哪三条线相交得到','分清内心/外心与内切圆/外接圆的关系','掌握重心 2:1 分割中线的性质','发现外心·重心·垂心共线（欧拉线）'];
+const goalsBox=document.getElementById('goals');
+GOALS.forEach((t,i)=>{
+  const d=document.createElement('div');d.className='flex items-start gap-2 text-xs cursor-pointer';d.style.color='var(--text-secondary)';
+  d.innerHTML=`<span class="chk" data-g="${i}"></span><span>${t}</span>`;
+  d.onclick=()=>{d.querySelector('.chk').classList.toggle('done');};
+  goalsBox.appendChild(d);
+});
+
+const centerList=document.getElementById('centerList');
+Object.values(CENTERS).forEach(c=>{
+  const d=document.createElement('div');d.className='center-item rounded-lg px-2.5 py-2 flex items-center gap-2.5';d.dataset.key=c.key;
+  d.innerHTML=`<input type="checkbox" ${c.on?'checked':''} data-chk="${c.key}" class="w-4 h-4" style="accent-color:${c.color}">
+    <span class="w-3 h-3 rounded-full flex-shrink-0" style="background:${c.color}"></span>
+    <div class="flex-1"><div class="text-sm font-semibold">${c.name} <span style="color:${c.color}">${c.sym}</span></div>
+    <div class="text-[10px]" style="color:var(--text-muted)">${c.en}</div></div>`;
+  d.querySelector('input').onclick=e=>{e.stopPropagation();c.on=e.target.checked;if(c.on){selectCenter(c.key);}else if(activeKey===c.key){activeKey=null;showInfo(null);}refresh();};
+  d.onclick=()=>{if(!c.on){c.on=true;d.querySelector('input').checked=true;}selectCenter(c.key);refresh();};
+  centerList.appendChild(d);
+});
+
+function selectCenter(key){activeKey=key;showInfo(key);highlightList();}
+function highlightList(){document.querySelectorAll('.center-item').forEach(d=>d.classList.toggle('active',d.dataset.key===activeKey));}
+function showInfo(key){
+  const it=document.getElementById('infoTitle'),ib=document.getElementById('infoBody'),iff=document.getElementById('infoFormula');
+  if(!key){it.textContent='点击上方的「心」查看讲解';ib.innerHTML='每个三角形都有许多奇妙的特殊点。拖动画布上的三个顶点 A、B、C，观察它们如何随之移动。';iff.innerHTML='';return;}
+  const c=CENTERS[key];
+  it.innerHTML=`<span style="color:${c.color}">${c.sym}</span> ${c.name} · ${c.en}`;
+  ib.innerHTML=c.desc;
+  iff.textContent={incenter:'r = 2S / (a + b + c) = S / s（s 为半周长）',circumcenter:'R = abc / (4S)',centroid:'G = (A + B + C) / 3；AG : GM = 2 : 1',orthocenter:'H = A + B + C − 2O（顶点位置向量）'}[key];
+}
+function updateLiveData(g){
+  const scale=100; // 把像素换算成「单位」，仅作相对展示
+  const box=document.getElementById('liveData');
+  const type=triangleType(g);
+  box.innerHTML=`
+   <div>边长 a:b:c ≈ ${(g.a/scale).toFixed(2)} : ${(g.b/scale).toFixed(2)} : ${(g.c/scale).toFixed(2)}</div>
+   <div>面积 S ≈ ${(g.area/scale/scale).toFixed(2)}</div>
+   <div style="color:${CENTERS.incenter.color}">内切圆 r ≈ ${(g.r/scale).toFixed(2)}</div>
+   <div style="color:${CENTERS.circumcenter.color}">外接圆 R ≈ ${(g.R/scale).toFixed(2)}</div>
+   <div class="pt-1" style="color:var(--accent-amber)">类型：${type}</div>`;
+}
+function triangleType(g){
+  const s=[g.a,g.b,g.c].sort((x,y)=>x-y);
+  const [p,q,r]=s;const lhs=p*p+q*q,rhs=r*r;const eps=rhs*1e-8;
+  let ang=Math.abs(lhs-rhs)<eps?'直角':(lhs>rhs?'锐角':'钝角');
+  const eq=Math.abs(g.a-g.b)<2&&Math.abs(g.b-g.c)<2?'等边':((Math.abs(g.a-g.b)<2||Math.abs(g.b-g.c)<2||Math.abs(g.a-g.c)<2)?'等腰':'');
+  return (eq?eq+' · ':'')+ang+'三角形';
+}
+/* UI_BUILD_END */
+/* ====== 拖拽交互 ====== */
+function refresh(){render();}
+function svgPoint(evt){
+  const pt=svg.createSVGPoint();const t=evt.touches?evt.touches[0]:evt;
+  pt.x=t.clientX;pt.y=t.clientY;
+  const ctm=svg.getScreenCTM().inverse();const p=pt.matrixTransform(ctm);
+  return {x:Math.max(20,Math.min(VW-20,p.x)),y:Math.max(20,Math.min(VH-20,p.y))};
+}
+let dragging=null;
+function startDrag(e){
+  const tgt=e.target;if(!tgt.dataset||!tgt.dataset.v)return;
+  stopDemo();dragging=tgt.dataset.v;e.preventDefault();
+}
+function moveDrag(e){
+  if(!dragging)return;e.preventDefault();
+  const p=svgPoint(e);P[dragging].x=p.x;P[dragging].y=p.y;render();
+}
+function endDrag(){dragging=null;}
+svg.addEventListener('mousedown',startDrag);
+window.addEventListener('mousemove',moveDrag);
+window.addEventListener('mouseup',endDrag);
+svg.addEventListener('touchstart',startDrag,{passive:false});
+svg.addEventListener('touchmove',moveDrag,{passive:false});
+window.addEventListener('touchend',endDrag);
+window.addEventListener('touchcancel',endDrag);
+
+/* ====== Toast ====== */
+let toastT;
+function toast(msg){const t=document.getElementById('toast');t.innerHTML=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
+
+/* ====== 顶部按钮 ====== */
+document.getElementById('resetBtn').onclick=()=>{stopDemo();P={A:{...DEFAULT.A},B:{...DEFAULT.B},C:{...DEFAULT.C}};document.getElementById('shape').value='acute';render();toast('已重置到初始三角形 ▲');};
+document.getElementById('randBtn').onclick=()=>{
+  stopDemo();
+  const rx=()=>120+Math.random()*(VW-240),ry=()=>90+Math.random()*(VH-180);
+  // 保证不太退化
+  let ok=false,tries=0;
+  while(!ok&&tries++<40){P={A:{x:rx(),y:ry()},B:{x:rx(),y:ry()},C:{x:rx(),y:ry()}};const g=geometry();ok=g&&g.area>18000;}
+  render();toast('🎲 随机生成了一个新三角形');
+};
+document.getElementById('fsBtn').onclick=async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch(e){toast('当前环境不支持全屏');}};
+document.getElementById('aboutBtn').onclick=()=>toast('拖动顶点 A/B/C 改变三角形 · 左侧勾选并点击查看每个心的作图原理');
+document.getElementById('menuBtn').onclick=()=>document.getElementById('sidebar').classList.toggle('sidebar-collapsed');
+
+/* ====== 底部开关 ====== */
+document.getElementById('tglLabels').onchange=e=>{showLabels=e.target.checked;render();};
+document.getElementById('tglEuler').onchange=e=>{showEuler=e.target.checked;render();if(showEuler)toast('非等边三角形：O、G、H 共线且 OG:GH = 1:2；等边时四心重合');};
+document.getElementById('tglMedial').onchange=e=>{showMedial=e.target.checked;render();};
+
+/* ====== 动态演示 ====== */
+let demoRun=false,demoRAF,demoTime=0;
+function stopDemo(){demoRun=false;cancelAnimationFrame(demoRAF);document.getElementById('demoBtn').textContent='▶ 动态演示';}
+function demoAt(t){P.A={x:500+Math.sin(t*0.9)*120,y:120+Math.sin(t*0.7)*60};P.B={...DEFAULT.B};P.C={x:820+Math.sin(t*0.6)*90,y:520+Math.sin(t*1.1)*70};render();}
+document.getElementById('shape').onchange=e=>{stopDemo();P={A:{...DEFAULT.A},B:{...DEFAULT.B},C:{...DEFAULT.C}};
+  if(e.target.value==='right')P={A:{x:300,y:180},B:{x:300,y:540},C:{x:780,y:540}};
+  if(e.target.value==='obtuse')P={A:{x:500,y:330},B:{x:260,y:500},C:{x:740,y:500}};
+  if(e.target.value==='equilateral')P={A:{x:500,y:520-240*Math.sqrt(3)},B:{x:260,y:520},C:{x:740,y:520}};
+  render();};
+document.getElementById('stepBtn').onclick=()=>{stopDemo();demoTime+=0.15*Number(document.getElementById('speed').value);demoAt(demoTime);};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopDemo();});
+window.addEventListener('pagehide',stopDemo);
+document.getElementById('demoBtn').onclick=function(){
+  demoRun=!demoRun;this.innerHTML=demoRun?'⏸ 停止演示':'▶ 动态演示';
+  if(demoRun){Object.values(CENTERS).forEach(c=>{c.on=true;document.querySelector(`[data-chk="${c.key}"]`).checked=true;});
+    showEuler=true;document.getElementById('tglEuler').checked=true;runDemo();}
+  else stopDemo();
+  render();
+};
+function runDemo(){
+  let previous=0;
+  function step(now){
+    if(!demoRun)return;
+    demoTime+=(previous?Math.min((now-previous)/1000,0.1):0)*Number(document.getElementById('speed').value);previous=now;
+    demoAt(demoTime);demoRAF=requestAnimationFrame(step);
+  }
+  demoRAF=requestAnimationFrame(step);
+}
+/* INTERACT_END */
+/* ====== 小测验 ====== */
+const QUIZ=[
+  {q:'三角形的「重心」是下面哪三条线的交点？',opts:['角平分线','中线','高','垂直平分线'],a:1,
+   tip:'重心是三条中线的交点，它把每条中线按 2:1 分割。'},
+  {q:'哪一个「心」一定是内切圆的圆心，并且永远在三角形内部？',opts:['外心 O','垂心 H','内心 I','重心 G'],a:2,
+   tip:'内心到三边等距，是内切圆圆心，必在内部。'},
+  {q:'钝角三角形的外心 O 位于哪里？',opts:['三角形内部','三角形外部','某条边上','某个顶点'],a:1,
+   tip:'钝角三角形外心在外部；直角三角形外心恰在斜边中点。'},
+  {q:'外心 O、重心 G、垂心 H 三点有什么关系？',opts:['构成等边三角形','永远重合','共线（欧拉线）','互相垂直'],a:2,
+   tip:'非等边三角形中三点共线，OG:GH = 1:2；等边三角形中四心重合，欧拉线方向不唯一。'},
+];
+const quizBody=document.getElementById('quizBody');
+QUIZ.forEach((item,qi)=>{
+  const card=document.createElement('div');card.className='glass rounded-xl p-3';
+  card.innerHTML=`<div class="text-xs font-semibold mb-2">${qi+1}. ${item.q}</div>`;
+  const opts=document.createElement('div');opts.className='grid grid-cols-2 gap-1.5';
+  item.opts.forEach((o,oi)=>{
+    const b=document.createElement('button');b.className='btn-ghost rounded-lg px-2 py-1.5 text-xs text-left';b.textContent=o;
+    b.onclick=()=>{
+      if(oi===item.a){b.style.background='rgba(34,197,94,.35)';toast('✅ 答对了！'+item.tip);}
+      else{b.style.background='rgba(239,68,68,.35)';toast('❌ 再想想～ '+item.tip);}
+      [...opts.children].forEach(x=>x.disabled=true);
+      opts.children[item.a].style.background='rgba(34,197,94,.35)';
+    };
+    opts.appendChild(b);
+  });
+  card.appendChild(opts);quizBody.appendChild(card);
+});
+const quizEl=document.getElementById('quiz'),fab=document.getElementById('quizFab');
+document.getElementById('quizHide').onclick=()=>{quizEl.style.display='none';fab.classList.remove('hidden');fab.classList.add('flex');};
+fab.onclick=()=>{quizEl.style.display='block';quizEl.classList.add('fade-in');fab.classList.add('hidden');fab.classList.remove('flex');document.getElementById('sidebar').classList.remove('sidebar-collapsed');quizEl.scrollIntoView({block:'nearest'});};
+
+/* ====== 启动 ====== */
+function boot(){
+  document.getElementById('sidebar').appendChild(quizEl);
+  if(matchMedia('(max-width:767px)').matches)document.getElementById('sidebar').classList.add('sidebar-collapsed');
+  document.getElementById('vertexPick').onchange=()=>render();
+  for(const [id,coord] of [['vertexX','x'],['vertexY','y']])document.getElementById(id).oninput=e=>{stopDemo();P[document.getElementById('vertexPick').value][coord]=Number(e.target.value);render();};
+  render();
+  selectCenter('incenter');
+  CENTERS.incenter.on=true;
+  render();
+}
+boot();
+</script>
+<!-- 由 AetherViz Master 为你生成 ❤️ -->
+<div style="position:fixed;bottom:2px;right:8px;font-size:10px;color:var(--text-muted);z-index:10;pointer-events:none">几何之美，藏在每一个交点里 · 由 AetherViz Master 为你生成 ❤️</div>
+</body>
+</html>

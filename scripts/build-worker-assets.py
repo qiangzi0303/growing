@@ -7,6 +7,7 @@ repo = Path(__file__).resolve().parents[1]
 target = repo / 'cloudflare/public'
 shutil.copyfile(repo / 'app/src/main/assets/web/app-design/handwriting-core.js', repo / 'platform-web/handwriting-core.js')
 subprocess.run(['node', str(repo / 'scripts/export-english-rules.cjs')], check=True)
+subprocess.run(['node', str(repo / 'scripts/build-english-visual-atlas.cjs')], check=True)
 # This is a generated, ignored directory. Preserve unchanged files during dev reload.
 target.mkdir(parents=True, exist_ok=True)
 expected = set()

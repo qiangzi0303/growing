@@ -174,8 +174,8 @@ class Release:
         self.run('GitHub transport tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_release_github.py'])
         for script in ('sync-platform.py', 'build-worker-assets.py', 'verify-assets.py'):
             self.run(script, [sys.executable, REPO / 'scripts' / script])
-        tests = ['test-platform', 'handwriting.test', 'unit-summary.test', 'rewards.test', 'year8.test', 'panorama.test',
-                 'english.test', 'physics.test', 'course-tools.test', 'course-ai.test']
+        tests = ['test-platform', 'handwriting.test', 'unit-summary.test', 'rewards.test', 'year8.test', 'math-lab.test', 'panorama.test',
+                 'english.test', 'english-visual.test', 'english-motion.test', 'physics.test', 'course-tools.test', 'course-ai.test']
         self.run('Web, handwriting and curriculum tests',
                  [self.node, '--test', *[REPO / 'scripts' / (name + '.cjs') for name in tests]])
         for script in ('test-speech.cjs', 'test-ai.cjs'):
