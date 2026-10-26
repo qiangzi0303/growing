@@ -61,6 +61,7 @@ public final class MainActivity extends Activity {
     private volatile String currentId;
     private volatile long epoch=0;
     private boolean registering=false;
+    private volatile boolean learningReady=false;
     private AppUpdater updater;
     private volatile String pendingRegistration;
     private static final int PHOTO_REQUEST=401;
@@ -122,6 +123,7 @@ public final class MainActivity extends Activity {
         EditText name=input("用户名（2—24 个字符）",false);name.setContentDescription("用户名");form.addView(name);
         EditText password=input("密码（至少 8 个字符）",true);password.setContentDescription("密码");form.addView(password);
         EditText confirm=input("再次输入密码",true);confirm.setContentDescription("确认密码");if(registering)form.addView(confirm);
+        CheckBox legacy=new CheckBox(this);legacy.setText("旧本机账号迁移 / 断网使用已有缓存");if(!registering)form.addView(legacy);
         RadioGroup roles=new RadioGroup(this);roles.setContentDescription("账号身份");
         RadioButton student=new RadioButton(this);student.setId(View.generateViewId());student.setText("我是学生");roles.addView(student);
         RadioButton parent=new RadioButton(this);parent.setId(View.generateViewId());parent.setText("我是家长");roles.addView(parent);
@@ -131,7 +133,7 @@ public final class MainActivity extends Activity {
         Button submit=button(registering?"注册并保存身份":"登录");form.addView(submit);
         Button toggle=button(registering?"已有账号？去登录":"还没有账号？注册");form.addView(toggle);
         Button updates=button("检查更新 · "+BuildConfig.VERSION_NAME);updates.setOnClickListener(v->updater.check(true));form.addView(updates);
-        TextView note=text("新用户需联网注册并确认学生或家长身份。旧版本机账号登录后需关联云账号、完成身份确认；完成后学生课程仍可离线使用。\n覆盖安装新版会保留账号与学习记录；卸载或清除应用数据会删除本机记录。",12,Color.rgb(125,136,118));note.setPadding(0,dp(22),0,0);note.setLineSpacing(dp(3),1);form.addView(note);
+        TextView note=text("使用同一云账号登录，可在新设备恢复已保存的学习记录，无需重新注册。旧本机账号请勾选迁移后登录并关联云账号。\n课程记录自动保存到云端；断网缓存将在联网后补传。清除设备数据前，请确认云端保存成功。",12,Color.rgb(125,136,118));note.setPadding(0,dp(22),0,0);note.setLineSpacing(dp(3),1);form.addView(note);
         toggle.setOnClickListener(v->{registering=!registering;showLogin();});
         submit.setOnClickListener(v->{
             if(registering&&roles.getCheckedRadioButtonId()==-1){error.setText("请选择学生或家长身份。");return;}
@@ -139,18 +141,21 @@ public final class MainActivity extends Activity {
             String username=name.getText().toString();char[] secret=password.getText().toString().toCharArray();
             if(registering && !Arrays.equals(secret,confirm.getText().toString().toCharArray())){Arrays.fill(secret,'\0');error.setText("两次输入的密码不一致。");return;}
             boolean register=registering;String role=roles.getCheckedRadioButtonId()==student.getId()?"Student":"Parent";
-            char[] registrationSecret=register?secret.clone():null;
+            boolean localLogin=!register&&legacy.isChecked();
             submit.setEnabled(false);toggle.setEnabled(false);error.setText("正在验证，请稍候…");
             executor.execute(()->{
-                try{String id=accounts.authenticate(username,secret,register);
-                    String registration=register?new JSONObject().put("username",username.trim()).put("password",new String(registrationSecret)).put("displayName",username.trim()).put("role",role).toString():null;
-                    runOnUiThread(()->{if(isFinishing()||isDestroyed())return;pendingRegistration=registration;currentId=id;epoch++;showLearning();});}
-                catch(Exception e){String message=e.getMessage();runOnUiThread(()->{if(isFinishing()||isDestroyed())return;error.setText(message==null?"操作未完成，请重试。":message);submit.setEnabled(true);toggle.setEnabled(true);});}
-                finally{if(registrationSecret!=null)Arrays.fill(registrationSecret,'\0');}
+                try{String id;
+                    if(localLogin)id=accounts.authenticate(username,secret,false);
+                    else id=accounts.loginCloud(username,secret,new CloudAuthClient(BuildConfig.CLOUD_API_URL).authenticate(username,secret,register,role));
+                    final String loggedIn=id;
+                    runOnUiThread(()->{if(isFinishing()||isDestroyed())return;pendingRegistration=null;currentId=loggedIn;epoch++;showLearning();});}
+                catch(Exception e){String message=e instanceof java.io.IOException?"无法连接云服务，请检查网络。已有缓存可选择「旧本机账号迁移 / 断网使用已有缓存」。":e.getMessage();runOnUiThread(()->{if(isFinishing()||isDestroyed())return;error.setText(message==null?"操作未完成，请重试。":message);submit.setEnabled(true);toggle.setEnabled(true);});}
+                finally{Arrays.fill(secret,'\0');}
             });
         });
     }
     private void showLearning(){
+        learningReady=false;
         if(!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)){
             new AlertDialog.Builder(this).setTitle("请更新系统 WebView").setMessage("当前 Android System WebView 版本较旧。请在应用商店更新后重新打开成长，以确保账号记录隔离。").setPositiveButton("关闭",(d,w)->finish()).setCancelable(false).show();return;
         }
@@ -215,7 +220,7 @@ public final class MainActivity extends Activity {
                 Uri url=request.getUrl();
                 NativeIdentity identity=accounts.identity(currentId);
                 if(request.isForMainFrame()&&ORIGIN.equals(url.getScheme()+"://"+url.getHost())&&url.getPath()!=null&&url.getPath().startsWith("/assets/web/")
-                        &&!url.getPath().startsWith("/assets/web/cloud/")&&(identity==null||identity.role.equals("Parent"))){view.loadUrl(CLOUD);return true;}
+                        &&!url.getPath().startsWith("/assets/web/cloud/")&&(!learningReady||identity==null||identity.role.equals("Parent"))){view.loadUrl(CLOUD);return true;}
                 if("https".equals(url.getScheme())&&"appassets.androidplatform.net".equals(url.getHost())&&url.getPath()!=null&&url.getPath().startsWith("/assets/web/"))return false;
                 if(request.isForMainFrame()&&"https".equals(url.getScheme())){try{startActivity(new Intent(Intent.ACTION_VIEW,url));}catch(Exception ignored){}}
                 return true;
@@ -224,7 +229,13 @@ public final class MainActivity extends Activity {
         });
         loadHome();
     }
-    public void loadHome(){if(web!=null){NativeIdentity identity=accounts.identity(currentId);web.loadUrl(identity!=null&&identity.role.equals("Student")?HOME:CLOUD);}}
+    public void loadHome(){if(web!=null){learningReady=false;web.loadUrl(CLOUD);}}
+    void openLearning(String id,long value){
+        if(!isSession(id,value))throw new SecurityException("登录已失效。");
+        NativeIdentity identity=accounts.identity(id);
+        if(identity==null||identity.role.equals("Parent"))throw new SecurityException("请先确认学生身份。");
+        runOnUiThread(()->{if(isSession(id,value)&&web!=null){learningReady=true;web.loadUrl(HOME);}});
+    }
     private void updateNavigation(String url){
         boolean home=HOME.equals(url),cloud=CLOUD.equals(url);
         NativeIdentity identity=accounts.identity(currentId);
@@ -309,7 +320,7 @@ public final class MainActivity extends Activity {
         if(web!=null){web.stopLoading();web.removeJavascriptInterface("GrowingNative");web.removeJavascriptInterface("GrowingSpeech");web.destroy();web=null;}
     }
     @Override public void onBackPressed(){if(web!=null&&!HOME.equals(web.getUrl()))navigateBack();else super.onBackPressed();}
-    @Override protected void onPause(){if(speech!=null)speech.interrupt();if(web!=null)web.onPause();super.onPause();}
+    @Override protected void onPause(){if(speech!=null)speech.interrupt();if(web!=null){web.evaluateJavascript("if(window.GrowingCloudFlush)window.GrowingCloudFlush();",null);web.onPause();}super.onPause();}
     @Override protected void onResume(){super.onResume();if(web!=null)web.onResume();}
     @Override protected void onStart(){super.onStart();updater.onStart();}
     @Override protected void onStop(){updater.onStop();super.onStop();}

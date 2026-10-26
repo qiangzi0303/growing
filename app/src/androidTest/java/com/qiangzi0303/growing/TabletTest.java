@@ -73,6 +73,7 @@ public class TabletTest {
         accounts.authenticate("pad_"+Long.toString(System.nanoTime(),36),"Tablet-Test-Password-2026".toCharArray(),true);
         IdentityFixtures.student(accounts);
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+            IdentityFixtures.enterCache(scenario);
             ready(scenario,"!!document.querySelector('.subjects')");
             js(scenario,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=math&term=upper&unit=math-8a-03'");
             ready(scenario,"!!document.querySelector('iframe')?.contentDocument?.querySelector('#mark-read')");

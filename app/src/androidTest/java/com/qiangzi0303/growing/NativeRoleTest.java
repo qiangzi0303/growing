@@ -67,14 +67,14 @@ public class NativeRoleTest {
             js(s,"document.querySelector('#choose-role select').value='"+role+"';qaFail=true;document.querySelector('#choose-role').requestSubmit()");
             ready(s,"document.querySelector('#message').textContent.includes('保存失败')");assertNull(accounts.identity(id));
             js(s,"qaFail=false;document.querySelector('#choose-role').requestSubmit()");
-            ready(s,role.equals("Parent")?"!!document.querySelector('#children')":"!!document.querySelector('#start-course')");
+            ready(s,role.equals("Parent")?"!!document.querySelector('#children')":"!!document.querySelector('.subjects')");
             assertEquals(role,accounts.identity(id).role);
             before=js(s,"window.qaDocumentId");s.onActivity(MainActivity::loadHome);
             ready(s,"window.qaDocumentId!=="+before+" && "+(role.equals("Parent")?"!!document.querySelector('#children')":"!!document.querySelector('.subjects')"));
             if(role.equals("Parent")){before=js(s,"window.qaDocumentId");js(s,"location.href='../app-design/index.html'");ready(s,"window.qaDocumentId!=="+before+" && location.pathname.endsWith('/cloud/index.html') && !!document.querySelector('#children')");}
         }
         try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
-            if(role.equals("Parent"))mockCloud(s);
+            mockCloud(s);
             ready(s,role.equals("Parent")?"!!document.querySelector('#children')":"!!document.querySelector('.subjects')");
             assertEquals(role,accounts.identity(id).role);
         }
@@ -95,13 +95,16 @@ public class NativeRoleTest {
         }
         assertEquals(id,accounts.authenticate(name,"Native-Test-Password".toCharArray(),false));
     }
-    @Test public void confirmedStudentCanReturnFromCloudPageToOfflineHome() throws Exception {
+    @Test public void confirmedStudentRestoresBeforeEnteringHome() throws Exception {
         AccountStore accounts=accounts();accounts.logout();accounts.authenticate("home_"+Long.toString(System.nanoTime(),36),"Native-Test-Password".toCharArray(),true);IdentityFixtures.student(accounts);
         try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
+            ready(s,"!!document.querySelector('#auth')");
+            assertEquals("true",js(s,"location.pathname.endsWith('/cloud/index.html')"));
+            IdentityFixtures.enterCache(s);
             ready(s,"!!document.querySelector('.subjects')");
             js(s,"location.href='../cloud/index.html'");ready(s,"!!document.querySelector('#auth')");
             s.onActivity(a->{View button=find(a.getWindow().getDecorView(),"‹ 返回主页");assertNotNull(button);assertEquals(View.VISIBLE,button.getVisibility());button.performClick();});
-            ready(s,"!!document.querySelector('.subjects')");
+            ready(s,"!!document.querySelector('#auth')");
             assertEquals("Student",accounts.identity(accounts.currentId()).role);
         }
     }

@@ -50,4 +50,8 @@ public final class LearningBridge {
     }
     @JavascriptInterface public void configureAi() { try{authorize();activity.runOnUiThread(activity::showAccount);}catch(Exception ignored){} }
     @JavascriptInterface public void home() { try{authorize();activity.runOnUiThread(activity::loadHome);}catch(Exception ignored){} }
+    @JavascriptInterface public String openLearning() {
+        try{authorize();activity.openLearning(accountId,session);return "{\"ok\":true}";}
+        catch(Exception e){return "{\"ok\":false,\"error\":\"请先登录并确认学生身份。\"}";}
+    }
 }

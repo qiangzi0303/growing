@@ -27,6 +27,7 @@ public class CourseTest {
         AccountStore accounts=new AccountStore(ApplicationProvider.getApplicationContext());accounts.logout();accounts.authenticate("course_check","Course-Test-Password-2026".toCharArray(),true);
         IdentityFixtures.student(accounts);
         try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
+            IdentityFixtures.enterCache(s);
             ready(s,"!!document.querySelector('.subjects')");
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=math&term=upper&unit=math-8a-03'");
             ready(s,"(()=>{const f=document.querySelector('iframe');return !!(f&&f.contentDocument&&f.contentDocument.querySelector('.unit-reward-trigger'));})()");

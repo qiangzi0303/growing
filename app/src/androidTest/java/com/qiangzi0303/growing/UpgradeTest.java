@@ -35,6 +35,7 @@ public class UpgradeTest {
         assertTrue("WebView JavaScript callback timeout",latch.await(15,TimeUnit.SECONDS));return result.get();
     }
     private void ready(ActivityScenario<MainActivity> scenario) throws Exception{
+        IdentityFixtures.enterCache(scenario);
         for(int i=0;i<60;i++){if("true".equals(js(scenario,"document.readyState==='complete' && !!window.GrowingNative && !!document.querySelector('.subjects')")))return;Thread.sleep(200);}
         fail("Learning home or document-start bridge failed to load");
     }

@@ -1,5 +1,5 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),S=require('../platform-web/sync-core.js');
-test('completed diagnosis evidence syncs with conflicts and deletion revisions; temporary runs stay local',()=>{
+test('completed diagnosis evidence syncs with conflicts and deletion revisions',()=>{
   for(const id of ['math-8a-01','math-8b-10','math-8b-11','physics-8a-05']){
     const k='growing-diagnosis-v1:'+id;
     assert.equal(S.allowed(k),true);assert.equal(S.plan({[k]:'{}'},{},{})[0].type,'push');
@@ -7,7 +7,15 @@ test('completed diagnosis evidence syncs with conflicts and deletion revisions; 
     assert.equal(S.plan({[k]:'new'},{[k]:{value:'other',revision:2}},{[k]:{value:'old',revision:1}})[0].type,'conflict');
     assert.equal(S.plan({}, {[k]:{value:'{}',revision:1}}, {[k]:{value:'{}',revision:1}})[0].value,null);
   }
-  for(const key of ['growing-diagnosis-year8-v1:math-8a-01','growing-diagnosis-v1:math-8a-99','growing-diagnosis-v1:physics-8b-01','growing-diagnosis-v1:english-8a-01'])assert.equal(S.allowed(key),false);
+  for(const key of ['growing-diagnosis-v1:math-8a-99','growing-diagnosis-v1:physics-8b-01','growing-diagnosis-v1:english-8a-01'])assert.equal(S.allowed(key),false);
+});
+test('unfinished assessments, growth records and English questions resume on a new device',()=>{
+  for(const key of ['growing-diagnosis-year8-v1:math-8a-01','growing-diagnosis-physics-v1:physics-8a-02','growing-assessment-v1','growing-original-quadrant-v1','growing-english-doubts-v1:english-8a-04']){
+    assert.equal(S.allowed(key),true);
+    const value=JSON.stringify({draft:'unfinished',records:[1,2]});
+    assert.equal(S.plan({[key]:value},{},{})[0].type,'push');
+    assert.equal(S.plan({},{[key]:{value,revision:1}},{})[0].type,'pull');
+  }
 });
 test('Initial local state is uploaded and an empty new device pulls cloud state',()=>{
   assert.equal(S.plan({a:'ignored','fraction-minute-v1':'{}'},{},{})[0].type,'push');

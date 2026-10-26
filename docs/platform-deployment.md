@@ -1,5 +1,7 @@
 # PC、H5、APK、家长与管理员后台
 
+> 学习记录的自动保存、新设备云账号登录及旧数据迁移流程，见 [学习记录保存与换设备恢复](cloud-progress.md)。以下早期版本中“本机登录后手动进入同步中心”的说明由该流程更新。
+
 ## 线上入口（2026-10-23）
 
 Worker 和网页入口使用 **https://007yx.com**，服务名为 `growing-platform`，使用 D1 数据库和 APK_FILES KV。原地址 **https://growing-platform.qiangzi0303.workers.dev** 继续提供服务，以兼容已安装 APK 的云同步与自动更新。

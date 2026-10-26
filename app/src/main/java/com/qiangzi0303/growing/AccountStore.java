@@ -9,10 +9,11 @@ import java.util.Locale;
 import java.util.UUID;
 import org.json.JSONObject;
 
-/** Device-local accounts. No claim of server verification or cross-device identity. */
+/** Local cache of cloud identities, plus the original accounts kept for migration. */
 public final class AccountStore {
     private final SharedPreferences prefs;
-    public AccountStore(Context context) { prefs = context.getSharedPreferences("accounts-v1", Context.MODE_PRIVATE); }
+    private final Context context;
+    public AccountStore(Context context) { this.context=context; prefs = context.getSharedPreferences("accounts-v1", Context.MODE_PRIVATE); }
     public String currentId() { return prefs.getString("session.id", null); }
     public String currentName() { return prefs.getString("session.name", ""); }
     NativeIdentity identity(String accountId) {
@@ -28,6 +29,37 @@ public final class AccountStore {
     }
     public void logout() {
         if (!prefs.edit().remove("session.id").remove("session.name").commit()) throw new IllegalStateException("无法保存退出状态，请重试。");
+    }
+    synchronized String loginCloud(String username,char[] password,JSONObject result) throws Exception {
+        try {
+            CloudAuthClient.validate(result,username);
+            JSONObject profile=result.getJSONObject("user");String cloudId=profile.getString("id");
+            String key="user."+username.trim().toLowerCase(Locale.ROOT),raw=prefs.getString(key,null);
+            JSONObject previous=raw==null?null:new JSONObject(raw);
+            // Keep migrated device records in their original namespace.
+            String id=cloudId;
+            if(previous!=null){
+                String previousId=previous.getString("id");NativeIdentity identity=identity(previousId);
+                if(identity==null?!previousId.equals(cloudId):!identity.id.equals(cloudId))
+                    throw new IllegalArgumentException("此设备有同名旧账号，请先使用「旧本机账号迁移」登录并关联云账号，原记录不会覆盖。");
+                id=previousId;
+            }
+            byte[] salt=new byte[16];new SecureRandom().nextBytes(salt);
+            JSONObject local=new JSONObject().put("id",id).put("name",profile.getString("username"))
+                .put("salt",Base64.encodeToString(salt,Base64.NO_WRAP)).put("iterations",PasswordHasher.ITERATIONS)
+                .put("hash",Base64.encodeToString(PasswordHasher.hash(password,salt,PasswordHasher.ITERATIONS),Base64.NO_WRAP));
+            SharedPreferences.Editor learning=context.getSharedPreferences("learning-v1-"+id,Context.MODE_PRIVATE).edit()
+                .putString("growing-cloud-session-v1",new JSONObject().put("token",result.getString("token")).put("user",profile).toString());
+            if(profile.getString("role").equals("Student")&&Boolean.FALSE.equals(profile.opt("roleSelectionRequired")))
+                learning.putString("growing-cloud-binding-v1",cloudId);
+            if(!learning.commit())throw new IllegalStateException("云登录未保存到设备，请重试。");
+            SharedPreferences.Editor edit=prefs.edit().putString(key,local.toString()).putString("session.id",id)
+                .putString("session.name",profile.getString("username")).remove("failed.count").remove("locked.until");
+            if(profile.getString("role").equals("Admin")||Boolean.FALSE.equals(profile.opt("roleSelectionRequired")))
+                edit.putString("identity."+id,new NativeIdentity(profile).json());
+            if(!edit.commit())throw new IllegalStateException("登录状态未保存，请重试。");
+            return id;
+        } finally {Arrays.fill(password,'\0');}
     }
     public synchronized String authenticate(String username, char[] password, boolean register) throws Exception {
         username = username.trim();

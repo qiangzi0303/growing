@@ -22,4 +22,7 @@ grep -q 'OK (1 test)' test-results/course.txt
 adb shell am instrument -w -r -e class "$package.NativeRoleTest" "$package.test/androidx.test.runner.AndroidJUnitRunner" > test-results/native-role.txt
 cat test-results/native-role.txt
 grep -q 'OK (5 tests)' test-results/native-role.txt
+adb shell am instrument -w -r -e class "$package.CloudAccountTest" "$package.test/androidx.test.runner.AndroidJUnitRunner" > test-results/cloud-account.txt
+cat test-results/cloud-account.txt
+grep -q 'OK (2 tests)' test-results/cloud-account.txt
 echo 'Verified: fixed-signature overwrite update preserved login, password hashes, both subjects and account isolation.'

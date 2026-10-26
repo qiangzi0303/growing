@@ -1,15 +1,15 @@
-/* Native offline lessons keep saving locally. Upload only; cloud pulls happen in the sync center. */
+/* Course writes queue an automatic server save. Restore happens before opening native lessons. */
 (()=>{
   'use strict';
   if(!window.GrowingNative)return;
-  if(window.top!==window){for(const name of ['pointerdown','keydown','touchstart'])document.addEventListener(name,()=>window.top.GrowingCloudActivity?.(location.href),{passive:true});return;}
+  if(window.top!==window){for(const name of ['pointerdown','keydown','touchstart'])document.addEventListener(name,()=>window.top.GrowingCloudActivity?.(location.href),{passive:true});window.addEventListener('growing-storage-change',event=>window.top.dispatchEvent(new window.top.CustomEvent('growing-storage-change',{detail:event.detail})));return;}
   if(location.pathname.includes('/cloud/'))return;
   const raw=window.localStorage,base=String(GrowingNative.cloudApiUrl?.()||'').replace(/\/$/,'');
   if(!base)return;
   let session;try{session=JSON.parse(raw.getItem('growing-cloud-session-v1')||'null');}catch{return;}
   if(!session?.token||session.user?.role!=='Student'||raw.getItem('growing-cloud-binding-v1')!==session.user.id)return;
   const id=session.user.id,metaKey='growing-cloud-meta-v1:'+id;
-  let busy=false,status='云同步待连接',lastAction=Date.now(),lastTick=Date.now(),subject='';
+  let busy=false,again=false,saveTimer,status='正在连接云端',lastAction=Date.now(),lastTick=Date.now(),subject='';
   function label(text){status=text;const badge=document.getElementById('growing-cloud-status');if(badge)badge.textContent=text;}
   function activity(url){lastAction=Date.now();subject=/english|word-ops/.test(url)?'英语':/physics/.test(url)?'物理':/math-course|fraction-ops/.test(url)?'数学':'';}
   window.GrowingCloudActivity=activity;activity(location.href);
@@ -22,13 +22,17 @@
     data.days[date]??={};data.days[date][subject]=(data.days[date][subject]||0)+seconds;raw.setItem(key,JSON.stringify(data));
   }
   async function api(path,options={}){
-    const response=await fetch(base+'/api'+path,{...options,credentials:'omit',headers:{'Content-Type':'application/json','X-Growing-Client':'1',Authorization:'Bearer '+session.token}});
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
+    try{const response=await fetch(base+'/api'+path,{...options,signal:controller.signal,keepalive:!options.body||new TextEncoder().encode(options.body).length<60000,credentials:'omit',headers:{'Content-Type':'application/json','X-Growing-Client':'1',Authorization:'Bearer '+session.token}});
     if(!response.ok)throw Error(response.status===409?'记录冲突，请到云同步中心选择版本':response.status===401?'云登录已失效，请重新登录':'暂未同步（'+response.status+'）');
-    return response.json();
+    return await response.json();}finally{clearTimeout(timeout);}
   }
+  function queue(){label('正在保存到云端…');if(busy)again=true;clearTimeout(saveTimer);saveTimer=setTimeout(sync,400);}
   async function sync(){
-    if(busy||document.hidden)return;busy=true;
+    if(busy){again=true;return false;}busy=true;
     try{
+      const current=JSON.parse(raw.getItem('growing-cloud-session-v1')||'null');
+      if(current?.token!==session.token||current?.user?.id!==id||raw.getItem('growing-cloud-binding-v1')!==id)throw Error('登录已切换，请重新进入课堂');
       const remote=Object.fromEntries((await api('/student/state')).map(r=>[r.key,r])),local={};
       for(let i=0;i<raw.length;i++){const k=raw.key(i);if(GrowingSync.allowed(k))local[k]=GrowingSync.clean(k,raw.getItem(k));}
       const meta=JSON.parse(raw.getItem(metaKey)||'{}');let pending=false;
@@ -37,10 +41,14 @@
         else if(a.type==='same')meta[a.key]={value:a.server.value,revision:a.server.revision};
         else pending=true;
       }
-      raw.setItem(metaKey,JSON.stringify(meta));label(pending?'云端记录有变化 · 请到云同步中心处理':'云同步正常');
-    }catch(e){label('本机已保存 · '+e.message);}finally{busy=false;}
+      raw.setItem(metaKey,JSON.stringify(meta));label(pending?'云端记录有变化 · 返回主页恢复或选择版本':again?'正在保存新记录…':'已保存到云端');return !pending;
+    }catch(e){label('尚未保存到云端 · 缓存已保留 · '+(e.name==='AbortError'?'连接超时，请检查网络':e.message));return false;}finally{busy=false;if(again){again=false;clearTimeout(saveTimer);saveTimer=setTimeout(sync,400);}}
   }
   const ready=()=>{const badge=document.createElement('a');badge.id='growing-cloud-status';badge.textContent=status;badge.href='/assets/web/cloud/index.html';badge.style.cssText='position:fixed;bottom:5px;right:7px;font:12px system-ui;background:#edf3e9;color:#35513d;border:1px solid #bccfb4;border-radius:7px;padding:6px 9px;z-index:9000;max-width:90vw;text-decoration:none';document.body.append(badge);};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
-  setInterval(()=>{try{tick();}catch{}},10000);setInterval(sync,15000);window.addEventListener('online',sync);sync();
+  window.GrowingCloudFlush=sync;
+  window.addEventListener('growing-storage-change',event=>{if(event.detail?.key===null||GrowingSync.allowed(event.detail?.key||''))queue();});
+  window.addEventListener('pagehide',()=>{tick();sync();});
+  document.addEventListener('visibilitychange',()=>{tick();sync();});
+  setInterval(()=>{try{tick();}catch(e){label('学习时长未保存，请返回主页重试');}},10000);setInterval(sync,15000);window.addEventListener('online',sync);sync();
 })();

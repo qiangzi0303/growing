@@ -4,11 +4,12 @@
   if (!window.GrowingNative) throw new Error('Android learning bridge unavailable');
   const native=window.GrowingNative;
   const call=(method,...args)=>{const result=JSON.parse(native[method](...args));if(!result.ok)throw new Error(result.error||'存储未完成');return result.value;};
+  const changed=key=>{if(typeof window.dispatchEvent==='function')window.dispatchEvent(new CustomEvent('growing-storage-change',{detail:{key}}));};
   const methods={
     getItem:key=>call('get',String(key)),
-    setItem:(key,value)=>{call('put',String(key),String(value));},
-    removeItem:key=>{call('remove',String(key));},
-    clear:()=>{call('clear');},
+    setItem:(key,value)=>{key=String(key);call('put',key,String(value));changed(key);},
+    removeItem:key=>{key=String(key);call('remove',key);changed(key);},
+    clear:()=>{call('clear');changed(null);},
     key:index=>call('keys')[Number(index)]??null,
   };
   const storage=new Proxy({}, {

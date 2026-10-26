@@ -782,6 +782,28 @@ test('parents add multiple children by verified student credentials without stud
 });
 
 // Unit reports use exactly the same family and administrator boundaries as child state.
+test('cloud learning archives follow the student across device sessions including unfinished work',async()=>{
+  const student=await register(),other=await register(),parent=await register('Parent');
+  const keys=['growing-diagnosis-year8-v1:math-8a-01','growing-diagnosis-physics-v1:physics-8a-01','growing-assessment-v1','growing-original-quadrant-v1','growing-english-doubts-v1:english-8a-01'];
+  for(const key of keys){
+    const response=await call('/api/student/state/'+key,'PUT',{revision:0,value:JSON.stringify({version:1,draft:'未完成的记录',records:[]})},student.token);
+    assert.equal(response.status,200,await response.clone().text());
+  }
+  await call('/api/auth/logout','POST',{},student.token);
+  const login=await call('/api/auth/login','POST',{username:student.name,password});
+  assert.equal(login.status,200);const next=await login.json() as any;
+  assert.equal(next.user.id,student.user.id);assert.notEqual(next.token,student.token);
+  const rows=await (await call('/api/student/state','GET',undefined,next.token)).json() as any[];
+  assert.deepEqual(rows.map(r=>r.key).sort(),keys.sort());
+  for(const row of rows)assert.equal(JSON.parse(row.value).draft,'未完成的记录');
+  assert.deepEqual(await (await call('/api/student/state','GET',undefined,other.token)).json(),[]);
+  assert.equal((await call('/api/student/state','GET',undefined,parent.token)).status,403);
+  const row=rows[0],route='/api/student/state/'+row.key;
+  assert.equal((await call(route,'PUT',{value:row.value,revision:0},next.token)).status,409);
+  assert.equal((await call(route,'PUT',{value:'{}',revision:row.revision},other.token)).status,409);
+  assert.equal((await call('/api/student/state/growing-course-ai-v1','PUT',{value:'{}',revision:0},next.token)).status,400);
+});
+
 test('unit reports are read-only and enforce role, family binding and admin revocation',async()=>{
   const s=await register(), p=await register('Parent'), other=await register('Parent'), a=await administrator();
   const route='/api/parent/children/'+s.user.id+'/unit-report', adminRoute='/api/admin/students/'+s.user.id+'/unit-report';
