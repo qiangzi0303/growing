@@ -8,6 +8,7 @@ target = repo / 'cloudflare/public'
 shutil.copyfile(repo / 'app/src/main/assets/web/app-design/handwriting-core.js', repo / 'platform-web/handwriting-core.js')
 subprocess.run(['node', str(repo / 'scripts/export-english-rules.cjs')], check=True)
 subprocess.run(['node', str(repo / 'scripts/build-english-visual-atlas.cjs')], check=True)
+subprocess.run(['node', str(repo / 'scripts/vendor-math-format.cjs')], check=True)
 # This is a generated, ignored directory. Preserve unchanged files during dev reload.
 target.mkdir(parents=True, exist_ok=True)
 expected = set()
@@ -19,6 +20,9 @@ def copy(source, destination):
 for file in (repo / 'platform-web').iterdir():
     if file.suffix in ('.html', '.css', '.js'):
         copy(file, target / file.name)
+for file in (repo / 'platform-web/vendor').rglob('*'):
+    if file.is_file():
+        copy(file, target / file.relative_to(repo / 'platform-web'))
 source = repo / 'app/src/main/assets/web'
 for file in source.rglob('*'):
     if file.is_file():

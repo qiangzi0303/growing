@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-CN"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f6f6ee">
-<title>英语 · 动画记单词</title><link rel="icon" href="data:,"><link rel="stylesheet" href="english-visual-lab.css?v=2">
-<script src="english-motion.js?v=3" defer></script><script src="english-visual-data.js?v=3" defer></script><script src="english-visual-lab.js?v=3" defer></script>
+<title>英语 · 动画记单词</title><link rel="icon" href="data:,"><link rel="stylesheet" href="english-visual-lab.css?v=4">
+<script src="english-motion.js?v=4" defer></script><script src="english-visual-data.js?v=4" defer></script><script src="english-visual-lab.js?v=4" defer></script>
 </head><body>
 <header class="topbar"><a id="catalog-back" href="units.html?subject=english">← 英语目录</a><span class="brand">成长 <i>✦</i></span><button id="help-open" type="button">使用说明</button></header>
 <main class="shell">
@@ -10,14 +10,14 @@
   <nav class="topics" aria-label="选择词汇主题"><button type="button" data-group="space" aria-pressed="true">01 <span>空间关系</span><small>17 个表达</small></button><button type="button" data-group="motion" aria-pressed="false">02 <span>行走与奔跑</span><small>16 个表达</small></button></nav>
   <div class="layout"><aside class="vocabulary"><div class="list-title"><h2 id="list-title">空间关系</h2><span>点选一个词</span></div><nav id="word-list" aria-labelledby="list-title"></nav></aside>
   <section class="lesson" aria-labelledby="word"><header class="word-heading"><div><p id="word-index" class="eyebrow"></p><h2 id="word"></h2><p id="meaning"></p></div><button id="pronounce" type="button" aria-label="朗读当前英文词汇">♪ 听发音</button></header>
-    <div class="scene-card"><div class="scene-meta"><span id="scene-label">空间关系 · 动态观察</span><span id="play-status" role="status">先观察，再播放</span></div><div id="scene"></div><div class="playback"><button id="play" type="button" class="primary" aria-pressed="false">▶ 播放</button><button id="step" type="button">单步 →</button><button id="reset" type="button">重播起点</button><label>速度<select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label></div><label class="timeline" for="progress"><span>拖动观察过程</span><input id="progress" type="range" min="0" max="1000" value="500" step="1"><output id="progress-value" for="progress">50%</output></label></div>
-    <div id="motion-tools" class="motion-tools" hidden><label><input id="compare" type="checkbox" checked> 同步对照</label><label>参考动作 <select id="reference" aria-label="选择对照动作"></select></label><p id="motion-cue"></p></div>
+    <div class="scene-card"><div class="scene-meta"><span id="scene-label">空间关系 · 动态观察</span><span id="play-status">自动循环播放</span></div><div id="scene"></div></div>
+    <div id="motion-tools" class="motion-tools" hidden><label><input id="compare" type="checkbox" checked> 同步对照</label><label><span>参考动作</span><select id="reference" aria-label="选择对照动作"></select></label><p id="motion-cue"></p></div>
     <div class="explanations"><section class="sentence"><p class="eyebrow">PUT IT IN A SENTENCE</p><p id="sentence" lang="en"></p><p id="translation"></p></section><section class="notice"><h3>留意这个区别</h3><p id="hint"></p></section></div>
     <nav class="word-navigation" aria-label="切换词汇"><button id="previous" type="button">← 上一个</button><span id="position"></span><button id="next" type="button">下一个 →</button></nav>
-    <section class="quiz"><div class="quiz-heading"><h3>看动作，选表达</h3><button id="quiz-toggle" type="button" aria-expanded="true" aria-controls="quiz-content">收起</button></div><div id="quiz-content"><p class="quiz-instruction">观察另一段动画，选出最合适的英文。</p><div id="quiz-scene"></div><button id="quiz-play" type="button">▶ 播放题目动作</button><div id="quiz-answers"></div><p id="quiz-feedback" role="status"></p><button id="quiz-next" type="button">换一题 →</button></div></section>
+    <a id="quiz-link" class="quiz-link" href="english-visual-quiz.html"><span><strong>看动作，选表达</strong><small>准备好后，测测自己记住了多少。</small></span><b>去测试 →</b></a>
   </section></div>
   <footer>先看动作，再说单词，最后放进自己的句子里。<p><a class="atlas-link" href="english-visual-atlas.svg" download="英语动画词汇图谱.svg">下载 SVG 词汇图谱 ↓</a></p><span>角色参考 Ian Xiaohei Illustrations · <a href="english-motion-NOTICE.txt" target="_blank" rel="noopener">来源与 MIT 授权</a></span><span>拓展练习不计入单元掌握与奖励 · 由 AetherViz Master 为你生成 ❤️</span></footer>
 </main>
 <p id="status" role="status"></p>
-<dialog id="help"><h2>看动作，记单词</h2><p>根据两张词汇参考图重绘为可缩放的 SVG 图形：17 个空间关系表达、16 种行走与奔跑表达。</p><p>点选词汇，播放或拖动进度，观察动作差别，再读例句。空间关系词也可能有其他用法，这里展示一种常见情境。</p><p>图形和练习可离线使用。发音使用设备可用的英语语音；若设备没有英语语音，可先看动画学习。</p><button id="help-close" type="button">开始学习</button></dialog><noscript>请启用 JavaScript 使用词汇动画。</noscript>
+<dialog id="help"><h2>看动作，记单词</h2><p>17 个空间关系表达、16 种行走与奔跑表达，点选词汇后动画会自动循环播放。</p><p>手机也能左右对照动作，观察步幅、脚尖和身体姿态的差别，再读例句。想测试时，点击“看动作，选表达”进入测试页。</p><p>图形和练习可离线使用。发音使用设备可用的英语语音；若设备没有英语语音，可先看动画学习。</p><button id="help-close" type="button">继续学习</button></dialog><noscript>请启用 JavaScript 使用词汇动画。</noscript>
 </body></html>

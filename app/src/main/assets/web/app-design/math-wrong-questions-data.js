@@ -1,6 +1,6 @@
-/* Source images are authoritative; titles describe topics, not reconstructed questions. */
+/* Question identities stay stable; rendered content comes from reviewed math transcriptions. */
 window.GrowingMathWrongQuestions = {
-  version: 1,
+  version: 2,
   source: '1025141010.pdf',
   pages: 16,
   units: [
@@ -65,6 +65,6 @@ window.GrowingMathWrongQuestions = {
     [53,16,'math-8b-10','墨水污染题：逆向还原分式与取值限制','黑色墨迹是原题故意遮挡的条件，保留遮挡，不补写答案。']
   ].map(([number,page,unitId,title,note=''])=>({
     id:`1025141010-${String(number).padStart(2,'0')}`,number,page,unitId,title,note,
-    image:`math-wrong-questions/1025141010/${unitId}/${String(number).padStart(2,'0')}.jpg`
+    format:'math-text-v1',text:window.GrowingMathWrongTranscriptions[number]
   }))
 };

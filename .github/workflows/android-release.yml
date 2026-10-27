@@ -33,6 +33,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install pinned math and Worker dependencies
+        run: npm ci
+        working-directory: cloudflare
       - name: Verify native speech adapter behavior
         run: node scripts/test-speech.cjs
       - name: Verify APK distribution protocol without network access
@@ -40,7 +43,7 @@ jobs:
       - name: Sync shared platform interface
         run: python3 scripts/sync-platform.py
       - name: Verify cloud synchronization decisions
-        run: node --test scripts/test-platform.cjs scripts/handwriting.test.cjs scripts/unit-summary.test.cjs
+        run: node --test scripts/test-platform.cjs scripts/handwriting.test.cjs scripts/unit-summary.test.cjs scripts/math-format.test.cjs
       - name: Verify Android AI and storage adapter
         run: node scripts/test-ai.cjs
       - name: Verify packaged rewards, curriculum and panorama rules

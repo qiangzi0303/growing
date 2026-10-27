@@ -43,6 +43,7 @@ const rankingTarget=path.join(root,'cloudflare/src/ranking-rules.json'),rankingO
 if(!fs.existsSync(rankingTarget)||fs.readFileSync(rankingTarget,'utf8')!==rankingOutput)fs.writeFileSync(rankingTarget,rankingOutput);
 const target=path.join(root,'cloudflare/src/english-rules.json'),output=JSON.stringify(rules,null,2)+'\n';
 if(!fs.existsSync(target)||fs.readFileSync(target,'utf8')!==output)fs.writeFileSync(target,output);
+vm.runInContext(fs.readFileSync(path.join(web,'math-wrong-questions-transcribed.js'),'utf8'),context);
 vm.runInContext(fs.readFileSync(path.join(web,'math-wrong-questions-data.js'),'utf8'),context);
 const wrongTarget=path.join(root,'cloudflare/src/math-wrong-question-rules.json');
 const wrongOutput=JSON.stringify(context.window.GrowingMathWrongQuestions.questions.map(({id,unitId,title,number})=>({id,unitId,title,number})),null,2)+'\n';

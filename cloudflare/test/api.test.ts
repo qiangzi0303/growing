@@ -13,11 +13,13 @@ import diagnosisRules from '../src/diagnosis-rules.json';
 const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: 'export default {fetch(){return new Response("ok")}}', compatibilityDate: '2026-10-22', d1Databases: ['DB'] }));
 let db: Database;
 let aiMode = 'ok', aiRequests: {url:string;headers:Headers;data:any}[] = [];
-let paperOutput:any={title:'混合试卷',warnings:['第2页有图形，请核对原图'],questions:[
-  {number:'1',text:'计算 (x²-1)/(x-1)，其中 x≠1。',answer:'',unitId:'math-8b-10',confidence:.98,reason:'分式化简',uncertain:[],pages:[1]},
+let paperOutput:any={format:'math-text-v1',title:'混合试卷',warnings:['第2页有图形，请核对原图'],questions:[
+  {number:'1',text:String.raw`计算 \(\frac{x^{2}-1}{x-1}\)，其中 \(x\ne1\)。`,answer:'',unitId:'math-8b-10',confidence:.98,reason:'分式化简',uncertain:[],pages:[1]},
   {number:'2',text:'图中给定条件【不清楚】',answer:'',unitId:'invented-unit',confidence:.99,reason:'不能匹配',uncertain:['图中条件需核对'],pages:[2]},
   {number:'3',text:'Read about friendship.',answer:'',unitId:'english-8a-01',confidence:.5,reason:'仅凭主题不能确定',uncertain:[],pages:[2]},
 ]};
+let formatOutput:any={format:'math-text-v1',text:String.raw`计算 \(\frac{x^{2}-1}{x-1}\)。`,answer:'',uncertain:[]};
+let formatHook:(()=>Promise<void>)|undefined;
 const handler = createHandler(() => db, (async (url: string | URL | Request, options?: RequestInit) => {
   aiRequests.push({url:String(url),headers:new Headers(options?.headers),data:JSON.parse(options?.body as string)});
   if(aiMode==='network')throw Error('upstream-private-details');
@@ -25,6 +27,7 @@ const handler = createHandler(() => db, (async (url: string | URL | Request, opt
   if(aiMode==='forbidden')return new Response('upstream-private-details',{status:403});
   if(aiMode==='invalid')return Response.json({not:'a completion'});
   if(aiMode==='large')return new Response('x'.repeat(256001));
+  if(aiMode==='format'){const hook=formatHook;formatHook=undefined;if(hook)await hook();return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(formatOutput)}}]});}
   if(aiMode==='paper')return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(paperOutput)}}]});
   const content=aiMode==='bad-recognition'?'{"text":"","uncertain":[]}':'{"text":"第1页：x=2","uncertain":[]}';
   return Response.json({choices:[{finish_reason:aiMode==='truncated'?'length':'stop',message:{content:aiMode==='empty'?'':content,reasoning_content:'private reasoning'}}],private:'must-not-return'});
@@ -90,6 +93,8 @@ before(async () => {
   const attemptMigration=await readFile(new URL('../migrations/0009_question_attempts.sql',import.meta.url),'utf8');
   const attemptStatements=attemptMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql}));
   await db.batch(attemptStatements);await db.batch(attemptStatements);
+  const mathMigration=await readFile(new URL('../migrations/0010_math_question_format.sql',import.meta.url),'utf8');
+  await db.batch(mathMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
 });
 after(async () => { await mf.dispose(); });
 
@@ -187,7 +192,7 @@ test('photo bank authenticates uploads and rejects invalid images or target stud
   assert.equal(catalog.length,24);assert.ok(catalog.some(u=>u.id==='math-8b-10'));assert.ok(!catalog.some(u=>u.id.startsWith('english-8b')));
 });
 
-test('photo imports persist originals atomically, classify uncertain questions, deduplicate concurrent retries and allow reviewed corrections',async()=>{
+test('photo imports persist standard math without originals atomically, classify uncertain questions, deduplicate concurrent retries and allow reviewed corrections',async()=>{
   const s=await register(),other=await register(),p=await register('Parent'),a=await administrator();await bindStudent(s,p);
   const input={studentId:s.user.id,requestId:crypto.randomUUID(),pages:photoPages},path='/api/question-bank/import';aiMode='paper';
   try{
@@ -208,7 +213,9 @@ test('photo imports persist originals atomically, classify uncertain questions, 
     assert.equal(all.total,3);assert.equal((await (await call('/api/question-bank/questions'+query+'&unitId=','GET',undefined,p.token)).json() as any).total,2);
     const originalPath='/api/question-bank/papers/'+first.paperId+query;
     const source=await call(originalPath,'GET',undefined,p.token);assert.equal(source.status,200);assert.equal(source.headers.get('cache-control'),'no-store');
-    assert.deepEqual((await source.json() as any).pages.map((p:any)=>p.image),photoPages);
+    assert.deepEqual((await source.json() as any).pages,[]);
+    assert.ok(first.questions.every((q:any)=>q.format==='math-text-v1'));
+    assert.equal((await db.query<any>('SELECT count(*) AS n FROM "GrowingQuestionPages" WHERE "PaperId"=?1',[first.paperId]))[0].n,0);
     for(const token of [other.token])for(const target of [originalPath,'/api/question-bank/questions'+query])assert.equal((await call(target,'GET',undefined,token)).status,404);
     assert.equal((await call(originalPath,'GET',undefined,a.token)).status,200);
     const q=all.rows.find((q:any)=>q.unitId===''),edit={studentId:s.user.id,revision:q.revision,number:q.number,text:'核对后的完整题目',answer:'家长补充的答案',unitId:'physics-8a-02'},editPath='/api/question-bank/questions/'+q.id;
@@ -224,12 +231,55 @@ test('photo imports persist originals atomically, classify uncertain questions, 
   }finally{aiMode='ok';}
 });
 
+test('legacy photo questions become standard math without changing identity, review state or attempt history',async()=>{
+  const s=await register(),other=await register(),parent=await register('Parent');await bindStudent(s,parent);
+  let q:any;
+  aiMode='paper';try{q=(await (await call('/api/question-bank/import','POST',{studentId:s.user.id,requestId:crypto.randomUUID(),pages:photoPages},s.token)).json() as any).questions[0];}finally{aiMode='ok';}
+  await db.query(`UPDATE "GrowingPhotoQuestions" SET "Text"='计算 (x²-1)/(x-1)。',"Format"='legacy',"Reviewed"=1,"Revision"=4 WHERE "Id"=?1`,[q.id]);
+  await db.query('INSERT INTO "GrowingQuestionPages" ("PaperId","Page","Image") VALUES (?1,1,?2)',[q.paperId,photoPages[0]]);
+  await call('/api/question-bank/attempts','POST',{studentId:s.user.id,kind:'photo',questionId:q.id,attemptId:crypto.randomUUID(),correct:false},s.token);
+  const path='/api/question-bank/questions/'+q.id+'/format',input={studentId:s.user.id,revision:4},before=aiRequests.length,original=structuredClone(formatOutput);
+  assert.equal((await call(path,'POST',input,other.token)).status,404);
+  assert.equal((await call(path,'POST',{...input,revision:3},s.token)).status,409);
+  assert.equal(aiRequests.length,before);
+  aiMode='format';
+  try{
+    formatOutput={...original,text:String.raw`\(\frac{x}{\)`};
+    assert.equal((await call(path,'POST',input,parent.token)).status,502);
+    assert.equal((await db.query<any>('SELECT "Revision" AS r,"Format" AS f FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[q.id]))[0].r,4);
+    formatOutput=original;
+    assert.equal((await call(path,'POST',input,parent.token)).status,200);
+    const sent=aiRequests.at(-1)!;assert.equal(sent.data.messages[1].content.filter((p:any)=>p.type==='image_url').length,0,'reviewed text is authoritative');
+    const converted=(await (await call('/api/question-bank/questions?studentId='+s.user.id,'GET',undefined,s.token)).json() as any).rows[0];
+    assert.equal(converted.id,q.id);assert.equal(converted.revision,5);assert.equal(converted.reviewed,true);assert.equal(converted.unitId,q.unitId);assert.equal(converted.format,'math-text-v1');assert.equal(converted.text,original.text);
+    const stats=await (await call('/api/question-bank/attempt-stats?studentId='+s.user.id+'&kind=photo','GET',undefined,s.token)).json() as any[];assert.equal(stats.find(r=>r.questionId===q.id).wrongCount,1);
+    const count=aiRequests.length;assert.equal((await call(path,'POST',input,s.token)).status,200);assert.equal(aiRequests.length,count);
+    for(const text of [String.raw`\(\unknowncommand{x}\)`,'<img src=x>','计算 x²=1'])assert.equal((await call('/api/question-bank/questions/'+q.id,'PUT',{...input,revision:5,number:q.number,text,answer:'',unitId:q.unitId},s.token)).status,400);
+  }finally{aiMode='ok';formatOutput=original;formatHook=undefined;}
+});
+
+test('legacy math conversion cannot overwrite a concurrent correction or outlive a parent binding',async()=>{
+  const s=await register(),p=await register('Parent');await bindStudent(s,p);
+  let q:any;aiMode='paper';try{q=(await (await call('/api/question-bank/import','POST',{studentId:s.user.id,requestId:crypto.randomUUID(),pages:photoPages},s.token)).json() as any).questions[0];}finally{aiMode='ok';}
+  await db.query(`UPDATE "GrowingPhotoQuestions" SET "Format"='legacy' WHERE "Id"=?1`,[q.id]);
+  const path='/api/question-bank/questions/'+q.id+'/format';aiMode='format';
+  try{
+    formatHook=async()=>{await db.query(`UPDATE "GrowingPhotoQuestions" SET "Text"='人工核对内容',"Revision"="Revision"+1 WHERE "Id"=?1`,[q.id]);};
+    assert.equal((await call(path,'POST',{studentId:s.user.id,revision:1},s.token)).status,409);
+    assert.equal((await db.query<any>('SELECT "Text" AS t FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[q.id]))[0].t,'人工核对内容');
+    formatHook=async()=>{await call('/api/student/parents/'+p.user.id,'DELETE',undefined,s.token);};
+    assert.equal((await call(path,'POST',{studentId:s.user.id,revision:2},p.token)).status,404);
+    assert.equal((await db.query<any>('SELECT "Revision" AS r FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[q.id]))[0].r,2);
+  }finally{aiMode='ok';formatHook=undefined;}
+});
+
 test('incomplete photo recognition, missing configuration and provider failures leave the bank empty',async()=>{
   const s=await register(),input={studentId:s.user.id,requestId:crypto.randomUUID(),pages:photoPages},path='/api/question-bank/import',original=structuredClone(paperOutput),config=env.HANDWRITING_VISION_MODELS;
   try{
     env.HANDWRITING_VISION_MODELS='[]';assert.equal((await call(path,'POST',input,s.token)).status,503);env.HANDWRITING_VISION_MODELS=config;
     aiMode='paper';paperOutput={...original,questions:[]};assert.equal((await call(path,'POST',input,s.token)).status,502);
     paperOutput=structuredClone(original);paperOutput.questions[0].pages=[3];assert.equal((await call(path,'POST',input,s.token)).status,502);
+    for(const text of [String.raw`\(\frac{x}{\)`,'![题目](https://example.test/photo.png)','计算 x²=1']){paperOutput=structuredClone(original);paperOutput.questions[0].text=text;assert.equal((await call(path,'POST',input,s.token)).status,502);}
     paperOutput=original;aiMode='truncated';assert.equal((await call(path,'POST',input,s.token)).status,502);
     aiMode='failure';const failed=await call(path,'POST',input,s.token);assert.equal(failed.status,502);assert.equal((await failed.text()).includes('upstream-private-details'),false);
     const rows=await (await call('/api/question-bank/questions?studentId='+s.user.id,'GET',undefined,s.token)).json() as any;assert.equal(rows.total,0);

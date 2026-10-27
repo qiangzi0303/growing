@@ -6,6 +6,11 @@ web=root/'app/src/main/assets/web'
 if not (web/'app-design/english-visual-atlas.svg').is_file():raise SystemExit('Missing English SVG vocabulary atlas')
 if not (web/'app-design/english-motion.js').is_file():raise SystemExit('Missing articulated English motion model')
 if not (web/'app-design/english-motion-NOTICE.txt').is_file():raise SystemExit('Missing Xiaohei character attribution and license')
+for name in ['english-visual-quiz.html','english-visual-quiz.js']:
+    if not (web/'app-design'/name).is_file():raise SystemExit('Missing English visual quiz asset: '+name)
+for name in ['math-format.js','math-format.css','vendor/katex/katex.min.js','vendor/katex/katex.min.css','vendor/katex/LICENSE.txt']:
+    if not (web/'cloud'/name).is_file():raise SystemExit('Missing offline math typesetting asset: '+name)
+if not (web/'app-design/math-wrong-questions-transcribed.js').is_file():raise SystemExit('Missing standard math question transcriptions')
 for name in ['math-explore-lab.html','math-lab.css','math-lab-models.js','math-lab.js','triangle-centers.html','triangle-centers.css']:
     if not (web/'app-design'/name).is_file():raise SystemExit('Missing Math interactive asset: '+name)
 for name in ['growth-assessment.html','growth-assessment.css','growth-assessment-core.js','growth-assessment-original.js','growth-quadrant-data.js','growth-quadrant-core.js','growth-quadrant-LICENSE.txt']:

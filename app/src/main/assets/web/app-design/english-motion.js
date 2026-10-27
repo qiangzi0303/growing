@@ -109,10 +109,11 @@
   }
   const label=(x,y,s,size=14,color='#666')=>`<text x="${x}" y="${y}" text-anchor="middle" font-family="system-ui,Microsoft YaHei,sans-serif" font-size="${size}" fill="${color}">${s}</text>`;
   function scene(e,t){return `<rect width="640" height="350" fill="white"/><g transform="translate(32 28) scale(.9)">${actor(e,t)}</g>`+label(320,33,profiles[e.id].cue,17,'#2e6dad')+label(320,337,profiles[e.id].tags,13);}
-  function compare(e,reference,t,stacked=false){
+  function compare(e,reference,t,compact=false){
     const other=typeof reference==='string'?{id:reference,word:reference}:reference;
-    const panel=(w,selected)=>`${label(160,39,w.word,25,'#161616')}${label(160,64,selected?'正在学习':'对照动作',11,selected?'#c15c20':'#777')}<g transform="translate(24 44) scale(.85)">${actor(w,t,160)}</g>${label(160,334,profiles[w.id].tags,12)}`;
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${stacked?'320 700':'640 350'}" role="img" aria-label="${e.word} 与 ${other.word} 同步动作对照" data-word="${e.id}" data-reference="${other.id}"><rect width="${stacked?320:640}" height="${stacked?700:350}" fill="white"/><path d="${stacked?'M20 350h280':'M320 20v310'}" stroke="#ddd" stroke-dasharray="4 7" fill="none"/>${panel(other,false)}<g transform="translate(${stacked?'0 350':'320 0'})">${panel(e,true)}</g></svg>`;
+    const width=compact?400:640,half=width/2,cx=half/2;
+    const panel=(w,selected)=>`${label(cx,39,w.word,25,'#161616')}${label(cx,64,selected?'正在学习':'对照动作',11,selected?'#c15c20':'#777')}<g transform="translate(${n(cx*.15)} 44) scale(.85)">${actor(w,t,cx)}</g>${label(cx,334,profiles[w.id].tags,12)}`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} 350" role="img" aria-label="${e.word} 与 ${other.word} 同步动作对照" data-word="${e.id}" data-reference="${other.id}"><rect width="${width}" height="350" fill="white"/><path d="M${half} 20v310" stroke="#ddd" stroke-dasharray="4 7" fill="none"/>${panel(other,false)}<g transform="translate(${half} 0)">${panel(e,true)}</g></svg>`;
   }
   return {profiles,pose,scene,compare};
 });
