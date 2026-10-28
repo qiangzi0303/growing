@@ -76,18 +76,19 @@ public class TabletTest {
             IdentityFixtures.enterCache(scenario);
             ready(scenario,"!!document.querySelector('.subjects')");
             js(scenario,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=math&term=upper&unit=math-8a-03'");
-            ready(scenario,"!!document.querySelector('iframe')?.contentDocument?.querySelector('#mark-read')");
-            js(scenario,"document.querySelector('iframe').contentDocument.querySelector('#mark-read').click()");
-            ready(scenario,"!!document.querySelector('iframe').contentDocument.querySelector('#recall-text')");
-            js(scenario,"document.querySelector('iframe').contentDocument.querySelector('#recall-text').value='Tablet answer, not submitted';window.tabletLiveState='preserved'");
+            ready(scenario,"location.pathname.endsWith('/math-course.html') && !!document.querySelector('#mark-read')");
+            assertEquals("0",js(scenario,"document.querySelectorAll('iframe').length"));
+            js(scenario,"document.querySelector('#mark-read').click()");
+            ready(scenario,"!!document.querySelector('#recall-text')");
+            js(scenario,"document.querySelector('#recall-text').value='Tablet answer, not submitted';window.tabletLiveState='preserved'");
             AtomicReference<WebView> original=new AtomicReference<>();scenario.onActivity(a->original.set(web(a.getWindow().getDecorView())));
             rotate(scenario,ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,Configuration.ORIENTATION_LANDSCAPE);
             assertEquals("\"preserved\"",js(scenario,"window.tabletLiveState"));
-            assertEquals("\"Tablet answer, not submitted\"",js(scenario,"document.querySelector('iframe').contentDocument.querySelector('#recall-text').value"));
-            assertEquals("true",js(scenario,"document.documentElement.scrollWidth<=innerWidth && document.querySelector('iframe').contentDocument.documentElement.scrollWidth<=document.querySelector('iframe').contentWindow.innerWidth"));
+            assertEquals("\"Tablet answer, not submitted\"",js(scenario,"document.querySelector('#recall-text').value"));
+            assertEquals("true",js(scenario,"document.documentElement.scrollWidth<=innerWidth"));
             rotate(scenario,ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,Configuration.ORIENTATION_PORTRAIT);
             scenario.onActivity(a->assertSame("Rotation must preserve the current WebView",original.get(),web(a.getWindow().getDecorView())));
-            assertEquals("\"Tablet answer, not submitted\"",js(scenario,"document.querySelector('iframe').contentDocument.querySelector('#recall-text').value"));
+            assertEquals("\"Tablet answer, not submitted\"",js(scenario,"document.querySelector('#recall-text').value"));
         }
     }
 }
