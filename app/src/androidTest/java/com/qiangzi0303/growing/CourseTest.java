@@ -22,7 +22,7 @@ public class CourseTest {
         s.onActivity(a->{WebView w=web(a.getWindow().getDecorView());assertNotNull(w);w.evaluateJavascript(source,v->{result.set(v);latch.countDown();});});
         assertTrue(latch.await(15,TimeUnit.SECONDS));return result.get();
     }
-    private void ready(ActivityScenario<MainActivity> s,String expression) throws Exception {for(int i=0;i<100;i++){if("true".equals(js(s,expression)))return;Thread.sleep(200);}fail("Packaged course or native bridge did not load");}
+    private void ready(ActivityScenario<MainActivity> s,String expression) throws Exception {for(int i=0;i<100;i++){if("true".equals(js(s,expression)))return;Thread.sleep(200);}fail("Course check timed out: "+expression+"; page="+js(s,"location.href"));}
     @Test public void offlineCourseAndRewards() throws Exception {
         AccountStore accounts=new AccountStore(ApplicationProvider.getApplicationContext());accounts.logout();accounts.authenticate("course_check","Course-Test-Password-2026".toCharArray(),true);
         IdentityFixtures.student(accounts);
@@ -30,7 +30,9 @@ public class CourseTest {
             IdentityFixtures.enterCache(s);
             ready(s,"!!document.querySelector('.subjects')");
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=math&term=upper&unit=math-8a-03'");
-            ready(s,"location.pathname.endsWith('/math-course.html') && !!document.querySelector('.unit-reward-trigger')");
+            ready(s,"location.pathname.endsWith('/math-course.html') && !!document.querySelector('#mark-read') && !!window.GrowingCourseAccount");
+            js(s,"GrowingCourseAccount.open('settings')");
+            ready(s,"!!document.querySelector('.unit-reward-trigger')");
             assertEquals("0",js(s,"document.querySelectorAll('iframe').length"));
             assertEquals("0",js(s,"document.querySelectorAll('.unit-reward-summary').length"));
             js(s,"document.querySelector('.unit-reward-trigger').click()");
