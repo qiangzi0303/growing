@@ -43,7 +43,7 @@ jobs:
       - name: Sync shared platform interface
         run: python3 scripts/sync-platform.py
       - name: Verify cloud synchronization decisions
-        run: node --test scripts/test-platform.cjs scripts/handwriting.test.cjs scripts/unit-summary.test.cjs scripts/math-format.test.cjs
+        run: node --test scripts/test-platform.cjs scripts/handwriting.test.cjs scripts/unit-summary.test.cjs scripts/math-format.test.cjs scripts/fraction-grading.test.cjs
       - name: Verify Android AI and storage adapter
         run: node scripts/test-ai.cjs
       - name: Verify packaged rewards, curriculum and panorama rules
