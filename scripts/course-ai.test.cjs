@@ -10,7 +10,7 @@ function setup(native){
     return {ok:!Number.isInteger(mode),status:mode,json:async()=>{if(mode==='bad-json')throw SyntaxError();return mode==='empty'?{}:{choices:[{finish_reason:mode==='length'?'length':'stop',message:{content:'解释内容'}}]};}};
   }};
   vm.runInNewContext(source,context);
-  return {api:window.GrowingCourseAI,data,calls,setMode:m=>{mode=m;},blockSave:()=>{blocked=true;}};
+  return {api:window.GrowingCourseAI,window,data,calls,setMode:m=>{mode=m;},blockSave:()=>{blocked=true;}};
 }
 test('no credentials means no network request; saved config supplies direct auth and format',async()=>{
   const t=setup();await assert.rejects(t.api.request({task:'问题'}),/设置.*API Key/);assert.equal(t.calls.length,0);
@@ -31,4 +31,14 @@ test('HTTP, invalid JSON, empty, truncated and network replies cannot count as a
 });
 test('Android uses its current account key without storing a browser key',async()=>{
   const t=setup({aiKey:()=> 'fake-native-key',configureAi(){}});assert.equal(t.api.info().native,true);await t.api.request({task:'问题'});assert.equal(t.calls[0].options.headers.Authorization,'Bearer fake-native-key');assert.equal(t.data.size,0);assert(t.api.settingsMarkup().includes('打开账号AI设置'));
+});
+
+test('shell settings use the classroom account storage and never fall back to another account',async()=>{
+  const t=setup(),accounts=new Map();let account='student-a';
+  t.window.GrowingCourseAIStorage=()=>({getItem:k=>accounts.get(account+':'+k)||null,setItem:(k,v)=>accounts.set(account+':'+k,v),removeItem:k=>accounts.delete(account+':'+k)});
+  t.api.save({apiKey:'fake-account-a-key'});assert.equal(t.data.size,0);
+  account='student-b';assert.equal(t.api.info().configured,false);await assert.rejects(t.api.request({task:'问题'}),/API Key/);
+  t.api.save({apiKey:'fake-account-b-key'});await t.api.request({task:'问题'});assert.equal(t.calls[0].options.headers.Authorization,'Bearer fake-account-b-key');
+  t.api.clear();account='student-a';assert.equal(t.api.info().configured,true);
+  t.window.GrowingCourseAIStorage=()=>{throw Error('session expired');};await assert.rejects(t.api.request({task:'问题'}),/无法读取/);
 });

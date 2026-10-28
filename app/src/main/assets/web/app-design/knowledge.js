@@ -15,10 +15,10 @@
   function includePre(id){for(const e of g.pre.get(id)){if(!availableIds.has(e.from)){availableIds.add(e.from);includePre(e.from);}}}
   chapter.nodes.forEach(n=>includePre(n.id));
   const availableNodes=D.nodes.filter(n=>availableIds.has(n.id));
-  document.title=chapter.title+'知识图谱与诊断 · 成长';
+  document.title=chapter.title+'知识图谱与诊断 · 逆流';
   document.getElementById('knowledge-meta').textContent=`${physics?(chapter.term==='upper'?'苏科版2025年第4版':'苏科版2012年第3版（2015年印刷）'):'苏科版'} · 八年级${chapter.term==='upper'?'上':'下'}册 · 第${chapter.number}章 · ${chapter.title}`;
   document.getElementById('chapter-number').textContent=chapter.number;
-  document.getElementById('scope-note').textContent=`本章 ${chapter.nodes.length} 个知识点；${D.scopeLabel||'全年11章'}可切换，必要时跨章回查先修。题目与关系待教师审核，初筛用于安排复习。`;
+  document.getElementById('scope-note').textContent='';
   document.getElementById('chapter-select').innerHTML=D.chapters.map(c=>`<option value="${c.id}" ${c.id===chapter.id?'selected':''}>${c.term==='upper'?'上册':'下册'} · 第${c.number}章 ${esc(c.title)}</option>`).join('');
   document.getElementById('catalog-back').href='units.html?subject='+subject+'&term='+chapter.term;
   document.getElementById('catalog-back').textContent='← '+subjectName+'目录';
@@ -138,10 +138,10 @@
     return `<section class="panel setup"><p class="eyebrow">定位薄弱环节 · 每点固定两题</p><h2>从哪里开始检查？</h2>
       <ol class="step-list"><li>选择整章或一个知识点，每个目标固定两题。</li><li>所有人按相同顺序作答，答题中不提示对错或诊断标签。</li><li>全部提交后统一查看诊断报告与逐题解析。</li></ol>
       <div class="field-row"><label>选择目标<select id="target-select"><option value="chapter" ${target==='chapter'?'selected':''}>${esc(chapter.title)}整章评测（${chapter.nodes.length*2}题）</option>${chapter.nodes.map(n=>`<option value="${n.id}" ${target===n.id?'selected':''}>${esc(n.title)}（2题）</option>`).join('')}</select></label></div>
-      <p class="small">遇到不熟悉的题，可以选择“暂时不会”。本轮必须完成全部题目后才显示报告；可以关闭页面后续答。诊断结果按各知识点已完成评测的最好正确比例计入排行榜，占总分30%。</p>
+      <p class="small">遇到不熟悉的题，可以选择“暂时不会”。</p>
       ${s?`<div class="empty-state">已有本轮记录：作答 ${s.asked.length} 题。${s.canContinue&&!session.closed?'可以继续上次诊断。':'可查看本轮结果。'}新开诊断会替换这份诊断记录。</div>`:''}
       <div class="actions"><button class="primary" id="start">${s?'新开一次诊断':'开始诊断 →'}</button>${s?`<button id="resume">${s.canContinue&&!session.closed?'继续上次诊断':'查看本轮结果'}</button>`:''}</div>
-      <p class="save-hint">完成后请返回学习中心同步，学生和已绑定家长即可查看更新后的排行榜。复测使用同一小题库，熟悉题目可能影响结果。</p></section>`;
+      </section>`;
   }
   function questionMarkup(s){
     const item=s.next,q=item.question;
@@ -149,7 +149,7 @@
       <h2 class="question-title" id="question-title" tabindex="-1">${esc(q.prompt)}</h2>
       <form id="answer-form"><fieldset class="options"><legend>选择一个答案</legend>${q.options.map((x,i)=>`<label class="option"><input type="radio" name="choice" value="${i}" required><span class="letter">${'ABCD'[i]}</span><span>${esc(x)}</span></label>`).join('')}<label class="option unsure"><input type="radio" name="choice" value="unsure" required><span>暂时不会 / 不确定</span></label></fieldset>
       <p class="feedback" aria-live="polite">${esc(feedback)}</p><div class="actions"><button class="primary" type="submit">${s.asked.length+1===session.limit?'完成评测，查看诊断报告':'提交，继续作答 →'}</button><button type="button" id="undo" ${!s.asked.length?'disabled':''}>撤销上一题</button></div></form>
-      <p class="save-hint">每题提交后保存，可刷新续答。为避免提示影响复测，解析会在本轮结果中展示。</p></section>`;
+      </section>`;
   }
   function reportMarkup(s){
     const groups=name=>s.order.filter(id=>(s.states[id]||'untested')===name);
@@ -157,7 +157,7 @@
     const credit=E.assessmentCredit(g,session);
     return `<section class="panel report"><p class="eyebrow">本轮学习线索 · 不是掌握认证</p><h2 tabindex="-1" id="report-title">知道下一步该练什么。</h2><p class="summary-intro">已作答 ${s.asked.length} / 最多 ${session.limit} 题。${s.limitReached?'已到题量上限，尚有内容未确认。':session.closed?'本轮提前结束，结论只基于已作答部分。':'本轮目标的检查路径已结束；未测先修仍保留未测。'}</p>
       <div class="summary-stats">${[['weak','需补学'],['shaky','不稳'],['screened','初筛通过'],['untested','未测']].map(([key,label])=>`<div class="stat"><strong>${groups(key).length}</strong><span>${label}</span></div>`).join('')}</div>
-      ${credit?`<p class="notice">本轮图谱诊断正确率 ${(Object.values(credit).reduce((a,b)=>a+b,0)/session.targets.length*100).toFixed(1)}%。排行榜按本章全部知识点的已完成评测最好正确比例计分，诊断占总分30%，未测知识点记0。请返回学习中心同步后查看名次。</p>`:'<p class="small">这是旧版初筛记录；新开一次评测并全部完成后，才能计入图谱诊断排行榜分项。</p>'}
+      ${credit?`<p class="notice">本轮图谱诊断正确率 ${(Object.values(credit).reduce((a,b)=>a+b,0)/session.targets.length*100).toFixed(1)}%。</p>`:'<p class="small">这是旧版初筛记录；新开一次评测并全部完成后，才能计入图谱诊断排行榜分项。</p>'}
       ${pending.length?`<p class="notice">待复测 ${pending.length} 个：${pending.map(title).map(esc).join('、')}。每点只有一题未通过，证据不足，不能判为薄弱。</p>`:''}
       <section class="result-section"><h3>可能卡住的基础环节</h3>${s.roots.length?s.roots.map(r=>`<div class="root-card"><h3>${esc(title(r.id))}</h3><p>两题未通过（包含“暂时不会”）。${r.uncertain.length?`它的必要先修“${r.uncertain.map(title).map(esc).join('、')}”尚未全部初筛通过，原因可能还在更前面。`:'本试点中没有更前的已确认薄弱先修；仍只是候选线索。'}</p><button class="text-button" data-locate="${r.id}">看关系与复习卡 →</button></div>`).join(''):'<p class="empty-state">本轮没有确认的薄弱基础点。初筛通过不等于掌握；待复测和未测部分仍需保留。</p>'}</section>
       <section class="result-section"><h3>建议复习顺序</h3>${s.path.length?`<ol class="learning-path">${s.path.map(id=>`<li><strong>${esc(title(id))}</strong>${chip(id,s.states[id])}<button class="text-button" data-locate="${id}">复习 →</button></li>`).join('')}</ol><p class="small">按先修顺序排列已发现的薄弱与不稳点；复习卡只是提醒，建议结合原课程练习。</p>`:'<p class="small">暂未形成补学路径。可继续原课程；若仍有疑问，单独诊断相关先修点。</p>'}

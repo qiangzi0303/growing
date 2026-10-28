@@ -3,9 +3,9 @@ window.GrowingHandwritingView={mount(root,api,esc,current,prefix){
   let page=1,sequence=0;
   root.className='panel handwriting-records';
   async function list(){
-    const seq=++sequence;root.innerHTML='<h2>孩子的手写作业</h2><p role="status">正在读取已同步原稿…</p>';
+    const seq=++sequence;root.innerHTML='<h2>孩子的手写作业</h2><p role="status">正在读取原稿…</p>';
     try{const data=await api(prefix+'/handwriting?page='+page);if(!current()||seq!==sequence)return;
-      root.innerHTML=`<h2>孩子的手写作业</h2><p class="muted">仅显示已同步原稿。AI 点评为辅助参考，手写成绩暂不计入排行榜。</p><div class="cards">${data.rows.map(r=>`<article><h3>${esc(r.title||'未命名作业')}</h3><p>${esc(r.unitId)} · ${Number(r.pages)} 页<br>${r.grade?r.grade.needsReview?'需要复核':r.grade.score+' / 100':'尚无当前原稿点评'}</p><button data-original="${esc(r.key)}">查看原稿与点评</button></article>`).join('')||'<p>尚无已同步的手写作业。</p>'}</div><div class="actions"><button data-hw-prev ${page===1?'disabled':''}>上一页</button><span>第 ${page} 页 · ${data.total} 份</span><button data-hw-next ${page*data.pageSize>=data.total?'disabled':''}>下一页</button></div>`;
+      root.innerHTML=`<h2>孩子的手写作业</h2><p class="muted">AI 点评为辅助参考，手写成绩暂不计入排行榜。</p><div class="cards">${data.rows.map(r=>`<article><h3>${esc(r.title||'未命名作业')}</h3><p>${esc(r.unitId)} · ${Number(r.pages)} 页<br>${r.grade?r.grade.needsReview?'需要复核':r.grade.score+' / 100':'尚无当前原稿点评'}</p><button data-original="${esc(r.key)}">查看原稿与点评</button></article>`).join('')||'<p>尚无手写作业。</p>'}</div><div class="actions"><button data-hw-prev ${page===1?'disabled':''}>上一页</button><span>第 ${page} 页 · ${data.total} 份</span><button data-hw-next ${page*data.pageSize>=data.total?'disabled':''}>下一页</button></div>`;
     }catch{if(current()&&seq===sequence)root.innerHTML='<h2>孩子的手写作业</h2><p class="warning">暂时无法读取手写作业，请刷新学习情况后重试。</p>';}
   }
   async function show(key){

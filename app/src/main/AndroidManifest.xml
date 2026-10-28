@@ -5,7 +5,7 @@
         <intent><action android:name="android.intent.action.TTS_SERVICE"/></intent>
         <intent><action android:name="android.media.action.IMAGE_CAPTURE"/></intent>
     </queries>
-    <application android:label="成长" android:icon="@drawable/ic_growing" android:theme="@style/AppTheme"
+    <application android:label="逆流" android:icon="@drawable/brand_logo" android:theme="@style/AppTheme"
         android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true"
         android:enableOnBackInvokedCallback="false">
         <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.photos"

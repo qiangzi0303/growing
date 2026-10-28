@@ -30,6 +30,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.RadioButton;
@@ -118,7 +119,8 @@ public final class MainActivity extends Activity {
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);outer.addView(scroll,new LinearLayout.LayoutParams(-1,-1));
         FrameLayout center=new FrameLayout(this);scroll.addView(center,new ScrollView.LayoutParams(-1,-2));
         LinearLayout form=loginForm();center.addView(form,new FrameLayout.LayoutParams(-1,-2,Gravity.CENTER));
-        TextView title=text("成长",34,Color.rgb(45,68,52));title.setTypeface(null,Typeface.BOLD);form.addView(title);
+        ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.brand_logo);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);form.addView(logo,new LinearLayout.LayoutParams(dp(96),dp(96)));
+        TextView title=text("逆流",34,Color.rgb(45,68,52));title.setTypeface(null,Typeface.BOLD);form.addView(title);
         TextView hint=text(registering?"创建你的学习账号":"登录，继续你的学习",18,Color.rgb(80,110,70));hint.setPadding(0,dp(12),0,dp(24));form.addView(hint);
         EditText name=input("用户名（2—24 个字符）",false);name.setContentDescription("用户名");form.addView(name);
         EditText password=input("密码（至少 8 个字符）",true);password.setContentDescription("密码");form.addView(password);
@@ -157,7 +159,7 @@ public final class MainActivity extends Activity {
     private void showLearning(){
         learningReady=false;
         if(!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)){
-            new AlertDialog.Builder(this).setTitle("请更新系统 WebView").setMessage("当前 Android System WebView 版本较旧。请在应用商店更新后重新打开成长，以确保账号记录隔离。").setPositiveButton("关闭",(d,w)->finish()).setCancelable(false).show();return;
+            new AlertDialog.Builder(this).setTitle("请更新系统 WebView").setMessage("当前 Android System WebView 版本较旧。请在应用商店更新后重新打开逆流，以确保账号记录隔离。").setPositiveButton("关闭",(d,w)->finish()).setCancelable(false).show();return;
         }
         destroyWeb();
         LinearLayout outer=column();attachRoot(outer);
@@ -241,7 +243,7 @@ public final class MainActivity extends Activity {
         NativeIdentity identity=accounts.identity(currentId);
         back.setVisibility(home?View.INVISIBLE:View.VISIBLE);
         back.setText(cloud?(identity!=null&&identity.role.equals("Student")?"‹ 返回主页":"‹ 返回登录"):"‹ 返回选科");
-        screenTitle.setText(cloud?"云账号与身份":home?"":url.contains("word-ops")?"英语 · Unit 3":url.contains("fraction-ops")?"数学 · 分式":url.contains("subject=english")||url.contains("english-course")?"英语":url.contains("subject=physics")||url.contains("physics-")?"物理":url.contains("math-course")||url.contains("knowledge")||url.contains("subject=math")?"数学":"成长课堂");
+        screenTitle.setText(cloud?"云账号与身份":home?"":url.contains("word-ops")?"英语 · Unit 3":url.contains("fraction-ops")?"数学 · 分式":url.contains("subject=english")||url.contains("english-course")?"英语":url.contains("subject=physics")||url.contains("physics-")?"物理":url.contains("math-course")||url.contains("knowledge")||url.contains("subject=math")?"数学":"逆流课堂");
     }
     private void navigateBack(){
         if(web==null)return;
@@ -287,7 +289,7 @@ public final class MainActivity extends Activity {
     }
     private void showSpeechSettings(){
         LinearLayout form=column();form.setPadding(dp(24),dp(8),dp(24),0);
-        form.addView(text("朗读使用 Android 系统语音服务。请先选择可用引擎，并下载英语语音数据（数学设备朗读另需中文）。\n\n试读时调高媒体音量；若引擎仅支持在线语音，还需要联网。下载语言包后建议重新打开成长。",14,Color.rgb(80,100,75)));
+        form.addView(text("朗读使用 Android 系统语音服务。请先选择可用引擎，并下载英语语音数据（数学设备朗读另需中文）。\n\n试读时调高媒体音量；若引擎仅支持在线语音，还需要联网。下载语言包后建议重新打开逆流。",14,Color.rgb(80,100,75)));
         Button test=button("试读英语：Hello, welcome to Growing");
         test.setOnClickListener(v->{if(web!=null)web.evaluateJavascript("speechSynthesis.cancel();var t=new SpeechSynthesisUtterance('Hello, welcome to Growing.');t.lang='en-GB';speechSynthesis.speak(t);",null);});form.addView(test);
         new AlertDialog.Builder(this).setTitle("朗读设置").setView(scrollable(form))

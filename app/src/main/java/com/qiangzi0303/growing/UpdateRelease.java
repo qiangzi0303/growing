@@ -37,7 +37,7 @@ final class UpdateRelease {
             JSONObject release = new JSONObject(json);
             if (!Integer.valueOf(1).equals(release.get("schemaVersion"))) throw new IOException("暂不支持该更新信息格式。");
             if (!"com.qiangzi0303.growing".equals(release.getString("packageName")))
-                throw new IOException("更新信息不是成长应用的安装包。");
+                throw new IOException("更新信息不是逆流应用的安装包。");
             Object value = release.get("versionCode");
             if (!(value instanceof Integer || value instanceof Long)) throw new IOException("版本编号必须是正整数。");
             long code = ((Number) value).longValue();

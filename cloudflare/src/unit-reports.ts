@@ -34,7 +34,7 @@ export function buildUnitReports(docs: Document[]) {
   const states = new Map<string, Data>(), warnings: string[] = [];
   for (const d of docs) if (d.value !== null) {
     try { const raw = JSON.parse(d.value); if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw Error(); states.set(d.key, raw); }
-    catch { warnings.push('一份同步记录格式异常，未计入单元报告，原存档保留。'); }
+    catch { warnings.push('一份学习记录格式异常，未计入单元报告，原存档保留。'); }
   }
   const boards = new Map(masteryBoards(docs).filter(b => b.kind === 'unit').map(b => [b.id, b]));
   const graphs = Object.fromEntries(Object.entries(diagnosisData).map(([k, v]) => [k, diagnosis.graph(v)]));
@@ -127,5 +127,5 @@ export function buildUnitReports(docs: Document[]) {
     }];
   });
   return { units, lastSyncedAt: docs.map(d => d.updatedAt).sort().at(-1) ?? null, warnings: [...new Set(warnings)],
-    note: '仅显示最近同步且已有学习记录的已开放单元。时长为课程实际保存的有效学习计时，缺失时不补算；学习日期来自留存活动与评测，不代表完整历史。课程达标沿用各课堂标准：数学/物理须概念与应用均通过，英语按必会词汇和阅读语法检测（Unit 3含知识关卡）。图谱初筛单独展示，不计作课程达标。' };
+    note: '仅显示已有学习记录的已开放单元。时长为课程实际保存的有效学习计时，缺失时不补算；学习日期来自留存活动与评测，不代表完整历史。课程达标沿用各课堂标准：数学/物理须概念与应用均通过，英语按必会词汇和阅读语法检测（Unit 3含知识关卡）。图谱初筛单独展示，不计作课程达标。' };
 }

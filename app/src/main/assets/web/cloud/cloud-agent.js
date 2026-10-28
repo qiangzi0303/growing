@@ -9,8 +9,7 @@
   let session;try{session=JSON.parse(raw.getItem('growing-cloud-session-v1')||'null');}catch{return;}
   if(!session?.token||session.user?.role!=='Student'||raw.getItem('growing-cloud-binding-v1')!==session.user.id)return;
   const id=session.user.id,metaKey='growing-cloud-meta-v1:'+id;
-  let busy=false,again=false,saveTimer,status='正在连接云端',lastAction=Date.now(),lastTick=Date.now(),subject='';
-  function label(text){status=text;const badge=document.getElementById('growing-cloud-status');if(badge)badge.textContent=text;}
+  let busy=false,again=false,saveTimer,lastAction=Date.now(),lastTick=Date.now(),subject='';
   function activity(url){lastAction=Date.now();subject=/english|word-ops/.test(url)?'英语':/physics/.test(url)?'物理':/math-course|fraction-ops/.test(url)?'数学':'';}
   window.GrowingCloudActivity=activity;activity(location.href);
   for(const name of ['pointerdown','keydown','touchstart'])document.addEventListener(name,()=>activity(location.href),{passive:true});
@@ -27,7 +26,7 @@
     if(!response.ok)throw Error(response.status===409?'记录冲突，请到云同步中心选择版本':response.status===401?'云登录已失效，请重新登录':'暂未同步（'+response.status+'）');
     return await response.json();}finally{clearTimeout(timeout);}
   }
-  function queue(){label('正在保存到云端…');if(busy)again=true;clearTimeout(saveTimer);saveTimer=setTimeout(sync,400);}
+  function queue(){if(busy)again=true;clearTimeout(saveTimer);saveTimer=setTimeout(sync,400);}
   async function sync(){
     if(busy){again=true;return false;}busy=true;
     try{
@@ -41,14 +40,12 @@
         else if(a.type==='same')meta[a.key]={value:a.server.value,revision:a.server.revision};
         else pending=true;
       }
-      raw.setItem(metaKey,JSON.stringify(meta));label(pending?'云端记录有变化 · 返回主页恢复或选择版本':again?'正在保存新记录…':'已保存到云端');return !pending;
-    }catch(e){label('尚未保存到云端 · 缓存已保留 · '+(e.name==='AbortError'?'连接超时，请检查网络':e.message));return false;}finally{busy=false;if(again){again=false;clearTimeout(saveTimer);saveTimer=setTimeout(sync,400);}}
+      raw.setItem(metaKey,JSON.stringify(meta));return !pending;
+    }catch(e){console.warn('Background save incomplete:',e.name);return false;}finally{busy=false;if(again){again=false;clearTimeout(saveTimer);saveTimer=setTimeout(sync,400);}}
   }
-  const ready=()=>{const badge=document.createElement('a');badge.id='growing-cloud-status';badge.textContent=status;badge.href='/assets/web/cloud/index.html';badge.style.cssText='position:fixed;bottom:5px;right:7px;font:12px system-ui;background:#edf3e9;color:#35513d;border:1px solid #bccfb4;border-radius:7px;padding:6px 9px;z-index:9000;max-width:90vw;text-decoration:none';document.body.append(badge);};
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
   window.GrowingCloudFlush=sync;
   window.addEventListener('growing-storage-change',event=>{if(event.detail?.key===null||GrowingSync.allowed(event.detail?.key||''))queue();});
   window.addEventListener('pagehide',()=>{tick();sync();});
   document.addEventListener('visibilitychange',()=>{tick();sync();});
-  setInterval(()=>{try{tick();}catch(e){label('学习时长未保存，请返回主页重试');}},10000);setInterval(sync,15000);window.addEventListener('online',sync);sync();
+  setInterval(()=>{try{tick();}catch(e){console.warn('Activity save incomplete:',e.name);}},10000);setInterval(sync,15000);window.addEventListener('online',sync);sync();
 })();

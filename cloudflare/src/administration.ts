@@ -61,7 +61,7 @@ export class Administration {
         return { subject: s.subject, minutes: s.dailyMinutes[day] ?? 0, read: snapshot?.read ?? null, mastered: snapshot?.mastered ?? null, practice: snapshot?.practice ?? null };
       }) };
     });
-    return { timezone: "Asia/Shanghai", points, note: "时长按北京时间汇总，已同步的每日时长独立保留。掌握和练习曲线为当天最后一次成功同步的快照，缺少快照的日期留空；重学或重置可能使掌握和练习数值下降。" };
+    return { timezone: "Asia/Shanghai", points, note: "时长按北京时间汇总，每日时长独立保留。掌握和练习曲线为当天留存的最后一份快照，缺少快照的日期留空；重学或重置可能使掌握和练习数值下降。" };
   }
   async rewards(id: string, docs?: Awaited<ReturnType<Store["state"]>>) {
     const data = await rewardEntries(docs ?? await new Store(this.db).state(id));

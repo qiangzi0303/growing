@@ -34,7 +34,7 @@ def wait_data(ctx,key,predicate):
         rows=data(ctx)
         if key in rows and predicate(json.loads(rows[key]['value'])): return rows[key]
         time.sleep(.15)
-    diagnostic=active_page.evaluate('(k)=>({status:document.querySelector("#sync-status")?.textContent,value:window.GrowingCloud?.storage().getItem(k)})',key) if active_page else None
+    diagnostic=active_page.evaluate('(k)=>({value:window.GrowingCloud?.storage().getItem(k)})',key) if active_page else None
     raise AssertionError('Server did not save '+key+'; '+json.dumps(diagnostic,ensure_ascii=True))
 def track(page):page.on('pageerror',lambda e:errors.append(str(e)))
 def home(page):page.locator('#course').wait_for(timeout=15000)
@@ -68,6 +68,7 @@ try:
     seed_script='if(!localStorage.getItem("qa-seeded")){localStorage.setItem("qa-seeded","1");'+''.join('localStorage.setItem('+json.dumps('growing-user:'+sid+':'+k)+','+json.dumps(json.dumps(v,ensure_ascii=False))+');' for k,v in seeds.items())+'}'
     a.add_init_script(seed_script)
     pa=a.new_page();active_page=pa;track(pa);pa.goto(args.base+'/');home(pa)
+    check('The web classroom has no cloud-save status display',pa.locator('#sync-status,#growing-cloud-status').count()==0)
     rows=data(a)
     check('Existing device records migrate automatically',all(k in rows for k in seeds))
     check('AI connection stays private on the old device','connection' not in json.loads(rows['fraction-minute-v1']['value']) and 'fake-device-only-key' in value(pa,'fraction-minute-v1'))
@@ -103,9 +104,9 @@ try:
     check('Returning from a course restores changes made on the other device')
     pa.locator('#start-course').click();home(pa)
     a.set_offline(True)
-    write(pa,draft,{'draft':'offline edit retained','messages':[]})
-    pa.wait_for_function('document.querySelector("#sync-status").textContent.includes("尚未保存到云端")')
-    check('Offline writes are retained and explicitly marked unsaved')
+    with pa.expect_event('requestfailed',predicate=lambda r:r.url==args.base+'/api/student/state'):
+        write(pa,draft,{'draft':'offline edit retained','messages':[]})
+    check('Offline writes are retained without a cloud-save notice',json.loads(value(pa,draft))['draft']=='offline edit retained' and pa.locator('#sync-status,#growing-cloud-status').count()==0 and pa.locator('#message').inner_text()=='')
     a.set_offline(False)
     wait_data(a,draft,lambda d:d.get('draft')=='offline edit retained')
     check('Reconnection automatically uploads offline edits')
@@ -124,9 +125,12 @@ try:
     c=browser.new_context();register(c,'cloud_b_'+run_id);pc=c.new_page();track(pc);pc.goto(args.base+'/');home(pc)
     check('A different student cannot see the first student progress',value(pc,'growing-math-lessons-v1') is None and value(pc,draft) is None)
     d=browser.new_context();d.request.post(args.base+'/api/auth/login',headers={'X-Growing-Client':'1'},data={'username':student_name,'password':password})
-    pd=d.new_page();track(pd);pd.route('**/api/student/state',lambda r:r.fulfill(status=503,json={'error':'QA temporary outage'}));pd.goto(args.base+'/')
-    pd.wait_for_function('document.querySelector("#sync-status")?.textContent.includes("尚未保存到云端")')
+    pd=d.new_page();track(pd);pd.route('**/api/student/state',lambda r:r.fulfill(status=503,json={'error':'QA temporary outage'}))
+    with pd.expect_response(lambda r:r.url==args.base+'/api/student/state' and r.status==503):
+        pd.goto(args.base+'/')
+    pd.locator('#sync-now').wait_for()
     check('A new device cannot open an empty lesson before restore succeeds',pd.locator('#course').count()==0 and pd.locator('#start-course').is_disabled())
+    check('A failed background restore shows no cloud-save status notice',pd.locator('#sync-status,#growing-cloud-status').count()==0 and pd.locator('#message').inner_text()=='')
     e=browser.new_context();legacy_account=register(e,'cloud_old_'+run_id)
     legacy_key='growing-assessment-v1'
     e.request.put(args.base+'/api/student/state/'+legacy_key,headers={'X-Growing-Client':'1'},data={'revision':0,'value':json.dumps({'draft':'already on server'})})
@@ -153,7 +157,12 @@ try:
     pn.evaluate('document.querySelector("iframe").contentWindow.localStorage.setItem("growing-english-doubts-v1:english-8a-01",JSON.stringify({draft:"native iframe auto-save",messages:[]}))')
     wait_data(a,draft,lambda d:d.get('draft')=='native iframe auto-save')
     check('Native nested iframe writes trigger automatic upload without manual sync')
+    check('Native lessons have no floating cloud-save status',pn.locator('#growing-cloud-status,#sync-status').count()==0)
     pn.screenshot(path=str(args.output/'native-mobile.png'),full_page=True)
+    pn.route('**/api/student/state',lambda r:r.abort())
+    check('Native background-save failures stay silent',pn.evaluate('GrowingCloudFlush()') is False and pn.locator('#growing-cloud-status,#sync-status').count()==0)
+    pn.unroute('**/api/student/state')
+    check('Native background save resumes without a status display',pn.evaluate('GrowingCloudFlush()') is True and pn.locator('#growing-cloud-status,#sync-status').count()==0)
     pn.route('**/api/auth/me',lambda r:r.abort())
     pn.goto(args.base+'/assets/web/cloud/index.html');pn.locator('#offline-course').wait_for()
     pn.locator('#offline-course').click();pn.locator('.subjects').wait_for()

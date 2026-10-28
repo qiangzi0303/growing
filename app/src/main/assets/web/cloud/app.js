@@ -7,7 +7,6 @@
   let saveTimer,saveAgain=false,cloudReady=false,restoring=false;
   function queueSave(){
     if(user?.role!=='Student')return;
-    const label=$('#sync-status');if(label)label.textContent='正在保存到云端…';
     clearTimeout(saveTimer);saveTimer=setTimeout(sync,400);
     if(syncing)saveAgain=true;
   }
@@ -118,11 +117,10 @@
       }
       if(version!==generation||user.id!==id)return;setMeta(meta);
       cloudReady=!conflicts.length;
-      const label=$('#sync-status');if(label)label.textContent=conflicts.length?'有 '+conflicts.length+' 份记录需选择版本，请先返回学习中心处理。':saveAgain?'正在保存新记录…':'已保存到云端 · '+new Date().toLocaleTimeString();
       const entry=$('#start-course');if(entry)entry.disabled=!cloudReady;
       showConflicts();
       return cloudReady;
-    }catch(e){if(version===generation){const label=$('#sync-status');if(label)label.textContent='尚未保存到云端，缓存已保留：'+e.message;}return false;}
+    }catch(e){if(version===generation)console.warn('Background save incomplete:',e.name);return false;}
     finally{syncing=false;if(saveAgain&&version===generation){saveAgain=false;clearTimeout(saveTimer);saveTimer=setTimeout(sync,400);}}
   }
   function showConflicts(){const area=$('#conflicts');if(!area)return;area.innerHTML=conflicts.map((c,i)=>`<div class="conflict"><strong>记录版本不同</strong><p><code>${esc(c.key)}</code></p><p class="muted">将先在本机备份两个版本。选择后重新打开课程，避免已打开页面覆盖记录。</p><div class="actions"><button data-resolve="${i}" data-choice="local">保留本机版本</button><button data-resolve="${i}" data-choice="cloud">使用云端版本</button></div></div>`).join('');}
@@ -146,21 +144,76 @@
     const key='growing-activity-v1:'+device,data=JSON.parse(get(key)||'{"days":{}}'),date=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'});
     data.days[date]??={};data.days[date][currentSubject]=(data.days[date][currentSubject]||0)+seconds;put(key,JSON.stringify(data));
   }
-  window.GrowingCloud={storage,activity,questionAttempts(){
+  const courseTrail=[];
+  let photoVersion=0;
+  // Focused examples, experiment controls and draft ids update in place; they are not new pages.
+  const routeKey=href=>{const url=new URL(href,location.href),identity=['subject','term','unit','chapter'];if(url.pathname.endsWith('knowledge.html'))identity.push('mode');for(const key of [...url.searchParams.keys()])if(!identity.includes(key))url.searchParams.delete(key);url.searchParams.sort();return url.pathname+url.search;};
+  function rememberCourse(href,replace=false){
+    const last=courseTrail.at(-1);
+    if(last&&routeKey(last)===routeKey(href))courseTrail[courseTrail.length-1]=href;
+    else if(replace&&last)courseTrail[courseTrail.length-1]=href;
+    else courseTrail.push(href);
+  }
+  function courseDocument(){try{return $('#course')?.contentDocument;}catch{return null;}}
+  function updateShellNavigation(){
+    const doc=courseDocument(),href=doc?.location.href||'',home=!$('#course')||new URL(href||location.href).pathname==='/learn/app-design/index.html';
+    $('#download-apk').hidden=!home||!!$('#question-bank-page')||!!$('#unit-reports-page')||$('#photo-dialog').open;
+    $('#question-bank').hidden=!user||needsRole(user)||user.role==='Student'||!!$('#course');
+    const own=doc?.defaultView.GrowingCourseAccount;
+    const legacy=href.includes('/fraction-ops/')||href.includes('/word-ops-unit3/');
+    document.querySelector('[data-account-view=calendar]').hidden=!own&&!legacy;
+    document.querySelector('[data-account-view=settings]').hidden=!own&&!legacy&&!doc?.querySelector('[data-view=settings]');
+  }
+  function courseReady(href){rememberCourse(href);updateShellNavigation();}
+  function courseBack(){
+    if($('#photo-dialog').open){$('#photo-dialog').close();return;}
+    const frame=$('#course'),doc=courseDocument();if(!frame)return;
+    if(doc?.defaultView.GrowingCourseAccount?.back())return;
+    if(courseTrail.length>1){courseTrail.pop();frame.contentWindow.location.replace(courseTrail.at(-1));return;}
+    const url=new URL(doc?.location.href||frame.src);
+    if(url.pathname!=='/learn/app-design/index.html'){
+      const link=doc?.querySelector('[data-growing-back]'),fallback=link?.dataset.backFallback||link?.href;
+      window.GrowingCloud.navigate(fallback&&new URL(fallback).pathname!==url.pathname?fallback:'/learn/app-design/index.html',true);return;
+    }
+    tick();courseTrail.length=0;frame.remove();student(false).then(updateShellNavigation).catch(error=>hint(error.message));
+  }
+  async function openQuestionBank(){
+    if(!user||needsRole(user))return;
+    const dialog=$('#photo-dialog');if(dialog.open)return;
+    $('#account-menu').open=false;const current=++photoVersion,version=generation;
+    dialog.showModal();updateShellNavigation();
+    try{await GrowingQuestionBank.mount($('#photo-content'),api,esc,()=>dialog.open&&current===photoVersion&&generation===version,user);
+      if(dialog.open&&current===photoVersion){const back=$('#photo-content #question-bank-home');if(back)back.textContent='← 返回上一级';}
+    }catch(error){if(dialog.open&&current===photoVersion)$('#photo-content').innerHTML='<button id="question-bank-home">← 返回上一级</button><p role="status">'+esc(error.message)+'</p>';}
+  }
+  function accountView(view){
+    const doc=courseDocument();$('#account-menu').open=false;if(!doc)return;
+    if(doc.defaultView.GrowingCourseAccount)doc.defaultView.GrowingCourseAccount.open(view);
+    else{const legacy=doc.location.pathname.includes('/fraction-ops/'),action=view==='settings'?'settings':legacy?'progress':'study';const target=doc.querySelector('[data-action="'+action+'"]')||doc.querySelector('[data-view="'+view+'"]');target?.click();}
+  }
+  $('#photo-dialog').addEventListener('close',()=>{photoVersion++;$('#photo-content').replaceChildren();updateShellNavigation();});
+  document.addEventListener('click',event=>{if(!event.target.closest('#account-menu'))$('#account-menu').open=false;});
+  window.GrowingCloud={storage,activity,back:courseBack,pageReady:courseReady,openQuestionBank,navigate(href,replace=false){
+    const frame=$('#course'),url=new URL(href,location.href);
+    if(!frame||url.origin!==location.origin||!url.pathname.startsWith('/learn/'))throw Error('课堂跳转地址无效。');
+    if(!replace&&courseDocument()?.location.href)rememberCourse(courseDocument().location.href);
+    rememberCourse(url.href,replace);
+    frame.contentWindow.location[replace?'replace':'assign'](url.href);
+  },questionAttempts(){
     if(!user||user.role!=='Student'||needsRole(user))return null;
     const id=user.id,version=generation;
     return {studentId:id,api:(path,options)=>{if(user?.id!==id||generation!==version)throw Error('学习会话已切换，请重新打开错题。');return api(path,options);}};
   }};
   function hideRankings(){$('#my-rankings').hidden=true;$('#rankings-dialog').close();$('#rankings-content').replaceChildren();}
-  function auth(){document.body.classList.remove('admin-console');clearInterval(timer);hideRankings();$('#question-bank').hidden=true;$('#logout').hidden=true;$('#settings').hidden=true;$('#learning-reports').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent='PC · 手机网页 · Android';
+  function auth(){document.body.classList.remove('admin-console');clearInterval(timer);hideRankings();courseTrail.length=0;$('#account-menu').hidden=true;$('#account-menu').open=false;$('#photo-dialog').close();$('#download-apk').hidden=false;$('#question-bank').hidden=true;$('#logout').hidden=true;$('#settings').hidden=true;$('#learning-reports').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent='PC · 手机网页 · Android';
     if(isNative&&!base){$('#app').innerHTML='<section class="panel"><h1>云服务尚未配置</h1><p>此安装包需要先配置服务端 HTTPS 地址，再登录云账号同步学习记录。</p><a class="button" href="../app-design/index.html">返回离线学习</a></section>';return;}
-    $('#app').innerHTML=`<section class="panel auth"><p class="muted">成长 · 学习与陪伴</p><h1>${authMode==='login'?'欢迎回来':'创建云账号'}</h1><p>${isNative&&!native.identityAccount?.()?'旧本机账号已登录，还需确认云账号身份。已有云账号请在下方登录，登录后选择学生或家长；没有云账号请点「注册」，注册时选择身份。后台保存成功后才能继续，原学习记录会保留。':'学生继续学习，家长看见进步。'}</p><form id="auth"><label>用户名<input name="username" autocomplete="username" minlength="2" maxlength="24" required></label><label>密码<input name="password" type="password" autocomplete="${authMode==='login'?'current-password':'new-password'}" minlength="8" maxlength="128" required></label>${authMode==='register'?'<label>称呼<input name="displayName" maxlength="40" required></label><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label>':''}${isNative?'<label><input name="consent" type="checkbox" style="display:inline;width:auto" required> 同意登录云账号；学生身份将关联本机学习记录（AI 密钥不上传）</label>':''}<button class="primary" type="submit">${authMode==='login'?'登录':'注册并登录'}</button></form><p><button id="switch-auth">${authMode==='login'?'还没有云账号？注册':'已有云账号？登录'}</button></p><p class="muted">旧版本机账号需关联云账号。本机记录和 AI 密钥保留；只有在此填写的云账号密码会发送到后台。</p></section>`;
+    $('#app').innerHTML=`<section class="panel auth"><p class="muted">逆流 · 学习与陪伴</p><h1>${authMode==='login'?'欢迎回来':'创建云账号'}</h1><p>${isNative&&!native.identityAccount?.()?'旧本机账号已登录，还需确认云账号身份。已有云账号请在下方登录，登录后选择学生或家长；没有云账号请点「注册」，注册时选择身份。后台保存成功后才能继续，原学习记录会保留。':'学生继续学习，家长看见进步。'}</p><form id="auth"><label>用户名<input name="username" autocomplete="username" minlength="2" maxlength="24" required></label><label>密码<input name="password" type="password" autocomplete="${authMode==='login'?'current-password':'new-password'}" minlength="8" maxlength="128" required></label>${authMode==='register'?'<label>称呼<input name="displayName" maxlength="40" required></label><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label>':''}${isNative?'<label><input name="consent" type="checkbox" style="display:inline;width:auto" required> 同意登录云账号；学生身份将关联本机学习记录（AI 密钥不上传）</label>':''}<button class="primary" type="submit">${authMode==='login'?'登录':'注册并登录'}</button></form><p><button id="switch-auth">${authMode==='login'?'还没有云账号？注册':'已有云账号？登录'}</button></p><p class="muted">旧版本机账号需关联云账号。本机记录和 AI 密钥保留；只有在此填写的云账号密码会发送到后台。</p></section>`;
   }
-  async function enter(profile,view=location.hash==='#question-bank'?'question-bank':location.hash==='#learning-reports'?'reports':'management'){management?.dispose();clearInterval(timer);clearTimeout(saveTimer);cloudReady=false;hideRankings();user=null;generation++;const version=generation;await rememberNativeSession(profile);if(version!==generation)return;user=profile;$('#logout').hidden=false;$('#learning-reports').hidden=true;$('#question-bank').hidden=needsRole(user);hint('');
+  async function enter(profile,view=location.hash==='#question-bank'?'question-bank':location.hash==='#learning-reports'?'reports':'management'){management?.dispose();clearInterval(timer);clearTimeout(saveTimer);cloudReady=false;hideRankings();courseTrail.length=0;$('#photo-dialog').close();user=null;generation++;const version=generation;await rememberNativeSession(profile);if(version!==generation)return;user=profile;$('#account-menu').hidden=false;$('#account-menu').open=false;$('#account-identity').textContent=user.displayName;$('#logout').hidden=false;$('#learning-reports').hidden=true;$('#question-bank').hidden=needsRole(user)||user.role==='Student';hint('');
     document.body.classList.toggle('admin-console',user.role==='Admin'&&view==='management');
     if(needsRole(user)){
       $('#settings').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent=user.displayName+' · 待确认身份';
-      $('#app').innerHTML='<section class="panel auth"><h1>请选择你的身份</h1><p>继续使用前，请确认你是学生还是家长。保存到云端后，下次登录无需重复选择。</p><form id="choose-role"><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label><button type="submit" class="primary">保存身份并继续</button></form></section>';return;
+      $('#app').innerHTML='<section class="panel auth"><h1>请选择你的身份</h1><p>继续使用前，请确认你是学生还是家长。确认后，下次登录无需重复选择。</p><form id="choose-role"><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label><button type="submit" class="primary">保存身份并继续</button></form></section>';return;
     }
     management=GrowingManagement.create(api,esc,()=>generation===version,()=>{management?.dispose();generation++;clearInterval(timer);user=null;token='';raw.removeItem(sessionKey);auth();hint('密码已修改，请使用新密码重新登录。');});$('#settings').hidden=!['Parent','Admin'].includes(user.role);$('#admin-navigation').hidden=user.role!=='Admin';$('#identity').textContent=user.displayName+' · '+({Parent:'家长',Student:'学生',Admin:'管理员'}[user.role]);
     $('#my-rankings').hidden=user.role!=='Student';
@@ -177,7 +230,7 @@
     }else if(user.role==='Student'){await student();}else if(user.role==='Admin'){
       if(view==='student')await student();else if(view==='parent')await parent();else if(view==='settings')parentSettings();else await management.admin($('#app'));
     }else if(view==='settings')parentSettings();else await parent();
-    if(version===generation&&user?.role==='Student')timer=setInterval(sync,15000);
+    if(version===generation){updateShellNavigation();if(user?.role==='Student')timer=setInterval(sync,15000);}
   }
   async function adminView(view){
     if(user?.role!=='Admin')return;
@@ -195,7 +248,7 @@
       $('#app').innerHTML='<h1>学生课堂</h1><p class="muted">使用当前管理员账号查看数学、英语与物理课程。</p><section class="panel"><p>课堂试用记录保存在当前设备，不影响学生的学习记录。</p><button id="start-course" class="primary">进入数学、英语与物理课堂 →</button></section>';
       return;
     }
-    $('#app').innerHTML=`<h1>今天，也向前一步</h1><p class="muted">学习记录自动保存到云端，更换设备后使用同一学生账号即可恢复。正在检查并上传此设备已有记录…</p><div class="sync" id="sync-status" role="status">正在恢复云端学习记录…</div><div id="conflicts"></div><section class="panel"><div class="actions"><button id="start-course" class="primary" disabled>进入数学、英语与物理课堂 →</button><button id="sync-now">重试保存与恢复</button></div></section>`;
+    $('#app').innerHTML=`<h1>今天，也向前一步</h1><div id="conflicts"></div><section class="panel"><div class="actions"><button id="start-course" class="primary" disabled>进入数学、英语与物理课堂 →</button><button id="sync-now">重新连接</button></div></section>`;
     const legacy=legacyKeys();if(legacy.length&&!raw.getItem('growing-legacy-owner-v1'))$('#app').insertAdjacentHTML('beforeend',`<section id="legacy-migration" class="panel"><h2>发现旧版本机学习记录</h2><p>此浏览器有 ${legacy.length} 份尚未关联账号的记录。确认属于 ${esc(user.displayName)} 后，可迁入当前学生云账号；两边不同时需选择版本。</p><button id="migrate-legacy">把旧记录迁入此学生</button></section>`);
     const studentGeneration=generation,entry=$('#start-course');
     const ready=await sync();
@@ -203,11 +256,12 @@
     if(showHome&&ready&&!conflicts.length&&!syncing&&!$('#legacy-migration')){openCourse();return;}
   }
   function openCourse(){
-    if(conflicts.length)throw Error('请先处理记录冲突。');if(syncing)throw Error('请等待本次同步完成。');
+    if(conflicts.length)throw Error('请先处理记录冲突。');if(syncing)throw Error('正在准备课堂，请稍后再试。');
     if(user.role==='Student'&&!cloudReady)throw Error('请先连接云服务，恢复学习记录后再进入课堂。');
     if(isNative){if(native.openLearning){const result=JSON.parse(native.openLearning());if(!result.ok)throw Error(result.error);}else location.href='../app-design/index.html';return;}
-    const status=$('#sync-status')?.textContent||'学习记录会自动保存在本机并同步';
-    $('#app').innerHTML=`<div class="actions"><button id="close-course">${user.role==='Admin'?'‹ 返回学生课堂':'云同步'}</button><span id="sync-status">${esc(user.role==='Admin'?'课堂试用记录保存在当前设备':status)}</span></div><iframe id="course" title="学生课堂" src="/learn/app-design/index.html"></iframe>`;
+    courseTrail.length=0;
+    $('#app').innerHTML='<iframe id="course" title="学生课堂" src="/learn/app-design/index.html"></iframe>';
+    $('#course').addEventListener('load',()=>{const href=courseDocument()?.location.href;if(href)courseReady(href);});
   }
   async function showRankings(){
     if(user?.role!=='Student'||needsRole(user))return;
@@ -217,7 +271,7 @@
   }
   async function parent(query='',page=1){
     const version=generation,request=++parentRequest,isAdmin=user.role==='Admin';
-    $('#app').innerHTML=`<h1>陪伴，从看见开始</h1><p class="muted">${isAdmin?'管理员可查看全站学生的家长看板，无需绑定或切换账号。':'查看孩子最近同步的学习记录，可添加多个孩子。'}</p><section class="panel"><h2>${isAdmin?'全站学生':'我的孩子'}</h2>${isAdmin?`<form id="student-search" class="actions filters"><label>用户名或称呼<input name="q" maxlength="40" value="${esc(query)}" placeholder="搜索学生"></label><button type="submit" class="primary">查询</button></form>`:'<button id="add-child">添加孩子</button>'}<div id="children" class="actions"></div><div id="child-pages" class="actions pagination"></div></section><section id="report"></section>`;
+    $('#app').innerHTML=`<h1>陪伴，从看见开始</h1><p class="muted">${isAdmin?'管理员可查看全站学生的家长看板，无需绑定或切换账号。':'查看孩子的学习记录，可添加多个孩子。'}</p><section class="panel"><h2>${isAdmin?'全站学生':'我的孩子'}</h2>${isAdmin?`<form id="student-search" class="actions filters"><label>用户名或称呼<input name="q" maxlength="40" value="${esc(query)}" placeholder="搜索学生"></label><button type="submit" class="primary">查询</button></form>`:'<button id="add-child">添加孩子</button>'}<div id="children" class="actions"></div><div id="child-pages" class="actions pagination"></div></section><section id="report"></section>`;
     const data=await api(isAdmin?'/admin/members?'+new URLSearchParams({q:query,role:'Student',page}):'/parent/children');
     if(version!==generation||request!==parentRequest||!$('#children'))return;
     const rows=isAdmin?data.rows:data;
@@ -256,24 +310,25 @@
       user=cached.user;cloudReady=true;openCourse();
     }
     if(b.id==='download-apk')await downloadApk(b);
+    if(b.dataset.accountView)accountView(b.dataset.accountView);
     if(b.id==='switch-auth'){authMode=authMode==='login'?'register':'login';auth();}
     if(b.dataset.adminView)await adminView(b.dataset.adminView);
     if(b.id==='learning-reports')await reportsView();
     if(b.id==='question-bank'&&user&&!needsRole(user))await enter(user,'question-bank');
-    if(b.id==='question-bank-home'&&user)await enter(user,'management');
+    if(b.id==='question-bank-home'&&user){if($('#photo-dialog').open)$('#photo-dialog').close();else await enter(user,'management');}
     if(b.id==='settings'){if(user?.role==='Admin')await adminView('settings');else if(user?.role==='Parent')await enter(user,'settings');}
     if(b.id==='add-child')parentSettings();
     if(b.id==='parent-home'){if(user?.role==='Admin')await adminView('parent');else if(user?.role==='Parent')await enter(user,'management');}
     if(b.dataset.childPage&&user?.role==='Admin')await parent($('#student-search [name=q]').value,Number(b.dataset.childPage));
-    if(b.id==='logout'){if(user?.role==='Student'&&!await sync())throw Error('还有记录未保存到云端，请联网重试后退出。');await api('/auth/logout',{method:'POST'});generation++;clearInterval(timer);clearTimeout(saveTimer);user=null;token='';raw.removeItem(sessionKey);auth();hint('已退出云账号。');}
+    if(b.id==='logout'){if(user?.role==='Student'&&!await sync())throw Error('暂时无法退出，请检查网络后重试。');await api('/auth/logout',{method:'POST'});generation++;clearInterval(timer);clearTimeout(saveTimer);user=null;token='';raw.removeItem(sessionKey);auth();hint('已退出云账号。');}
     if(b.id==='sync-now')await sync();
     if(b.id==='migrate-legacy'){b.disabled=true;try{await migrateLegacy();}finally{b.disabled=false;}}
     if(b.dataset.resolve!==undefined)await resolve(Number(b.dataset.resolve),b.dataset.choice);
     if(b.dataset.child)await report(b.dataset.child);
     if(b.id==='start-course')openCourse();
-    if(b.id==='close-course'){tick();$('#course').remove();await student(false);}
+    if(b.id==='close-course')courseBack();
   }catch(e){hint(e.message);}});
-  setInterval(()=>{try{tick();}catch(e){hint('活跃时长未保存：'+e.message);}},10000);
+  setInterval(()=>{try{tick();}catch(e){console.warn('Activity save incomplete:',e.name);}},10000);
   window.addEventListener('online',sync);
   window.addEventListener('growing-storage-change',event=>{if(!restoring&&(event.detail?.key===null||GrowingSync.allowed(event.detail?.key||'')))queueSave();});
   window.addEventListener('pagehide',()=>{tick();sync();});
@@ -287,7 +342,7 @@
     catch(e){if(attempt!==startupAttempt)return;
       if(e.status===401){token='';raw.removeItem(sessionKey);auth();hint('请登录云账号并确认身份。');return;}
       const cached=isNative&&read(sessionKey,null),offline=cached?.user?.role==='Student'&&!needsRole(cached.user)&&native.identityAccount?.()===cached.user.id&&Array.from({length:raw.length},(_,i)=>raw.key(i)).some(key=>GrowingSync.allowed(key||'')&&!key.startsWith('growing-activity-'));
-      $('#app').innerHTML='<section class="panel auth"><h1>暂时无法确认身份</h1><p>请检查网络后重试，或重新登录云账号。此设备的缓存仍保留；未保存到云端的记录需要联网后补传。</p><div class="actions"><button id="retry-startup" class="primary">重新连接</button><button id="startup-login">改用云账号登录</button>'+(offline?'<button id="offline-course">离线使用已有缓存（暂未与云端核对）</button>':'')+'</div></section>';hint(e.message);
+      $('#app').innerHTML='<section class="panel auth"><h1>暂时无法确认身份</h1><p>请检查网络后重试，或重新登录云账号。此设备的学习记录仍保留。</p><div class="actions"><button id="retry-startup" class="primary">重新连接</button><button id="startup-login">改用云账号登录</button>'+(offline?'<button id="offline-course">离线使用已有记录</button>':'')+'</div></section>';hint(e.message);
     }
   }
   (async()=>{try{if(isNative){if(!base){auth();return;}

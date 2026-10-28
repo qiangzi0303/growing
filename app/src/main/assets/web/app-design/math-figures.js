@@ -79,6 +79,6 @@
       case 'radical':return '<figure class="lesson-figure formula-figure"><div>√72 <span>→</span> √(36×2) <span>→</span> 6√2</div><figcaption>示例：把完全平方因子36提出根号。加减运算仍需先判断是否同类。</figcaption></figure>';
       default:return `<figure class="lesson-figure formula-figure"><div>${esc(n.example)}</div><figcaption>把式子从左到右逐步改写，每一步都要依据等式或运算法则。</figcaption></figure>`;
     }
-    return `<figure class="lesson-figure"><svg viewBox="0 0 360 245" role="img" aria-label="${esc(caption)}">${shapes}</svg><figcaption>${esc(caption)}（示意图，不作为测量或证明依据。）</figcaption></figure>`;
+    return `<figure class="lesson-figure"><svg viewBox="0 0 360 245" role="img" aria-label="${esc(caption)}">${shapes}</svg><figcaption>${esc(caption)}</figcaption></figure>`;
   };
 })();

@@ -1,0 +1,29 @@
+/* Unit 3 uses english-course.css; only its original training widgets need adapters. */
+html:has(body.english-legacy),body.english-legacy{height:auto;overflow:auto}
+.english-legacy{font-size:16px}
+.english-legacy #main{display:block;overflow:visible;padding:0;flex:none}
+.english-legacy .scene{display:block;position:static;width:100%;max-width:none;min-height:0;padding:0;text-align:left;animation:none}
+.english-legacy .tag{border:0;letter-spacing:normal;text-transform:none}
+.english-legacy #cardScene,.english-legacy #quizScene,.english-legacy #resultScene,.english-legacy #feynmanScene{padding:0;overflow:visible}
+.english-legacy .btn,.english-legacy .text-btn{font:inherit;letter-spacing:normal;text-transform:none;min-height:44px;padding:10px 16px;border:1px solid var(--line);border-radius:12px;background:var(--course-green);color:#fffdf9;box-shadow:none;transform:none}
+.english-legacy .btn.ghost,.english-legacy .text-btn{background:var(--course-paper);border-color:#b9c6a9;color:var(--course-ink)}
+.english-legacy .btn:hover:not(:disabled),.english-legacy .text-btn:hover:not(:disabled){background:var(--course-soft);color:var(--course-ink);border-color:#839c72}
+.english-legacy .unit3-groups{margin:-8px 0 16px;font-size:13px}
+.english-legacy .unit3-groups label{display:grid;gap:6px;max-width:280px}
+.english-legacy .unit3-extra-tools{margin:16px 0}
+.english-legacy .wordcard,.english-legacy .qcard{width:100%;max-width:760px;margin:0 auto 20px;padding:24px;background:var(--course-paper);border:1px solid var(--line);border-radius:18px;box-shadow:none;text-align:left}
+.english-legacy .wordcard::before{display:none}
+.english-legacy .word-en{font-size:clamp(28px,4vw,44px);font-weight:750;letter-spacing:normal;justify-content:flex-start;min-height:0;line-height:1.3}
+.english-legacy .word-en span,.english-legacy .word-phon,.english-legacy .word-cn,.english-legacy .word-mnemonic{animation:none;opacity:1;transform:none;color:var(--course-ink)}
+.english-legacy .word-cn{font-size:18px;font-weight:400;line-height:1.8}
+.english-legacy .card-heading,.english-legacy .card-bottom,.english-legacy .quiz-top{width:100%;max-width:760px;margin:0 auto 18px;gap:10px;flex-wrap:wrap}
+.english-legacy .card-tips{text-align:center}
+.english-legacy #feyInput{display:block;width:100%;min-height:180px;margin:12px 0;padding:12px;font:inherit;border:1px solid var(--line);border-radius:10px;background:#fffefb;color:var(--course-ink);resize:vertical}
+.english-legacy .knowledge-card h2{font-size:23px}
+.english-legacy .knowledge-rule{font-size:16px;color:var(--course-ink)}
+.english-legacy .knowledge-card .word-example{border-left:4px solid var(--course-green);padding:16px;background:var(--course-soft)}
+.english-legacy .knowledge-card .word-example .en{font-size:16px}
+.english-legacy .word-training{max-width:760px}
+.english-legacy .result-wrap{width:100%;max-width:760px;margin:auto}
+@media(max-width:760px){.english-legacy .wordcard,.english-legacy .qcard{padding:20px}}
+@media(max-width:420px){.english-legacy .wordcard,.english-legacy .qcard{padding:16px}}

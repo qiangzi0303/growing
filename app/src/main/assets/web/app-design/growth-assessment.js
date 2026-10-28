@@ -15,7 +15,7 @@
   function moveFocus(){app.querySelector('h1,legend')?.focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}
   const art='<div class="hero-art" aria-hidden="true"><svg viewBox="0 0 180 180" fill="none"><path d="M90 142V73M90 106C51 109 38 81 45 49c33 0 54 18 45 57Z" stroke="#779668" stroke-width="1.5" fill="#e0ead7"/><path d="M90 86c-8-36 14-59 49-60 5 34-16 62-49 60Z" stroke="#867099" stroke-width="1.5" fill="#e8e0ef"/><path d="M65 147h50M90 106 59 67M91 85l32-42" stroke="#657a5a" stroke-width="1.5" stroke-linecap="round"/><circle cx="144" cy="115" r="5" fill="#c4b5d1"/><circle cx="38" cy="119" r="3" fill="#a9be98"/></svg></div>';
   function home(){
-    current=null;document.title='成长评测 · 成长';
+    current=null;document.title='成长评测 · 逆流';
     app.innerHTML=`<header class="hero"><div class="hero-copy"><p class="eyebrow">A LITTLE MORE ABOUT YOU</p><h1 tabindex="-1">成长评测<br><span>认识自己，</span><wbr><span>每次多一点。</span></h1><p>从思维方式，到情绪、关系与日常习惯。用一次安静的作答，找到下一步可以尝试的小改变。</p></div>${art}</header>
       <section class="age-panel"><fieldset><legend>先选择你的年龄段</legend><div class="age-options">${C.ages.map(a=>`<label class="age-option"><input type="radio" name="age" value="${a.id}" ${state.age===a.id?'checked':''}><span>${a.label}</span></label>`).join('')}</div></fieldset><p>从 12 岁开始 · 题目与提示适配所选年龄段 · 不限时，按自己的节奏作答</p></section>
       <section class="assessment-cards" aria-label="选择成长评测">${Object.entries(C.kinds).map(([id,k],i)=>{

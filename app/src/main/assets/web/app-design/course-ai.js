@@ -3,10 +3,12 @@
   'use strict';
   const KEY='growing-course-ai-v1',endpoint='https://api.deepseek.com/chat/completions',defaultModel='deepseek-flash';
   const native=window.GrowingNative;
+  const connectionStorage=()=>window.GrowingCourseAIStorage?window.GrowingCourseAIStorage():localStorage;
+  const tests=new WeakMap();
   const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function read(){
     if(native)return {model:defaultModel,apiKey:String(native.aiKey()||'').trim()};
-    try{const raw=JSON.parse(localStorage.getItem(KEY)||'{}');return {model:typeof raw.model==='string'&&raw.model.trim()?raw.model.trim():defaultModel,apiKey:typeof raw.apiKey==='string'?raw.apiKey.trim():''};}
+    try{const raw=JSON.parse(connectionStorage().getItem(KEY)||'{}');return {model:typeof raw.model==='string'&&raw.model.trim()?raw.model.trim():defaultModel,apiKey:typeof raw.apiKey==='string'?raw.apiKey.trim():''};}
     catch{throw Error('AI连接配置无法读取，请在设置中重新保存或清除连接配置');}
   }
   function info(){try{const c=read();return {model:c.model,configured:!!c.apiKey,native:!!native};}catch(error){return {model:defaultModel,configured:false,native:!!native,error:error.message};}}
@@ -17,9 +19,9 @@
     if(!apiKey)throw Error('请填写 DeepSeek API Key');
     if(/\s/.test(apiKey)||apiKey.length<8)throw Error('密钥格式不正确，请完整粘贴 API Key');
     if(!model||model.length>100||/\s/.test(model))throw Error('请填写有效的模型名称');
-    try{localStorage.setItem(KEY,JSON.stringify({version:1,model,apiKey}));}catch{throw Error('连接配置保存失败，请检查浏览器存储权限后重试');}
+    try{connectionStorage().setItem(KEY,JSON.stringify({version:1,model,apiKey}));}catch{throw Error('连接配置保存失败，请检查浏览器存储权限后重试');}
   }
-  function clear(){if(native){native.configureAi();return;}try{localStorage.removeItem(KEY);}catch{throw Error('连接配置清除失败，请检查存储权限');}}
+  function clear(){if(native){native.configureAi();return;}try{connectionStorage().removeItem(KEY);}catch{throw Error('连接配置清除失败，请检查存储权限');}}
   async function request({task,format='text',signal}){
     const config=read();
     if(!config.apiKey)throw Error(native?'请在账号设置中填写 DeepSeek API Key':'请先到“设置 → AI连接”填写并保存 DeepSeek API Key');
@@ -39,7 +41,7 @@
     const c=info();
     return `<section class="course-ai-settings"><h3>AI连接 · 三科共用</h3><p>数学、物理和英语共用此连接，学习记录分别保存。接口：DeepSeek。</p><p class="course-ai-state">${esc(c.error||(c.configured?'已配置密钥':'尚未配置密钥'))}</p>${native?'<p>安卓使用当前账号中的密钥。</p><button type="button" data-course-ai-native>打开账号AI设置</button>':`<form id="course-ai-config" autocomplete="off"><label>模型名称<input name="model" maxlength="100" value="${esc(c.model)}" required></label><label>DeepSeek API Key<input name="apiKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="${c.configured?'已保存；留空沿用，填写可更换':'粘贴你的 API Key'}"></label><p>密钥仅保存在当前浏览器；三科在同一浏览器、同一站点中共用。更换浏览器或设备需重新填写。</p><div class="course-ai-actions"><button type="submit">保存连接</button><button type="button" data-course-ai-test>测试已保存的连接</button><button type="button" data-course-ai-clear>清除已保存密钥</button></div></form>`}<p class="course-ai-status" role="status" aria-live="polite"></p></section>`;
   }
-  window.GrowingCourseAI={request,info,save,clear,settingsMarkup};
+  window.GrowingCourseAI={request,info,save,clear,settingsMarkup,cancelTest(panel){tests.get(panel)?.abort();}};
   const status=(panel,text)=>{const el=panel.querySelector('.course-ai-status');if(el)el.textContent=text;};
   document.addEventListener('submit',event=>{
     if(event.target.id!=='course-ai-config')return;event.preventDefault();const panel=event.target.closest('.course-ai-settings');
@@ -50,9 +52,11 @@
     const panel=b.closest('.course-ai-settings');if(!panel)return;
     if(b.hasAttribute('data-course-ai-native')){native?.configureAi();return;}
     if(b.hasAttribute('data-course-ai-clear')){try{clear();panel.querySelector('.course-ai-state').textContent='尚未配置密钥';panel.querySelector('input[name=apiKey]').value='';status(panel,'已清除三科共用密钥，学习记录保留。');}catch(error){status(panel,error.message);}return;}
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);b.disabled=true;status(panel,'正在测试已保存的连接…');
+    if(tests.has(panel))return;
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);tests.set(panel,controller);
+    const controls=[...panel.querySelectorAll('button,input')];controls.forEach(el=>el.disabled=true);status(panel,'正在测试已保存的连接…');
     try{await request({task:'只回复“连接成功”。',signal:controller.signal});if(panel.isConnected)status(panel,'连接成功，可以开始三科答疑和AI评分。');}
     catch(error){if(panel.isConnected)status(panel,error.name==='AbortError'?'连接测试超时，请重试。':error.message);}
-    finally{clearTimeout(timer);b.disabled=false;}
+    finally{clearTimeout(timer);tests.delete(panel);controls.forEach(el=>el.disabled=false);}
   });
 })();
