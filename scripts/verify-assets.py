@@ -3,6 +3,12 @@ import re
 
 root=Path(__file__).resolve().parents[1]
 web=root/'app/src/main/assets/web'
+for name in ['geometry-models.html','geometry-models.css','geometry-models.js','geometry-models-data.js','geometry-models-more.js','geometry-models-advanced.js']+['geometry-source-'+str(page)+'.webp' for page in range(1,9)]:
+    if not (web/'app-design'/name).is_file():raise SystemExit('Missing geometry model asset: '+name)
+for name in ['math-wrong-question-links.js','math-wrong-review.js']:
+    if not (web/'app-design'/name).is_file():raise SystemExit('Missing unit wrong-question review asset: '+name)
+for name in ['math-exam-midterm.html','math-exam-midterm-graph.html','math-exam-midterm-graph.js','math-exam-practice.html','math-exam-practice.css','math-exam-practice-data.js','math-exam-practice-links.js','math-exam-practice.js']:
+    if not (web/'app-design'/name).is_file():raise SystemExit('Missing My papers asset: '+name)
 if not (web/'app-design/english-visual-atlas.svg').is_file():raise SystemExit('Missing English SVG vocabulary atlas')
 if not (web/'app-design/english-motion.js').is_file():raise SystemExit('Missing articulated English motion model')
 if not (web/'app-design/english-motion-NOTICE.txt').is_file():raise SystemExit('Missing Xiaohei character attribution and license')

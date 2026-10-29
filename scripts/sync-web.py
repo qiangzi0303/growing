@@ -1,10 +1,14 @@
 """Sync the reviewed project H5 into Android; never copy credentials or private files."""
 from pathlib import Path
-import json,re
+import json,re,shutil
+import runpy,subprocess
 
 repo=Path(__file__).resolve().parents[1]
 project=repo.parent
 web=repo/'app/src/main/assets/web'
+runpy.run_path(str(repo/'scripts/stage-math-papers.py'))
+subprocess.run(['node',str(repo/'scripts/build-parallel-links.cjs')],check=True)
+subprocess.run(['node',str(repo/'scripts/build-wrong-question-links.cjs')],check=True)
 deferred={'physics-'+name+'.js' for name in ['matter','particles','forces','dynamics','pressure','lower-figures']}
 files=[p.relative_to(project) for p in (project/'app-design').iterdir() if p.is_file() and p.suffix in ('.html','.css','.js') and p.name not in deferred]
 # Preserve previously copied drafts outside the APK assets, without deleting them.
@@ -15,6 +19,9 @@ for name in sorted(deferred):
         backup.parent.mkdir(parents=True,exist_ok=True)
         if not backup.exists():previous.rename(backup)
 files += [Path('word-ops-unit3/index.html'),Path('fraction-ops/分式作战_一分钟学习版.html')]
+for page in range(1,9):
+    name='geometry-source-'+str(page)+'.webp'
+    shutil.copyfile(project/'app-design'/name,web/'app-design'/name)
 removed=0
 for relative in sorted(files):
     source=project/relative

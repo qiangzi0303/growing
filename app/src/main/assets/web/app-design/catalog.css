@@ -4,7 +4,6 @@
 body{margin:0;min-width:280px;background:radial-gradient(ellipse at 85% 0,#edf0e3 0,transparent 45%),#f7f8f3}
 body.english{--accent:#50734b;--soft:#e2ebdb;--tint:#f4f8ef}
 .english-animation-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 17px;border:1px solid #839c72;border-radius:11px;background:#fffdf5;color:#45673f;font-size:13px;white-space:nowrap}
-.catalog-tools{display:flex;flex-wrap:wrap;gap:8px;margin:-10px 0 24px}
 a{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
 a:focus-visible{outline:3px solid var(--accent);outline-offset:4px;border-radius:8px}
 .catalog-shell{width:min(100%,968px);margin:auto;padding:30px 40px 46px}
@@ -24,6 +23,8 @@ h1{font-size:38px;line-height:1.4;font-weight:650;letter-spacing:2px;margin:0}
 .term-switch a span{font-size:11px;opacity:.8}
 .term-switch a[aria-current]{background:#fffdf8;color:var(--accent);box-shadow:0 2px 7px #34462e08;font-weight:600}
 .term-switch a:hover{color:var(--accent)}
+.my-papers{margin:0 0 30px}.my-papers h2{font-size:16px;font-weight:600;margin:0 0 14px}.paper-entry{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;border:1px solid var(--line);border-radius:16px;padding:18px 20px;background:#fffdf9}.paper-entry h3{font-size:16px;margin:0 0 7px}.paper-entry p{font-size:12px;line-height:1.7;color:var(--muted);margin:0}.paper-entry nav{display:flex;gap:10px;flex-wrap:wrap}.paper-entry a{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 14px;border:1px solid #dfd4c5;border-radius:10px;color:var(--accent);background:var(--tint);font-size:13px}.paper-entry a:hover{background:var(--soft)}.paper-entry small{font-size:11px;color:var(--muted)}
+@media(max-width:600px){.paper-entry{padding:16px}.paper-entry nav{width:100%}.paper-entry a{flex:1;flex-wrap:wrap;padding:10px}.paper-entry small{flex-basis:100%;text-align:center}}
 .list-heading{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:14px}
 .list-heading h2{font-size:16px;font-weight:600;margin:0}
 .list-heading h2 span{font-size:13px;color:#8b9184;font-weight:400}
