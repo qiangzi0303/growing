@@ -6,11 +6,13 @@ import { Administration } from "./administration";
 import { appRelease, type ReleaseEnv } from "./releases";
 import { Rankings } from "./rankings";
 import handwriting from '../../app/src/main/assets/web/app-design/handwriting-core.js';
-import { recognize, type VisionEnv } from './handwriting-vision';
+import { assess, type VisionEnv } from './handwriting-vision';
 import { QuestionBank, questionUnits } from './question-bank';
 import { QuestionAttempts } from './question-attempts';
+import { StudentKnowledge } from './student-knowledge';
+import { connectRealtime, realtimeInfo, type RealtimeEnv } from './realtime';
 
-export interface Env extends ReleaseEnv, VisionEnv {
+export interface Env extends ReleaseEnv, VisionEnv, RealtimeEnv {
   ASSETS: Fetcher;
   DB?: D1Database;
   AUTH_LIMITER: { limit(options: { key: string }): Promise<{ success: boolean }> };
@@ -130,9 +132,14 @@ export function createHandler(database: (env: Env) => Database = env => {
       if (path.startsWith("/learn/") && current.role !== "Student" && current.role !== "Admin") error(403, "当前账号没有权限。");
       if (path.startsWith("/api/parent/") && current.role !== "Parent" && !(current.role === "Admin" && (request.method === "GET" || ["/api/parent/children", "/api/parent/children/account"].includes(path) && request.method === "POST"))) error(403, "当前账号没有权限。");
       let result: Response;
+      if(path==='/api/realtime/config'&&request.method==='GET')return decorate(realtimeInfo(env),request);
+      if(path==='/api/realtime/connect'&&request.method==='POST'){
+        if(!(await env.AI_LIMITER.limit({key:'realtime:'+current.id})).success)error(429,'实时语音连接过于频繁，请稍后重试。');
+        return decorate(await connectRealtime(await body(request,150000),env,request.signal,aiFetch),request);
+      }
       if (path === '/api/handwriting/ai' && request.method === 'POST') {
         if (current.role !== 'Student' && current.role !== 'Admin') error(403,'当前账号没有识别权限。');
-        return decorate(await recognize(await body(request,8_100_000),env,current.id,request.signal,aiFetch),request);
+        return decorate(await assess(await body(request,9_100_000),env,current.id,request.signal,aiFetch),request);
       }
       if(path.startsWith('/api/question-bank/')){
         const bank=new QuestionBank(db,current);
@@ -186,7 +193,9 @@ export function createHandler(database: (env: Env) => Database = env => {
         const board=url.searchParams.get('board');
         return json(board===null?await rankings.list(id):await rankings.board(id,board,page()));
       };
-      if(path==='/api/student/rankings'&&request.method==='GET') result=await rankingResponse(current.id);
+      if(path==='/api/student/knowledge'&&request.method==='GET') result=json(await new StudentKnowledge(db,current,store).read(url.searchParams.get('unit') ?? '', url.searchParams.get('q') ?? '', url.searchParams.get('topic') ?? ''));
+      else if(path==='/api/student/knowledge/notes'&&request.method==='POST') result=json(await new StudentKnowledge(db,current,store).addNote(await body(request,8000)),201);
+      else if(path==='/api/student/rankings'&&request.method==='GET') result=await rankingResponse(current.id);
       else if(/^\/api\/(parent\/children|admin\/students)\/[^/]+\/rankings$/.test(path)&&request.method==='GET'){
         const id=path.split('/')[4];if(!uuid.test(id))error(404,'未找到学生。');
         await childState(id);result=await rankingResponse(id);
@@ -302,7 +311,7 @@ function decorate(response: Response, request: Request) {
   if (new URL(request.url).protocol === "https:") headers.set("Strict-Transport-Security", "max-age=31536000");
   if (request.headers.get("Origin") === nativeOrigin) {
     headers.set("Access-Control-Allow-Origin", nativeOrigin);
-    headers.set("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Growing-Client");
+    headers.set("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Growing-Client,X-Duck-Client");
     headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
     headers.append("Vary", "Origin");
   }

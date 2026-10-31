@@ -1,0 +1,4 @@
+Mechanical duck study companion — original procedural 3D model and preview.
+Visual reference: MicroDuck by Pollen Robotics, https://github.com/pollen-robotics/microduck
+This preview uses independently authored geometry, not the official CAD, robot software or motion policies.
+Three.js 0.169.0 is bundled locally under the MIT license; see vendor/THREE-LICENSE.txt.

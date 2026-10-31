@@ -193,7 +193,23 @@
   }
   $('#photo-dialog').addEventListener('close',()=>{photoVersion++;$('#photo-content').replaceChildren();updateShellNavigation();});
   document.addEventListener('click',event=>{if(!event.target.closest('#account-menu'))$('#account-menu').open=false;});
-  window.GrowingCloud={storage,activity,back:courseBack,pageReady:courseReady,openQuestionBank,navigate(href,replace=false){
+  window.GrowingCloud={storage,activity,back:courseBack,pageReady:courseReady,openQuestionBank,
+  async studentKnowledge(unit='',query='',topic=''){
+    if(!user||user.role!=='Student'||needsRole(user))throw Error('请使用学生账号进入学习中心。');
+    const id=user.id,version=generation;
+    const synced=await sync();
+    if(user?.id!==id||generation!==version)throw Error('学生账号已切换，请重新进入课堂。');
+    const result=await api('/student/knowledge?'+new URLSearchParams({unit,q:query.slice(0,150),topic:topic.slice(0,150)}));
+    if(user?.id!==id||generation!==version||result.student.id!==id)throw Error('学生账号已切换，请重新进入课堂。');
+    return {...result,syncPending:!synced};
+  },
+  async saveKnowledgeNote(unitId,text){
+    if(!user||user.role!=='Student'||needsRole(user))throw Error('请使用学生账号保存学习总结。');
+    const id=user.id,version=generation;
+    const result=await api('/student/knowledge/notes',{method:'POST',body:JSON.stringify({unitId,text})});
+    if(user?.id!==id||generation!==version)throw Error('学生账号已切换，请重新打开档案。');
+    return result;
+  },navigate(href,replace=false){
     const frame=$('#course'),url=new URL(href,location.href);
     if(!frame||url.origin!==location.origin||!url.pathname.startsWith('/learn/'))throw Error('课堂跳转地址无效。');
     if(!replace&&courseDocument()?.location.href)rememberCourse(courseDocument().location.href);

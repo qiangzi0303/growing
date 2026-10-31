@@ -46,6 +46,8 @@ jobs:
         run: node --test scripts/test-platform.cjs scripts/handwriting.test.cjs scripts/unit-summary.test.cjs scripts/math-format.test.cjs scripts/fraction-grading.test.cjs
       - name: Verify Android AI and storage adapter
         run: node scripts/test-ai.cjs
+      - name: Verify Qwen account settings and signalling
+        run: node --test scripts/realtime.test.cjs
       - name: Verify packaged rewards, curriculum and panorama rules
         run: node --test scripts/rewards.test.cjs scripts/year8.test.cjs scripts/panorama.test.cjs scripts/english.test.cjs scripts/physics.test.cjs scripts/course-tools.test.cjs scripts/course-ai.test.cjs
       - uses: gradle/actions/setup-gradle@v4
@@ -102,6 +104,10 @@ jobs:
           script: |
             bash scripts/test-upgrade.sh
             bash scripts/test-tablet.sh
+            adb shell pm revoke com.qiangzi0303.growing android.permission.RECORD_AUDIO
+            adb shell am instrument -w -r -e class com.qiangzi0303.growing.RealtimeWebRtcTest com.qiangzi0303.growing.test/androidx.test.runner.AndroidJUnitRunner > test-results/realtime-webrtc.txt
+            cat test-results/realtime-webrtc.txt
+            grep -q 'OK (1 test)' test-results/realtime-webrtc.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:

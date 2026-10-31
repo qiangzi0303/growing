@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>手写作业 · 逆流</title><link rel="icon" href="brand-logo.webp"><link rel="stylesheet" href="assessment-feedback.css?v=red-1"><link rel="stylesheet" href="handwriting.css?v=red-1"><script src="curriculum.js" defer></script><script src="handwriting-core.js" defer></script><script src="fraction-paper-tasks.js" defer></script><script src="handwriting-tasks.js" defer></script><script src="course-ai.js" defer></script><script src="handwriting.js?v=red-1" defer></script></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>手写作业 · 逆流</title><link rel="icon" href="brand-logo.webp"><link rel="stylesheet" href="assessment-feedback.css?v=red-1"><link rel="stylesheet" href="handwriting.css?v=direct-1"><script src="curriculum.js" defer></script><script src="handwriting-core.js?v=direct-1" defer></script><script src="fraction-paper-tasks.js" defer></script><script src="handwriting-tasks.js" defer></script><script src="handwriting-ai.js?v=direct-1" defer></script><script src="handwriting.js?v=direct-1" defer></script></head>
 <body><main class="workspace">
   <header><nav class="writing-navigation"><a id="back">← 返回课堂</a><a href="#archives">查看已保存原稿 ↓</a></nav><p class="eyebrow">GROWING · 真实书写</p><h1 id="page-title">手写作业</h1><p id="course-label"></p><p id="writing-guide"></p></header>
   <div class="layout"><aside class="panel"><h2>我的手写作业</h2><button id="new">＋ 新建作业</button><div id="archives"></div><a id="unit-summary" target="_top">查看单元总结 →</a></aside>
@@ -11,6 +11,6 @@
     <p class="muted">默认只接收手写笔和鼠标，忽略手指误触。需要移动页面时，请在纸张外滑动。</p>
     <div class="paper"><canvas id="paper" width="800" height="1100" aria-label="手写作答纸，支持手写笔和鼠标">需要支持 Canvas 的浏览器。</canvas></div>
     <p id="save-status" role="status" aria-live="polite"></p><button id="save">立即保存原稿</button>
-    <section class="review"><h2>先核对，再点评</h2><p id="review-guide"></p><button id="recognize" class="primary">① 识别全部原稿</button><button id="cancel" hidden>取消请求</button><label id="transcript-label" for="transcript">核对后的文字</label><textarea id="transcript" maxlength="18000" rows="7" disabled></textarea><p id="uncertain"></p><label class="check"><input type="checkbox" id="confirmed" disabled>我已对照原稿核对文字、符号和每一页</label><button id="grade" class="primary" disabled>② AI 批改与评分</button><p id="ai-status" role="status" aria-live="polite"></p><div id="grades"></div></section>
+    <section class="review"><h2>直接批改手写原稿</h2><p id="review-guide"></p><button id="grade" class="primary">AI 直接批改手写原稿</button><button id="cancel" hidden>取消批改</button><p id="ai-status" role="status" aria-live="polite"></p><div id="grades"></div></section>
   </section></div>
 </main></body></html>

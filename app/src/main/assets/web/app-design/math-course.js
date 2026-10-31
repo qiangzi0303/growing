@@ -68,6 +68,9 @@
         <div class="study-next"><button id="prev" ${chapter.nodes[0].id===selected?'disabled':''}>← 上一知识点</button><button id="next" ${chapter.nodes.at(-1).id===selected?'disabled':''}>下一知识点 →</button></div>
       </section></div></main>`;
     if(view!=='home'){root.querySelector('.course-layout').remove();root.querySelector('main').insertAdjacentHTML('beforeend',toolMarkup());}
+    const duckExam=view==='home'&&tab!=='learn';
+    window.GrowingDuckContext={id:subject+':'+chapter.id+':'+n.id,title:chapter.title+' · '+n.title,subject,mode:duckExam?'exam':'learn',segments:duckExam?[]:[n.review,...(n.steps||[]),n.example,n.pitfall?'易错提醒：'+n.pitfall:''].filter(Boolean)};
+    window.dispatchEvent(new CustomEvent('duck:course-context',{detail:window.GrowingDuckContext}));
   }
   function toolMarkup(){
     if(view==='doubts')return doubtsMarkup();
@@ -113,7 +116,7 @@
   let lastTick=performance.now(),lastInput=lastTick,pendingTime=0,timeTopic=selected;
   function flushTime(){if(pendingTime<=0)return;const next=T.restore(learning);T.log(next,timeTopic,{kind:'time',ms:pendingTime});if(saveBundle(records,next))pendingTime=0;updateStudyMetrics();}
   function tickTime(){const now=performance.now(),delta=now-lastTick;lastTick=now;if(document.visibilityState==='visible'&&document.hasFocus()&&!busy&&!doubtBusy&&['home','doubts'].includes(view)&&now-lastInput<90000&&!document.querySelector('dialog[open]')&&delta<5000)pendingTime+=Math.max(0,delta);if(pendingTime>=10000)flushTime();updateStudyMetrics();}
-  function learn(n,r){return `<p class="lesson-copy">${esc(n.review)}</p>${(physics?window.GrowingPhysicsFigure:window.GrowingMathFigure)(n)}<h3 class="minor-title">一步一步理解</h3><ol class="steps">${n.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol><h3 class="minor-title">跟着例子走一遍</h3><div class="worked">${esc(n.example)}</div><p class="pitfall">容易踩的坑：${esc(n.pitfall)}</p><div class="lesson-actions"><button id="read-aloud">播放老师讲解</button><button id="stop-read">停止朗读</button><button id="mark-read" class="primary">${r.seen?'已标记读过':'这节已读，试着复述 →'}</button></div><p class="status-line" role="status">${esc(message)}</p>`;}
+  function learn(n,r){return `<p class="lesson-copy">${esc(n.review)}</p>${(physics?window.GrowingPhysicsFigure:window.GrowingMathFigure)(n)}<h3 class="minor-title">一步一步理解</h3><ol class="steps">${n.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol><h3 class="minor-title">跟着例子走一遍</h3><div class="worked">${esc(n.example)}</div><p class="pitfall">容易踩的坑：${esc(n.pitfall)}</p><div class="lesson-actions"><button type="button" data-duck-teach>小鸭讲课</button><button id="mark-read" class="primary">${r.seen?'已标记读过':'这节已读，试着复述 →'}</button></div><p class="status-line" role="status">${esc(message)}</p>`;}
   function recall(n,r){
     const last=r.attempts.at(-1);
     return `<p class="lesson-copy">${esc(n.recall)}</p><label class="muted" for="recall-text">你的解释</label><textarea id="recall-text" class="recall-input" placeholder="试着说清：什么条件下成立？为什么这样做？举一个例子。">${esc(r.draft)}</textarea>
@@ -158,9 +161,6 @@
     if(b.dataset.lesson){choose(b.dataset.lesson);return;}
     if(b.dataset.tab){stop();tab=b.dataset.tab;message='';render();return;}
     if(b.id==='mark-read'){store({seen:true},selected,{kind:'read'});tab='recall';message='先把理解写下来，草稿会自动保存。';stop();render();}
-    else if(b.id==='read-aloud'){
-      speaker.play(node());
-    }else if(b.id==='stop-read'){stop();message='已停止朗读。';render();}
     else if(b.id==='ai-grade')grade();
     else if(b.id==='retry-practice'){submitted=null;render();}
     else if(b.id==='prev'||b.id==='next'){const i=chapter.nodes.findIndex(n=>n.id===selected);const n=chapter.nodes[i+(b.id==='next'?1:-1)];if(n)choose(n.id);}

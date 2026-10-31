@@ -2,7 +2,7 @@
   'use strict';
   const root=document.getElementById('english-course'),E=window.GrowingEnglishEngine;
   const units=window.GrowingCurriculum.english.terms.upper.units;
-  const id=new URLSearchParams(location.search).get('unit')||'english-8a-01';
+  const params=new URLSearchParams(location.search),id=params.get('unit')||'english-8a-01';
   const unit=units.find(u=>u.id===id),words=window.GrowingEnglishVocabulary[unit?.number],lessons=window.GrowingEnglishLessons[unit?.number];
   const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const key='growing-english-course-v1:'+id;
@@ -11,6 +11,8 @@
   let state;
   try{state=read();}catch(error){root.innerHTML='<section class="panel"><h1>学习记录暂时无法读取</h1><p>'+esc(error.message)+'。请先保留原记录，再检查浏览器的本地存储权限。</p><a href="units.html?subject=english&term=upper">返回目录</a></section>';return;}
   let view='words',selected=words.find(w=>w.id===state.wordCursor)||words.find(w=>state.words[w.id]?.practice)||words.find(w=>!w.optional&&!E.wordPassed(w,state.words[w.id]))||words[0],activeLesson=lessons[0],attempt=null,notice='',query='',filter='all',wordFlow=null;
+  const linkedLesson=lessons.find(l=>l.id===params.get('lesson')),linkedWord=words.find(w=>w.id===params.get('word'));
+  if(linkedLesson){activeLesson=linkedLesson;view='lesson';}else if(linkedWord){selected=linkedWord;view='word';}
   const doubtKey='growing-english-doubts-v1:'+id;
   let doubt={draft:'',messages:[]},doubtBlocked=false,doubtRequest=null,doubtNotice='';
   try{const raw=JSON.parse(localStorage.getItem(doubtKey)||'null');if(raw){if(typeof raw.draft!=='string'||!Array.isArray(raw.messages)||!raw.messages.every(m=>m&&['user','assistant'].includes(m.role)&&typeof m.text==='string'))throw Error();doubt={draft:raw.draft,messages:raw.messages.slice(-100)};}}
@@ -111,6 +113,10 @@
   }});
   function paint(){root.innerHTML=header()+`<p id="course-status" role="status" aria-live="polite">${esc(notice)}</p>`+(view==='words'?wordView():view==='word'?wordDetailView():view==='lessons'?lessonList():view==='lesson'?lessonView():view==='recall'?recallView():view==='quiz'?quizView():view==='feynman'?feynmanMarkup():view==='doubts'?doubtsMarkup():view==='settings'?`<section class="panel"><h2>学习设置</h2>${window.GrowingCourseAI.settingsMarkup()}</section>`:window.UnitRewards.placeholder(id));
     if(view==='words')document.getElementById('word-filter').value=filter;
+    const duckExam=['quiz','recall','feynman'].includes(view);
+    const duckWord=['words','word'].includes(view);
+    window.GrowingDuckContext={id:id+':'+(duckWord?selected.id:activeLesson.id),title:'Unit '+unit.number+' · '+(duckWord?selected.word:activeLesson.title),subject:'english',mode:duckExam?'exam':'learn',segments:duckExam?[]:duckWord?[selected.word+'，'+selected.meaning]:[...activeLesson.points,'例句：'+activeLesson.example]};
+    window.dispatchEvent(new CustomEvent('duck:course-context',{detail:window.GrowingDuckContext}));
     wordFlow?.destroy();wordFlow=null;
     if(view==='recall'){
       const word=selected;

@@ -2,8 +2,11 @@
 from pathlib import Path
 import shutil
 import subprocess
+import runpy
 
 repo = Path(__file__).resolve().parents[1]
+subprocess.run(['node', str(repo / 'scripts/build-duck-catalog.cjs')], check=True)
+runpy.run_path(str(repo / 'scripts/sync-duck.py'))
 target = repo / 'cloudflare/public'
 shutil.copyfile(repo / 'app/src/main/assets/web/app-design/handwriting-core.js', repo / 'platform-web/handwriting-core.js')
 # The shell must load connection settings for parents as well as students.

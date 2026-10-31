@@ -11,6 +11,8 @@ subprocess.run(['node',str(repo/'scripts/build-parallel-links.cjs')],check=True)
 subprocess.run(['node',str(repo/'scripts/build-wrong-question-links.cjs')],check=True)
 deferred={'physics-'+name+'.js' for name in ['matter','particles','forces','dynamics','pressure','lower-figures']}
 files=[p.relative_to(project) for p in (project/'app-design').iterdir() if p.is_file() and p.suffix in ('.html','.css','.js') and p.name not in deferred]
+# Companion geometry is generated in JS. Ship only public UI/vendor assets, never the proxy or keys.
+files += [p.relative_to(project) for p in (project/'app-design/companion-duck').rglob('*') if p.is_file() and p.suffix in ('.html','.css','.js','.svg','.txt') and 'tests' not in p.parts and '__pycache__' not in p.parts]
 # Preserve previously copied drafts outside the APK assets, without deleting them.
 for name in sorted(deferred):
     previous=web/'app-design'/name

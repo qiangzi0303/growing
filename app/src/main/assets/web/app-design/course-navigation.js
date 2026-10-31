@@ -17,4 +17,7 @@
   style.textContent+='.course-quick-tools{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.course-quick-tools a{padding:10px 14px;border:1px solid #b9c6a9;border-radius:10px;color:inherit;text-decoration:none}';
   window.GrowingCourseNavigation={subject,unit:id,writing:prefix+'handwriting.html?'+new URLSearchParams({subject,unit:id}),wrong:subject==='math'&&['math-8a-01','math-8a-02','math-8b-09','math-8b-10'].includes(id)?prefix+'math-wrong-questions.html?'+new URLSearchParams({unit:id}):''};
   document.head.append(style);(document.getElementById('app')||document.body).prepend(nav);
+  if(/(?:math-course|physics-course|english-course)\.html$/.test(path)){
+    const duck=document.createElement('script');duck.src=new URL(prefix+'course-duck.js',location.href).href;document.head.append(duck);
+  }
 })();

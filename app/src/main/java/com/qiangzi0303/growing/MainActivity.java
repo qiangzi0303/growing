@@ -2,6 +2,8 @@ package com.qiangzi0303.growing;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -21,6 +23,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebChromeClient;
+import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.content.ClipData;
 import android.provider.MediaStore;
@@ -37,6 +40,9 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
@@ -71,6 +77,11 @@ public final class MainActivity extends Activity {
     private Uri cameraUri;
     private String photoAccount;
     private long photoEpoch;
+    private static final int MICROPHONE_REQUEST=402;
+    private PermissionRequest microphoneRequest;
+    private String microphoneAccount;
+    private long microphoneEpoch;
+    private boolean microphonePromptActive=false,foreground=false;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -172,10 +183,13 @@ public final class MainActivity extends Activity {
         web.getSettings().setJavaScriptEnabled(true);web.getSettings().setDomStorageEnabled(true);
         web.getSettings().setAllowFileAccess(false);web.getSettings().setAllowContentAccess(true);
         web.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        web.getSettings().setMediaPlaybackRequiresUserGesture(true);
+        // Voice starts from the explicit microphone control; async WebRTC RTP must keep playing.
+        web.getSettings().setMediaPlaybackRequiresUserGesture(false);
         web.getSettings().setSupportMultipleWindows(false);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         web.setWebChromeClient(new WebChromeClient(){
+            @Override public void onPermissionRequest(PermissionRequest request){runOnUiThread(()->requestMicrophone(request));}
+            @Override public void onPermissionRequestCanceled(PermissionRequest request){runOnUiThread(()->{if(microphoneRequest==request)microphoneRequest=null;});}
             @Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params){
                 if(view.getUrl()==null||!view.getUrl().startsWith(ORIGIN+"/assets/web/cloud/"))return false;
                 cancelPhoto();
@@ -216,7 +230,7 @@ public final class MainActivity extends Activity {
         }catch(Exception e){new AlertDialog.Builder(this).setMessage("学习环境未能初始化，请重新安装同签名的安装包。").setPositiveButton("关闭",(d,w)->finish()).show();return;}
         WebViewAssetLoader loader=new WebViewAssetLoader.Builder().addPathHandler("/assets/",new WebViewAssetLoader.AssetsPathHandler(this)).build();
         web.setWebViewClient(new WebViewClient(){
-            @Override public void onPageStarted(WebView view,String url,android.graphics.Bitmap icon){if(speech!=null)speech.cancel();updateNavigation(url);}
+            @Override public void onPageStarted(WebView view,String url,android.graphics.Bitmap icon){cancelMicrophone();if(speech!=null)speech.cancel();updateNavigation(url);}
             @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){return loader.shouldInterceptRequest(request.getUrl());}
             @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
                 Uri url=request.getUrl();
@@ -266,6 +280,7 @@ public final class MainActivity extends Activity {
     public boolean isSession(String id,long value){return id!=null&&id.equals(currentId)&&value==epoch;}
     public void showAccount(){
         if(currentId==null)return;
+        final String settingsAccount=currentId;final long settingsEpoch=epoch;
         SharedPreferences settings=getSharedPreferences("settings-v1-"+currentId,MODE_PRIVATE);
         LinearLayout form=column();form.setPadding(dp(24),dp(8),dp(24),0);
         NativeIdentity identity=accounts.identity(currentId);
@@ -274,10 +289,43 @@ public final class MainActivity extends Activity {
         Button updates=button("检查更新");updates.setOnClickListener(v->updater.check(true));form.addView(updates);
         Button cloud=button(identity!=null&&identity.role.equals("Parent")?"我的孩子":"云同步");form.addView(cloud);
         EditText key=input(settings.getString("ai.key","").isEmpty()?"填写 DeepSeek API Key":"已配置，留空保持现有密钥",true);form.addView(key);
+        form.addView(text("小鸭实时语音 · qwen3.8-omni-flash-realtime",16,Color.rgb(45,68,52)));
+        EditText realtimeKey=input(settings.getString("realtime.key","").isEmpty()?"填写 Qwen API Key":"Qwen 已配置，留空沿用",true);realtimeKey.setContentDescription("Qwen API Key");form.addView(realtimeKey);
+        form.addView(text("音色",14,Color.rgb(80,100,75)));
+        String[] voiceOptions=Arrays.copyOf(RealtimeSettings.VOICES,RealtimeSettings.VOICES.length+1);voiceOptions[voiceOptions.length-1]="其他音色（填写 ID）";
+        Spinner realtimeVoice=new Spinner(this);realtimeVoice.setContentDescription("Qwen 音色");
+        ArrayAdapter<String> voiceAdapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,voiceOptions);voiceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);realtimeVoice.setAdapter(voiceAdapter);form.addView(realtimeVoice);
+        String savedVoice=settings.getString("realtime.voice","Tina");int selectedVoice=Arrays.asList(RealtimeSettings.VOICES).indexOf(savedVoice);realtimeVoice.setSelection(selectedVoice<0?voiceOptions.length-1:selectedVoice);
+        EditText customVoice=input("服务商支持的音色 ID",false);customVoice.setText(selectedVoice<0?savedVoice:"");customVoice.setContentDescription("Qwen 自定义音色 ID");form.addView(customVoice);
+        customVoice.setVisibility(selectedVoice<0?View.VISIBLE:View.GONE);
+        realtimeVoice.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+            public void onItemSelected(AdapterView<?> parent,View view,int position,long id){customVoice.setVisibility(position==voiceOptions.length-1?View.VISIBLE:View.GONE);}
+            public void onNothingSelected(AdapterView<?> parent){}
+        });
+        EditText realtimeBase=input("百炼服务地址",false);realtimeBase.setText(settings.getString("realtime.base",RealtimeSettings.DEFAULT_BASE));realtimeBase.setContentDescription("百炼服务地址");form.addView(realtimeBase);
+        form.addView(text("业务空间密钥需填写对应的百炼接口地址。实时语音密钥按本机账号保存，连接时经语音代理转发，不随学习记录同步。开启语音时才申请麦克风。",12,Color.rgb(80,100,75)));
+        TextView settingsError=text("",14,Color.rgb(160,90,60));form.addView(settingsError);
+        Button clearRealtime=button("清除实时语音密钥");clearRealtime.setOnClickListener(v->{
+            if(!isSession(settingsAccount,settingsEpoch))return;
+            if(settings.edit().remove("realtime.key").commit()){realtimeKey.setText("");realtimeKey.setHint("填写 Qwen API Key");stopRealtime();settingsError.setText("已清除当前账号的实时语音密钥。");}
+            else settingsError.setText("密钥未清除，请检查存储空间。");
+        });form.addView(clearRealtime);
         AlertDialog accountDialog=new AlertDialog.Builder(this).setTitle("账号与 AI 设置").setView(scrollable(form))
-            .setPositiveButton("保存",(d,w)->{String value=key.getText().toString().trim();if(!value.isEmpty()&&!settings.edit().putString("ai.key",value).commit())new AlertDialog.Builder(this).setMessage("密钥未保存，请检查存储空间后重试。").setPositiveButton("好",null).show();})
+            .setPositiveButton("保存",null)
             .setNeutralButton("退出账号",(d,w)->new AlertDialog.Builder(this).setTitle("退出当前账号？").setMessage("本机学习记录会保留，重新登录此账号可以继续。").setPositiveButton("退出",(x,y)->{try{accounts.logout();currentId=null;epoch++;showLogin();}catch(Exception e){new AlertDialog.Builder(this).setMessage(e.getMessage()).setPositiveButton("好",null).show();}}).setNegativeButton("取消",null).show())
             .setNegativeButton("取消",null).show();
+        accountDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+            if(!isSession(settingsAccount,settingsEpoch)){accountDialog.dismiss();return;}
+            try{
+                String voiceId=realtimeVoice.getSelectedItemPosition()==voiceOptions.length-1?customVoice.getText().toString():String.valueOf(realtimeVoice.getSelectedItem());
+                String qwenKey=realtimeKey.getText().toString().trim();if(qwenKey.isEmpty())qwenKey=settings.getString("realtime.key","");
+                JSONObject c=RealtimeSettings.validate(new JSONObject().put("apiKey",qwenKey).put("voice",voiceId).put("base",realtimeBase.getText().toString()).toString());
+                SharedPreferences.Editor edit=settings.edit().putString("realtime.key",c.getString("apiKey")).putString("realtime.voice",c.getString("voice")).putString("realtime.base",c.getString("base"));
+                String value=key.getText().toString().trim();if(!value.isEmpty())edit.putString("ai.key",value);
+                if(!edit.commit())throw new IllegalStateException("设置未保存，请检查存储空间。");
+                stopRealtime();accountDialog.dismiss();
+            }catch(Exception e){settingsError.setText(e instanceof IllegalArgumentException?e.getMessage():"设置未保存，请检查配置或存储空间。");}
+        });
         cloud.setOnClickListener(v->{accountDialog.dismiss();if(web!=null)web.loadUrl(ORIGIN+"/assets/web/cloud/index.html");});
     }
     private void openSpeechSettings(boolean install){
@@ -316,15 +364,52 @@ public final class MainActivity extends Activity {
         }
         callback.onReceiveValue(values);
     }
+    private void requestMicrophone(PermissionRequest request){
+        if(!foreground||currentId==null||web==null||microphoneRequest!=null||microphonePromptActive||!MicrophonePolicy.permits(request.getOrigin().toString(),web.getUrl(),request.getResources())){request.deny();return;}
+        microphoneRequest=request;microphoneAccount=currentId;microphoneEpoch=epoch;
+        if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)completeMicrophone(true);
+        else{microphonePromptActive=true;requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},MICROPHONE_REQUEST);}
+    }
+    private void completeMicrophone(boolean allowed){
+        PermissionRequest request=microphoneRequest;microphoneRequest=null;
+        if(request==null)return;
+        if(allowed&&foreground&&isSession(microphoneAccount,microphoneEpoch)&&web!=null&&MicrophonePolicy.permits(request.getOrigin().toString(),web.getUrl(),request.getResources()))request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+        else request.deny();
+    }
+    private void cancelMicrophone(){if(microphoneRequest!=null){microphoneRequest.deny();microphoneRequest=null;}}
+    private void stopRealtime(){
+        if(web!=null)web.evaluateJavascript("(function stop(w){try{w.dispatchEvent(new w.Event('growing-realtime-stop'));for(var i=0;i<w.frames.length;i++)stop(w.frames[i]);}catch(e){}})(window);",null);
+    }
+    @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grants){
+        super.onRequestPermissionsResult(request,permissions,grants);
+        if(request==MICROPHONE_REQUEST){
+            microphonePromptActive=false;
+            boolean allowed=grants.length==1&&grants[0]==PackageManager.PERMISSION_GRANTED;
+            // Android may deliver the result before onResume after its permission dialog.
+            if(!allowed||foreground)completeMicrophone(allowed);
+        }
+    }
     private void destroyWeb(){
+        cancelMicrophone();stopRealtime();
         cancelPhoto();
         if(speech!=null){speech.close();speech=null;}
         if(web!=null){web.stopLoading();web.removeJavascriptInterface("GrowingNative");web.removeJavascriptInterface("GrowingSpeech");web.destroy();web=null;}
     }
     @Override public void onBackPressed(){if(web!=null&&!HOME.equals(web.getUrl()))navigateBack();else super.onBackPressed();}
-    @Override protected void onPause(){if(speech!=null)speech.interrupt();if(web!=null){web.evaluateJavascript("if(window.GrowingCloudFlush)window.GrowingCloudFlush();",null);web.onPause();}super.onPause();}
-    @Override protected void onResume(){super.onResume();if(web!=null)web.onResume();}
+    @Override protected void onPause(){
+        foreground=false;
+        // Keep a first-use request pending while Android shows its own permission dialog.
+        // A real background transition is cancelled in onStop below.
+        if(!microphonePromptActive){cancelMicrophone();stopRealtime();if(web!=null)web.onPause();}
+        if(speech!=null)speech.interrupt();
+        if(web!=null)web.evaluateJavascript("if(window.GrowingCloudFlush)window.GrowingCloudFlush();",null);
+        super.onPause();
+    }
+    @Override protected void onResume(){
+        super.onResume();foreground=true;if(web!=null)web.onResume();
+        if(microphoneRequest!=null&&!microphonePromptActive)completeMicrophone(checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED);
+    }
     @Override protected void onStart(){super.onStart();updater.onStart();}
-    @Override protected void onStop(){updater.onStop();super.onStop();}
+    @Override protected void onStop(){cancelMicrophone();stopRealtime();if(web!=null)web.onPause();updater.onStop();super.onStop();}
     @Override protected void onDestroy(){pendingRegistration=null;if(updater!=null)updater.close();destroyWeb();executor.shutdown();super.onDestroy();}
 }

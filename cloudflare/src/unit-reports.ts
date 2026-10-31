@@ -20,7 +20,7 @@ const dayOf = (v: any) => {
   return Number.isFinite(n) && Math.abs(n + 8 * 3600000) <= 8640000000000000 ? new Date(n + 8 * 3600000).toISOString().slice(0, 10) : null;
 };
 const norm = (v: any) => String(v ?? '').trim().toLowerCase().replace(/[’‘]/g, "'").replace(/…/g, '...').replace(/\s*\.\.\.\s*/g, ' ... ').replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ').trim();
-function wordPassed(w: any, r: any, legacy = false) {
+export function wordPassed(w: any, r: any, legacy = false) {
   if(r?.protocol==='word-mastery-v2')return wordMastery.passed(w,r);
   const variants: Data = { humour: ['humour', 'humor'], programme: ['programme', 'program'], 'sec.': ['sec.', 'sec'] };
   const oldNorm = (v: string) => v.normalize('NFKC').trim().replace(/[’‘]/g, "'").replace(/\s+/g, ' ');

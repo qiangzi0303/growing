@@ -13,6 +13,7 @@ import diagnosisRules from '../src/diagnosis-rules.json';
 const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: 'export default {fetch(){return new Response("ok")}}', compatibilityDate: '2026-10-22', d1Databases: ['DB'] }));
 let db: Database;
 let aiMode = 'ok', aiRequests: {url:string;headers:Headers;data:any}[] = [];
+let handwrittenOutput:any={needsReview:false,score:65,parts:[15,20,20,10],feedback:'第1页第2步忽略了符号，请订正。',corrections:[{location:'第1页第2步',issue:'通分时漏了负号',correction:'括号前的减号应分配到括号内各项'}],knowledge:[{nodeId:'add',score:45,feedback:'第2步通分时应保留减号'}]};
 let paperOutput:any={format:'math-text-v1',title:'混合试卷',warnings:['第2页有图形，请核对原图'],questions:[
   {number:'1',text:String.raw`计算 \(\frac{x^{2}-1}{x-1}\)，其中 \(x\ne1\)。`,answer:'',unitId:'math-8b-10',confidence:.98,reason:'分式化简',uncertain:[],pages:[1]},
   {number:'2',text:'图中给定条件【不清楚】',answer:'',unitId:'invented-unit',confidence:.99,reason:'不能匹配',uncertain:['图中条件需核对'],pages:[2]},
@@ -29,6 +30,7 @@ const handler = createHandler(() => db, (async (url: string | URL | Request, opt
   if(aiMode==='large')return new Response('x'.repeat(256001));
   if(aiMode==='format'){const hook=formatHook;formatHook=undefined;if(hook)await hook();return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(formatOutput)}}]});}
   if(aiMode==='paper')return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(paperOutput)}}]});
+  if(aiMode==='handwritten')return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(handwrittenOutput)}}]});
   const content=aiMode==='bad-recognition'?'{"text":"","uncertain":[]}':'{"text":"第1页：x=2","uncertain":[]}';
   return Response.json({choices:[{finish_reason:aiMode==='truncated'?'length':'stop',message:{content:aiMode==='empty'?'':content,reasoning_content:'private reasoning'}}],private:'must-not-return'});
 }) as typeof fetch);
@@ -50,6 +52,44 @@ const env = {
 const context = { waitUntil: (_promise: Promise<unknown>) => {} };
 let counter = 0;
 const password = "Test-Only-1987!";
+test('personal knowledge and notes are student-scoped; no client id can select another student',async()=>{
+  const a=await register(),b=await register(),p=await register('Parent');
+  assert.equal((await call('/api/student/knowledge')).status,401);
+  assert.equal((await call('/api/student/knowledge','GET',undefined,p.token)).status,403);
+  const value=JSON.stringify({version:1,topics:{'tri-lines':{attempts:[{score:4,feedback:'personal-gap-A',criticalErrors:[],at:'2026-10-31T00:00:00Z'}],bestQuiz:0}}});
+  assert.equal((await call('/api/student/state/growing-math-lessons-v1','PUT',{value,revision:0},a.token)).status,200);
+  let response=await call('/api/student/knowledge?unit=math-8a-01','GET',undefined,a.token);
+  let data=await response.json() as any;assert.equal(response.status,200);assert.equal(data.student.id,a.user.id);assert.equal(data.topics.find((t:any)=>t.id==='tri-lines').status,'weak');
+  response=await call('/api/student/knowledge?studentId='+a.user.id,'GET',undefined,b.token);data=await response.json() as any;
+  assert.equal(data.student.id,b.user.id);assert.equal(data.counts.weak,0);assert.ok(!JSON.stringify(data).includes('personal-gap-A'));
+  response=await call('/api/student/knowledge/notes','POST',{unitId:'math-8a-01',text:'note-only-A'},a.token);assert.equal(response.status,201);
+  const questions=JSON.parse(await readFile(new URL('../src/math-wrong-question-rules.json',import.meta.url),'utf8'));
+  for(const correct of [false,false,true])assert.equal((await call('/api/question-bank/attempts','POST',{studentId:a.user.id,attemptId:crypto.randomUUID(),kind:'math',questionId:questions[0].id,correct},a.token)).status,200);
+  response=await call('/api/student/knowledge','GET',undefined,a.token);data=await response.json() as any;assert.equal(data.notes[0].text,'note-only-A');
+  assert.equal(data.wrongQuestions.length,1);assert.equal(data.wrongQuestions[0].wrongCount,2);assert.equal(data.wrongQuestions[0].status,'latest-correct');assert.ok(!JSON.stringify(data.reminders).includes(questions[0].title));
+  response=await call('/api/student/knowledge','GET',undefined,b.token);assert.ok(!(await response.text()).includes('note-only-A'));
+  assert.equal((await call('/api/student/knowledge/notes','POST',{studentId:b.user.id,unitId:'math-8a-01',text:'injected'},a.token)).status,400);
+  assert.equal((await call('/api/student/knowledge/notes','POST',{unitId:'unknown',text:'x'},a.token)).status,400);
+  assert.equal((await call('/api/student/knowledge/notes','POST',{unitId:'math-8a-01',text:'x'.repeat(1201)},a.token)).status,400);
+  assert.equal((await call('/api/student/knowledge/notes','POST',{unitId:'math-8a-01',text:'x'},p.token)).status,403);
+});
+test('knowledge mistake focus combines owned paper mistakes and original feedback for the current topic only',async()=>{
+  const a=await register(),b=await register(),paper=crypto.randomUUID(),question=crypto.randomUUID(),at='2026-10-31T10:00:00Z';
+  await db.query('INSERT INTO "GrowingQuestionPapers" ("Id","StudentId","RequestId","Fingerprint","Title","Warnings","CreatedAt") VALUES (?1,?2,?3,?3,?4,?5,?6)',[paper,a.user.id,crypto.randomUUID(),'期中复习卷A','[]',at]);
+  await db.query('INSERT INTO "GrowingPhotoQuestions" ("Id","PaperId","Number","Text","Answer","UnitId","Reason","Uncertain","Pages","Format") VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)',[question,paper,'7','中线连接顶点与对边中点','PRIVATE_REFERENCE_ANSWER','math-8a-01','这是归类理由，不能当成错因','[]','[1]','math-text-v1']);
+  assert.equal((await call('/api/question-bank/attempts','POST',{studentId:a.user.id,attemptId:crypto.randomUUID(),kind:'photo',questionId:question,correct:false},a.token)).status,200);
+  const work={version:1,subject:'math',unitId:'math-8a-01',mode:'solution',prompt:'画中线并说明条件',pages:[[{tool:'pen',width:4,points:[[10,10,.5]]}]],revision:1,recognition:null,
+    grades:[{source:'handwriting',revision:1,at,needsReview:false,score:65,parts:[15,20,20,10],feedback:'需要订正作图条件',corrections:[{location:'第1页第2步',issue:'中点当成垂足',correction:'标出对边中点'}],knowledge:[{nodeId:'tri-lines',score:40,feedback:'个人批改A：第2步把中点当成垂足，中线不一定垂直。'}]}],updatedAt:at};
+  assert.equal((await call('/api/student/state/growing-handwriting-v1:'+crypto.randomUUID(),'PUT',{revision:0,value:JSON.stringify(work)},a.token)).status,200);
+  let data=await (await call('/api/student/knowledge?unit=math-8a-01&topic=tri-lines','GET',undefined,a.token)).json() as any;
+  assert.equal(data.context.mistakeFocus.length,2);
+  const photo=data.context.mistakeFocus.find((m:any)=>m.source==='paper-question'),written=data.context.mistakeFocus.find((m:any)=>m.source==='written-work');
+  assert.equal(photo.paperTitle,'期中复习卷A');assert.equal(photo.questionNumber,'7');assert.equal(photo.cause,null);assert.match(written.cause,/个人批改A/);
+  assert.ok(!JSON.stringify(data.context).includes('PRIVATE_REFERENCE_ANSWER'));assert.ok(!JSON.stringify(data.context).includes('这是归类理由'));assert.ok(!JSON.stringify(data.context).includes('"points"'));
+  data=await (await call('/api/student/knowledge?unit=math-8a-01&topic=equilateral','GET',undefined,a.token)).json() as any;assert.equal(data.context.mistakeFocus.length,0);
+  data=await (await call('/api/student/knowledge?unit=math-8a-01&topic=tri-lines&studentId='+a.user.id,'GET',undefined,b.token)).json() as any;
+  assert.equal(data.context.mistakeFocus.length,0);assert.ok(!JSON.stringify(data).includes('个人批改A'));assert.ok(!JSON.stringify(data).includes('期中复习卷A'));
+});
 async function call(path: string, method = "GET", data?: unknown, token?: string, extra: Record<string, string> = {}) {
   const request = new Request("https://learn.test" + path, { method, headers: { "X-Growing-Client": "1", "CF-Connecting-IP": "192.0.2.1", "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}), ...extra }, ...(data === undefined ? {} : { body: JSON.stringify(data) }) });
   return handler(request, env, context);
@@ -60,6 +100,20 @@ async function register(role = "Student") {
   assert.equal(response.status, 200, await response.clone().text());
   return { ...await response.json() as any, name, response };
 }
+test('realtime signalling requires login and uses transient personal credentials with native CORS',async()=>{
+  assert.equal((await call('/api/realtime/config')).status,401);
+  const account=await register();
+  const info=await (await call('/api/realtime/config','GET',undefined,account.token)).json() as any;
+  assert.equal(info.model,'qwen3.8-omni-flash-realtime');assert.equal(info.configured,false);
+  let forwarded=false;
+  const proxy=createHandler(()=>db,(async(url,options)=>{
+    forwarded=true;assert.equal(new Headers(options?.headers).get('Authorization'),'Bearer test-qwen-session-key');assert.equal(options?.body,'v=0\r\noffer');
+    return new Response('v=0\r\nanswer');
+  }) as typeof fetch);
+  const request=()=>new Request('https://learn.test/api/realtime/connect',{method:'POST',headers:{'Content-Type':'application/json','X-Growing-Client':'1','X-Duck-Client':'1',Authorization:'Bearer '+account.token,Origin:'https://appassets.androidplatform.net'},body:JSON.stringify({apiKey:'test-qwen-session-key',sdp:'v=0\r\noffer',voice:'Tina'})});
+  const response=await proxy(request(),env,context);assert.equal(response.status,200);assert.equal(forwarded,true);assert.equal(response.headers.get('Access-Control-Allow-Origin'),'https://appassets.androidplatform.net');assert.deepEqual(await response.json(),{sdp:'v=0\r\nanswer'});
+  const limitedEnv={...env,AI_LIMITER:{limit:async()=>({success:false})}};forwarded=false;assert.equal((await proxy(request(),limitedEnv,context)).status,429);assert.equal(forwarded,false);
+});
 const invite = async (token: string) => (await (await call("/api/student/invitations", "POST", undefined, token)).json() as any).code;
 before(async () => {
   db = connect(await mf.getD1Database('DB') as unknown as D1Database);
@@ -294,7 +348,7 @@ test('handwriting vision authenticates, validates images, protects credentials a
   assert.equal((await call(path,'POST',input)).status,401);
   assert.equal((await call(path,'POST',input,parent.token)).status,403);
   assert.equal((await call(path,'POST',input,student.token,{'X-Growing-Client':''})).status,400);
-  for(const patch of [{pages:[]},{pages:Array(9).fill(input.pages[0])},{pages:['https://private.test/image.png']},{pages:['data:image/svg+xml;base64,AA==']},{unitId:'other'},{subject:'other'},{kind:'grade'},{prompt:''},{model:'override'},{endpoint:'https://private.test'},{key:'client-key'},{messages:[]}])
+  for(const patch of [{pages:[]},{pages:Array(9).fill(input.pages[0])},{pages:['https://private.test/image.png']},{pages:['data:image/svg+xml;base64,AA==']},{unitId:'other'},{subject:'other'},{kind:'other'},{prompt:''},{model:'override'},{endpoint:'https://private.test'},{key:'client-key'},{messages:[]}])
     assert.equal((await call(path,'POST',{...input,...patch},student.token)).status,400);
   assert.equal(aiRequests.length,count);
   const response=await call(path,'POST',input,student.token);
@@ -324,7 +378,51 @@ test('handwriting vision authenticates, validates images, protects credentials a
   const fallback=createHandler(()=>db,(async(...args:Parameters<typeof fetch>)=>{tried++;return tried===1?new Response('private',{status:429}):Response.json({choices:[{finish_reason:'stop',message:{content:'{"text":"2","uncertain":[]}'}}]});}) as typeof fetch);
   const retry=await fallback(new Request('https://learn.test'+path,{method:'POST',headers:{'X-Growing-Client':'1',Authorization:'Bearer '+student.token},body:JSON.stringify(input)}),env,context);
   assert.equal(retry.status,200);assert.equal(tried,2);env.HANDWRITING_VISION_MODELS=config;
-  assert.equal((await call(path,'POST',input,student.token,{'Content-Length':'8100001'})).status,413);
+  assert.equal((await call(path,'POST',input,student.token,{'Content-Length':'9100001'})).status,413);
+});
+
+test('direct handwritten grading sees every original without transcription and returns verified corrections and course nodes',async()=>{
+  const student=await register(),parent=await register('Parent'),path='/api/handwriting/ai',original=structuredClone(handwrittenOutput);
+  const image='data:image/png;base64,iVBORw0KGgoAAA==';
+  const input={kind:'grade',subject:'math',unitId:'math-8b-10',prompt:'按原稿计算分式',pages:[image,image],nodeIds:['add']};
+  try{
+    aiMode='handwritten';
+    assert.equal((await call(path,'POST',input)).status,401);
+    assert.equal((await call(path,'POST',input,parent.token)).status,403);
+    const response=await call(path,'POST',input,student.token);assert.equal(response.status,200);
+    const out=await response.json() as any;assert.deepEqual(out,{...original,source:'handwriting'});assert.equal(out.text,undefined);assert.equal(out.verifiedText,undefined);
+    const sent=aiRequests.at(-1)!.data;
+    assert.equal(sent.messages[1].content.filter((c:any)=>c.type==='image_url').length,2);
+    assert.equal(sent.messages[1].content[2].image_url.url,image);
+    assert.match(sent.messages[0].content,/直接查看所有学生手写原稿/);
+    assert.equal(JSON.parse(sent.messages[1].content[0].text).knowledgePoints[0].nodeId,'add');
+    // Three subjects use the visual endpoint and their own real course candidates and rubric.
+    for(const [subject,unitId,nodeId,parts]of [['math','math-8a-03','pythagoras',[15,20,20,10]],['physics','physics-8a-05','phy-speed',[15,20,20,10]],['english','english-8a-01','eng1-forms',[20,10,25,10]]] as const){
+      handwrittenOutput={...original,parts:[...parts],knowledge:[{nodeId,score:60,feedback:'原稿中本知识点的具体用法需要订正'}]};
+      const r=await call(path,'POST',{...input,subject,unitId,nodeIds:undefined},student.token);assert.equal(r.status,200,await r.clone().text());
+      const context=JSON.parse(aiRequests.at(-1)!.data.messages[1].content[0].text);assert.ok(context.knowledgePoints.some((k:any)=>k.nodeId===nodeId));
+    }
+    handwrittenOutput=original;
+    const diagram=await call(path,'POST',{...input,questionImage:image,studentText:'补充说明',reference:'只作核验参考'},student.token);assert.equal(diagram.status,200);
+    const context=JSON.parse(aiRequests.at(-1)!.data.messages[1].content[0].text);assert.equal(context.pageCount,2);assert.equal(context.questionImagePage,3);
+    assert.equal(aiRequests.at(-1)!.data.messages[1].content.filter((c:any)=>c.type==='image_url').length,3);
+    const before=aiRequests.length;
+    for(const patch of [{nodeIds:['phy-speed']},{nodeIds:['invented']},{nodeIds:['add','add']},{nodeIds:[]},{questionImage:'https://example.test/image.png'},{verifiedText:'do not require transcription'},{reference:'x'.repeat(12001)}])assert.equal((await call(path,'POST',{...input,...patch},student.token)).status,400);
+    assert.equal(aiRequests.length,before);
+    for(const patch of [{score:100},{parts:[65,0,0,0]},{knowledge:[]},{knowledge:[{nodeId:'phy-speed',score:60,feedback:'wrong subject'}]},{corrections:undefined},{corrections:[{location:'页1',issue:'错误',correction:'订正',url:'https://fake.test'}]},{needsReview:true}]){
+      handwrittenOutput={...original,...patch};assert.equal((await call(path,'POST',input,student.token)).status,502);
+    }
+    handwrittenOutput={needsReview:true,score:null,parts:null,feedback:'第2页关键分母不清楚，请补充。',corrections:[]};
+    const review=await call(path,'POST',input,student.token);assert.equal(review.status,200);assert.equal((await review.json() as any).score,null);
+    handwrittenOutput=original;aiLimited=true;assert.equal((await call(path,'POST',input,student.token)).status,429);aiLimited=false;
+    // New direct-image results sync without a recognition record and remain visible to bound parents.
+    const key='growing-handwriting-v1:'+crypto.randomUUID(),at=new Date().toISOString();
+    const doc={version:1,subject:'math',unitId:'math-8b-10',mode:'solution',prompt:input.prompt,pages:[[{tool:'pen',width:4,points:[[10,10,.5]]}]],revision:0,recognition:null,grades:[{...out,revision:0,at}],updatedAt:at};
+    assert.equal((await call('/api/student/state/'+key,'PUT',{revision:0,value:JSON.stringify(doc)},student.token)).status,200);
+    await call('/api/parent/children','POST',{code:await invite(student.token)},parent.token);
+    const family=await (await call('/api/parent/children/'+student.user.id+'/handwriting?key='+key,'GET',undefined,parent.token)).json() as any;
+    assert.deepEqual(family.original.grades[0].corrections,original.corrections);assert.equal(family.original.recognition,null);
+  }finally{handwrittenOutput=original;aiMode='ok';aiLimited=false;}
 });
 
 test('handwritten originals sync independently; parents see only bound children and credentials never sync',async()=>{

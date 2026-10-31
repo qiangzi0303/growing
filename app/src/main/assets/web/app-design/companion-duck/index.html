@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eef2ee">
+  <title>小鸭 · 语音学习伙伴</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="../course-ai.css">
+  <link rel="stylesheet" href="./companion.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+</head>
+<body class="companion-mode">
+  <main class="studio">
+    <header class="header">
+      <a class="brand" href="../units.html" aria-label="返回课程目录"><span class="brand-mark">d.</span><span>学习伙伴<span class="brand-sub">CHARACTER STUDIO</span></span></a>
+      <button class="settings-toggle" id="open-settings">连接设置</button>
+    </header>
+    <section class="intro"><div class="eyebrow">YOUR STUDY COMPANION</div><h1>小鸭在这里<span>。</span></h1><p id="connection-summary">可以打字聊天，也可以开启语音。</p></section>
+    <div id="viewport" role="img" aria-label="可旋转的机械小鸭3D模型。拖动旋转，滚轮或双指缩放。"></div>
+    <div class="loading" id="loading">正在唤醒小鸭…</div>
+    <aside class="panel" aria-label="形象与动作设置" hidden>
+      <div class="panel-title"><div><span class="eyebrow">YOUR COMPANION</span><h2>小鸭 <span>DUCK / 01</span></h2></div><span class="online-dot" title="本地动作预览"></span></div>
+      <div class="divider"></div>
+      <fieldset><legend>选个喜欢的颜色</legend><div class="swatches">
+        <button class="swatch active" data-color="mint" style="--swatch:#8bd3ce" aria-label="薄荷青" aria-pressed="true"></button>
+        <button class="swatch" data-color="lavender" style="--swatch:#b5a0dc" aria-label="雾紫" aria-pressed="false"></button>
+        <button class="swatch" data-color="cream" style="--swatch:#e7d6af" aria-label="奶油白" aria-pressed="false"></button>
+        <button class="swatch" data-color="graphite" style="--swatch:#556477" aria-label="石墨蓝" aria-pressed="false"></button>
+        <span id="color-name">薄荷青</span>
+      </div></fieldset>
+      <fieldset><legend>看看它的反应</legend><div class="actions">
+        <button data-action="idle" class="active" aria-pressed="true"><span>◌</span>安静陪伴</button>
+        <button data-action="listen" aria-pressed="false"><span>◖</span>认真倾听</button>
+        <button data-action="think" aria-pressed="false"><span>⋯</span>歪头思考</button>
+        <button data-action="speak" aria-pressed="false"><span>≋</span>开口说话</button>
+        <button data-action="greet" aria-pressed="false"><span>✦</span>打个招呼</button>
+        <button data-action="celebrate" aria-pressed="false"><span>↗</span>开心一下</button>
+      </div></fieldset>
+      <div class="status" aria-live="polite"><span class="status-mark">◌</span><div><strong id="state-name">安静陪伴</strong><p id="state-description">我在这里，你慢慢来。</p></div></div>
+      <p class="demo-note">形象与动作预览</p>
+    </aside>
+    <section class="conversation" aria-label="与小鸭对话">
+      <header class="conversation-heading"><div><span class="eyebrow">LET’S LEARN TOGETHER</span><h2>今天一起学什么？</h2></div><span class="live-state" id="live-state" role="status">安静陪伴</span></header>
+      <div class="learning-context"><input id="topic" maxlength="300" aria-label="当前学习内容" placeholder="当前内容，例如：分式加减中的通分"><select id="study-mode" aria-label="学习方式"><option value="learn">练习辅导</option><option value="exam">独立测验</option></select></div>
+      <section class="lesson-control" aria-label="课程讲解"><strong id="lesson-title">从课程页面选择知识点</strong><p id="lesson-progress" role="status"></p><div><button id="lesson-start" type="button">开始讲解</button><button id="lesson-pause" type="button">暂停讲解</button></div></section>
+      <div id="messages" class="messages" role="log" aria-label="本页对话记录" aria-live="polite"><div class="message assistant welcome">你好呀，我是小鸭。哪里没想明白，我们就从哪里开始。</div></div>
+      <p id="interim" class="interim" aria-live="polite"></p>
+      <p id="voice-notice" class="voice-notice" role="status"></p>
+      <form id="chat-form"><label class="sr-only" for="chat-input">对小鸭说</label><textarea id="chat-input" rows="2" maxlength="4000" placeholder="对小鸭说点什么…"></textarea><div class="composer-bottom"><label class="read-toggle"><input id="read-aloud" type="checkbox" checked> 朗读回答</label><button id="send-message" type="submit">发送 ↗</button></div></form>
+      <div class="voice-controls"><button id="voice-toggle" class="primary" aria-pressed="false">开启语音</button><button id="interrupt" type="button" disabled>打断 / 停止</button><button id="done-learning" type="button">完成这一段</button></div>
+      <div class="conversation-foot"><span id="voice-source">设备语音 · 开启后才使用麦克风</span><button id="clear-chat">清空对话</button></div>
+    </section>
+    <div class="speech" id="speech" aria-live="polite"><span class="speech-dot"></span><span id="speech-text">你好呀，我是小鸭。</span></div>
+    <footer class="toolbar"><span class="hint"><span class="drag-icon">↔</span> 拖动旋转 <i>·</i> 滚轮缩放</span><div class="tools"><button id="appearance">形象预览</button><button id="rotate" aria-pressed="false">自动旋转</button><button id="reset">重置视角</button><button id="export" class="export">下载模型 <span>↗</span></button></div></footer>
+    <div class="model-label"><span>01 — MECHANICAL DUCK</span><span>MicroDuck 形态参考 · 独立建模</span></div>
+  </main>
+  <dialog id="settings-dialog"><div class="settings-heading"><h2>连接与语音</h2><button id="close-settings" aria-label="关闭设置">✕</button></div><div id="ai-settings"></div>
+    <form id="voice-settings">
+      <h3>语音服务</h3>
+      <label>语音识别<select name="engine"><option value="browser">浏览器识别（无需语音密钥）</option><option value="cloud">兼容接口识别</option></select></label>
+      <label>识别语言<select name="language"><option value="zh-CN">中文</option><option value="en-US">English</option></select></label>
+      <label>朗读来源<select name="ttsEngine"><option value="auto">跟随语音识别设置</option><option value="browser">设备朗读</option><option value="cloud">云端自然声音（单独配置 TTS）</option></select></label>
+      <label>说话节奏<select name="speakingStyle"><option value="warm">温柔陪伴</option><option value="calm">耐心讲解</option><option value="bright">轻快鼓励</option><option value="neutral">平稳自然</option></select></label>
+      <label>语速<select name="speechRate"><option value="0.85">慢一点</option><option value="1">正常</option><option value="1.1">快一点</option></select></label>
+      <p>设备模式调整语速与音高，表现力取决于音色；云端情感需模型支持语气指令。</p>
+      <label>设备朗读音色<select name="browserVoice" id="browser-voices"><option value="">自动优选自然音色（同语言）</option></select></label>
+      <div id="cloud-fields" hidden>
+        <p>填写服务商提供的兼容接口。密钥仅在本页暂存，刷新后需重新填写。</p>
+        <div id="asr-fields">
+          <label>ASR 接口根地址<input name="asrBase" type="url" placeholder="https://服务商地址/v1"></label>
+          <label>ASR 模型<input name="asrModel" placeholder="服务商的语音识别模型名称"></label>
+          <label>ASR API Key<input name="asrKey" type="password" autocomplete="new-password" placeholder="留空沿用本页已填写的密钥"></label>
+        </div>
+        <div id="tts-fields">
+          <label>TTS 接口根地址<input name="ttsBase" type="url" placeholder="https://服务商地址/v1"></label>
+          <label>TTS 模型<input name="ttsModel" placeholder="服务商的语音合成模型名称"></label>
+          <label>TTS 音色<input name="ttsVoice" placeholder="服务商提供的音色 ID"></label>
+          <label>TTS API Key<input name="ttsKey" type="password" autocomplete="new-password" placeholder="留空沿用本页已填写的密钥"></label>
+          <label>语气指令（可选，仅限支持 instructions 的模型）<textarea name="ttsInstructions" maxlength="1000" rows="3" placeholder="像耐心的学习伙伴一样自然交谈。声音温暖放松，疑问句轻柔上扬，鼓励时轻快，避免播音腔和夸张卖萌。"></textarea></label>
+          <p>不支持语气指令的服务请留空；语速通过 speed 参数传递。</p>
+        </div>
+      </div>
+      <button id="preview-voice" type="button">试听声音</button>
+      <label>停顿后发送<select name="silence"><option value="1500">1.5 秒</option><option value="2500">2.5 秒（留出思考时间）</option><option value="4000">4 秒</option></select></label>
+      <button type="submit">保存语音设置</button><p id="settings-status" role="status"></p>
+    </form>
+    <p class="settings-note">对话仅保留在本页，关闭页面后不保存。语音开启时会发送声音至所选识别服务；设备识别也可能使用浏览器厂商的在线服务。使用耳机有助于减少回声误触发。</p>
+  </dialog>
+  <script src="../course-ai.js"></script>
+  <script type="module" src="./duck.js"></script>
+  <script type="module" src="./bootstrap.js"></script>
+</body>
+</html>

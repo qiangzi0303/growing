@@ -4,7 +4,9 @@
  window.GrowingCourseSpeech={create({assets={},onStatus,label='老师讲解'}){
   let audio=null,token=0;
   function stop(){token++;if(audio){audio.pause();audio.removeAttribute('src');audio.load();audio=null;}}
+  window.addEventListener?.('duck:stop-course-audio',stop);
   function play(n,{rate=1}={}){
+   window.dispatchEvent?.(new Event('duck:course-audio-start'));
    stop();const id=token,entry=assets[n.id];
    if(!entry){onStatus('这段内置音频暂未加载，请刷新课程后重试。');return;}
    const a=new Audio(new URL(entry.file,document.baseURI).href);audio=a;a.preload='auto';

@@ -41,6 +41,14 @@ public final class LearningBridge {
         catch(Exception e) { return error(e); }
     }
     @JavascriptInterface public String aiKey() { try{authorize();return settings.getString("ai.key","");}catch(Exception e){return "";} }
+    @JavascriptInterface public String realtimeSettings() {
+        try{authorize();return new JSONObject().put("ok",true).put("value",RealtimeSettings.read(settings)).toString();}
+        catch(Exception e){return error(e);}
+    }
+    @JavascriptInterface public String saveRealtimeSettings(String json) {
+        try{authorize();RealtimeSettings.save(settings,json);return "{\"ok\":true}";}
+        catch(Exception e){return "{\"ok\":false,\"error\":\"实时语音设置未保存，请检查配置和账号。\"}";}
+    }
     @JavascriptInterface public String cloudApiUrl() { try{authorize();return BuildConfig.CLOUD_API_URL;}catch(Exception e){return "";} }
     @JavascriptInterface public String takeRegistration() { try{authorize();return activity.takeRegistration(accountId,session);}catch(Exception e){return "";} }
     @JavascriptInterface public String identityAccount() { try{authorize();return activity.identityAccount(accountId,session);}catch(Exception e){return "";} }

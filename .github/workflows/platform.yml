@@ -24,6 +24,7 @@ jobs:
       - run: npm ci
         working-directory: cloudflare
       - run: node --test scripts/test-platform.cjs scripts/handwriting.test.cjs scripts/unit-summary.test.cjs scripts/math-format.test.cjs scripts/fraction-grading.test.cjs
+      - run: node --test scripts/realtime.test.cjs
       - run: python scripts/build-worker-assets.py
       - run: npm run check
         working-directory: cloudflare
@@ -45,6 +46,7 @@ jobs:
             cloudflare/tsconfig.json
             cloudflare/wrangler.jsonc
             scripts/build-worker-assets.py
+            scripts/sync-duck.py
             scripts/export-english-rules.cjs
             platform-web/
             app/src/main/assets/web/

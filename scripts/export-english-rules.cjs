@@ -48,4 +48,10 @@ vm.runInContext(fs.readFileSync(path.join(web,'math-wrong-questions-data.js'),'u
 const wrongTarget=path.join(root,'cloudflare/src/math-wrong-question-rules.json');
 const wrongOutput=JSON.stringify(context.window.GrowingMathWrongQuestions.questions.map(({id,unitId,title,number})=>({id,unitId,title,number})),null,2)+'\n';
 if(!fs.existsSync(wrongTarget)||fs.readFileSync(wrongTarget,'utf8')!==wrongOutput)fs.writeFileSync(wrongTarget,wrongOutput);
-console.log('English reporting rules exported from packaged lessons.');
+const titles={};
+for(const data of [math,physics])for(const n of data.nodes)titles[n.id]=n.title;
+for(const [number,lessons] of Object.entries(context.window.GrowingEnglishLessons))for(const l of lessons)titles['english-8a-'+number.padStart(2,'0')+':'+l.id]=l.title;
+for(const t of legacy.window.MINUTE_DATA.topics)titles['fraction:'+t.id]=t.title;
+const titleTarget=path.join(root,'cloudflare/src/knowledge-titles.json'),titleOutput=JSON.stringify(titles,null,2)+'\n';
+if(!fs.existsSync(titleTarget)||fs.readFileSync(titleTarget,'utf8')!==titleOutput)fs.writeFileSync(titleTarget,titleOutput);
+console.log('English reporting rules and knowledge topic titles exported from packaged lessons.');

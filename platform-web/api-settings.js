@@ -36,6 +36,7 @@
     try{
       await load();if(!dialog.open||current!==version)return;
       content.innerHTML=window.GrowingCourseAI.settingsMarkup();
+      window.GrowingRealtime?.hydrate(content.querySelector('.realtime-settings'));
       if(window.GrowingNative){
         const test=document.createElement('button');test.type='button';test.dataset.courseAiTest='';test.textContent='测试已保存的连接';
         content.querySelector('.course-ai-status').before(test);
