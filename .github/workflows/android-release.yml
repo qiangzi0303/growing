@@ -107,6 +107,8 @@ jobs:
             adb shell pm revoke com.qiangzi0303.growing android.permission.RECORD_AUDIO
             adb shell am instrument -w -r -e class com.qiangzi0303.growing.RealtimeWebRtcTest com.qiangzi0303.growing.test/androidx.test.runner.AndroidJUnitRunner > test-results/realtime-webrtc.txt
             cat test-results/realtime-webrtc.txt
+            adb logcat -d -v brief | tail -n 160 > test-results/realtime-logcat.txt
+            adb exec-out screencap -p > test-results/realtime-screen.png
             grep -q 'OK (1 test)' test-results/realtime-webrtc.txt
       - uses: actions/upload-artifact@v4
         if: always()

@@ -6,6 +6,7 @@ window.addEventListener('growing-realtime-stop',close);window.addEventListener('
 async function gather(pc){if(pc.iceGatheringState==='complete')return;await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('ICE timeout')),12000);pc.addEventListener('icegatheringstatechange',()=>{if(pc.iceGatheringState==='complete'){clearTimeout(timer);resolve();}});});}
 document.getElementById('start').onclick=async()=>{
   try{
+    rtcResult.state='capturing';
     window.testStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
     window.left=new RTCPeerConnection({iceServers:[]});window.right=new RTCPeerConnection({iceServers:[]});
     right.ontrack=()=>rtcResult.remoteTrack=true;

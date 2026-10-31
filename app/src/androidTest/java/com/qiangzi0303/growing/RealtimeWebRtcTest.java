@@ -51,7 +51,9 @@ public class RealtimeWebRtcTest {
         }
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             final String fixture=html;
-            scenario.onActivity(a->find(a.getWindow().getDecorView()).loadDataWithBaseURL("https://appassets.androidplatform.net/assets/web/app-design/rtc-test.html",fixture,"text/html","UTF-8",null));
+            // Use the trusted URL for the history entry too; null is exposed by WebView as about:blank.
+            String fixtureUrl="https://appassets.androidplatform.net/assets/web/app-design/rtc-test.html";
+            scenario.onActivity(a->find(a.getWindow().getDecorView()).loadDataWithBaseURL(fixtureUrl,fixture,"text/html","UTF-8",fixtureUrl));
             for(int i=0;i<100&&!"true".equals(js(scenario,"!!window.rtcResult && !!window.GrowingNative"));i++)Thread.sleep(100);
             assertEquals("true",js(scenario,"!!window.rtcResult && !!window.GrowingNative"));
             assertEquals("true",js(scenario,"JSON.parse(GrowingNative.saveRealtimeSettings(JSON.stringify({apiKey:'test-native-rtc-key',voice:'Tina',base:'https://dashscope.aliyuncs.com'}))).ok && JSON.parse(GrowingNative.realtimeSettings()).value.voice==='Tina'"));
@@ -64,7 +66,7 @@ public class RealtimeWebRtcTest {
                 }
                 Thread.sleep(100);
             }
-            assertEquals("Runtime microphone permission",PackageManager.PERMISSION_GRANTED,context.checkSelfPermission(Manifest.permission.RECORD_AUDIO));
+            assertEquals("Runtime microphone permission; fixture="+js(scenario,"JSON.stringify({result:window.rtcResult,url:location.href,visible:document.visibilityState})"),PackageManager.PERMISSION_GRANTED,context.checkSelfPermission(Manifest.permission.RECORD_AUDIO));
             String result="";
             for(int i=0;i<300;i++){result=js(scenario,"window.rtcResult.state");if(result.equals("\"passed\"")||result.equals("\"failed\""))break;Thread.sleep(100);}
             assertEquals("RTP/capture state: "+js(scenario,"JSON.stringify(window.rtcResult)"),"\"passed\"",result);
