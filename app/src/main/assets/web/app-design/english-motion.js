@@ -82,7 +82,7 @@
   const line=(a,b,color,width,extra='')=>`<path d="M${a.x} ${a.y}L${b.x} ${b.y}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" ${extra}/>`;
   // Xiaohei character adapted from Ian Xiaohei Illustrations (MIT).
   // Source and license: english-motion-NOTICE.txt.
-  function actor(e,t,cx=320){
+  function actor(e,t,cx=320,withGround=true){
     const g=pose(e,t),id=g.id,front=id==='sidle',center=cx+(id==='wander'?g.x-320:0),ink='#161616';
     const limb=(points,width,back=false)=>{
       const d=points.map((p,i)=>`${i?'L':'M'}${p.x} ${p.y}`).join('');
@@ -105,7 +105,7 @@
     let ground='';for(let i=-1;i<=2;i++)ground+=`<path d="M${cx+i*62-markerOffset} ${GROUND+13}h26" stroke="#bfc1c3" stroke-width="1.4"/>`;
     const terrain=`<path d="M${cx-124} ${GROUND}q60 -1 124 0t124 0" stroke="#666" stroke-width="1.2" fill="none"/>${ground}`;
     const arrow=id==='sidle'?`<path d="M${cx-42} 307h84m-9 -6 9 6 -9 6" stroke="#db7031" stroke-width="1.6" fill="none"/>`:id==='wander'?`<path d="M${cx-78} 309q25 -25 50 0t50 0t50 0" stroke="#db7031" stroke-width="1.6" fill="none"/>`:'';
-    return `${terrain}<g data-person="true" data-airborne="${g.airborne}" transform="translate(${n(center)} 0) scale(${g.direction} 1)">${speedLines}${leg(g.legs.right,true)}${leg(g.legs.left,false)}${arm(g.arms.right,true)}${body}${arm(g.arms.left,false)}</g>${arrow}`;
+    return `${withGround?terrain:''}<g data-person="true" data-airborne="${g.airborne}" transform="translate(${n(center)} 0) scale(${g.direction} 1)">${speedLines}${leg(g.legs.right,true)}${leg(g.legs.left,false)}${arm(g.arms.right,true)}${body}${arm(g.arms.left,false)}</g>${withGround?arrow:''}`;
   }
   const label=(x,y,s,size=14,color='#666')=>`<text x="${x}" y="${y}" text-anchor="middle" font-family="system-ui,Microsoft YaHei,sans-serif" font-size="${size}" fill="${color}">${s}</text>`;
   function scene(e,t){return `<rect width="640" height="350" fill="white"/><g transform="translate(32 28) scale(.9)">${actor(e,t)}</g>`+label(320,33,profiles[e.id].cue,17,'#2e6dad')+label(320,337,profiles[e.id].tags,13);}
@@ -115,5 +115,5 @@
     const panel=(w,selected)=>`${label(cx,39,w.word,25,'#161616')}${label(cx,64,selected?'正在学习':'对照动作',11,selected?'#c15c20':'#777')}<g transform="translate(${n(cx*.15)} 44) scale(.85)">${actor(w,t,cx)}</g>${label(cx,334,profiles[w.id].tags,12)}`;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} 350" role="img" aria-label="${e.word} 与 ${other.word} 同步动作对照" data-word="${e.id}" data-reference="${other.id}"><rect width="${width}" height="350" fill="white"/><path d="M${half} 20v310" stroke="#ddd" stroke-dasharray="4 7" fill="none"/>${panel(other,false)}<g transform="translate(${half} 0)">${panel(e,true)}</g></svg>`;
   }
-  return {profiles,pose,scene,compare};
+  return {profiles,pose,scene,compare,character:(id,t)=>actor(id,t,0,false)};
 });

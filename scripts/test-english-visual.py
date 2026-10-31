@@ -91,7 +91,8 @@ with sync_playwright() as p:
         for width in [768,390,320]:
             page.set_viewport_size({'width':width,'height':900})
             check(frame.evaluate('document.documentElement.scrollWidth<=innerWidth'),'no learning overflow '+str(width))
-            boxes=frame.locator('#scene [data-person]').evaluate_all('(els)=>els.map(e=>{const b=e.getBoundingClientRect();return {x:b.x,y:b.y,width:b.width,height:b.height};})')
+            # Query and measure in one evaluation: animation replaces these SVG nodes every frame.
+            boxes=frame.evaluate("Array.from(document.querySelectorAll('#scene [data-person]'),e=>{const b=e.getBoundingClientRect();return {x:b.x,y:b.y,width:b.width,height:b.height};})")
             check(len(boxes)==2 and abs(boxes[0]['y']-boxes[1]['y'])<80 and boxes[1]['x']>boxes[0]['x']+50,'side by side characters '+str(width))
             if width<=390:
                 check(frame.locator('#scene svg').get_attribute('viewBox')=='0 0 400 350','compact horizontal viewBox '+str(width))

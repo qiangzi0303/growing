@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8f3">
+  <title>试卷和推导 · 逆流</title>
+  <link rel="icon" href="brand-logo.webp">
+  <link rel="stylesheet" href="catalog.css?v=math-resources-1">
+  <link rel="stylesheet" href="brand.css">
+</head>
+<body class="math">
+  <main class="catalog-shell">
+    <nav class="page-nav" aria-label="页面导航">
+      <a class="back-link" id="resources-back" href="units.html?subject=math&term=upper">← 返回数学目录</a>
+      <span class="mini-brand"><img class="brand-logo" src="brand-logo.webp" alt="" width="32" height="32">逆流</span>
+    </nav>
+    <header class="catalog-heading"><div><p class="eyebrow">数学</p><h1>试卷和推导</h1></div></header>
+    <section class="my-papers" aria-labelledby="my-papers-title">
+      <h2 id="my-papers-title">我的试卷</h2>
+      <div class="paper-entry">
+        <div><h3>期中复习卷</h3><p>23 道题 · 题目与单元知识点对应</p></div>
+        <nav aria-label="期中复习卷资料">
+          <a href="math-exam-midterm-graph.html">交互知识图谱 <span aria-hidden="true">→</span></a>
+          <a href="math-exam-midterm.html">无答案试卷 <span aria-hidden="true">→</span><small>可直接打印</small></a>
+        </nav>
+      </div>
+      <div class="paper-entry" style="margin-top:12px">
+        <div><h3>期中掌握检测卷（二）</h3><p>同难度新题 · 100 分 · 选择、填空、手写解答</p></div>
+        <nav aria-label="同难度检测卷"><a href="math-exam-practice.html">开始检测 <span aria-hidden="true">→</span></a></nav>
+      </div>
+    </section>
+    <section class="my-papers" aria-labelledby="geometry-models-title">
+      <h2 id="geometry-models-title">模型推导</h2>
+      <div class="paper-entry">
+        <div><h3>初中几何模型</h3><p>41 个模型 · 分步证明 · SVG 动画 · 应用题与单元知识关联</p></div>
+        <nav aria-label="模型推导"><a href="geometry-models.html">进入模型推导 <span aria-hidden="true">→</span></a></nav>
+      </div>
+    </section>
+  </main>
+  <script>
+    const term=new URLSearchParams(location.search).get('term')==='lower'?'lower':'upper';
+    document.getElementById('resources-back').href='units.html?subject=math&term='+term;
+  </script>
+</body>
+</html>

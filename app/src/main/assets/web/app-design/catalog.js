@@ -26,9 +26,10 @@
         <div><p class="eyebrow">八年级 · ${book.edition||course.edition}</p><h1>${course.name}<span>${tagline}</span></h1></div>
         <div class="subject-stamp" aria-hidden="true">${subject==='physics'?'v = s/t':hasGraph?'x²':'Aa'}</div>
       </header>
-      <nav class="term-switch" aria-label="选择学期">${Object.entries(course.terms).map(([key,value])=>`<a href="${catalogLink(key)}" ${key===term?'aria-current="page"':''}>${value.name}<span>${key==='upper'?'上学期':'下学期'}</span></a>`).join('')}</nav>
-      ${subject==='math'?`<section class="my-papers" aria-labelledby="my-papers-title"><h2 id="my-papers-title">我的试卷</h2><div class="paper-entry"><div><h3>期中复习卷</h3><p>23 道题 · 题目与单元知识点对应</p></div><nav aria-label="期中复习卷资料"><a href="math-exam-midterm-graph.html">交互知识图谱 <span aria-hidden="true">→</span></a><a href="math-exam-midterm.html">无答案试卷 <span aria-hidden="true">→</span><small>可直接打印</small></a></nav></div><div class="paper-entry" style="margin-top:12px"><div><h3>期中掌握检测卷（二）</h3><p>同难度新题 · 100 分 · 选择、填空、手写解答</p></div><nav aria-label="同难度检测卷"><a href="math-exam-practice.html">开始检测 <span aria-hidden="true">→</span></a></nav></div></section>`:''}
-      ${subject==='math'?`<section class="my-papers" aria-labelledby="geometry-models-title"><h2 id="geometry-models-title">模型推导</h2><div class="paper-entry"><div><h3>初中几何模型</h3><p>41 个模型 · 分步证明 · SVG 动画 · 应用题与单元知识关联</p></div><nav aria-label="模型推导"><a href="geometry-models.html">进入模型推导 <span aria-hidden="true">→</span></a></nav></div></section>`:''}
+      <div class="catalog-actions">
+        <nav class="term-switch" aria-label="选择学期">${Object.entries(course.terms).map(([key,value])=>`<a href="${catalogLink(key)}" ${key===term?'aria-current="page"':''}>${value.name}<span>${key==='upper'?'上学期':'下学期'}</span></a>`).join('')}</nav>
+        ${subject==='math'?`<a class="resources-link" href="math-resources.html?term=${term}">试卷和推导 <span aria-hidden="true">→</span></a>`:''}
+      </div>
       ${subject==='english'?`<nav class="catalog-tools" aria-label="英语学习工具"><a class="english-animation-button" href="english-visual-lab.html?term=${term}">动画记单词 →</a></nav>`:''}
       ${!book.verified?`<p class="verification-note"><span aria-hidden="true">ⓘ</span> ${subject==='physics'?'下册暂不开放，当前先学习上册。上册已按2025年第4版核对。':'下册教材目录待核对，目前预留 8 个单元位置，名称与数量以教材为准。'}</p>`:''}
       <section class="unit-section" aria-labelledby="unit-list-title">
