@@ -2,16 +2,21 @@
 (()=>{
   'use strict';
   if(document.getElementById('course-duck-host'))return;
-  const courseBase=new URL('.',document.currentScript.src),navigation=import(new URL('companion-duck/navigation.js',courseBase));
-  navigation.catch(()=>{});
-  let context=window.GrowingDuckContext||null,frame=null,open=false,ready=false,pendingTeach=false;
+  const courseBase=new URL('.',document.currentScript.src),navigation=import(new URL('companion-duck/navigation.js',courseBase)),actions=import(new URL('companion-duck/companion-actions.js',courseBase));
+  navigation.catch(()=>{});actions.catch(()=>{});
+  let context=window.GrowingDuckContext||null,frame=null,open=false,ready=false,pendingTeach=false,invisible=false,pendingSummary=null,lastSummary=null,summarySequence=0;
+  const seenAssessments=new Set();
   const endpoint=new URL('companion-duck/index.html?realtime=1&embed=1',new URL(document.currentScript.src));
   if(['localhost','127.0.0.1'].includes(location.hostname)){endpoint.port='8793';endpoint.pathname='/app-design/companion-duck/index.html';}
   const host=document.createElement('aside');host.id='course-duck-host';host.setAttribute('aria-label','小鸭互动课堂');
-  const launch=document.createElement('button');launch.type='button';launch.className='course-duck-launch';launch.textContent='小鸭讲这节课';launch.setAttribute('aria-expanded','false');
-  const panel=document.createElement('section');panel.className='course-duck-panel';panel.hidden=true;
+  const launch=document.createElement('button');launch.type='button';launch.className='course-duck-launch';launch.setAttribute('aria-label','小鸭，双击打开语音面板');launch.title='双击小鸭，开启语音后可以说“隐身”或“出来”';launch.setAttribute('aria-expanded','false');launch.setAttribute('aria-controls','course-duck-panel');
+  const portrait=document.createElement('img');portrait.src=new URL('companion-duck/launcher.png',courseBase).href;portrait.alt='';portrait.width=104;portrait.height=120;portrait.draggable=false;launch.append(portrait);
+  const panel=document.createElement('section');panel.id='course-duck-panel';panel.className='course-duck-panel';panel.hidden=true;
   const heading=document.createElement('header'),label=document.createElement('strong'),close=document.createElement('button');label.textContent='小鸭老师 · 可以随时提问';close.type='button';close.textContent='关闭';heading.append(label,close);panel.append(heading);host.append(launch,panel);document.body.append(host);
-  const style=document.createElement('style');style.textContent='#course-duck-host{position:fixed;right:18px;bottom:18px;z-index:1000;font:13px/1.5 "Microsoft YaHei",sans-serif}#course-duck-host [hidden]{display:none!important}.course-duck-launch{border:1px solid #c4d7c6;border-radius:24px;padding:12px 18px;background:#355a44;color:#fff;box-shadow:0 6px 22px #19392925;cursor:pointer}.course-duck-panel{width:min(420px,calc(100vw - 24px));height:min(780px,calc(100svh - 32px));background:#f7faf4;border:1px solid #c4d7c6;border-radius:18px;box-shadow:0 12px 60px #203b3a33;overflow:hidden}.course-duck-panel>header{height:42px;display:flex;justify-content:space-between;align-items:center;padding:0 14px;color:#355a44}.course-duck-panel>header button{border:0;background:transparent;color:inherit;padding:10px;cursor:pointer}.course-duck-panel iframe{display:block;width:100%;height:calc(100% - 42px);border:0}@media(max-width:520px){#course-duck-host{right:12px;bottom:12px}.course-duck-launch{padding:10px 14px}.course-duck-panel{height:calc(100svh - 24px)}}';document.head.append(style);
+  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('course-duck.css',courseBase).href;document.head.append(style);
+  const announcement=document.createElement('span');announcement.className='duck-announcement';announcement.setAttribute('role','status');host.append(announcement);
+  const summary=document.createElement('section');summary.className='course-duck-summary';summary.hidden=true;summary.setAttribute('aria-label','小鸭评分总结');
+  summary.innerHTML='<strong>小鸭总结</strong><button type="button" data-summary-dismiss aria-label="收起小鸭总结">×</button><p data-summary-text></p><p data-summary-status role="status"></p><button type="button" data-summary-play>播放总结</button><button type="button" data-summary-stop>停止播报</button>';host.prepend(summary);
   function fallback(){
     const title=document.querySelector('#lesson-title,.word-name,h1')?.textContent||document.title;
     const exam=!!document.querySelector('#quiz-form,#practice-form,#recall-form,#word-mastery-host')||!!document.querySelector('[data-tab="practice"][aria-current="page"],[data-tab="recall"][aria-current="page"]');
@@ -20,22 +25,48 @@
   }
   function send(){if(frame&&open)frame.contentWindow?.postMessage({type:'duck:course-context',context:context||fallback()},endpoint.origin);}
   function startTeaching(){if(open&&ready&&pendingTeach){pendingTeach=false;send();frame.contentWindow?.postMessage({type:'duck:teach'},endpoint.origin);}}
-  function hide(){pendingTeach=false;if(frame)frame.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);open=false;panel.hidden=true;launch.hidden=false;launch.setAttribute('aria-expanded','false');launch.focus();}
+  function visible(){invisible=false;host.classList.remove('duck-invisible');host.inert=false;host.removeAttribute('aria-hidden');}
+  function hide(){visible();++summarySequence;pendingSummary=null;pendingTeach=false;if(frame)frame.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);open=false;panel.hidden=true;launch.hidden=false;launch.setAttribute('aria-expanded','false');launch.focus();}
+  function ensureFrame(){if(!frame){frame=document.createElement('iframe');frame.title='小鸭实时语音课堂';frame.src=endpoint.href;frame.allow='microphone; autoplay';frame.addEventListener('load',()=>{send();flushSummary();});panel.append(frame);}}
+  function setVisibility(value){
+    if(value==='hide'&&open){invisible=true;host.classList.add('duck-invisible');host.inert=true;host.setAttribute('aria-hidden','true');announcement.textContent='小鸭已隐身，语音仍在倾听。说“小鸭出来”可唤回。';}
+    else if(value==='show'){visible();announcement.textContent='小鸭回来了。';if(open)close.focus();}
+  }
   function show(teach=false){
+    visible();
     pendingTeach=teach;
     window.dispatchEvent(new Event('duck:stop-course-audio'));
     open=true;panel.hidden=false;launch.hidden=true;launch.setAttribute('aria-expanded','true');
-    if(!frame){frame=document.createElement('iframe');frame.title='小鸭实时语音课堂';frame.src=endpoint.href;frame.allow='microphone; autoplay';frame.addEventListener('load',send);panel.append(frame);}else send();close.focus();
+    ensureFrame();send();close.focus();
     startTeaching();
   }
-  launch.addEventListener('click',()=>show());
+  launch.addEventListener('dblclick',()=>show());
+  let lastTap=0,hintTimer;
+  launch.addEventListener('pointerup',event=>{if(event.pointerType==='mouse')return;const now=performance.now();if(lastTap&&now-lastTap<450){lastTap=0;show();}else lastTap=now;});
+  launch.addEventListener('click',event=>{if(event.detail===0){show();return;}launch.classList.add('duck-hint');clearTimeout(hintTimer);hintTimer=setTimeout(()=>launch.classList.remove('duck-hint'),2200);});
   document.addEventListener('click',event=>{if(event.target.closest('[data-duck-teach]'))show(true);});
   close.addEventListener('click',hide);host.addEventListener('keydown',event=>{if(event.key==='Escape')hide();});
   function restoreNavigation(){navigation.then(api=>{const pending=api.consumeNavigation((context||fallback()).id);if(pending)show(pending.teach);}).catch(()=>{});}
   restoreNavigation();
   window.addEventListener('duck:course-context',event=>{context=event.detail;send();drawArchive();reminder.hidden=true;if(open&&ready)refreshKnowledge();restoreNavigation();});
   window.addEventListener('duck:course-audio-start',()=>{if(frame)frame.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);});
-  window.addEventListener('message',event=>{if(event.origin!==endpoint.origin||event.source!==frame?.contentWindow)return;if(event.data?.type==='duck:ready'){ready=true;send();if(pendingTeach)startTeaching();else refreshKnowledge();}if(event.data?.type==='duck:knowledge-query'&&open)refreshKnowledge(String(event.data.query||'').slice(0,150),String(event.data.requestId||'').slice(0,80));if(event.data?.type==='duck:audio-start')window.dispatchEvent(new Event('duck:stop-course-audio'));});
+  window.addEventListener('message',event=>{if(event.origin!==endpoint.origin||event.source!==frame?.contentWindow)return;if(event.data?.type==='duck:ready'){ready=true;send();flushSummary();if(pendingTeach)startTeaching();else if(open)refreshKnowledge();}if(event.data?.type==='duck:knowledge-query'&&open)refreshKnowledge(String(event.data.query||'').slice(0,150),String(event.data.requestId||'').slice(0,80));if(event.data?.type==='duck:audio-start')window.dispatchEvent(new Event('duck:stop-course-audio'));if(event.data?.type==='duck:visibility')setVisibility(event.data.value);if(event.data?.type==='duck:voice-stopped'&&invisible){visible();open=false;panel.hidden=true;launch.hidden=false;launch.setAttribute('aria-expanded','false');}if(event.data?.type==='duck:summary-status'&&event.data.id===lastSummary?.id)summary.querySelector('[data-summary-status]').textContent=String(event.data.message||'').slice(0,200);});
+  function flushSummary(){if(pendingSummary&&ready&&frame){frame.contentWindow?.postMessage({type:'duck:assessment-summary',summary:pendingSummary,context:context||fallback()},endpoint.origin);pendingSummary=null;}}
+  async function playSummary(){if(!lastSummary||lastSummary.courseId!==(context||fallback()).id)return;pendingSummary=lastSummary;summary.querySelector('[data-summary-status]').textContent='正在准备小鸭语音…';window.dispatchEvent(new Event('duck:stop-course-audio'));ensureFrame();flushSummary();}
+  window.addEventListener('duck:assessment',async event=>{
+    const seq=++summarySequence;
+    try{
+      const item=(await actions).assessmentSummary(event.detail);
+      if(seq!==summarySequence||!item||document.hidden||item.courseId!==(context||fallback()).id||seenAssessments.has(item.id))return;
+      seenAssessments.add(item.id);if(seenAssessments.size>80)seenAssessments.delete(seenAssessments.values().next().value);
+      lastSummary=item;summary.querySelector('[data-summary-text]').textContent=item.text;summary.hidden=false;await playSummary();
+    }catch{summary.querySelector('[data-summary-status]').textContent='总结语音暂不可用，请查看老师的评分反馈。';}
+  });
+  summary.querySelector('[data-summary-play]').addEventListener('click',playSummary);
+  function stopSummary(){++summarySequence;pendingSummary=null;frame?.contentWindow?.postMessage({type:'duck:summary-stop'},endpoint.origin);summary.querySelector('[data-summary-status]').textContent='播报已停止。';}
+  summary.querySelector('[data-summary-stop]').addEventListener('click',stopSummary);
+  summary.querySelector('[data-summary-dismiss]').addEventListener('click',()=>{stopSummary();summary.hidden=true;});
+  window.addEventListener('duck:course-context',()=>{if(lastSummary&&lastSummary.courseId!==(context||fallback()).id){stopSummary();summary.hidden=true;lastSummary=null;}});
   window.addEventListener('message',async event=>{
     if(event.origin!==endpoint.origin||event.source!==frame?.contentWindow||event.data?.type!=='duck:navigate'||!open)return;
     const {requestId,courseId,destinationId,teach}=event.data;
@@ -48,7 +79,7 @@
       api.openDestination(destinationId,{baseUrl:courseBase,teach:teach===true,navigate:href=>{frame?.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);if(provider?.navigate)provider.navigate(href);else location.assign(href);}});
     }catch(error){reply(error.message||'页面暂时无法打开，请重试。');}
   });
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){pendingTeach=false;if(frame)frame.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);}});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){++summarySequence;pendingSummary=null;pendingTeach=false;if(frame)frame.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);}});
   window.GrowingDuckCourse={getContext:()=>context||fallback(),close:hide};
   // The authenticated portal owns identity; standalone preview never guesses a student.
   const knowledgeButton=document.createElement('button');knowledgeButton.type='button';knowledgeButton.textContent='学习档案';heading.insertBefore(knowledgeButton,close);
