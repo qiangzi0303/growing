@@ -40,6 +40,7 @@ public class RealtimeWebRtcTest {
     }
     @Test public void captureRtpAndStopWhenBackgrounded()throws Exception{
         Context context=ApplicationProvider.getApplicationContext();AccountStore accounts=new AccountStore(context);
+        assertEquals("WebRTC audio routing permission",PackageManager.PERMISSION_GRANTED,context.checkSelfPermission(Manifest.permission.MODIFY_AUDIO_SETTINGS));
         if(accounts.currentId()==null)accounts.authenticate("rtc_student","Realtime-Test-Password-2026".toCharArray(),true);
         IdentityFixtures.student(accounts);
         UiAutomation automation=InstrumentationRegistry.getInstrumentation().getUiAutomation();
