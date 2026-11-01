@@ -3,7 +3,7 @@
   'use strict';
   const verdicts={correct:'正确',partial:'部分正确',incorrect:'需要订正',unanswered:'未作答',review:'待人工核对'};
   function uuid(){if(crypto.randomUUID)return crypto.randomUUID();return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(Number(c)^crypto.getRandomValues(new Uint8Array(1))[0]&15>>Number(c)/4).toString(16));}
-  window.GrowingPhotoReview={uuid,create(root,api,esc,alive,studentId,onChange){
+  window.GrowingPhotoReview={uuid,create(root,api,esc,alive,studentId,onChange,figures){
     const host=root.querySelector('[data-workbench]'),math=window.GrowingMathFormat,papers=new Map();
     let disposed=false,sequence=0,current=null,paper=null,selectedGrade='',busy=false,pageNumber=1;
     const draftKey='growing-photo-review-v1:'+studentId;
@@ -18,7 +18,7 @@
     function source(){
       const pages=paper?.pages||[],container=host.querySelector('[data-review-source]');if(!container)return;
       const source=pages.find(p=>p.page===pageNumber);
-      if(!source){container.innerHTML='<p class="muted">这份记录没有保存原图。可重新上传含作答的照片，选择“整页逐题批改”。已有题目仍可提交文字作答。</p>';return;}
+      if(!source){container.innerHTML='<p class="warning">该来源页没有保存原图。请在题目下方“核对 / 补充题图”中补回本页原稿或补传题图，已有题目和批改记录会保留。</p>';return;}
       const regions=(current.regions||[]).filter(r=>r.page===pageNumber);
       container.innerHTML=`<div class="actions">${pages.map(p=>`<button type="button" data-source-page="${p.page}" ${p.page===pageNumber?'aria-current="page"':''}>第 ${p.page} 页</button>`).join('')}</div><p class="muted">${regions.length?'虚线框标出本题与作答区域，请结合整页核对。':'本题没有可靠定位框，请结合来源页码核对。'}</p><div class="photo-paper"><img src="${esc(source.image)}" alt="第${pageNumber}页作业原图">${regions.map(r=>`<span class="photo-region" aria-hidden="true" style="left:${r.x*100}%;top:${r.y*100}%;width:${r.width*100}%;height:${r.height*100}%"></span>`).join('')}</div>`;
     }
@@ -26,7 +26,7 @@
       if(!valid()||!current)return;const g=grade(),result=g?.result,d=draft(),stale=g&&g.revision!==current.revision;
       host.hidden=false;
       host.innerHTML=`<div class="actions"><h2>逐题批改工作台</h2><button type="button" data-review-close>收起工作台</button></div><p class="muted">${esc(paper.title)} · 单题100分制 · 首次批改与订正分别保留</p>${paper.warnings?.length?`<p class="warning">${esc(paper.warnings.join('；'))}</p>`:''}<nav class="photo-question-tabs" aria-label="切换题目">${paper.questions.map(q=>{const last=q.grades?.at(-1);return `<button type="button" data-review-question="${esc(q.id)}" ${q.id===current.id?'aria-current="page"':''}>第 ${esc(q.number||'?')} 题 · ${esc(verdicts[last?.result.verdict]||'未批改')}</button>`;}).join('')}</nav><div class="photo-review-grid"><section class="photo-source"><h3>原始作业</h3><div data-review-source></div></section><section class="photo-review-result"><h3>第 ${esc(current.number)} 题</h3><div class="bank-text math-prose">${render(current.text)}</div>${current.uncertain?.length?`<p class="warning">识别疑点：${esc(current.uncertain.join('；'))}</p>`:''}${g?`<label>查看批改记录<select data-review-grade>${current.grades.map((item,i)=>`<option value="${esc(item.id)}" ${item.id===g.id?'selected':''}>${item.kind==='initial'?'首次原稿批改':'订正批改 '+i} · ${esc(verdicts[item.result.verdict])}${item.result.score===null?'':' · '+item.result.score+'/100'}</option>`).join('')}</select></label>${stale?'<p class="warning">题干已修改。下方批改对应旧版本，请提交新作答后再追问。</p>':''}<p class="photo-verdict" data-verdict="${esc(result.verdict)}">${esc(verdicts[result.verdict])}${result.score===null?'':' · '+result.score+' / 100'}</p><h4>${g.kind==='initial'?'原图学生作答':'本次订正作答'}</h4><div class="bank-text math-prose">${render(result.studentAnswer||'未识别到作答')}</div><div class="bank-text math-prose">${render(result.feedback)}</div>${result.corrections.map(c=>`<article class="photo-correction"><strong>${esc(c.location)}</strong><div class="bank-text math-prose">${render(c.issue)}</div><p><strong>怎样改</strong></p><div class="bank-text math-prose">${render(c.correction)}</div></article>`).join('')}<section aria-label="关联知识点"><h4>关联知识点</h4>${result.knowledge.length?['gap','tested'].map(role=>{const links=result.knowledge.filter(k=>k.role===role);return links.length?`<h5>${role==='gap'?'错误反映的薄弱点':'本题考查的知识点'}</h5>${links.map(k=>`<p><a href="${esc(k.href)}" data-review-link>${esc(k.title)} →</a></p><div class="bank-text math-prose">${render(k.reason)}</div>`).join('')}`:'';}).join(''):'<p class="muted">尚未可靠关联，待核对题设与现有课程。</p>'}</section>${result.models.length?`<section aria-label="几何模型匹配"><h4>几何模型匹配</h4><p class="muted">先核对适用条件，再学习模型方法。</p>${result.models.map(m=>`<p><a href="${esc(m.href)}" data-review-link>${m.modelId}号 · ${esc(m.title)} →</a></p><div class="bank-text math-prose">${render(m.reason)}</div>`).join('')}</section>`:''}<section class="photo-followups"><h4>围绕这次批改追问</h4><div class="actions">${['这一步为什么错','只提示下一步','换一种讲法'].map(p=>`<button type="button" data-followup-preset="${p}" ${stale?'disabled':''}>${p}</button>`).join('')}</div><div data-followup-history>${(current.followups||[]).filter(f=>f.gradeId===g.id).map(f=>`<article><p><strong>我：</strong>${esc(f.prompt)}</p><div class="bank-text math-prose">${render(f.reply)}</div></article>`).join('')}</div><form data-followup><label>我的追问<textarea name="prompt" maxlength="1600" required ${stale?'disabled':''}>${esc(d.prompt)}</textarea></label><button class="primary" type="submit" ${stale?'disabled':''}>发送追问</button></form></section>`:'<p class="muted">该题尚无逐题批改。下方可以填写自己的完整作答；原题条件不全时请先核对题面。</p>'}<details class="photo-correct-form" ${!g?'open':''}><summary>订正后再练 · 保留首次批改</summary><form data-correction><label>写出新的完整解题过程<textarea name="studentAnswer" maxlength="6000" required rows="5">${esc(d.correction)}</textarea></label><button type="submit" class="primary">提交本次作答批改</button></form></details><p data-review-status role="status" aria-live="polite"></p></section></div>`;
-      source();lock();
+      const images=document.createElement('div');host.querySelector('.photo-review-result>.bank-text').after(images);figures.mount(images,current);source();lock();
     }
     function lock(){if(!valid())return;host.querySelectorAll('button,select,textarea').forEach(el=>{el.disabled=busy||!!(grade()&&grade().revision!==current?.revision&&(el.closest('[data-followup]')||el.hasAttribute('data-followup-preset')));});}
     async function loadQuestion(id){
@@ -79,7 +79,7 @@
       }catch(error){if(valid()&&n===sequence)status(error.message+' 订正内容保留，可重试。',true);}finally{if(valid()&&n===sequence){busy=false;lock();}}
     });
     const observer=new MutationObserver(()=>{if(!host.isConnected)dispose();});observer.observe(document.body,{childList:true,subtree:true});
-    function dispose(){if(disposed)return;disposed=true;sequence++;observer.disconnect();closeStudy();window.removeEventListener('message',studyMessage);papers.clear();host.replaceChildren();host.hidden=true;}
-    return {open,dispose};
+    function dispose(){if(disposed)return;disposed=true;sequence++;observer.disconnect();closeStudy();window.removeEventListener('message',studyMessage);papers.clear();figures.dispose();host.replaceChildren();host.hidden=true;}
+    return {open,dispose,async refresh(){papers.clear();if(current&&!host.hidden)await open(current);}};
   }};
 })();

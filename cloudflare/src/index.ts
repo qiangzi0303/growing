@@ -147,6 +147,15 @@ export function createHandler(database: (env: Env) => Database = env => {
         if(path==='/api/question-bank/catalog'&&request.method==='GET')return decorate(json(questionUnits),request);
         if(path==='/api/question-bank/import'&&request.method==='POST')
           return decorate(json(await bank.import(await body(request,2_100_000),env,request.signal,aiFetch)),request);
+        if(/^\/api\/question-bank\/papers\/[a-f0-9-]{36}\/pages$/.test(path)&&request.method==='POST'){
+          const data=await body(request,550000),student=await bank.authorize(data.studentId);
+          return decorate(json(await bank.restorePage(student,path.split('/').at(-2)!,data)),request);
+        }
+        if(/^\/api\/question-bank\/questions\/[a-f0-9-]{36}\/figures$/.test(path)){
+          const id=path.split('/').at(-2)!;
+          if(request.method==='GET'){const student=await bank.authorize(url.searchParams.get('studentId'));return decorate(json(await bank.figure(student,id)),request);}
+          if(request.method==='PUT'){const data=await body(request,550000),student=await bank.authorize(data.studentId);return decorate(json(await bank.saveFigure(student,id,data)),request);}
+        }
         if(/^\/api\/question-bank\/questions\/[a-f0-9-]{36}\/(followup|correct)$/.test(path)&&request.method==='POST'){
           const data=await body(request,40000),student=await bank.authorize(data.studentId),review=new PhotoReview(db,current,id=>bank.authorize(id));
           return decorate(json(await review[path.endsWith('/followup')?'followup':'correct'](student,path.split('/').at(-2)!,data,env,request.signal,aiFetch)),request);

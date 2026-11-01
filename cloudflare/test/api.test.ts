@@ -151,6 +151,8 @@ before(async () => {
   await db.batch(mathMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
   const reviewMigration=await readFile(new URL('../migrations/0011_photo_review.sql',import.meta.url),'utf8');
   await db.batch(reviewMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
+  const figureMigration=await readFile(new URL('../migrations/0012_question_figures.sql',import.meta.url),'utf8');
+  await db.batch(figureMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
 });
 after(async () => { await mf.dispose(); });
 
@@ -248,7 +250,7 @@ test('photo bank authenticates uploads and rejects invalid images or target stud
   assert.equal(catalog.length,24);assert.ok(catalog.some(u=>u.id==='math-8b-10'));assert.ok(!catalog.some(u=>u.id.startsWith('english-8b')));
 });
 
-test('photo imports persist standard math without originals atomically, classify uncertain questions, deduplicate concurrent retries and allow reviewed corrections',async()=>{
+test('photo imports atomically retain standard math and originals, classify uncertain questions, deduplicate concurrent retries and allow reviewed corrections',async()=>{
   const s=await register(),other=await register(),p=await register('Parent'),a=await administrator();await bindStudent(s,p);
   const input={studentId:s.user.id,requestId:crypto.randomUUID(),pages:photoPages},path='/api/question-bank/import';aiMode='paper';
   try{
@@ -269,9 +271,9 @@ test('photo imports persist standard math without originals atomically, classify
     assert.equal(all.total,3);assert.equal((await (await call('/api/question-bank/questions'+query+'&unitId=','GET',undefined,p.token)).json() as any).total,2);
     const originalPath='/api/question-bank/papers/'+first.paperId+query;
     const source=await call(originalPath,'GET',undefined,p.token);assert.equal(source.status,200);assert.equal(source.headers.get('cache-control'),'no-store');
-    assert.deepEqual((await source.json() as any).pages,[]);
+    assert.deepEqual((await source.json() as any).pages,photoPages.map((image,i)=>({page:i+1,image})));
     assert.ok(first.questions.every((q:any)=>q.format==='math-text-v1'));
-    assert.equal((await db.query<any>('SELECT count(*) AS n FROM "GrowingQuestionPages" WHERE "PaperId"=?1',[first.paperId]))[0].n,0);
+    assert.equal((await db.query<any>('SELECT count(*) AS n FROM "GrowingQuestionPages" WHERE "PaperId"=?1',[first.paperId]))[0].n,2);
     for(const token of [other.token])for(const target of [originalPath,'/api/question-bank/questions'+query])assert.equal((await call(target,'GET',undefined,token)).status,404);
     assert.equal((await call(originalPath,'GET',undefined,a.token)).status,200);
     const q=all.rows.find((q:any)=>q.unitId===''),edit={studentId:s.user.id,revision:q.revision,number:q.number,text:'核对后的完整题目',answer:'家长补充的答案',unitId:'physics-8a-02'},editPath='/api/question-bank/questions/'+q.id;
@@ -292,7 +294,7 @@ test('legacy photo questions become standard math without changing identity, rev
   let q:any;
   aiMode='paper';try{q=(await (await call('/api/question-bank/import','POST',{studentId:s.user.id,requestId:crypto.randomUUID(),pages:photoPages},s.token)).json() as any).questions[0];}finally{aiMode='ok';}
   await db.query(`UPDATE "GrowingPhotoQuestions" SET "Text"='计算 (x²-1)/(x-1)。',"Format"='legacy',"Reviewed"=1,"Revision"=4 WHERE "Id"=?1`,[q.id]);
-  await db.query('INSERT INTO "GrowingQuestionPages" ("PaperId","Page","Image") VALUES (?1,1,?2)',[q.paperId,photoPages[0]]);
+  await db.query('INSERT INTO "GrowingQuestionPages" ("PaperId","Page","Image") VALUES (?1,1,?2) ON CONFLICT DO NOTHING',[q.paperId,photoPages[0]]);
   await call('/api/question-bank/attempts','POST',{studentId:s.user.id,kind:'photo',questionId:q.id,attemptId:crypto.randomUUID(),correct:false},s.token);
   const path='/api/question-bank/questions/'+q.id+'/format',input={studentId:s.user.id,revision:4},before=aiRequests.length,original=structuredClone(formatOutput);
   assert.equal((await call(path,'POST',input,other.token)).status,404);

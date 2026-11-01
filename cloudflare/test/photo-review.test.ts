@@ -43,6 +43,48 @@ test('assessment validators reject invented links, invalid scores and regions; l
   assert.equal(validateRegions([{page:1,x:.8,y:0,width:.3,height:1}],[1]),null);
   assert.equal(validateRegions([{page:2,x:0,y:0,width:1,height:1}],[1]),null);
 });
+
+test('real figure crops survive both modes; attachment repairs preserve grades and enforce ownership and versions',async()=>{
+  const u=await register(),other=await register();output=paper();
+  const region={page:1,x:.2,y:.3,width:.25,height:.2};output.questions[1].figures=[region];
+  const response=await call('/question-bank/import','POST',{studentId:u.user.id,requestId:crypto.randomUUID(),mode:'transcribe',pages},u.token);
+  assert.equal(response.status,200);const data=await response.json() as any,q=data.questions[1];
+  assert.deepEqual(q.figures,[region]);assert.equal(q.grades.length,0);
+  assert.equal((await (await call('/question-bank/papers/'+data.paperId+'?studentId='+u.user.id,'GET',undefined,u.token)).json() as any).pages.length,2);
+  const path='/question-bank/questions/'+q.id+'/figures',query='?studentId='+u.user.id;
+  const input={studentId:u.user.id,figureVersion:1,figures:[region]};
+  assert.equal((await call(path+query,'GET',undefined,other.token)).status,404);
+  assert.equal((await call(path,'PUT',input,other.token)).status,404);
+  assert.equal((await call(path,'PUT',{...input,figures:[{...region,page:3}]},u.token)).status,400);
+  assert.equal((await call(path,'PUT',input,u.token)).status,200);
+  assert.equal((await call(path,'PUT',input,u.token)).status,409);
+  assert.equal((await call(path,'PUT',{studentId:u.user.id,figureVersion:2,image:'<svg onload=alert(1)>'},u.token)).status,400);
+  assert.equal((await call(path,'PUT',{studentId:u.user.id,figureVersion:2,image:pages[0]},u.token)).status,200);
+  const image=await call(path+query,'GET',undefined,u.token);assert.equal(image.headers.get('cache-control'),'no-store');assert.equal((await image.json() as any).image,pages[0]);
+  const list=await (await call('/question-bank/questions?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;
+  const updated=list.rows.find((r:any)=>r.id===q.id);assert.equal(updated.hasFigureImage,1);assert.equal(updated.revision,1);assert.ok(!JSON.stringify(list).includes('data:image'));
+  const graded=await importPaper(u,['data:image/jpeg;base64,/9j/Ag==',pages[1]]);const g=graded.data.questions[0],before=structuredClone(g.grades);
+  assert.equal((await call('/question-bank/questions/'+g.id+'/figures','PUT',{studentId:u.user.id,figureVersion:1,image:pages[0]},u.token)).status,200);
+  const review=await (await call('/question-bank/questions/'+g.id+'/review'+query,'GET',undefined,u.token)).json() as any;assert.deepEqual(review.question.grades,before);assert.equal(review.question.revision,1);
+  output={reply:'依据补传题图解释'};
+  assert.equal((await call('/question-bank/questions/'+g.id+'/followup','POST',{studentId:u.user.id,gradeId:before[0].id,requestId:crypto.randomUUID(),prompt:'图中的线段在哪里'},u.token)).status,200);
+  assert.equal(calls.at(-1).messages[1].content.filter((c:any)=>c.type==='image_url').length,2,'follow-up includes the source and attached figure');
+});
+
+test('duplicate upload repairs discarded legacy originals; missing pages can be restored without replacing existing evidence',async()=>{
+  const u=await register(),{input,data}=await importPaper(u),q=data.questions[0];
+  await db.query('DELETE FROM "GrowingQuestionPages" WHERE "PaperId"=?1',[data.paperId]);
+  const before=calls.length,retry=await call('/question-bank/import','POST',input,u.token);assert.equal(retry.status,200);assert.equal(calls.length,before);
+  assert.equal((await retry.json() as any).questions[0].id,q.id);
+  const path='/question-bank/papers/'+data.paperId+'/pages',restore={studentId:u.user.id,page:1,image:pages[0]};
+  assert.equal((await call(path,'POST',restore,u.token)).status,200);
+  assert.equal((await call(path,'POST',{...restore,image:pages[1]},u.token)).status,409);
+  assert.equal((await call(path,'POST',{...restore,page:4},u.token)).status,404);
+  await db.query('DELETE FROM "GrowingQuestionPages" WHERE "PaperId"=?1 AND "Page"=1',[data.paperId]);
+  assert.equal((await call('/question-bank/questions/'+q.id+'/figures','PUT',{studentId:u.user.id,figureVersion:1,figures:[{page:1,x:0,y:0,width:1,height:1}]},u.token)).status,400);
+  assert.equal((await call(path,'POST',restore,u.token)).status,200);
+  const review=await (await call('/question-bank/questions/'+q.id+'/review?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;assert.deepEqual(review.question.grades,data.questions[0].grades);
+});
 test('whole-paper import atomically retains sources and grades, maps real lessons, and counts only reliable answers once',async()=>{
   const u=await register(),{input,data}=await importPaper(u);assert.equal(data.questions.length,4);
   const [q1,q2,q3,q4]=data.questions;assert.equal(q1.grades[0].result.score,50);assert.equal(q1.answer,'');assert.equal(q1.regions.length,1);

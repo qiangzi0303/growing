@@ -11,7 +11,7 @@ const decodeGrade=(g:any)=>{const {fingerprint,requestId,...publicGrade}=g;retur
 export async function attachPhotoGrades(db:Database,questions:any[]){
   if(!questions.length)return questions;
   const grades=await db.query<any>(`SELECT ${gradeSelect} FROM "GrowingPhotoGrades" WHERE "QuestionId" IN (${questions.map(()=>'?').join(',')}) ORDER BY "CreatedAt",rowid`,questions.map(q=>q.id));
-  return questions.map(q=>({...q,regions:typeof q.regions==='string'?JSON.parse(q.regions):q.regions||[],grades:grades.filter(g=>g.questionId===q.id).map(decodeGrade)}));
+  return questions.map(q=>({...q,figures:typeof q.figures==='string'?JSON.parse(q.figures):q.figures||[],regions:typeof q.regions==='string'?JSON.parse(q.regions):q.regions||[],grades:grades.filter(g=>g.questionId===q.id).map(decodeGrade)}));
 }
 export function photoGradeStatements(questionId:string,student:string,actor:string,result:PhotoAssessment,kind:'initial'|'correction',requestId:string,fingerprint:string,revision=1):Statement[]{
   const id=crypto.randomUUID();
@@ -27,10 +27,14 @@ export class PhotoReview{
   private async question(student:string,id:string){
     const [q]=await this.db.query<any>(`SELECT q."Id" AS id,q."PaperId" AS paperId,q."Number" AS number,q."Text" AS text,q."Answer" AS answer,q."UnitId" AS unitId,q."Revision" AS revision,q."Pages" AS pages,q."Uncertain" AS uncertain,q."Regions" AS regions
       FROM "GrowingPhotoQuestions" q JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId" WHERE p."StudentId"=?1 AND q."Id"=?2`,[student,id]);
-    if(!q)fail(404,'未找到题目。');return {...q,pages:JSON.parse(q.pages),uncertain:JSON.parse(q.uncertain)};
+    if(!q)fail(404,'未找到题目。');
+    const [figure]=await this.db.query<any>('SELECT "Figures" AS figures,"FigureVersion" AS figureVersion,(length("FigureImage")>0) AS hasFigureImage FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[id]);
+    return {...q,...figure,pages:JSON.parse(q.pages),uncertain:JSON.parse(q.uncertain)};
   }
   private async images(q:any){
-    return (await this.db.query<{image:string}>(`SELECT "Image" AS image FROM "GrowingQuestionPages" WHERE "PaperId"=?1 AND "Page" IN (${q.pages.map(()=>'?').join(',')}) ORDER BY "Page"`,[q.paperId,...q.pages])).map(p=>p.image);
+    const original=(await this.db.query<{image:string}>(`SELECT "Image" AS image FROM "GrowingQuestionPages" WHERE "PaperId"=?1 AND "Page" IN (${q.pages.map(()=>'?').join(',')}) ORDER BY "Page"`,[q.paperId,...q.pages])).map(p=>p.image);
+    const [figure]=await this.db.query<any>('SELECT "FigureImage" AS image FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[q.id]);
+    return [...original,...(figure?.image?[figure.image]:[])];
   }
   async read(student:string,id:string){
     const q=await this.question(student,id);
