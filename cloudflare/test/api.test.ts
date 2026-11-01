@@ -149,6 +149,8 @@ before(async () => {
   await db.batch(attemptStatements);await db.batch(attemptStatements);
   const mathMigration=await readFile(new URL('../migrations/0010_math_question_format.sql',import.meta.url),'utf8');
   await db.batch(mathMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
+  const reviewMigration=await readFile(new URL('../migrations/0011_photo_review.sql',import.meta.url),'utf8');
+  await db.batch(reviewMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
 });
 after(async () => { await mf.dispose(); });
 

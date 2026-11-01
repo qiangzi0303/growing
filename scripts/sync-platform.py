@@ -5,6 +5,7 @@ import subprocess
 import runpy
 repo = Path(__file__).resolve().parents[1]
 runpy.run_path(str(repo / 'scripts/sync-duck.py'))
+subprocess.run(['node', str(repo / 'scripts/build-photo-learning-catalog.cjs')], check=True)
 subprocess.run(['node', str(repo / 'scripts/vendor-math-format.cjs')], check=True)
 source = repo / 'platform-web'
 for name in ('course-ai.js', 'course-ai.css'):

@@ -8,6 +8,7 @@ import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine
 import handwriting from '../../app/src/main/assets/web/app-design/handwriting-core.js';
 import { buildUnitReports, wordPassed } from './unit-reports';
 import { HttpError, type Database, type Document, type User, Store } from './database';
+import {photoKnowledge} from './photo-knowledge';
 
 type Data = Record<string, any>;
 const obj = (v: any): Data => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
@@ -27,9 +28,9 @@ export interface KnowledgeTopic {
 export interface MistakeEvidence {
   id: string; unitId: string; topicIds: string[]; title: string;
   source: 'question-bank' | 'paper-question' | 'written-work'; sourceLabel: string;
-  association: 'title-keyword' | 'graded-node' | 'unit-only';
+  association: 'title-keyword' | 'graded-node' | 'graded-topic' | 'unit-only';
   status: 'needs-review' | 'latest-correct' | 'historical';
-  cause: string | null; causeSource: 'handwriting-node-feedback' | 'unrecorded';
+  cause: string | null; causeSource: 'handwriting-node-feedback' | 'photo-grade-gap' | 'unrecorded';
   at: string | null; questionNumber?: string; paperTitle?: string; sourceRevision?: number;
 }
 
@@ -53,12 +54,23 @@ function linkedTopics(title: string, unitId: string, topics: KnowledgeTopic[]) {
 }
 
 function mistakeEvidence(states: Map<string, Data>, wrong: Data[], topics: KnowledgeTopic[]): MistakeEvidence[] {
-  const result: MistakeEvidence[] = wrong.map(q => {
+  const result: MistakeEvidence[] = wrong.flatMap<MistakeEvidence>(q => {
+    const error=q.photoReview?.error;
+    if(error){
+      const links=arr(error.knowledge).filter(k=>topics.some(t=>t.id===k.nodeId&&t.unitId===k.unitId));
+      if(links.length)return links.filter((k,i)=>links.findIndex(n=>n.nodeId===k.nodeId&&n.role===k.role)===i&&!(k.role==='tested'&&links.some(n=>n.nodeId===k.nodeId&&n.role==='gap'))).map(k=>({
+        id:'photo:'+q.questionId+':'+k.nodeId,unitId:k.unitId,topicIds:[k.nodeId],title:text(q.title,400),
+        source:'paper-question' as const,sourceLabel:'拍照作业逐题批改',association:k.role==='gap'?'graded-node' as const:'graded-topic' as const,
+        status:q.status||'historical',cause:k.role==='gap'?text(k.reason,600):null,
+        causeSource:k.role==='gap'?'photo-grade-gap' as const:'unrecorded' as const,
+        at:iso(error.at),questionNumber:text(String(q.number??''),40),paperTitle:text(q.paperTitle,160),sourceRevision:error.revision,
+      }));
+    }
     const topicIds = linkedTopics(text(q.title, 1200), q.unitId, topics);
-    return {id: q.kind + ':' + q.questionId, unitId: q.unitId, topicIds, title: text(q.title, 400),
+    return [{id: q.kind + ':' + q.questionId, unitId: q.unitId, topicIds, title: text(q.title, 400),
       source: q.kind === 'photo' ? 'paper-question' : 'question-bank', sourceLabel: q.kind === 'photo' ? '试卷/拍照题库作答记录' : '错题库作答记录',
-      association: topicIds.length ? 'title-keyword' : 'unit-only', status: q.lastCorrect === 1 ? 'latest-correct' : 'needs-review',
-      cause: null, causeSource: 'unrecorded', at: iso(q.lastAt), questionNumber: text(String(q.number ?? ''), 40), paperTitle: text(q.paperTitle, 160)};
+      association: topicIds.length ? 'title-keyword' : 'unit-only', status: q.status|| (q.lastCorrect === 1 ? 'latest-correct' : 'needs-review'),
+      cause: null, causeSource: 'unrecorded', at: iso(q.lastAt), questionNumber: text(String(q.number ?? ''), 40), paperTitle: text(q.paperTitle, 160)}];
   });
   for (const [key, work] of states) {
     if (!handwriting.KEY.test(key) || !handwriting.validate(work) || !work.pages.some((p: Data[]) => p.some(s => s.tool === 'pen'))) continue;
@@ -126,10 +138,16 @@ export function buildKnowledge(docs: Document[], wrongQuestions: Data[] = [], no
   }
   const report = buildUnitReports(docs);
   const mistakes = mistakeEvidence(states, wrongQuestions, topics);
+  for(const m of mistakes.filter(m=>m.causeSource==='photo-grade-gap'&&m.status==='needs-review')){
+    const t=topics.find(t=>t.id===m.topicIds[0]&&t.unitId===m.unitId);if(!t)continue;
+    t.status=t.courseMastered?'review':'weak';
+    t.evidence.push('拍照错题：'+m.paperTitle+' 第'+m.questionNumber+'题；'+m.cause);
+    if(m.at&&(!t.lastEvidenceAt||m.at>t.lastEvidenceAt))t.lastEvidenceAt=m.at;
+  }
   const notes = arr(states.get(NOTES)?.notes).filter(n => n && typeof n.id === 'string' && typeof n.text === 'string' && typeof n.unitId === 'string').map(n => ({id: n.id, unitId: n.unitId, text: text(n.text, 1200), at: iso(n.at), source: 'student-note'}));
   const counts = {total: topics.length, mastered: topics.filter(t => t.courseMastered).length, weak: topics.filter(t => t.status === 'weak' || t.status === 'review').length, learning: topics.filter(t => t.status === 'learning').length, unknown: topics.filter(t => t.status === 'unknown').length};
   const reminders = [
-    ...wrongQuestions.filter(q => q.lastCorrect === 0).map(q => ({kind: 'mistake', unitId: q.unitId, title: q.title, reason: `这道题留存错 ${q.wrongCount} 次，最近一次仍未答对，建议重新独立作答。`})),
+    ...wrongQuestions.filter(q => q.status?q.status==='needs-review':q.lastCorrect === 0).map(q => ({kind: 'mistake', unitId: q.unitId, title: q.title, reason: `这道题留存错 ${q.wrongCount} 次，最近一次仍未答对，建议重新独立作答。`})),
     ...topics.filter(t => t.status === 'weak' || t.status === 'review').map(t => ({kind: 'weak', unitId: t.unitId, title: t.title, reason: t.evidence.join('；')})),
   ].slice(0, 100);
   return {version: 1, generatedAt: now.toISOString(), lastSyncedAt: report.lastSyncedAt, counts, units: report.units, topics, wrongQuestions, mistakes, notes, reminders,
@@ -148,9 +166,17 @@ export function knowledgeContext(profile: ReturnType<typeof buildKnowledge>, uni
   const topics = profile.topics.filter(t => t.status !== 'unknown' || t.unitId === unitId || matches(t.title)).sort((a, b) => priority(b) - priority(a)).slice(0, 32).map(t => ({...t,evidence:t.evidence.slice(0,4).map(e=>e.slice(0,180))}));
   const mistakeFocus = profile.mistakes.filter(m => m.unitId === unitId && !!topicId && m.topicIds.includes(topicId))
     .sort((a, b) => Number(b.status === 'needs-review') - Number(a.status === 'needs-review') || Number(!!b.cause) - Number(!!a.cause) || (b.at ?? '').localeCompare(a.at ?? '')).slice(0, 4);
-  return {unitId, topicId, mistakeFocus, summary: profile.summary, coverage: profile.coverage, units: profile.units.map(u => ({id: u.id, title: u.title, mastered: u.mastered, total: u.total})), topics,
-    wrongQuestions: profile.wrongQuestions.filter(q => q.unitId === unitId || matches(q) || q.lastCorrect === 0).slice(0, 12), notes: profile.notes.filter(n => n.unitId === unitId || matches(n)).slice(-8),
+  const context={unitId, topicId, mistakeFocus, summary: profile.summary, coverage: profile.coverage, units: profile.units.map(u => ({id: u.id, title: u.title, mastered: u.mastered, total: u.total})), topics,
+    wrongQuestions: profile.wrongQuestions.filter(q => q.unitId === unitId || matches(q) || q.kind==='photo' || q.lastCorrect === 0)
+      .sort((a,b)=>Number(matches(b))-Number(matches(a))||Number(b.unitId===unitId)-Number(a.unitId===unitId)||(b.lastAt||'').localeCompare(a.lastAt||'')).slice(0,12)
+      .map(q=>({...q,title:text(q.title,400),...(q.photoReview?{photoReview:{...q.photoReview,error:q.photoReview.error?{...q.photoReview.error,feedback:text(q.photoReview.error.feedback,350),
+        corrections:arr(q.photoReview.error.corrections).slice(0,2).map(c=>({location:text(c.location,80),issue:text(c.issue,180)})),
+        knowledge:arr(q.photoReview.error.knowledge).slice(0,4).map(k=>({...k,reason:text(k.reason,180)}))}:null}}:{})})), notes: profile.notes.filter(n => n.unitId === unitId || matches(n)).slice(-8),
     reminders: profile.reminders.filter(r => r.unitId === unitId).slice(0, 2), retrievedTopics: topics.length, totalTopics: profile.topics.length};
+  while(JSON.stringify(context).length>56000){
+    if(context.wrongQuestions.length>4)context.wrongQuestions.pop();else if(context.notes.length>2)context.notes.shift();else if(context.topics.length>8)context.topics.pop();else break;
+  }
+  context.retrievedTopics=context.topics.length;return context;
 }
 
 export class StudentKnowledge {
@@ -160,13 +186,14 @@ export class StudentKnowledge {
     const rows = await this.db.query<Data>(`SELECT a."Kind" AS kind,a."QuestionId" AS questionId,count(*) AS totalCount,
       sum(1-a."Correct") AS wrongCount,max(a."CreatedAt") AS lastAt,
       (SELECT z."Correct" FROM "GrowingQuestionAttempts" z WHERE z."StudentId"=a."StudentId" AND z."Kind"=a."Kind" AND z."QuestionId"=a."QuestionId" ORDER BY z."CreatedAt" DESC,z.rowid DESC LIMIT 1) AS lastCorrect,
+      (SELECT z."AttemptId" FROM "GrowingQuestionAttempts" z WHERE z."StudentId"=a."StudentId" AND z."Kind"=a."Kind" AND z."QuestionId"=a."QuestionId" ORDER BY z."CreatedAt" DESC,z.rowid DESC LIMIT 1) AS lastAttemptId,
       q."UnitId" AS unitId,substr(q."Text",1,1200) AS title,q."Number" AS number,p."Title" AS paperTitle
       FROM "GrowingQuestionAttempts" a LEFT JOIN "GrowingPhotoQuestions" q ON a."Kind"='photo' AND q."Id"=a."QuestionId"
       LEFT JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId"
       WHERE a."StudentId"=?1 AND (a."Kind"='math' OR p."StudentId"=?1)
       GROUP BY a."Kind",a."QuestionId" HAVING sum(1-a."Correct")>0 ORDER BY lastAt DESC`, [this.user.id]);
     const wrong = rows.flatMap(r => {const known = r.kind === 'math' ? mathQuestions.find(q => q.id === r.questionId) : null; return r.kind === 'math' && !known ? [] : [{...r, title: known?.title ?? r.title ?? '拍照错题', number: known?.number ?? r.number, unitId: known?.unitId ?? r.unitId, status: r.lastCorrect === 1 ? 'latest-correct' : 'needs-review'}];});
-    const profile = buildKnowledge(docs, wrong);
+    const profile = buildKnowledge(docs, await photoKnowledge(this.db,this.user.id,wrong));
     return {...profile, student: {id: this.user.id, displayName: this.user.displayName}, context: knowledgeContext(profile, unitId, query, topicId)};
   }
   async addNote(data: Data) {

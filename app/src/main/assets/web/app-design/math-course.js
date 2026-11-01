@@ -149,7 +149,7 @@
   function choose(id){if(id===selected||!chapter.nodes.some(n=>n.id===id))return;flushTime();cancelRequests();selected=id;timeTopic=id;view='home';tab='learn';submitted=null;message='';render();document.getElementById('lesson-title')?.focus();}
   root.addEventListener('click',event=>{
     const b=event.target.closest('button');if(!b)return;
-    if(b.hasAttribute('data-course-photo')){window.top.GrowingCloud?.openQuestionBank();return;}
+    if(b.hasAttribute('data-course-photo')){window.GrowingCourseNavigation.openPhotoBank();return;}
     if(b.hasAttribute('data-course-writing')||b.hasAttribute('data-course-wrong')){const href=b.hasAttribute('data-course-writing')?'handwriting.html?'+new URLSearchParams({subject,unit:chapter.id}):'math-wrong-questions.html?'+new URLSearchParams({unit:chapter.id});if(window.top.GrowingCloud?.navigate)window.top.GrowingCloud.navigate(new URL(href,location.href).href);else location.href=href;return;}
     if(b.dataset.courseView){navigateView(b.dataset.courseView);return;}
     if(b.dataset.reviewNode){choose(b.dataset.reviewNode);view='home';tab='learn';render();return;}

@@ -1,0 +1,1779 @@
+{
+  "version": 1,
+  "knowledge": [
+    {
+      "id": "tri-lines",
+      "title": "中线、高与角平分线",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=tri-lines",
+      "criterion": "先指出从哪个顶点出发；按中点、垂直或角相等区分三种线段。",
+      "review": "三角形的中线连接顶点与对边中点；高经过顶点且垂直对边所在直线；角平分线把顶角分成相等的两个角。"
+    },
+    {
+      "id": "tri-angles",
+      "title": "三角形内角与外角",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=tri-angles",
+      "criterion": "用180°减去两个已知内角；外角只加不相邻的两个内角。",
+      "review": "三角形内角和为180°。一个外角等于与它不相邻的两个内角的和。"
+    },
+    {
+      "id": "tri-inequality",
+      "title": "三角形三边关系",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=tri-inequality",
+      "criterion": "先找最长边检查两短边之和；求第三边范围时用严格不等号。",
+      "review": "任意两边之和大于第三边；已知两边a、b时，第三边c满足|a−b|<c<a+b。"
+    },
+    {
+      "id": "congruence",
+      "title": "全等与对应关系",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=congruence",
+      "criterion": "按全等符号两侧顺序找对应顶点；只比较对应边和对应角。",
+      "review": "能完全重合的两个三角形全等。对应边相等、对应角相等，书写顺序体现对应顶点。"
+    },
+    {
+      "id": "cong-sss",
+      "title": "边边边判定 SSS",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=cong-sss",
+      "criterion": "找出三组对应边相等；写出SSS并保持对应顺序。",
+      "review": "三边分别相等的两个三角形全等。证明时列清三组对应边。"
+    },
+    {
+      "id": "cong-sas",
+      "title": "边角边判定 SAS",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=cong-sas",
+      "criterion": "列出两组对应边；检查相等的角是不是两边夹角。",
+      "review": "两边和它们的夹角分别相等，两个三角形全等。夹角必须位于已知两边之间。"
+    },
+    {
+      "id": "cong-asa",
+      "title": "角边角与角角边",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=cong-asa",
+      "criterion": "核对两组角相等；看已知边是夹边还是非夹边。",
+      "review": "两个角和它们的夹边对应相等可用ASA；两个角及其中一角的对边对应相等可用AAS。"
+    },
+    {
+      "id": "cong-hl",
+      "title": "直角三角形 HL",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=cong-hl",
+      "criterion": "先确认两个三角形都是直角三角形；再核对斜边和一条直角边。",
+      "review": "两个直角三角形的斜边和一条直角边分别相等，则这两个直角三角形全等。"
+    },
+    {
+      "id": "perp-bisector",
+      "title": "线段垂直平分线",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=perp-bisector",
+      "criterion": "区分垂直与平分两个条件；在等距条件和位置条件间双向转换。",
+      "review": "线段垂直平分线上的点到两端点距离相等；到两端点等距的点在线段垂直平分线上。"
+    },
+    {
+      "id": "angle-bisector",
+      "title": "角平分线的等距性质",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=angle-bisector",
+      "criterion": "距离必须作到两边的垂线段；说明点在角内部以及两条垂足的位置。",
+      "review": "角平分线上的点到角两边的距离相等。角内部到两边距离相等的点在角平分线上。"
+    },
+    {
+      "id": "isosceles",
+      "title": "等腰三角形",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=isosceles",
+      "criterion": "先分清腰、底边、顶角和底角；用等边对等角或等角对等边。",
+      "review": "等腰三角形两腰相等、两底角相等；等角对等边。顶角平分线、底边中线和底边高重合。"
+    },
+    {
+      "id": "equilateral",
+      "title": "等边三角形",
+      "unitId": "math-8a-01",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-01&node=equilateral",
+      "criterion": "核对三边相等或足以推出三角相等的条件；用周长除以3求边长。",
+      "review": "等边三角形三边相等、三个内角都为60°。一个角为60°的等腰三角形是等边三角形。"
+    },
+    {
+      "id": "square-root",
+      "title": "平方根与算术平方根",
+      "unitId": "math-8a-02",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-02&node=square-root",
+      "criterion": "区分求平方根与求算术平方根；被开方数在实数范围内须非负。",
+      "review": "若x²=a，则x是a的平方根。a>0有两个平方根；√a只表示非负的算术平方根。"
+    },
+    {
+      "id": "root-estimate",
+      "title": "估计平方根",
+      "unitId": "math-8a-02",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-02&node=root-estimate",
+      "criterion": "找相邻整数的平方夹住被开方数；再把比较转换到平方根。",
+      "review": "比较相邻完全平方数，可以估计算术平方根的范围。非负数的平方越大，其算术平方根越大。"
+    },
+    {
+      "id": "cube-root",
+      "title": "立方根",
+      "unitId": "math-8a-02",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-02&node=cube-root",
+      "criterion": "寻找立方后等于原数的数；保留负数立方根的负号。",
+      "review": "若x³=a，则x是a的立方根。正数、负数和0各有唯一的实数立方根，符号与a相同。"
+    },
+    {
+      "id": "real-types",
+      "title": "有理数与无理数",
+      "unitId": "math-8a-02",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-02&node=real-types",
+      "criterion": "先化简表达式再分类；区分无限循环小数与无限不循环小数。",
+      "review": "有理数可写成两个整数的比；无理数是无限不循环小数，二者合称实数。"
+    },
+    {
+      "id": "real-line",
+      "title": "实数与数轴",
+      "unitId": "math-8a-02",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-02&node=real-line",
+      "criterion": "比较位置时由左到右递增；求绝对值时取到原点的非负距离。",
+      "review": "实数与数轴上的点一一对应。数轴右边的数大于左边的数，绝对值表示到原点的距离。"
+    },
+    {
+      "id": "approximate",
+      "title": "近似值与精确度",
+      "unitId": "math-8a-02",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-02&node=approximate",
+      "criterion": "确定保留的数位；查看后一位并四舍五入。",
+      "review": "按四舍五入取近似值时，保留到哪一位就检查它后面一位。末尾的0能表达精确度。"
+    },
+    {
+      "id": "pythagoras",
+      "title": "勾股定理",
+      "unitId": "math-8a-03",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-03&node=pythagoras",
+      "criterion": "先确认直角和斜边；列平方关系后求边长。",
+      "review": "直角三角形两条直角边a、b和斜边c满足a²+b²=c²，斜边是直角所对的边。"
+    },
+    {
+      "id": "pyth-converse",
+      "title": "勾股定理的逆定理",
+      "unitId": "math-8a-03",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-03&node=pyth-converse",
+      "criterion": "先找最长边；比较两短边平方和与最长边平方。",
+      "review": "若三角形两条较短边的平方和等于最长边的平方，则它是直角三角形，最长边所对角为直角。"
+    },
+    {
+      "id": "pyth-apply",
+      "title": "勾股定理的应用",
+      "unitId": "math-8a-03",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-03&node=pyth-apply",
+      "criterion": "画出直角关系并标已知边；计算后检查结果及实际单位。",
+      "review": "把实际问题转化为直角三角形，明确长度、单位和所求边，再使用勾股定理。"
+    },
+    {
+      "id": "coordinates",
+      "title": "有序数对与坐标",
+      "unitId": "math-8a-04",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-04&node=coordinates",
+      "criterion": "先沿x轴找横坐标；再按纵坐标确定上下位置。",
+      "review": "平面直角坐标系由互相垂直且原点重合的数轴组成。点(x,y)先写横坐标，再写纵坐标。"
+    },
+    {
+      "id": "quadrants",
+      "title": "象限与坐标轴",
+      "unitId": "math-8a-04",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-04&node=quadrants",
+      "criterion": "先看横纵坐标符号；有坐标为0时改判坐标轴。",
+      "review": "一、二、三、四象限的坐标符号依次为(+,+)、(−,+)、(−,−)、(+,−)。坐标轴上的点不属于任何象限。"
+    },
+    {
+      "id": "translation",
+      "title": "平移与坐标变化",
+      "unitId": "math-8a-04",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-04&node=translation",
+      "criterion": "把方向转换为横纵坐标的增减；对每个顶点使用同一平移量。",
+      "review": "向右平移a使横坐标加a，向上平移b使纵坐标加b；向左、向下则减。图形各点按同一规则移动。"
+    },
+    {
+      "id": "reflection",
+      "title": "轴对称与坐标变化",
+      "unitId": "math-8a-04",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-04&node=reflection",
+      "criterion": "先确认对称轴或对称中心；保留未改变的位置分量。",
+      "review": "关于x轴对称，纵坐标变号；关于y轴对称，横坐标变号；关于原点对称，两个坐标都变号。"
+    },
+    {
+      "id": "function-variable",
+      "title": "变量、常量与函数",
+      "unitId": "math-8a-05",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-05&node=function-variable",
+      "criterion": "辨明变化过程中的变量和常量；检查一个x是否对应唯一的y。",
+      "review": "在一个变化过程中，自变量每取一个允许值，因变量都有唯一确定的值对应，就构成函数关系。"
+    },
+    {
+      "id": "linear-function",
+      "title": "一次函数与正比例函数",
+      "unitId": "math-8a-05",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-05&node=linear-function",
+      "criterion": "将表达式整理为kx+b；核对x次数为1且k非零。",
+      "review": "形如y=kx+b（k≠0）的函数为一次函数；b=0时为正比例函数。"
+    },
+    {
+      "id": "line-graph",
+      "title": "一次函数的图象",
+      "unitId": "math-8a-05",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-05&node=line-graph",
+      "criterion": "取两个不同x求对应y；描点连线并标明坐标轴。",
+      "review": "一次函数图象是一条直线。找两个不同的点，描点后连成直线，不能只画线段。"
+    },
+    {
+      "id": "line-monotone",
+      "title": "一次函数的增减性",
+      "unitId": "math-8a-05",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-05&node=line-monotone",
+      "criterion": "看k的正负判断增减；看b确定纵截距。",
+      "review": "y=kx+b中，k>0时y随x增大而增大，k<0时y随x增大而减小；b决定与y轴的交点。"
+    },
+    {
+      "id": "line-coefficients",
+      "title": "待定系数求解析式",
+      "unitId": "math-8a-05",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-05&node=line-coefficients",
+      "criterion": "将两点分别代入并列方程；解得k、b后用两个已知点代入检验。",
+      "review": "已知一次函数图象上的两个不同点，可把坐标分别代入y=kx+b，解出k、b。"
+    },
+    {
+      "id": "line-model",
+      "title": "一次函数解决实际问题",
+      "unitId": "math-8a-05",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-05&node=line-model",
+      "criterion": "找初始量和每单位的变化量；写出范围、单位并检查结论。",
+      "review": "把固定费用作为常数项，把单位变化量作为一次项系数，列出关系式并结合范围比较方案。"
+    },
+    {
+      "id": "line-system",
+      "title": "一次函数与二元一次方程",
+      "unitId": "math-8a-05",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8a-05&node=line-system",
+      "criterion": "当y的系数非零时，可整理为y=kx+b；x=常数表示竖直直线；求交点后代入两式检验。",
+      "review": "二元一次方程的解可表示为直线上的点；两条直线交点的坐标同时满足两个方程。"
+    },
+    {
+      "id": "survey",
+      "title": "普查与抽样调查",
+      "unitId": "math-8b-06",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-06&node=survey",
+      "criterion": "分清总体、个体、样本与样本容量；根据成本、破坏性和代表性选调查方式。",
+      "review": "普查调查全部对象，抽样调查调查部分对象并估计总体。样本要有代表性，样本容量是调查对象的个数。"
+    },
+    {
+      "id": "charts",
+      "title": "统计图的选择与阅读",
+      "unitId": "math-8b-06",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-06&node=charts",
+      "criterion": "按数量、趋势或占比选择图型；检查纵轴起点与单位再比较。",
+      "review": "条形图便于比较数量，折线图突出变化趋势，扇形图表现部分占总体的比例。读取图表要看标题、单位和刻度。"
+    },
+    {
+      "id": "price-study",
+      "title": "货比三家：可比的数据",
+      "unitId": "math-8b-06",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-06&node=price-study",
+      "criterion": "先统一单位和比较条件；计算真实总价而不是只看标价。",
+      "review": "比较方案时应统一规格、数量、时间与单位，并计入运费或固定费用，再结合质量等条件判断。"
+    },
+    {
+      "id": "frequency",
+      "title": "频数与频率",
+      "unitId": "math-8b-06",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-06&node=frequency",
+      "criterion": "明确总数与某类频数；用频数除总数并检查结果在0到1之间。",
+      "review": "频数是某类出现的次数，频率=频数÷数据总数。互不重叠且覆盖全部的数据类别，其频率和为1。"
+    },
+    {
+      "id": "histogram",
+      "title": "频数分布表与直方图",
+      "unitId": "math-8b-06",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-06&node=histogram",
+      "criterion": "明确分组边界并保证每个数据只入一组；先列表计频数再画等组距直方图。",
+      "review": "分组统计时各组不能重复或遗漏。等组距的频数直方图中，柱高表示该组频数，相邻柱通常相接。"
+    },
+    {
+      "id": "vision-study",
+      "title": "视力调查：从数据到结论",
+      "unitId": "math-8b-06",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-06&node=vision-study",
+      "criterion": "为目标总体设计有代表性的样本；报告比例、样本量与调查局限。",
+      "review": "统计案例应包括提出问题、设计调查、收集整理、描述分析和说明局限；抽样结论要明确适用总体。"
+    },
+    {
+      "id": "random-event",
+      "title": "必然、不可能与随机事件",
+      "unitId": "math-8b-07",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-07&node=random-event",
+      "criterion": "明确试验条件和结果范围；按是否必定发生分类。",
+      "review": "在一定条件下必定发生的是必然事件，必定不发生的是不可能事件，可能发生也可能不发生的是随机事件。"
+    },
+    {
+      "id": "probability",
+      "title": "等可能情形下的概率",
+      "unitId": "math-8b-07",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-07&node=probability",
+      "criterion": "先确认基本结果等可能；完整列举总数与有利结果数。",
+      "review": "所有基本结果等可能且能列举时，P(A)=事件A包含的结果数÷所有可能结果数。概率在0与1之间。"
+    },
+    {
+      "id": "frequency-prob",
+      "title": "用频率估计概率",
+      "unitId": "math-8b-07",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-07&node=frequency-prob",
+      "criterion": "区分试验得到的频率与理论概率；强调大量重复和随机波动。",
+      "review": "大量重复试验中，事件发生频率通常在概率附近波动，可以据此估计概率，但不要求恰好相等。"
+    },
+    {
+      "id": "parallelogram",
+      "title": "平行四边形的性质",
+      "unitId": "math-8b-08",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-08&node=parallelogram",
+      "criterion": "由平行四边形条件调用相应性质；分清对角线互相平分与互相垂直。",
+      "review": "两组对边分别平行的四边形是平行四边形；它的对边相等、对角相等、邻角互补、对角线互相平分。"
+    },
+    {
+      "id": "parallel-judge",
+      "title": "平行四边形的判定",
+      "unitId": "math-8b-08",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-08&node=parallel-judge",
+      "criterion": "完整列出一套判定条件；避免把不同对边的平行和相等拼凑。",
+      "review": "两组对边分别相等、两组对角分别相等、对角线互相平分，或一组对边平行且相等，都能判平行四边形。"
+    },
+    {
+      "id": "rectangle",
+      "title": "矩形",
+      "unitId": "math-8b-08",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-08&node=rectangle",
+      "criterion": "先有平行四边形条件再补一个直角；用对角线相等或直角条件完成判定。",
+      "review": "有一个角是直角的平行四边形叫矩形。矩形四角都是直角，对角线相等且互相平分。"
+    },
+    {
+      "id": "rhombus",
+      "title": "菱形",
+      "unitId": "math-8b-08",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-08&node=rhombus",
+      "criterion": "核对平行四边形及邻边相等；用垂直平分求边长或面积。",
+      "review": "有一组邻边相等的平行四边形叫菱形。菱形四边相等，对角线互相垂直平分，面积等于两对角线乘积的一半。"
+    },
+    {
+      "id": "square",
+      "title": "正方形与特殊四边形关系",
+      "unitId": "math-8b-08",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-08&node=square",
+      "criterion": "从矩形加邻边相等或菱形加直角判定；合并对角线相等、垂直、互相平分的性质。",
+      "review": "四边相等且四角都是直角的四边形是正方形。正方形既是矩形也是菱形，具有二者性质。"
+    },
+    {
+      "id": "midline",
+      "title": "三角形的中位线",
+      "unitId": "math-8b-08",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-08&node=midline",
+      "criterion": "确认端点都是两边中点；写出平行关系与一半长度关系。",
+      "review": "连接三角形两边中点的线段叫中位线；它平行于第三边，且长度等于第三边的一半。"
+    },
+    {
+      "id": "trapezoid",
+      "title": "梯形及其面积",
+      "unitId": "math-8b-08",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-08&node=trapezoid",
+      "criterion": "先分清两底、腰和垂直的高；代入面积公式并保留平方单位。",
+      "review": "本教材采用只有一组对边平行的四边形为梯形的定义，平行的两边为底，另两边为腰。面积=(上底+下底)×高÷2。"
+    },
+    {
+      "id": "iso-trapezoid",
+      "title": "等腰梯形",
+      "unitId": "math-8b-08",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-08&node=iso-trapezoid",
+      "criterion": "先有梯形条件，再检查两腰相等；用同底角相等和邻角互补求角。",
+      "review": "两腰相等的梯形为等腰梯形。等腰梯形同一底上的两个角相等，两条对角线相等。"
+    },
+    {
+      "id": "factor",
+      "title": "提公因式法",
+      "unitId": "math-8b-09",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-09&node=factor",
+      "criterion": "找出各项共有的因式；提出后逐项相除并展开检查。",
+      "review": "多项式各项有公因式时，先提取共同因子；系数取最大公因数，相同字母取最低次幂。"
+    },
+    {
+      "id": "factor-concept",
+      "title": "因式分解的概念",
+      "unitId": "math-8b-09",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-09&node=factor-concept",
+      "criterion": "结果必须是整式的积；把结果展开检验是否等于原多项式。",
+      "review": "把一个多项式化成几个整式的积，叫因式分解。它与整式乘法方向相反，可以展开检验。"
+    },
+    {
+      "id": "factor-difference",
+      "title": "平方差公式分解",
+      "unitId": "math-8b-09",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-09&node=factor-difference",
+      "criterion": "识别两个平方与中间减号；按和乘差写成积并继续检查。",
+      "review": "a²−b²=(a+b)(a−b)。先检查是两个平方项之差，必要时先提公因式。"
+    },
+    {
+      "id": "factor-perfect",
+      "title": "完全平方公式分解",
+      "unitId": "math-8b-09",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-09&node=factor-perfect",
+      "criterion": "确认首尾是平方；核对中间项的系数与符号。",
+      "review": "a²±2ab+b²=(a±b)²。首尾须为平方项，中间项须恰好是两数乘积的正负2倍。"
+    },
+    {
+      "id": "definition",
+      "title": "分式的定义",
+      "unitId": "math-8b-10",
+      "subject": "math",
+      "href": "app-design/knowledge.html?chapter=math-8b-10&node=definition",
+      "criterion": "能依据分母含字母判断分式，不把 π 当变量。",
+      "review": "A、B都是整式，B中含字母，A/B叫分式。"
+    },
+    {
+      "id": "meaning",
+      "title": "分式有意义",
+      "unitId": "math-8b-10",
+      "subject": "math",
+      "href": "app-design/knowledge.html?chapter=math-8b-10&node=meaning",
+      "criterion": "能列出原式全部分母不为0的限制。",
+      "review": "分式有意义的条件是分母不为0。多个因式都要检查。"
+    },
+    {
+      "id": "zero",
+      "title": "分式的值为零",
+      "unitId": "math-8b-10",
+      "subject": "math",
+      "href": "app-design/knowledge.html?chapter=math-8b-10&node=zero",
+      "criterion": "能同时检查分子为0、分母不为0，识别无解情形。",
+      "review": "分子为0是必要条件，还要排除使分母为0的值。"
+    },
+    {
+      "id": "property",
+      "title": "分式基本性质",
+      "unitId": "math-8b-10",
+      "subject": "math",
+      "href": "app-design/knowledge.html?chapter=math-8b-10&node=property",
+      "criterion": "能说出同时、同一个、乘或除、非零四项条件。",
+      "review": "分子分母同乘或同除同一个非零整式，值不变；限制仍以原式为准。"
+    },
+    {
+      "id": "sign",
+      "title": "分式符号变化",
+      "unitId": "math-8b-10",
+      "subject": "math",
+      "href": "app-design/knowledge.html?chapter=math-8b-10&node=sign",
+      "criterion": "能处理分式内外负号以及 a−b 与 b−a 的关系。",
+      "review": "分式前、分子前、分母前三个位置中，同时改变任意两处符号，值不变。"
+    },
+    {
+      "id": "reduce",
+      "title": "分式约分",
+      "unitId": "math-8b-10",
+      "subject": "math",
+      "href": "app-design/knowledge.html?chapter=math-8b-10&node=reduce",
+      "criterion": "能先分解因式再约去公因式，并保留原式限制。",
+      "review": "只能约去公因式，不能把加减式中的一项约掉。"
+    },
+    {
+      "id": "common",
+      "title": "通分与公分母",
+      "unitId": "math-8b-10",
+      "subject": "math",
+      "href": "app-design/knowledge.html?chapter=math-8b-10&node=common",
+      "criterion": "能分解分母，取各因式最高次幂并同步改写分子。",
+      "review": "系数取最小公倍数，每种因式取出现的最高次幂。"
+    },
+    {
+      "id": "add",
+      "title": "分式加减",
+      "unitId": "math-8b-10",
+      "subject": "math",
+      "href": "app-design/knowledge.html?chapter=math-8b-10&node=add",
+      "criterion": "能先通分再合并分子，并正确处理减号与括号。",
+      "review": "同分母时分母不变，分子相加减；异分母先通分。"
+    },
+    {
+      "id": "multiply",
+      "title": "分式乘除",
+      "unitId": "math-8b-10",
+      "subject": "math",
+      "href": "app-design/knowledge.html?chapter=math-8b-10&node=multiply",
+      "criterion": "能把除法改成乘倒数，约分并保留除式不为0的条件。",
+      "review": "乘法分子分母分别相乘；除法乘倒数；原分母和除式都不能为0。"
+    },
+    {
+      "id": "equation",
+      "title": "分式方程",
+      "unitId": "math-8b-10",
+      "subject": "math",
+      "href": "app-design/knowledge.html?chapter=math-8b-10&node=equation",
+      "criterion": "能找公分母、去分母、解整式方程，再检验原分母。",
+      "review": "乘公分母时每一项都要乘，解出后回到原式检查。"
+    },
+    {
+      "id": "extraneous",
+      "title": "增根与检验",
+      "unitId": "math-8b-10",
+      "subject": "math",
+      "href": "app-design/knowledge.html?chapter=math-8b-10&node=extraneous",
+      "criterion": "能识别使原分母为0的候选解并舍去。",
+      "review": "去分母可能扩大允许范围；使原分母为0的候选解是增根。"
+    },
+    {
+      "id": "radical-domain",
+      "title": "二次根式与有意义条件",
+      "unitId": "math-8b-11",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-11&node=radical-domain",
+      "criterion": "列被开方数≥0的条件；同时检查原式若有分母不能为0。",
+      "review": "形如√a（a≥0）的式子叫二次根式。根号表示非负的算术平方根；有意义需要被开方数非负。"
+    },
+    {
+      "id": "radical-simplify",
+      "title": "二次根式的性质与化简",
+      "unitId": "math-8b-11",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-11&node=radical-simplify",
+      "criterion": "区分根号平方与平方开根；提取完全平方因子并使用绝对值。",
+      "review": "(√a)²=a（a≥0），√(a²)=|a|。把被开方数中的完全平方因子提出根号，注意符号。"
+    },
+    {
+      "id": "radical-multiply",
+      "title": "二次根式的乘除",
+      "unitId": "math-8b-11",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-11&node=radical-multiply",
+      "criterion": "检查乘除的非负与非零条件；合并或拆分后化简到最简形式。",
+      "review": "非负数a、b满足√a·√b=√(ab)；除法还要求除数的被开方数大于0。可通过同乘根式化去分母根号。"
+    },
+    {
+      "id": "radical-add",
+      "title": "二次根式的加减",
+      "unitId": "math-8b-11",
+      "subject": "math",
+      "href": "app-design/math-course.html?chapter=math-8b-11&node=radical-add",
+      "criterion": "先化简再判断是否同类；合并系数而保留相同根式。",
+      "review": "先化简各根式，再合并被开方数相同的同类二次根式，合并时只加减系数。"
+    },
+    {
+      "id": "phy-source",
+      "title": "声音来自振动",
+      "unitId": "physics-8a-01",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-01&node=phy-source"
+    },
+    {
+      "id": "phy-medium",
+      "title": "声音传播需要介质",
+      "unitId": "physics-8a-01",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-01&node=phy-medium"
+    },
+    {
+      "id": "phy-echo",
+      "title": "声速与回声测距",
+      "unitId": "physics-8a-01",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-01&node=phy-echo"
+    },
+    {
+      "id": "phy-pitch",
+      "title": "音调由频率决定",
+      "unitId": "physics-8a-01",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-01&node=phy-pitch"
+    },
+    {
+      "id": "phy-loudness",
+      "title": "响度与振幅",
+      "unitId": "physics-8a-01",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-01&node=phy-loudness"
+    },
+    {
+      "id": "phy-timbre",
+      "title": "用音色识别声源",
+      "unitId": "physics-8a-01",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-01&node=phy-timbre"
+    },
+    {
+      "id": "phy-noise",
+      "title": "噪声控制的三个环节",
+      "unitId": "physics-8a-01",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-01&node=phy-noise"
+    },
+    {
+      "id": "phy-ultrasound",
+      "title": "超声与次声",
+      "unitId": "physics-8a-01",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-01&node=phy-ultrasound"
+    },
+    {
+      "id": "phy-spectrum",
+      "title": "光源与白光的色散",
+      "unitId": "physics-8a-02",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-02&node=phy-spectrum"
+    },
+    {
+      "id": "phy-rgb",
+      "title": "三原色光与光能",
+      "unitId": "physics-8a-02",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-02&node=phy-rgb"
+    },
+    {
+      "id": "phy-straight",
+      "title": "光的直线传播与小孔成像",
+      "unitId": "physics-8a-02",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-02&node=phy-straight"
+    },
+    {
+      "id": "phy-mirror",
+      "title": "平面镜成像的对称性",
+      "unitId": "physics-8a-02",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-02&node=phy-mirror"
+    },
+    {
+      "id": "phy-mirror-lab",
+      "title": "平面镜成像实验",
+      "unitId": "physics-8a-02",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-02&node=phy-mirror-lab"
+    },
+    {
+      "id": "phy-reflection",
+      "title": "反射定律与角度",
+      "unitId": "physics-8a-02",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-02&node=phy-reflection"
+    },
+    {
+      "id": "phy-diffuse",
+      "title": "镜面反射与漫反射",
+      "unitId": "physics-8a-02",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-02&node=phy-diffuse"
+    },
+    {
+      "id": "phy-refraction",
+      "title": "折射方向与法线",
+      "unitId": "physics-8a-03",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-03&node=phy-refraction"
+    },
+    {
+      "id": "phy-shallow",
+      "title": "水底为何看起来浅",
+      "unitId": "physics-8a-03",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-03&node=phy-shallow"
+    },
+    {
+      "id": "phy-lens",
+      "title": "凸透镜与凹透镜",
+      "unitId": "physics-8a-03",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-03&node=phy-lens"
+    },
+    {
+      "id": "phy-focus",
+      "title": "焦点、焦距与特殊光线",
+      "unitId": "physics-8a-03",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-03&node=phy-focus"
+    },
+    {
+      "id": "phy-imaging",
+      "title": "一倍焦距分虚实，二倍分大小",
+      "unitId": "physics-8a-03",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-03&node=phy-imaging"
+    },
+    {
+      "id": "phy-lens-lab",
+      "title": "怎样找到清晰的实像",
+      "unitId": "physics-8a-03",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-03&node=phy-lens-lab"
+    },
+    {
+      "id": "phy-applications",
+      "title": "照相、投影与放大观察",
+      "unitId": "physics-8a-03",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-03&node=phy-applications"
+    },
+    {
+      "id": "phy-eye",
+      "title": "人眼成像与视力矫正",
+      "unitId": "physics-8a-03",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-03&node=phy-eye"
+    },
+    {
+      "id": "phy-instruments",
+      "title": "望远镜与显微镜",
+      "unitId": "physics-8a-03",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-03&node=phy-instruments"
+    },
+    {
+      "id": "phy-invisible",
+      "title": "红外线与紫外线",
+      "unitId": "physics-8a-03",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-03&node=phy-invisible"
+    },
+    {
+      "id": "phy-temperature",
+      "title": "三态与温度计的使用",
+      "unitId": "physics-8a-04",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-04&node=phy-temperature"
+    },
+    {
+      "id": "phy-cooling",
+      "title": "读懂温度—时间图像",
+      "unitId": "physics-8a-04",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-04&node=phy-cooling"
+    },
+    {
+      "id": "phy-evaporation",
+      "title": "蒸发与控制变量",
+      "unitId": "physics-8a-04",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-04&node=phy-evaporation"
+    },
+    {
+      "id": "phy-boiling",
+      "title": "沸腾需要持续吸热",
+      "unitId": "physics-8a-04",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-04&node=phy-boiling"
+    },
+    {
+      "id": "phy-liquid",
+      "title": "白气、露与液化",
+      "unitId": "physics-8a-04",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-04&node=phy-liquid"
+    },
+    {
+      "id": "phy-melting",
+      "title": "熔化、凝固与平台图像",
+      "unitId": "physics-8a-04",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-04&node=phy-melting"
+    },
+    {
+      "id": "phy-sublimation",
+      "title": "直接跨过液态的变化",
+      "unitId": "physics-8a-04",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-04&node=phy-sublimation"
+    },
+    {
+      "id": "phy-water-cycle",
+      "title": "水循环与状态变化链",
+      "unitId": "physics-8a-04",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-04&node=phy-water-cycle"
+    },
+    {
+      "id": "phy-length",
+      "title": "刻度尺读数与单位",
+      "unitId": "physics-8a-05",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-05&node=phy-length"
+    },
+    {
+      "id": "phy-error",
+      "title": "误差不是错误",
+      "unitId": "physics-8a-05",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-05&node=phy-error"
+    },
+    {
+      "id": "phy-time",
+      "title": "计时与累积测量",
+      "unitId": "physics-8a-05",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-05&node=phy-time"
+    },
+    {
+      "id": "phy-speed",
+      "title": "速度计算与单位换算",
+      "unitId": "physics-8a-05",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-05&node=phy-speed"
+    },
+    {
+      "id": "phy-uniform",
+      "title": "匀速直线运动与s—t图",
+      "unitId": "physics-8a-05",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-05&node=phy-uniform"
+    },
+    {
+      "id": "phy-average",
+      "title": "平均速度与列车过桥",
+      "unitId": "physics-8a-05",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-05&node=phy-average"
+    },
+    {
+      "id": "phy-reference",
+      "title": "先选参照物再说动静",
+      "unitId": "physics-8a-05",
+      "subject": "physics",
+      "href": "app-design/physics-course.html?chapter=physics-8a-05&node=phy-reference"
+    },
+    {
+      "id": "eng1-reading",
+      "title": "阅读：用事例写出朋友的品质",
+      "unitId": "english-8a-01",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-01&node=lesson%3Areading"
+    },
+    {
+      "id": "eng1-forms",
+      "title": "语法：形容词比较级与最高级的构成",
+      "unitId": "english-8a-01",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-01&node=lesson%3Aforms"
+    },
+    {
+      "id": "eng1-comparison",
+      "title": "语法：比较范围和句型",
+      "unitId": "english-8a-01",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-01&node=lesson%3Acomparison"
+    },
+    {
+      "id": "eng1-suffixes",
+      "title": "词汇运用：-ful / -less 与人物描写",
+      "unitId": "english-8a-01",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-01&node=lesson%3Asuffixes"
+    },
+    {
+      "id": "eng2-reading",
+      "title": "阅读：比较不同的校园生活",
+      "unitId": "english-8a-02",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-02&node=lesson%3Areading"
+    },
+    {
+      "id": "eng2-amount",
+      "title": "语法：more / fewer / less",
+      "unitId": "english-8a-02",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-02&node=lesson%3Aamount"
+    },
+    {
+      "id": "eng2-equality",
+      "title": "语法：as ... as 的同级比较",
+      "unitId": "english-8a-02",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-02&node=lesson%3Aequality"
+    },
+    {
+      "id": "eng2-writing",
+      "title": "综合运用：建议、语言与学校改进",
+      "unitId": "english-8a-02",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-02&node=lesson%3Awriting"
+    },
+    {
+      "id": "eng3-adverbs",
+      "title": "副词比较级与最高级",
+      "unitId": "english-8a-03",
+      "subject": "english",
+      "href": "word-ops-unit3/index.html"
+    },
+    {
+      "id": "eng3-reflexives",
+      "title": "反身代词",
+      "unitId": "english-8a-03",
+      "subject": "english",
+      "href": "word-ops-unit3/index.html"
+    },
+    {
+      "id": "eng4-reading",
+      "title": "阅读：从动手失误到学会DIY",
+      "unitId": "english-8a-04",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-04&node=lesson%3Areading"
+    },
+    {
+      "id": "eng4-imperatives",
+      "title": "语法：祈使句与操作步骤",
+      "unitId": "english-8a-04",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-04&node=lesson%3Aimperatives"
+    },
+    {
+      "id": "eng4-advice",
+      "title": "语法：should / had better",
+      "unitId": "english-8a-04",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-04&node=lesson%3Aadvice"
+    },
+    {
+      "id": "eng4-prefixes",
+      "title": "综合运用：否定前缀与手作介绍",
+      "unitId": "english-8a-04",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-04&node=lesson%3Aprefixes"
+    },
+    {
+      "id": "eng5-reading",
+      "title": "阅读：熊猫成长、困境与保护",
+      "unitId": "english-8a-05",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-05&node=lesson%3Areading"
+    },
+    {
+      "id": "eng5-verb-to",
+      "title": "语法：动词 + to不定式",
+      "unitId": "english-8a-05",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-05&node=lesson%3Averb-to"
+    },
+    {
+      "id": "eng5-purpose",
+      "title": "语法：用to不定式表达目的",
+      "unitId": "english-8a-05",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-05&node=lesson%3Apurpose"
+    },
+    {
+      "id": "eng5-object-to",
+      "title": "语法：宾语后带to和不带to的不定式",
+      "unitId": "english-8a-05",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-05&node=lesson%3Aobject-to"
+    },
+    {
+      "id": "eng5-writing",
+      "title": "综合运用：保护倡议与构词",
+      "unitId": "english-8a-05",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-05&node=lesson%3Awriting"
+    },
+    {
+      "id": "eng6-reading",
+      "title": "阅读：四季诗歌中的意象",
+      "unitId": "english-8a-06",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-06&node=lesson%3Areading"
+    },
+    {
+      "id": "eng6-sv-svo",
+      "title": "语法：主谓与主谓宾",
+      "unitId": "english-8a-06",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-06&node=lesson%3Asv-svo"
+    },
+    {
+      "id": "eng6-linking",
+      "title": "语法：主系表与感官动词",
+      "unitId": "english-8a-06",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-06&node=lesson%3Alinking"
+    },
+    {
+      "id": "eng6-weather",
+      "title": "综合运用：天气构词与季节介绍",
+      "unitId": "english-8a-06",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-06&node=lesson%3Aweather"
+    },
+    {
+      "id": "eng7-reading",
+      "title": "阅读：生态系统的成员与作用",
+      "unitId": "english-8a-07",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-07&node=lesson%3Areading"
+    },
+    {
+      "id": "eng7-double-object",
+      "title": "语法：主谓双宾语",
+      "unitId": "english-8a-07",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-07&node=lesson%3Adouble-object"
+    },
+    {
+      "id": "eng7-complement",
+      "title": "语法：主谓宾与宾语补足语",
+      "unitId": "english-8a-07",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-07&node=lesson%3Acomplement"
+    },
+    {
+      "id": "eng7-conjunctions",
+      "title": "语法：and / but / or / so",
+      "unitId": "english-8a-07",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-07&node=lesson%3Aconjunctions"
+    },
+    {
+      "id": "eng7-writing",
+      "title": "综合运用：-ly与环保建议",
+      "unitId": "english-8a-07",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-07&node=lesson%3Awriting"
+    },
+    {
+      "id": "eng8-reading",
+      "title": "阅读：地震叙事的时间线与情绪变化",
+      "unitId": "english-8a-08",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-08&node=lesson%3Areading"
+    },
+    {
+      "id": "eng8-past-continuous",
+      "title": "语法：过去进行时",
+      "unitId": "english-8a-08",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-08&node=lesson%3Apast-continuous"
+    },
+    {
+      "id": "eng8-when-while",
+      "title": "语法：when / while / as",
+      "unitId": "english-8a-08",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-08&node=lesson%3Awhen-while"
+    },
+    {
+      "id": "eng8-writing",
+      "title": "综合运用：构词与安全主题叙事",
+      "unitId": "english-8a-08",
+      "subject": "english",
+      "href": "app-design/english-course.html?unit=english-8a-08&node=lesson%3Awriting"
+    }
+  ],
+  "models": [
+    {
+      "id": 1,
+      "title": "线段双中点",
+      "nodes": [
+        "tri-lines"
+      ],
+      "given": "C在线段AB上，M、N分别为AC、BC的中点。",
+      "result": "MN = AB / 2。",
+      "method": [
+        "按A、M、C、N、B的顺序标点，记AC=a，CB=b。",
+        "中点定义给出MC=a/2，CN=b/2。",
+        "M、N分居C两侧，MN=MC+CN=(a+b)/2。"
+      ],
+      "href": "app-design/geometry-models.html#model-1"
+    },
+    {
+      "id": 2,
+      "title": "角的双角平分线",
+      "nodes": [
+        "tri-lines",
+        "angle-bisector"
+      ],
+      "given": "射线OP在∠AOB内部，ON平分∠AOP，OM平分∠BOP。",
+      "result": "∠MON = ∠AOB / 2。",
+      "method": [
+        "设∠AOP=α，∠POB=β，则∠AOB=α+β。",
+        "角平分线给出∠NOP=α/2，∠POM=β/2。",
+        "ON、OM分居OP两侧，因此∠NOM=∠NOP+∠POM。"
+      ],
+      "href": "app-design/geometry-models.html#model-2"
+    },
+    {
+      "id": 3,
+      "title": "猪蹄模型",
+      "nodes": [
+        "tri-angles"
+      ],
+      "given": "AB∥CD，O在两条平行线之间，按图连接BO、DO。",
+      "result": "∠BOD = ∠ABO + ∠CDO。",
+      "method": [
+        "只讨论图示O在平行线之间的情形。",
+        "过O作OE∥AB∥CD，E取在右侧。",
+        "内错角相等：∠BOE=∠ABO，∠EOD=∠CDO。"
+      ],
+      "href": "app-design/geometry-models.html#model-3"
+    },
+    {
+      "id": 4,
+      "title": "铅笔头模型",
+      "nodes": [
+        "tri-angles"
+      ],
+      "given": "AB∥CD，B、O、C构成向右突出的折线，如图。",
+      "result": "∠ABO + ∠BOC + ∠OCD = 360°。",
+      "method": [
+        "明确三个角均取图示非优角。",
+        "过O作OE∥AB，E在O左侧。",
+        "∠BOE=180°−∠ABO，∠EOC=180°−∠OCD。"
+      ],
+      "href": "app-design/geometry-models.html#model-4"
+    },
+    {
+      "id": 5,
+      "title": "锯齿模型",
+      "nodes": [
+        "tri-angles"
+      ],
+      "given": "AB∥EF，B、C、D、E构成图示锯齿折线。",
+      "result": "∠ABC + ∠CDE = ∠BCD + ∠DEF。",
+      "method": [
+        "令BC与向左水平射线的夹角为x，CD与向右水平射线的夹角为y，DE与向左水平射线的夹角为z。",
+        "分别过C、D作与AB平行的辅助线。",
+        "由平行线角关系，∠B=x，∠C=x+y，∠D=y+z，∠E=z。"
+      ],
+      "href": "app-design/geometry-models.html#model-5"
+    },
+    {
+      "id": 6,
+      "title": "牛角模型",
+      "nodes": [
+        "tri-angles"
+      ],
+      "given": "AB∥CD，E在两平行线外侧，∠ABE>∠CDE，图示B、D在E左下方。",
+      "result": "∠BED = ∠ABE − ∠CDE。",
+      "method": [
+        "先确认E在平行线外，而不是两线之间。",
+        "过E作EF∥AB∥CD，F在E左侧。",
+        "同旁内角互补，∠BEF=180°−∠ABE，∠DEF=180°−∠CDE。"
+      ],
+      "href": "app-design/geometry-models.html#model-6"
+    },
+    {
+      "id": 7,
+      "title": "8字角模型",
+      "nodes": [
+        "tri-angles"
+      ],
+      "given": "AC、BD相交于O，连接AB、CD，形成两个对顶三角形。",
+      "result": "∠OAB + ∠ABO = ∠OCD + ∠CDO。",
+      "method": [
+        "分别观察△AOB与△COD。",
+        "交点O处的∠AOB与∠COD是对顶角，相等。",
+        "由三角形内角和，∠A+∠B=180°−∠AOB；∠C+∠D=180°−∠COD。"
+      ],
+      "href": "app-design/geometry-models.html#model-7"
+    },
+    {
+      "id": 8,
+      "title": "A字外角模型",
+      "nodes": [
+        "tri-angles"
+      ],
+      "given": "B在射线AD上，C在射线AE上，D、E分别在B、C的外侧，连接BC。",
+      "result": "∠DBC + ∠ECB = 180° + ∠A。",
+      "method": [
+        "在△ABC中，∠ABC+∠ACB=180°−∠A。",
+        "BD与BA反向，所以∠DBC=180°−∠ABC。",
+        "同理，∠ECB=180°−∠ACB。"
+      ],
+      "href": "app-design/geometry-models.html#model-8"
+    },
+    {
+      "id": 9,
+      "title": "飞镖模型",
+      "nodes": [
+        "tri-angles"
+      ],
+      "given": "凹四边形ABDC中，D为凹顶点；这里∠BDC取凹口处小角。",
+      "result": "∠BDC = ∠A + ∠ABD + ∠ACD。",
+      "method": [
+        "连接AD，且AD在凹口小角的外部延长方向上。",
+        "在△ABD中，沿AD向下延长产生的D处外角等于∠BAD+∠ABD。",
+        "在△ACD中，另一侧外角等于∠CAD+∠ACD。"
+      ],
+      "href": "app-design/geometry-models.html#model-9"
+    },
+    {
+      "id": 10,
+      "title": "角平分线四种构造",
+      "nodes": [
+        "angle-bisector",
+        "cong-hl",
+        "isosceles"
+      ],
+      "given": "OP平分∠MON，P在平分线上。主图：PA⊥OM，PB⊥ON。",
+      "result": "PA=PB；OA=OB；∠APO=∠BPO。",
+      "method": [
+        "△OAP、△OBP都是直角三角形，OP为公共斜边，∠AOP=∠BOP。",
+        "由一个锐角与斜边对应相等（AAS）得到△OAP≌△OBP。",
+        "全等对应边给出PA=PB、OA=OB，对应角给出∠APO=∠BPO。"
+      ],
+      "href": "app-design/geometry-models.html#model-10"
+    },
+    {
+      "id": 11,
+      "title": "双角平分线三种交角",
+      "nodes": [
+        "tri-angles",
+        "angle-bisector"
+      ],
+      "given": "△ABC中，BD、CD分别平分B、C处的内角，交于D。",
+      "result": "内内：∠BDC=90°+∠A/2；外外：90°−∠A/2；内外：∠A/2。",
+      "method": [
+        "内内情形：在△BDC中，B、C处的角分别为∠B/2、∠C/2。",
+        "因此∠BDC=180°−(∠B+∠C)/2=90°+∠A/2。",
+        "外外情形：底角为(180°−∠B)/2、(180°−∠C)/2，内角和给出90°−∠A/2。"
+      ],
+      "href": "app-design/geometry-models.html#model-11"
+    },
+    {
+      "id": 12,
+      "title": "一线三等角全等",
+      "nodes": [
+        "cong-asa",
+        "congruence"
+      ],
+      "given": "A、P、B依次共线，C、D在线段AB同侧，∠CAP=∠CPD=∠PBD，AP=BD。",
+      "result": "△APC≌△BDP。",
+      "method": [
+        "设三个相等角均为θ；令∠APC=x。",
+        "由直线平角，∠DPB=180°−θ−x；由△APC内角和，∠ACP=180°−θ−x。",
+        "于是∠CAP=∠PBD，∠ACP=∠BPD，加上AP=BD，满足AAS。"
+      ],
+      "href": "app-design/geometry-models.html#model-12"
+    },
+    {
+      "id": 13,
+      "title": "手拉手全等",
+      "nodes": [
+        "cong-sas",
+        "equilateral"
+      ],
+      "given": "△ABC、△ADE共顶点A，AB=AC、AD=AE、∠BAC=∠DAE=θ，方向如图，BD与CE交于F。",
+      "result": "△ABD≌△ACE；图示∠BFE=θ。",
+      "method": [
+        "让AB旋转θ后对应AC，同时让AD旋转θ后对应AE。",
+        "两边间的夹角同增减θ，因此∠BAD=∠CAE。",
+        "AB=AC、AD=AE且夹角相等，SAS得△ABD≌△ACE，BD=CE。"
+      ],
+      "href": "app-design/geometry-models.html#model-13"
+    },
+    {
+      "id": 14,
+      "title": "倍长中线",
+      "nodes": [
+        "tri-lines",
+        "cong-sas"
+      ],
+      "given": "AD是△ABC的中线，将AD延长到E，使DE=AD，连接BE。",
+      "result": "△ADC≌△EDB，AC∥BE且AC=BE。",
+      "method": [
+        "由中线定义，BD=DC；补出DE=DA。",
+        "∠ADC与∠EDB是对顶角，相等。",
+        "用DA=DE、DC=DB及夹角相等，SAS得△ADC≌△EDB。"
+      ],
+      "href": "app-design/geometry-models.html#model-14"
+    },
+    {
+      "id": 15,
+      "title": "半角模型",
+      "nodes": [
+        "square",
+        "cong-sas",
+        "angle-bisector"
+      ],
+      "given": "正方形ABCD中，M在BC上、N在CD上，∠MAN=45°。",
+      "result": "MN=BM+DN；△MCN周长为正方形周长的一半；MA、NA分别平分∠BMN、∠DNM。",
+      "method": [
+        "将△ABM绕A逆时针旋转90°到△ADK，K在CD过D的延长线上，DK=BM，AK=AM。",
+        "∠KAN=90°−45°=45°=∠MAN，AN公共，由SAS得△AKN≌△AMN。",
+        "于是MN=KN=KD+DN=BM+DN；MC+CN+MN=BC+CD。"
+      ],
+      "href": "app-design/geometry-models.html#model-15"
+    },
+    {
+      "id": 16,
+      "title": "雨伞模型",
+      "nodes": [
+        "angle-bisector",
+        "cong-asa",
+        "isosceles"
+      ],
+      "given": "AP平分∠BAC，过B作BD⊥AP于O，D在AC上。",
+      "result": "△ABO≌△ADO，AB=AD，OB=OD。",
+      "method": [
+        "两个三角形在O处都是直角，且AO公共。",
+        "AP平分顶角，所以∠BAO=∠OAD。",
+        "由ASA得△ABO≌△ADO。"
+      ],
+      "href": "app-design/geometry-models.html#model-16"
+    },
+    {
+      "id": 17,
+      "title": "将军饮马：两定一动",
+      "nodes": [
+        "reflection",
+        "tri-inequality"
+      ],
+      "given": "A、B在直线l同侧，P在线l上。",
+      "result": "PA+PB的最小值为AB′；B′是B关于l的对称点。",
+      "method": [
+        "把B关于l反射到B′，P位于对称轴上，所以PB=PB′。",
+        "连接AB′，与l相交于P₀。",
+        "对任意P，PA+PB=PA+PB′≥AB′。"
+      ],
+      "href": "app-design/geometry-models.html#model-17"
+    },
+    {
+      "id": 18,
+      "title": "将军饮马：两动一定与两定两动",
+      "nodes": [
+        "reflection",
+        "tri-inequality"
+      ],
+      "given": "P为角内定点，M、N分别在角的两边；求PM+MN+NP。",
+      "result": "把P关于两边反射为P₁、P₂，周长下界为P₁P₂；展开直线依次穿过两边时可取到。",
+      "method": [
+        "将P关于OM反射到P₁，关于ON反射到P₂。",
+        "由于M、N各在反射轴上，PM=P₁M，PN=P₂N。",
+        "折线P₁—M—N—P₂长度≥P₁P₂。"
+      ],
+      "href": "app-design/geometry-models.html#model-18"
+    },
+    {
+      "id": 19,
+      "title": "将军饮马：两定点一定长",
+      "nodes": [
+        "translation",
+        "tri-inequality"
+      ],
+      "given": "m∥n，MN⊥n且M∈m、N∈n，A在m上方，B在n下方。",
+      "result": "AM+MN+NB的最小值为A′B+MN，其中AA′与MN同向等长。",
+      "method": [
+        "把A沿M到N方向平移到A′，MN为定长h。",
+        "平移把AM对应到A′N，因此AM=A′N。",
+        "AM+MN+NB=A′N+NB+h≥A′B+h。"
+      ],
+      "href": "app-design/geometry-models.html#model-19"
+    },
+    {
+      "id": 20,
+      "title": "矩形的翻折",
+      "nodes": [
+        "rectangle",
+        "reflection",
+        "isosceles"
+      ],
+      "given": "矩形ABCD沿AC翻折△ABC，B对应B′；AB′与DC交于E，图示E在线段DC内。",
+      "result": "△ABC≌△AB′C；AC垂直平分BB′；AE=CE。",
+      "method": [
+        "折叠是轴对称，所以AB=AB′，CB=CB′，AC固定。",
+        "A、C都到B、B′等距，所以AC是BB′的垂直平分线。",
+        "由折叠，∠B′AC=∠BAC；由AB∥DC，∠ACE=∠BAC。"
+      ],
+      "href": "app-design/geometry-models.html#model-20"
+    },
+    {
+      "id": 21,
+      "title": "垂美四边形",
+      "nodes": [
+        "pythagoras",
+        "tri-lines"
+      ],
+      "given": "凸四边形ABCD的对角线AC⊥BD，交于O。",
+      "result": "AB²+CD²=AD²+BC²；面积S=AC·BD/2。",
+      "method": [
+        "四个小三角形AOB、BOC、COD、DOA都是直角三角形。",
+        "分别用勾股定理展开四条边的平方。",
+        "AB²+CD²=AO²+BO²+CO²+DO²=AD²+BC²。"
+      ],
+      "href": "app-design/geometry-models.html#model-21"
+    },
+    {
+      "id": 22,
+      "title": "中点四边形",
+      "nodes": [
+        "midline",
+        "parallelogram"
+      ],
+      "given": "E、F、G、H依次为凸四边形ABCD各边的中点。",
+      "result": "EFGH为平行四边形；周长=AC+BD；面积是ABCD面积的一半。",
+      "method": [
+        "连接AC、BD，把中点关系放入三角形。",
+        "中位线定理给出EF∥HG∥AC，EF=HG=AC/2；同理EH∥FG∥BD，EH=FG=BD/2。",
+        "两组对边分别平行，EFGH是平行四边形，周长=AC+BD。"
+      ],
+      "href": "app-design/geometry-models.html#model-22"
+    },
+    {
+      "id": 23,
+      "title": "十字架模型",
+      "nodes": [
+        "square",
+        "cong-asa",
+        "rectangle"
+      ],
+      "given": "正方形ABCD，E∈CD、F∈AD，AE⊥BF。",
+      "result": "△ABF≌△DAE，所以BF=AE。矩形变式中△DCE∽△ADB。",
+      "method": [
+        "由正方形，AB=DA，∠BAF=∠ADE=90°。",
+        "AB⊥AD、BF⊥AE，两组对应垂直线的夹角相等，所以∠ABF=∠DAE。",
+        "ASA得△ABF≌△DAE，BF=AE，AF=DE。"
+      ],
+      "href": "app-design/geometry-models.html#model-23"
+    },
+    {
+      "id": 24,
+      "title": "对角互补模型",
+      "nodes": [
+        "cong-asa",
+        "pythagoras"
+      ],
+      "given": "凸四边形ABCD，∠ABC=∠ADC=90°，BD平分∠ABC。",
+      "result": "AD=CD；AB+BC=√2·BD；面积=BD²/2。",
+      "method": [
+        "作DE⊥AB于E，DF⊥BC于F，E、F允许在边的延长线上。BD平分直角，所以DE=DF。",
+        "△AED、△CFD在E、F处为直角。由AB⊥BC和AD⊥CD得另一组锐角相等；结合DE=DF，AAS全等，AD=CD且AE=CF。",
+        "B、E、D、F组成正方形，记BE=BF=DE=DF=t，则BD=√2t。依照图示位置，AB+BC=2t=√2BD。"
+      ],
+      "href": "app-design/geometry-models.html#model-24"
+    },
+    {
+      "id": 25,
+      "title": "梯子模型",
+      "nodes": [
+        "rectangle",
+        "pythagoras",
+        "tri-inequality"
+      ],
+      "given": "A、B分别在两条互相垂直的正半轴上，AB、BC均为定长，∠ABC=90°，Q为AB中点；C取图示一侧。",
+      "result": "OC≤OQ+QC，允许构型出现O、Q、C依次共线时取最大值。",
+      "method": [
+        "△AOB在O处直角，斜边中点Q到三顶点等距，所以OQ=AB/2，为定长。",
+        "△QBC在B处直角，QB=AB/2、BC均固定，QC=√((AB/2)²+BC²)，也是定长。",
+        "在△OQC中，OC≤OQ+QC。"
+      ],
+      "href": "app-design/geometry-models.html#model-25"
+    },
+    {
+      "id": 26,
+      "title": "奔驰模型",
+      "nodes": [
+        "equilateral",
+        "cong-sas",
+        "pyth-converse"
+      ],
+      "given": "等边△ABC内有D，AD=3、BD=4、CD=5。",
+      "result": "∠ADB=150°。",
+      "method": [
+        "绕B沿BA到BC的方向旋转60°，使A到C、D到E；连接DE。",
+        "旋转给出CE=AD=3，BE=BD=4，∠DBE=60°，所以△BDE是等边三角形，DE=4。",
+        "△CDE三边CE=3、DE=4、CD=5，勾股逆定理得∠CED=90°。"
+      ],
+      "href": "app-design/geometry-models.html#model-26"
+    },
+    {
+      "id": 27,
+      "title": "费马点模型",
+      "nodes": [
+        "equilateral",
+        "cong-sas",
+        "tri-inequality"
+      ],
+      "given": "△ABC三个内角都小于120°，求平面内PA+PB+PC的最小值。",
+      "result": "最优点P在三角形内部，∠APB=∠BPC=∠CPA=120°。",
+      "method": [
+        "在AB外侧作等边△ABT。把A、P绕B沿BA到BT旋转60°，P到P′。",
+        "旋转给出TP′=AP，BP′=BP，△BPP′等边，PP′=BP。",
+        "故AP+BP+CP=TP′+P′P+PC≥TC，等号要求T、P′、P、C依次共线。"
+      ],
+      "href": "app-design/geometry-models.html#model-27"
+    },
+    {
+      "id": 28,
+      "title": "定点定长轨迹",
+      "nodes": [
+        "reflection",
+        "perp-bisector"
+      ],
+      "given": "E为定点，BE为定长，把△BEF沿过E的直线EF翻折，B到B′。",
+      "result": "B′始终在以E为圆心、BE为半径的圆上；允许折痕只给出其中一段轨迹。",
+      "method": [
+        "折叠是轴对称，折痕上的点E保持不动。",
+        "因此EB′=EB，为不变量。",
+        "到E距离固定的点构成圆，所以B′在该圆上。"
+      ],
+      "href": "app-design/geometry-models.html#model-28"
+    },
+    {
+      "id": 29,
+      "title": "定弦定角轨迹",
+      "nodes": [
+        "tri-angles",
+        "perp-bisector"
+      ],
+      "given": "AB为固定弦，∠ACB=α固定，0°<α<90°，C限定在AB一侧且不取A、B。",
+      "result": "C在该侧对应的定角圆弧上；小圆心角∠AOB=2α。",
+      "method": [
+        "由圆周角定理，同弦AB所对同侧圆弧上的圆周角相等。",
+        "在AB垂直平分线上选圆心O，使小圆心角∠AOB=2α。",
+        "在不含小弧AB的那段大弧上取C，圆周角等于α。"
+      ],
+      "href": "app-design/geometry-models.html#model-29"
+    },
+    {
+      "id": 31,
+      "title": "最大张角",
+      "nodes": [
+        "tri-angles",
+        "perp-bisector"
+      ],
+      "given": "A、B是射线DN上的两个定点，顺序D、A、B；P在另一条射线DM上运动，0°<∠MDN<180°。",
+      "result": "当△APB的外接圆与DM相切于P时，∠APB最大；DP²=DA·DB。",
+      "method": [
+        "过A、B作一族圆，每个圆与射线DM的交点都对应一个观察角。",
+        "设DA=a、DB=b，DP=t，∠MDN=θ。由平面向量或三角恒等式可得cot∠APB=[t+(ab/t)−(a+b)cosθ]/[(b−a)sinθ]。",
+        "t+ab/t≥2√(ab)，等号当t=√(ab)。因cot在(0°,180°)上递减，所以此时张角最大。"
+      ],
+      "href": "app-design/geometry-models.html#model-31"
+    },
+    {
+      "id": 32,
+      "title": "A字相似",
+      "nodes": [
+        "tri-angles",
+        "midline"
+      ],
+      "given": "D∈AB、E∈AC，DE∥BC，顶点顺序与主图一致。",
+      "result": "△ADE∽△ABC，AD/AB=AE/AC=DE/BC。",
+      "method": [
+        "∠DAE=∠BAC，是公共顶角。",
+        "由DE∥BC，同位角给出∠ADE=∠ABC、∠AED=∠ACB。",
+        "两个角对应相等，AA判定△ADE∽△ABC。"
+      ],
+      "href": "app-design/geometry-models.html#model-32"
+    },
+    {
+      "id": 33,
+      "title": "8字相似",
+      "nodes": [
+        "tri-angles"
+      ],
+      "given": "D在CA过A的延长线上，E在BA过A的延长线上，DE∥BC。",
+      "result": "△AED∽△ABC，AE/AB=AD/AC=DE/BC。",
+      "method": [
+        "∠EAD与∠BAC是对顶角，相等。",
+        "DE∥BC，内错角相等，∠AED=∠ABC，∠ADE=∠ACB。",
+        "由AA得△AED∽△ABC。"
+      ],
+      "href": "app-design/geometry-models.html#model-33"
+    },
+    {
+      "id": 34,
+      "title": "一线三等角相似",
+      "nodes": [
+        "tri-angles",
+        "congruence"
+      ],
+      "given": "A、P、B依次共线，C、D在直线AB同侧，∠CAP=∠CPD=∠PBD。",
+      "result": "△CAP∽△PBD。",
+      "method": [
+        "设三个角均为θ，∠APC=x。",
+        "△CAP内角和给出∠ACP=180°−θ−x。",
+        "直线平角给出∠DPB=180°−θ−x，故∠ACP=∠DPB。"
+      ],
+      "href": "app-design/geometry-models.html#model-34"
+    },
+    {
+      "id": 35,
+      "title": "射影定理",
+      "nodes": [
+        "pythagoras",
+        "tri-lines"
+      ],
+      "given": "Rt△ABC中，∠ABC=90°，BD⊥AC，D为垂足。",
+      "result": "BD²=AD·DC，AB²=AD·AC，BC²=DC·AC。",
+      "method": [
+        "由BD⊥AC，两小三角形在D处直角，且锐角互余。",
+        "△ADB∽△BDC，得到AD/BD=BD/DC，故BD²=AD·DC。",
+        "△ADB∽△ABC，得到AD/AB=AB/AC，故AB²=AD·AC。"
+      ],
+      "href": "app-design/geometry-models.html#model-35"
+    },
+    {
+      "id": 36,
+      "title": "手拉手相似",
+      "nodes": [
+        "cong-sas",
+        "tri-angles"
+      ],
+      "given": "△ABC∽△ADE，A↔A、B↔D、C↔E，两个三角形方向一致，连BD、CE交于F。",
+      "result": "△ABD∽△ACE；图示∠BFC=∠BAC（另一夹角为其补角）。",
+      "method": [
+        "由原相似，AB/AD=AC/AE，移项得AB/AC=AD/AE。",
+        "两三角形方向一致，∠BAC=∠DAE，因而∠BAD=∠CAE。",
+        "两边成比例且夹角相等，SAS相似判定得△ABD∽△ACE。"
+      ],
+      "href": "app-design/geometry-models.html#model-36"
+    },
+    {
+      "id": 37,
+      "title": "两圆一中垂",
+      "nodes": [
+        "isosceles",
+        "perp-bisector"
+      ],
+      "given": "A、B为两个不同定点，寻找C使△ABC为等腰三角形。",
+      "result": "三类候选轨迹：圆(A,AB)、圆(B,AB)、AB的垂直平分线；排除三点共线的退化点。",
+      "method": [
+        "若AB=AC，则C到A的距离固定为AB，在以A为圆心、AB为半径的圆上。",
+        "若AB=BC，同理C在以B为圆心、AB为半径的圆上。",
+        "若CA=CB，则C在AB的垂直平分线上。"
+      ],
+      "href": "app-design/geometry-models.html#model-37"
+    },
+    {
+      "id": 38,
+      "title": "两垂一圆",
+      "nodes": [
+        "pythagoras",
+        "tri-lines"
+      ],
+      "given": "A、B为两个不同定点，寻找C使△ABC为直角三角形。",
+      "result": "A处直角：过A作AB的垂线；B处直角：过B作垂线；C处直角：以AB为直径的圆。",
+      "method": [
+        "若∠A=90°，则AC⊥AB，C在过A的垂线上且C≠A。",
+        "若∠B=90°，则BC⊥AB，C在过B的垂线上且C≠B。",
+        "若∠C=90°，由直径所对圆周角为直角的逆命题，C在以AB为直径的圆上。"
+      ],
+      "href": "app-design/geometry-models.html#model-38"
+    },
+    {
+      "id": 39,
+      "title": "阿不归（加权最短路）",
+      "nodes": [
+        "pythagoras",
+        "tri-inequality"
+      ],
+      "given": "A在直线l上，B不在l上，P∈l，0<k<1，求k·AP+BP最小值。",
+      "result": "最优点满足沿A到B垂足方向移动，k·AP转化为垂直距离；须同时检查P=A的边界情形。",
+      "method": [
+        "设H为B到l的垂足，AH=d≥0、BH=h>0。最优P必在线段AH内（否则向该线段移动会缩短路程）。",
+        "令AP=x，0≤x≤d，目标f(x)=kx+√((d−x)²+h²)。由勾股定理，BP是直角边d−x、h对应的斜边。",
+        "在以H为原点的局部图中，作方向单位向量(k,√(1−k²))。由投影长度不超过线段长，BP≥k(d−x)+h√(1−k²)。"
+      ],
+      "href": "app-design/geometry-models.html#model-39"
+    },
+    {
+      "id": 40,
+      "title": "阿氏圆（母子型转化）",
+      "nodes": [
+        "pythagoras",
+        "tri-inequality"
+      ],
+      "given": "P在圆(O,r)上，A在圆外，0<k<1，r=k·OA；B也在圆外。",
+      "result": "取OA上的A′使OA′=r²/OA，则k·AP=A′P；目标转为PA′+PB的最小值。",
+      "method": [
+        "取坐标O=(0,0)、A=(a,0)、P=(r cosθ,r sinθ)，a>r且k=r/a。",
+        "令A′=(r²/a,0)，用距离平方展开：A′P²=(r²/a²)(a²+r²−2ar cosθ)=k²AP²。",
+        "距离非负，所以A′P=k·AP；故k·AP+BP=A′P+PB≥A′B。"
+      ],
+      "href": "app-design/geometry-models.html#model-40"
+    },
+    {
+      "id": 41,
+      "title": "瓜豆原理（旋转伸缩轨迹）",
+      "nodes": [
+        "translation",
+        "coordinates"
+      ],
+      "given": "C为定点，∠MCN=α且CM/CN=k为常数；必须固定旋转方向。",
+      "result": "N是M绕C旋转固定角后再按1/k伸缩的像：直线映为直线，圆映为圆。",
+      "method": [
+        "把C作为原点，固定从CM到CN的有向角α。向量满足CN=(1/k)·Rα(CM)。",
+        "若M沿直线移动，任意位移向量都被同一旋转伸缩处理，故像轨迹仍是直线；两轨迹直线的夹角为α模180°。",
+        "若M在圆(O,R)上，则O映为O′，N在圆(O′,R/k)上。CO/CO′=OM/O′N=k，中心向量旋转角也是α。"
+      ],
+      "href": "app-design/geometry-models.html#model-41"
+    },
+    {
+      "id": 42,
+      "title": "婆罗摩笈多变式",
+      "nodes": [
+        "isosceles",
+        "cong-sas",
+        "tri-lines"
+      ],
+      "given": "△ABC、△DBE都是以B为直角顶点的等腰直角三角形，位置如图。M为CE中点，直线BM交AD于N。",
+      "result": "BM⊥AD；BM=AD/2；S△ABD=S△CBE。反过来，若直线BM⊥AD且M∈CE，则M为CE中点。",
+      "method": [
+        "延长BM到F，使MF=BM。因为M同时是BF、CE的中点，四边形BCFE是平行四边形，所以CF∥BE且CF=BE。",
+        "AB=BC，BD=BE=CF；结合AB⊥BC、BD⊥BE以及图示位置，∠ABD=∠BCF，所以SAS得△ABD≌△BCF。",
+        "全等得AD=BF=2BM；又由对应角∠BAD=∠CBF及AB⊥BC，得到AD⊥BF，即BM⊥AD。全等给出S△ABD=S△BCF；F、E在平行于BC的同一直线上，同底等高给出S△BCF=S△BCE。"
+      ],
+      "href": "app-design/geometry-models.html#model-42"
+    }
+  ]
+}

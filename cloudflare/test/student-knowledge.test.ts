@@ -77,6 +77,19 @@ test('latest-correct mistakes remain in history but do not generate an unresolve
   const p=buildKnowledge([],[{unitId:'math-8a-01',title:'solved',wrongCount:3,lastCorrect:1},{unitId:'math-8a-01',title:'open',wrongCount:2,lastCorrect:0}]);
   assert.equal(p.wrongQuestions.length,2);assert.deepEqual(p.reminders.map(r=>r.title),['open']);
 });
+
+test('a retained photo gap requests review without revoking course mastery; correction removes that gap evidence',()=>{
+  const docs=[doc('growing-math-lessons-v1',{topics:{'tri-lines':{attempts:[grade(8)],bestQuiz:3}}})];
+  const question={kind:'photo',questionId:'photo-gap',unitId:'math-8a-01',title:'作三角形的中线',number:'7',paperTitle:'几何复习卷',wrongCount:1,lastCorrect:0,status:'needs-review',
+    photoReview:{error:{revision:1,at:'2026-11-01T00:00:00Z',knowledge:[{nodeId:'tri-lines',unitId:'math-8a-01',role:'gap',reason:'中线的终点应是对边中点，并非垂足。'}]}}};
+  const p=buildKnowledge(docs,[question]),topic=p.topics.find(t=>t.id==='tri-lines')!;
+  assert.equal(topic.courseMastered,true);assert.equal(topic.status,'review');assert.equal(p.counts.mastered,1);
+  assert.ok(topic.evidence.some(e=>e.includes('几何复习卷 第7题')));
+  const corrected=buildKnowledge(docs,[{...question,lastCorrect:1,status:'latest-correct'}]);
+  assert.equal(corrected.topics.find(t=>t.id==='tri-lines')!.status,'mastered');
+  assert.equal(corrected.mistakes[0].causeSource,'photo-grade-gap');assert.equal(corrected.mistakes[0].status,'latest-correct');
+  assert.equal(corrected.reminders.length,0);
+});
 test('context retrieval searches outside the current unit, caps topics and excludes raw answer payloads',()=>{
   const p=buildKnowledge([doc('growing-physics-lessons-v1',{topics:{'phy-source':{attempts:[grade(3)]}}})]);
   const c=knowledgeContext(p,'math-8a-01','声音来自振动');

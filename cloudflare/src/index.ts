@@ -8,6 +8,7 @@ import { Rankings } from "./rankings";
 import handwriting from '../../app/src/main/assets/web/app-design/handwriting-core.js';
 import { assess, type VisionEnv } from './handwriting-vision';
 import { QuestionBank, questionUnits } from './question-bank';
+import { PhotoReview } from './photo-review';
 import { QuestionAttempts } from './question-attempts';
 import { StudentKnowledge } from './student-knowledge';
 import { connectRealtime, realtimeInfo, type RealtimeEnv } from './realtime';
@@ -146,6 +147,14 @@ export function createHandler(database: (env: Env) => Database = env => {
         if(path==='/api/question-bank/catalog'&&request.method==='GET')return decorate(json(questionUnits),request);
         if(path==='/api/question-bank/import'&&request.method==='POST')
           return decorate(json(await bank.import(await body(request,2_100_000),env,request.signal,aiFetch)),request);
+        if(/^\/api\/question-bank\/questions\/[a-f0-9-]{36}\/(followup|correct)$/.test(path)&&request.method==='POST'){
+          const data=await body(request,40000),student=await bank.authorize(data.studentId),review=new PhotoReview(db,current,id=>bank.authorize(id));
+          return decorate(json(await review[path.endsWith('/followup')?'followup':'correct'](student,path.split('/').at(-2)!,data,env,request.signal,aiFetch)),request);
+        }
+        if(/^\/api\/question-bank\/questions\/[a-f0-9-]{36}\/review$/.test(path)&&request.method==='GET'){
+          const student=await bank.authorize(url.searchParams.get('studentId'));
+          return decorate(json(await new PhotoReview(db,current,id=>bank.authorize(id)).read(student,path.split('/').at(-2)!)),request);
+        }
         if(/^\/api\/question-bank\/questions\/[a-f0-9-]{36}\/format$/.test(path)&&request.method==='POST'){
           const data=await body(request,4000),student=await bank.authorize(data.studentId);
           return decorate(json(await bank.format(student,path.split('/').at(-2)!,data,env,request.signal,aiFetch)),request);

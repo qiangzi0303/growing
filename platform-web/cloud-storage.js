@@ -20,11 +20,12 @@
       if(context.wrong){const wrong=document.createElement('a');wrong.href=context.wrong;wrong.textContent='本单元错题';tools.append(wrong);}
       (document.querySelector('#english-course .tabs')||document.querySelector('.course-return-nav')).after(tools);
     }
-    cloud.pageReady?.(location.href);
+    if(!window.frameElement?.hasAttribute('data-photo-study-frame'))cloud.pageReady?.(location.href);
   });
   document.addEventListener('click',event=>{
     const link=event.target.closest('a[href]');
     if(!link||event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||link.hasAttribute('download')||link.target==='_blank')return;
+    if(window.frameElement?.hasAttribute('data-photo-study-frame')){if(link.hasAttribute('data-growing-back')){event.preventDefault();window.parent.postMessage({type:'photo-study:back'},location.origin);}else if(link.target==='_top')link.target='_self';return;}
     if(link.hasAttribute('data-growing-back')&&cloud.back){event.preventDefault();cloud.back();return;}
     const url=new URL(link.href,location.href);
     if(url.origin!==location.origin||!url.pathname.startsWith('/learn/')||url.pathname===location.pathname&&url.search===location.search&&url.hash)return;
