@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>WebRTC instrumentation</title>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WebRTC instrumentation</title>
 <button id="start">Start audio test</button><script>
 window.rtcResult={state:'ready'};
 const close=()=>{window.testStream?.getTracks().forEach(t=>t.stop());window.left?.close();window.right?.close();};

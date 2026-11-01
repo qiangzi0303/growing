@@ -8,6 +8,7 @@ import android.app.UiAutomation;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.MotionEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebView;
 import androidx.lifecycle.Lifecycle;
@@ -57,7 +58,21 @@ public class RealtimeWebRtcTest {
             for(int i=0;i<100&&!"true".equals(js(scenario,"!!window.rtcResult && !!window.GrowingNative"));i++)Thread.sleep(100);
             assertEquals("true",js(scenario,"!!window.rtcResult && !!window.GrowingNative"));
             assertEquals("true",js(scenario,"JSON.parse(GrowingNative.saveRealtimeSettings(JSON.stringify({apiKey:'test-native-rtc-key',voice:'Tina',base:'https://dashscope.aliyuncs.com'}))).ok && JSON.parse(GrowingNative.realtimeSettings()).value.voice==='Tina'"));
-            js(scenario,"document.getElementById('start').click()");
+            // Wait for the visible, focused WebView and use the same input path as a real tap.
+            AtomicReference<Boolean> focused=new AtomicReference<>(false);
+            for(int i=0;i<100&&!focused.get();i++){
+                scenario.onActivity(a->focused.set(a.hasWindowFocus()&&find(a.getWindow().getDecorView()).isShown()));
+                if(!focused.get())Thread.sleep(100);
+            }
+            assertTrue("WebView did not become focused",focused.get());
+            float buttonX=Float.parseFloat(js(scenario,"(()=>{const r=document.getElementById('start').getBoundingClientRect();return r.x+r.width/2;})()"));
+            float buttonY=Float.parseFloat(js(scenario,"(()=>{const r=document.getElementById('start').getBoundingClientRect();return r.y+r.height/2;})()"));
+            float[] tap=new float[2];
+            scenario.onActivity(a->{WebView view=find(a.getWindow().getDecorView());int[] xy=new int[2];view.getLocationOnScreen(xy);tap[0]=xy[0]+buttonX*view.getScale();tap[1]=xy[1]+buttonY*view.getScale();});
+            long down=android.os.SystemClock.uptimeMillis();
+            MotionEvent press=MotionEvent.obtain(down,down,MotionEvent.ACTION_DOWN,tap[0],tap[1],0);
+            MotionEvent release=MotionEvent.obtain(down,down+100,MotionEvent.ACTION_UP,tap[0],tap[1],0);
+            assertTrue(automation.injectInputEvent(press,true));assertTrue(automation.injectInputEvent(release,true));press.recycle();release.recycle();
             for(int i=0;i<100&&context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED;i++){
                 // Exercise Android's first-use prompt on CI (permission is revoked before launch).
                 AccessibilityNodeInfo root=automation.getRootInActiveWindow();

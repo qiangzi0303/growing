@@ -365,24 +365,27 @@ public final class MainActivity extends Activity {
         callback.onReceiveValue(values);
     }
     private void requestMicrophone(PermissionRequest request){
+        android.util.Log.i("GrowingMicrophone","request: foreground="+foreground+", account="+(currentId!=null)+", pending="+(microphoneRequest!=null)+", prompt="+microphonePromptActive+", trusted="+(web!=null&&MicrophonePolicy.permits(request.getOrigin().toString(),web.getUrl(),request.getResources())));
         if(!foreground||currentId==null||web==null||microphoneRequest!=null||microphonePromptActive||!MicrophonePolicy.permits(request.getOrigin().toString(),web.getUrl(),request.getResources())){request.deny();return;}
         microphoneRequest=request;microphoneAccount=currentId;microphoneEpoch=epoch;
         if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED)completeMicrophone(true);
         else{microphonePromptActive=true;requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},MICROPHONE_REQUEST);}
     }
     private void completeMicrophone(boolean allowed){
+        android.util.Log.i("GrowingMicrophone","complete: allowed="+allowed+", foreground="+foreground+", pending="+(microphoneRequest!=null));
         PermissionRequest request=microphoneRequest;microphoneRequest=null;
         if(request==null)return;
         if(allowed&&foreground&&isSession(microphoneAccount,microphoneEpoch)&&web!=null&&MicrophonePolicy.permits(request.getOrigin().toString(),web.getUrl(),request.getResources()))request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
         else request.deny();
     }
-    private void cancelMicrophone(){if(microphoneRequest!=null){microphoneRequest.deny();microphoneRequest=null;}}
+    private void cancelMicrophone(){if(microphoneRequest!=null){android.util.Log.i("GrowingMicrophone","cancel pending: prompt="+microphonePromptActive+", foreground="+foreground);microphoneRequest.deny();microphoneRequest=null;}}
     private void stopRealtime(){
         if(web!=null)web.evaluateJavascript("(function stop(w){try{w.dispatchEvent(new w.Event('growing-realtime-stop'));for(var i=0;i<w.frames.length;i++)stop(w.frames[i]);}catch(e){}})(window);",null);
     }
     @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grants){
         super.onRequestPermissionsResult(request,permissions,grants);
         if(request==MICROPHONE_REQUEST){
+            android.util.Log.i("GrowingMicrophone","runtime result: grants="+java.util.Arrays.toString(grants));
             microphonePromptActive=false;
             boolean allowed=grants.length==1&&grants[0]==PackageManager.PERMISSION_GRANTED;
             // Android may deliver the result before onResume after its permission dialog.
