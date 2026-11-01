@@ -38,6 +38,15 @@ public class RealtimeWebRtcTest {
         scenario.onActivity(a->{WebView view=find(a.getWindow().getDecorView());assertNotNull(view);view.evaluateJavascript(source,value->{result.set(value);done.countDown();});});
         assertTrue(done.await(15,TimeUnit.SECONDS));return result.get();
     }
+    private void captureScreen(UiAutomation automation,String name)throws Exception{
+        android.graphics.Bitmap image=automation.takeScreenshot();
+        assertNotNull("Instrumentation screenshot",image);
+        java.io.File folder=ApplicationProvider.getApplicationContext().getExternalFilesDir(null);
+        assertNotNull("Instrumentation output directory",folder);
+        try(java.io.FileOutputStream output=new java.io.FileOutputStream(new java.io.File(folder,name))){
+            assertTrue(image.compress(android.graphics.Bitmap.CompressFormat.PNG,100,output));
+        }finally{image.recycle();}
+    }
     @Test public void captureRtpAndStopWhenBackgrounded()throws Exception{
         Context context=ApplicationProvider.getApplicationContext();AccountStore accounts=new AccountStore(context);
         assertEquals("WebRTC audio routing permission",PackageManager.PERMISSION_GRANTED,context.checkSelfPermission(Manifest.permission.MODIFY_AUDIO_SETTINGS));
@@ -65,7 +74,9 @@ public class RealtimeWebRtcTest {
                 scenario.onActivity(a->focused.set(a.hasWindowFocus()&&find(a.getWindow().getDecorView()).isShown()));
                 if(!focused.get())Thread.sleep(100);
             }
-            assertTrue("WebView did not become focused",focused.get());
+            captureScreen(automation,"realtime-before-capture.png");
+            AccessibilityNodeInfo activeWindow=automation.getRootInActiveWindow();
+            assertTrue("WebView did not become focused; active window="+(activeWindow==null?"none":activeWindow.getPackageName()+":"+activeWindow.getClassName()),focused.get());
             float buttonX=Float.parseFloat(js(scenario,"(()=>{const r=document.getElementById('start').getBoundingClientRect();return r.x+r.width/2;})()"));
             float buttonY=Float.parseFloat(js(scenario,"(()=>{const r=document.getElementById('start').getBoundingClientRect();return r.y+r.height/2;})()"));
             float[] tap=new float[2];
@@ -85,6 +96,7 @@ public class RealtimeWebRtcTest {
             assertEquals("Runtime microphone permission; fixture="+js(scenario,"JSON.stringify({result:window.rtcResult,url:location.href,visible:document.visibilityState})"),PackageManager.PERMISSION_GRANTED,context.checkSelfPermission(Manifest.permission.RECORD_AUDIO));
             String result="";
             for(int i=0;i<300;i++){result=js(scenario,"window.rtcResult.state");if(result.equals("\"passed\"")||result.equals("\"failed\""))break;Thread.sleep(100);}
+            captureScreen(automation,"realtime-after-capture.png");
             assertEquals("RTP/capture state: "+js(scenario,"JSON.stringify(window.rtcResult)"),"\"passed\"",result);
             scenario.moveToState(Lifecycle.State.CREATED);scenario.moveToState(Lifecycle.State.RESUMED);
             for(int i=0;i<40&&!"true".equals(js(scenario,"testStream.getTracks().every(t=>t.readyState==='ended')"));i++)Thread.sleep(100);
