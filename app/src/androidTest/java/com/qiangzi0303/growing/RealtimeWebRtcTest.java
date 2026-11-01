@@ -11,6 +11,10 @@ import android.view.ViewGroup;
 import android.view.MotionEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import androidx.webkit.WebViewAssetLoader;
 import androidx.lifecycle.Lifecycle;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
@@ -18,6 +22,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -62,11 +67,25 @@ public class RealtimeWebRtcTest {
         }
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             final String fixture=html;
-            // Use the trusted URL for the history entry too; null is exposed by WebView as about:blank.
+            // Exercise an actual trusted navigation. loadDataWithBaseURL can expose a data/about:blank
+            // native URL even when JavaScript reports the supplied base/history URL.
             String fixtureUrl="https://appassets.androidplatform.net/assets/web/app-design/rtc-test.html";
-            scenario.onActivity(a->find(a.getWindow().getDecorView()).loadDataWithBaseURL(fixtureUrl,fixture,"text/html","UTF-8",fixtureUrl));
+            scenario.onActivity(a->{
+                WebView view=find(a.getWindow().getDecorView());
+                WebViewAssetLoader loader=new WebViewAssetLoader.Builder().addPathHandler("/assets/",new WebViewAssetLoader.AssetsPathHandler(a)).build();
+                view.stopLoading();
+                view.setWebViewClient(new WebViewClient(){
+                    @Override public WebResourceResponse shouldInterceptRequest(WebView web,WebResourceRequest request){
+                        if(request.isForMainFrame()&&fixtureUrl.equals(request.getUrl().toString()))
+                            return new WebResourceResponse("text/html","UTF-8",new ByteArrayInputStream(fixture.getBytes(StandardCharsets.UTF_8)));
+                        return loader.shouldInterceptRequest(request.getUrl());
+                    }
+                });
+                view.loadUrl(fixtureUrl);
+            });
             for(int i=0;i<100&&!"true".equals(js(scenario,"!!window.rtcResult && !!window.GrowingNative"));i++)Thread.sleep(100);
             assertEquals("true",js(scenario,"!!window.rtcResult && !!window.GrowingNative"));
+            scenario.onActivity(a->assertEquals("Native URL must match the trusted document",fixtureUrl,find(a.getWindow().getDecorView()).getUrl()));
             assertEquals("true",js(scenario,"JSON.parse(GrowingNative.saveRealtimeSettings(JSON.stringify({apiKey:'test-native-rtc-key',voice:'Tina',base:'https://dashscope.aliyuncs.com'}))).ok && JSON.parse(GrowingNative.realtimeSettings()).value.voice==='Tina'"));
             // Wait for the visible, focused WebView and use the same input path as a real tap.
             AtomicReference<Boolean> focused=new AtomicReference<>(false);
