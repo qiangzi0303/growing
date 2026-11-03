@@ -46,7 +46,7 @@ public class CourseTest {
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=physics&term=upper&unit=physics-8a-01'");
             ready(s,"location.pathname.endsWith('/physics-course.html') && !!(window.GrowingCourseAI && document.querySelector('.course-tools-nav'))");
             assertEquals("true",js(s,"GrowingCourseAI.info().native"));
-            assertEquals("5",js(s,"document.querySelectorAll('.course-tools-nav button').length"));
+            assertEquals("\"微课首页|拍照题库|手写解题 / AI 点评|交互\"",js(s,"Array.from(document.querySelectorAll('.course-tools-nav button'),b=>b.textContent.trim()).join('|')"));
             assertEquals("\"native-bridge-ok\"",js(s,"localStorage.getItem('course.route')"));
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=english&term=upper&unit=english-8a-01'");
             ready(s,"location.pathname.endsWith('/english-course.html') && !!(window.GrowingCourseAI && document.querySelector('.word-card'))");
