@@ -1,0 +1,11 @@
+.paper-review-toggle{display:block;margin:12px 0 12px auto;padding:8px 16px;border:1px solid #bbc8ae;border-radius:9px;background:#f0f4eb;color:#263c30;font:inherit;cursor:pointer}
+.paper-review-wrong>.text,.paper-review-wrong>.prompt,.paper-review-wrong>.paper-question-body{color:#b42318}
+.photo-workbench{box-sizing:border-box;min-width:0;max-width:100%;margin:18px 0;padding:20px;background:#fff;border:1px solid #d9e0d2;border-radius:16px;color:#263c30;font:16px/1.7 sans-serif}
+.photo-workbench[hidden]{display:none!important}.photo-workbench button,.photo-workbench select,.photo-workbench textarea{font:inherit}.photo-workbench button{cursor:pointer}
+.photo-workbench .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.photo-workbench .bank-text{overflow-wrap:anywhere}
+.photo-workbench button{padding:8px 12px;border:1px solid #bbc8ae;border-radius:8px;background:#f0f4eb;color:#263c30}.photo-workbench select{padding:9px;background:white;color:#263c30}.photo-workbench label{display:block}
+.paper-question.bank-question{grid-template-columns:minmax(0,1fr);border-top:0}.paper-question .paper-question-tools{align-items:start}.paper-question .paper-review-toggle{justify-self:end}
+.paper-review-wrong .paper-diagrams{color:#17212b}.paper-student-dialog{max-width:calc(100% - 40px);padding:24px;border:1px solid #bbc8ae;border-radius:12px}.paper-student-dialog select{display:block;margin:12px 0;max-width:100%}
+.paper-clean .photo-workbench,.paper-clean .paper-review-toggle{display:none!important}
+@media(max-width:620px){.photo-workbench{padding:14px}}
+@media print{.paper-review-toggle,.photo-workbench{display:none!important}}

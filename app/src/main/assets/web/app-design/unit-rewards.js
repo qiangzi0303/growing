@@ -2,7 +2,8 @@
 (()=>{
   'use strict';
   const E=window.GrowingRewards,providers=new Map(),prefix='growing-unit-rewards-v1:';
-  let dialog,opener;
+  let dialog,opener,calendarLoad;
+  const scriptBase=document.currentScript.src||new URL('../app-design/unit-rewards.js',location.href).href;
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=c=>(c/100).toFixed(2).replace(/\.00$/,'');
   const percent=n=>Math.floor(n*1000+1e-8)/10;
@@ -42,14 +43,24 @@
   function scan(){for(const el of document.querySelectorAll('[data-unit-reward]'))render(el,el.dataset.unitReward);}
   function register(id,p){providers.set(id,p);scan();update(id);}
   const placeholder=id=>`<button type="button" class="unit-reward-trigger" data-reward-open="${esc(id)}" aria-haspopup="dialog" aria-label="查看${esc(providers.get(id)?.title||'本单元')}掌握程度">查看掌握程度</button>`;
-  function open(id,button){
+  function showCalendar(){
+    const host=dialog.querySelector('[data-unit-calendar]');
+    dialog.querySelector('[data-unit-reward]').hidden=true;host.hidden=false;
+    dialog.querySelectorAll('[data-reward-tab]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.rewardTab==='calendar'));
+    if(host.dataset.loaded)return;host.dataset.loaded='true';host.innerHTML='<p role="status">正在读取学习日历…</p>';
+    if(!calendarLoad)calendarLoad=window.GrowingUnitCalendar?Promise.resolve():new Promise((resolve,reject)=>{
+      const s=document.createElement('script');s.src=new URL('unit-calendar.js?v=1',scriptBase).href;s.onload=resolve;s.onerror=()=>{s.remove();calendarLoad=null;reject(Error('日历暂时无法加载，请关闭后重试。'));};document.head.append(s);
+    });
+    calendarLoad.then(()=>{if(host.isConnected)window.GrowingUnitCalendar.mount(host,host.dataset.unitCalendar);}).catch(error=>{if(host.isConnected)host.textContent=error.message;});
+  }
+  function open(id,button,calendar=false){
     if(!providers.has(id))return;
     if(!dialog){
       dialog=document.createElement('dialog');dialog.className='unit-reward-dialog';
       dialog.setAttribute('aria-labelledby','unit-reward-dialog-title');
       dialog.addEventListener('keydown',e=>{
         if(e.key!=='Tab')return;
-        const controls=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled),summary')].filter(el=>el.getClientRects().length);
+        const controls=[...dialog.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,a[href]')].filter(el=>el.getClientRects().length);
         const first=controls[0],last=controls.at(-1);
         if(first&&((e.shiftKey&&document.activeElement===first)||(!e.shiftKey&&document.activeElement===last))){e.preventDefault();(e.shiftKey?last:first).focus();}
       });
@@ -58,15 +69,20 @@
       document.body.append(dialog);
     }
     opener=button;
-    dialog.innerHTML=`<header class="unit-reward-dialog-bar"><h2 id="unit-reward-dialog-title">${esc(providers.get(id).title)} · 掌握程度</h2><button type="button" data-reward-close autofocus aria-label="关闭掌握程度">关闭 ×</button></header><section data-unit-reward="${esc(id)}" aria-label="本单元进度与奖励"></section>`;
+    dialog.innerHTML=`<header class="unit-reward-dialog-bar"><h2 id="unit-reward-dialog-title">${esc(providers.get(id).title)} · 掌握程度</h2><button type="button" data-reward-close autofocus aria-label="关闭掌握程度">关闭 ×</button></header><nav class="unit-reward-tabs" aria-label="查看本单元记录"><button type="button" data-reward-tab="progress" aria-pressed="true">掌握与奖励</button><button type="button" data-reward-tab="calendar" aria-pressed="false">学习日历</button></nav><section data-unit-reward="${esc(id)}" aria-label="本单元进度与奖励"></section><section class="unit-calendar" data-unit-calendar="${esc(id)}" hidden></section>`;
     render(dialog.querySelector('[data-unit-reward]'),id);
     if(!dialog.open)dialog.showModal();
     document.documentElement.classList.add('unit-reward-modal-open');
+    if(calendar)showCalendar();
   }
   document.addEventListener('click',e=>{
     const trigger=e.target.closest('[data-reward-open]');
     if(trigger){e.preventDefault();open(trigger.dataset.rewardOpen,trigger);return;}
+    const calendarTrigger=e.target.closest('[data-reward-calendar]');
+    if(calendarTrigger){e.preventDefault();open(calendarTrigger.dataset.rewardCalendar,calendarTrigger,true);return;}
     if(e.target.closest('[data-reward-close]')){dialog?.close();return;}
+    const tab=e.target.closest('[data-reward-tab]');
+    if(tab){if(tab.dataset.rewardTab==='calendar')showCalendar();else{dialog.querySelector('[data-unit-reward]').hidden=false;dialog.querySelector('[data-unit-calendar]').hidden=true;dialog.querySelectorAll('[data-reward-tab]').forEach(b=>b.setAttribute('aria-pressed',b===tab));}return;}
     const b=e.target.closest('[data-reward-action]');if(!b||b.disabled)return;
     e.preventDefault();const el=b.closest('[data-unit-reward]'),id=el.dataset.unitReward,status=el.querySelector('.unit-reward-status');
     const field=k=>el.querySelector('[data-reward-field='+k+']');
@@ -88,5 +104,5 @@
   window.addEventListener('storage',e=>{if(e.key?.startsWith(prefix)){const id=e.key.slice(prefix.length);if(providers.has(id)){try{const d=load(id);for(const el of document.querySelectorAll('[data-unit-reward]'))if(el.dataset.unitReward===id)refresh(el,id,d);}catch{}}}});
   // Observe course re-renders, not our own numeric/text updates.
   new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('[data-unit-reward]:not([data-reward-mounted])')||n.querySelector?.('[data-unit-reward]:not([data-reward-mounted])')))))scan();}).observe(document.documentElement,{childList:true,subtree:true});
-  window.UnitRewards={register,placeholder,update};
+  window.UnitRewards={register,placeholder,update,openCalendar(id){open(id,document.activeElement,true);}};
 })();

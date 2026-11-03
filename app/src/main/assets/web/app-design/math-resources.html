@@ -19,16 +19,17 @@
     <header class="catalog-heading"><div><p class="eyebrow">数学</p><h1>试卷和推导</h1></div></header>
     <section class="my-papers" aria-labelledby="my-papers-title">
       <h2 id="my-papers-title">我的试卷</h2>
-      <div class="paper-entry">
-        <div><h3>期中复习卷</h3><p>23 道题 · 题目与单元知识点对应</p></div>
-        <nav aria-label="期中复习卷资料">
-          <a href="math-exam-midterm-graph.html">交互知识图谱 <span aria-hidden="true">→</span></a>
-          <a href="math-exam-midterm.html">无答案试卷 <span aria-hidden="true">→</span><small>可直接打印</small></a>
-        </nav>
+      <div class="paper-entry" style="margin-bottom:12px">
+        <div><h3>拍照整理试卷</h3></div>
+        <nav aria-label="我的拍照试卷"><button type="button" id="open-my-papers" style="font:inherit;text-align:left;padding:14px 16px;border:1px solid #bbc8ae;border-radius:12px;color:inherit;background:#fffdf9;cursor:pointer">我的拍照试卷 / 拍照导入 <span aria-hidden="true">→</span></button></nav>
       </div>
-      <div class="paper-entry" style="margin-top:12px">
-        <div><h3>期中掌握检测卷（二）</h3><p>同难度新题 · 100 分 · 选择、填空、手写解答</p></div>
-        <nav aria-label="同难度检测卷"><a href="math-exam-practice.html">开始检测 <span aria-hidden="true">→</span></a></nav>
+      <div class="paper-entry">
+        <div><h3>期中复习卷</h3></div>
+        <nav aria-label="期中复习卷资料">
+          <a href="math-exam-midterm.html">无答案试卷 <span aria-hidden="true">→</span></a>
+          <a href="math-exam-practice.html">检测卷2 <span aria-hidden="true">→</span></a>
+          <a href="math-exam-midterm-graph.html">交互知识图谱 <span aria-hidden="true">→</span></a>
+        </nav>
       </div>
     </section>
     <section class="my-papers" aria-labelledby="geometry-models-title">
@@ -42,6 +43,11 @@
   <script>
     const term=new URLSearchParams(location.search).get('term')==='lower'?'lower':'upper';
     document.getElementById('resources-back').href='units.html?subject=math&term='+term;
+    document.getElementById('open-my-papers').addEventListener('click',event=>{
+      event.preventDefault();
+      if(window.top.GrowingCloud?.openPapers)window.top.GrowingCloud.openPapers();
+      else location.href=window.GrowingNative?'../cloud/index.html?return='+encodeURIComponent(location.href)+'#my-papers':'/#my-papers';
+    });
   </script>
 </body>
 </html>

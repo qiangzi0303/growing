@@ -153,6 +153,10 @@ before(async () => {
   await db.batch(reviewMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
   const figureMigration=await readFile(new URL('../migrations/0012_question_figures.sql',import.meta.url),'utf8');
   await db.batch(figureMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
+  const drawingMigration=await readFile(new URL('../migrations/0013_question_svg.sql',import.meta.url),'utf8');
+  await db.batch(drawingMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
+  const paperMigration=await readFile(new URL('../migrations/0014_photo_papers.sql',import.meta.url),'utf8');
+  await db.batch(paperMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
 });
 after(async () => { await mf.dispose(); });
 

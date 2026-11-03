@@ -48,7 +48,7 @@
   function read(key,fallback){try{return JSON.parse(raw.getItem(key)||'null')??fallback;}catch{throw Error('本机同步配置无法读取，请先备份原记录。');}}
   async function api(path,options={}){
     const controller=new AbortController();let timeout;
-    const deadline=new Promise((_,reject)=>{timeout=setTimeout(()=>{reject(Error('连接云服务超时，请检查网络后重试。'));controller.abort();},path==='/question-bank/import'||/^\/question-bank\/questions\/[^/]+\/(format|followup|correct)$/.test(path)?110000:12000);});
+    const deadline=new Promise((_,reject)=>{timeout=setTimeout(()=>{reject(Error('连接云服务超时，请检查网络后重试。'));controller.abort();},path==='/question-bank/import'||/^\/question-bank\/questions\/[^/]+\/(format|followup|correct|drawing)$/.test(path)?110000:12000);});
     try{return await Promise.race([deadline,(async()=>{
     const response=await fetch(base+'/api'+path,{...options,keepalive:!options.body||new TextEncoder().encode(options.body).length<60000,signal:controller.signal,credentials:isNative?'omit':'same-origin',headers:{'Content-Type':'application/json','X-Growing-Client':'1',...(token?{Authorization:'Bearer '+token}:{}),...options.headers}});
     if(response.status===204)return null;
@@ -143,13 +143,13 @@
   function activity(url){lastAction=Date.now();currentSubject=/english|word-ops/.test(url)?'英语':/physics/.test(url)?'物理':/math-course|fraction-ops/.test(url)?'数学':'';}
   function tick(){
     const now=Date.now(),seconds=Math.min(15,Math.max(0,(now-lastTick)/1000));lastTick=now;
-    if(!user||user.role!=='Student'||!$('#course')||document.hidden||now-lastAction>60000||!currentSubject)return;
+    if(!user||user.role!=='Student'||!$('#course')||questionBankPage||document.hidden||now-lastAction>60000||!currentSubject)return;
     let device=raw.getItem('growing-cloud-device:'+user.id);if(!device){device=crypto.randomUUID();raw.setItem('growing-cloud-device:'+user.id,device);}
     const key='growing-activity-v1:'+device,data=JSON.parse(get(key)||'{"days":{}}'),date=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'});
     data.days[date]??={};data.days[date][currentSubject]=(data.days[date][currentSubject]||0)+seconds;put(key,JSON.stringify(data));
   }
   const courseTrail=[];
-  let photoVersion=0;
+  let photoVersion=0,questionBankPage=null;
   // Focused examples, experiment controls and draft ids update in place; they are not new pages.
   const routeKey=href=>{const url=new URL(href,location.href),identity=['subject','term','unit','chapter'];if(url.pathname.endsWith('knowledge.html'))identity.push('mode');for(const key of [...url.searchParams.keys()])if(!identity.includes(key))url.searchParams.delete(key);url.searchParams.sort();return url.pathname+url.search;};
   function rememberCourse(href,replace=false){
@@ -161,14 +161,23 @@
   function courseDocument(){try{return $('#course')?.contentDocument;}catch{return null;}}
   function updateShellNavigation(){
     const doc=courseDocument(),href=doc?.location.href||'',home=!$('#course')||new URL(href||location.href).pathname==='/learn/app-design/index.html';
-    $('#download-apk').hidden=!home||!!$('#question-bank-page')||!!$('#unit-reports-page')||$('#photo-dialog').open;
+    $('#download-apk').hidden=!home||!!$('#question-bank-page')||!!$('#photo-bank-page')||!!$('#unit-reports-page')||$('#photo-dialog').open;
     $('#question-bank').hidden=!user||needsRole(user)||user.role==='Student'||!!$('#course');
     const own=doc?.defaultView.GrowingCourseAccount;
     const legacy=href.includes('/fraction-ops/')||href.includes('/word-ops-unit3/');
-    document.querySelector('[data-account-view=calendar]').hidden=!own&&!legacy;
     document.querySelector('[data-account-view=settings]').hidden=!own&&!legacy&&!doc?.querySelector('[data-view=settings]');
   }
-  function courseReady(href){rememberCourse(href);updateShellNavigation();}
+  function photoUnit(href){
+    const url=new URL(href||location.href,location.href);
+    if(url.pathname.includes('/fraction-ops/'))return 'math-8b-10';
+    if(url.pathname.includes('/word-ops-unit3/'))return 'english-8a-03';
+    return url.searchParams.get('chapter')||url.searchParams.get('unit')||'';
+  }
+  function courseReady(href){
+    rememberCourse(href);updateShellNavigation();
+    const unit=photoUnit(href);
+    if(unit&&user?.role==='Student')try{raw.setItem('growing-photo-unit-v1:'+user.id,unit);}catch{}
+  }
   function mountDuck(){
     if(document.getElementById('global-course-duck'))return;
     const script=document.createElement('script');script.id='global-course-duck';
@@ -177,6 +186,7 @@
   }
   function courseBack(){
     if($('#photo-dialog').open){$('#photo-dialog').close();return;}
+    if(backFromQuestionBank())return;
     const frame=$('#course'),doc=courseDocument();if(!frame)return;
     if(doc?.defaultView.GrowingCourseAccount?.back())return;
     if(courseTrail.length>1){courseTrail.pop();frame.contentWindow.location.replace(courseTrail.at(-1));return;}
@@ -187,14 +197,43 @@
     }
     tick();courseTrail.length=0;frame.remove();student(false).then(updateShellNavigation).catch(error=>hint(error.message));
   }
-  async function openQuestionBank(){
+  function restoreQuestionBankPage(){
+    const page=questionBankPage;if(!page)return;
+    tick();questionBankPage=null;page.root.remove();
+    if(page.version!==generation)return;
+    page.previous.forEach(([node,hidden])=>{if(node.isConnected)node.hidden=hidden;});
+    updateShellNavigation();window.scrollTo(0,page.scrollY);page.focus?.focus({preventScroll:true});
+  }
+  function backFromQuestionBank(){
+    if(!questionBankPage)return false;
+    if(history.state?.questionBankFrom)history.back();
+    else{history.replaceState(null,'',questionBankPage.from);restoreQuestionBankPage();}
+    return true;
+  }
+  async function openQuestionBank(push=true){
+    if(!user||needsRole(user))return;
+    if(questionBankPage||$('#question-bank-page.question-bank-minimal'))return;
+    tick();$('#account-menu').open=false;if($('#photo-dialog').open)$('#photo-dialog').close();
+    const unitId=(!push&&new URLSearchParams(location.search).get('unit'))||courseDocument()?.defaultView.GrowingCourseNavigation?.unit||photoUnit(courseDocument()?.location.href);
+    const app=$('#app'),root=document.createElement('div'),version=generation;
+    root.id='photo-bank-page';
+    const page={root,version,previous:[...app.children].map(node=>[node,node.hidden]),scrollY:window.scrollY,focus:document.activeElement,
+      from:push?location.href:history.state?.questionBankFrom||location.pathname+location.search};
+    questionBankPage=page;page.previous.forEach(([node])=>{node.hidden=true;});app.append(root);
+    if(push){const url=new URL(location.href);url.hash='question-bank';if(unitId)url.searchParams.set('unit',unitId);history.pushState({questionBankFrom:page.from},'',url);}
+    updateShellNavigation();window.scrollTo(0,0);
+    const alive=()=>questionBankPage===page&&generation===version&&root.isConnected;
+    try{await GrowingQuestionBank.mount(root,api,esc,alive,user,{unitId});
+      if(alive()){const back=root.querySelector('#question-bank-home');if(back)back.textContent='← 返回上一级';const title=root.querySelector('h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true});}}
+    }catch(error){if(alive())root.innerHTML='<button id="question-bank-home">← 返回上一级</button><p role="status">'+esc(error.message)+'</p>';}
+  }
+  async function openPapers(context={}){
     if(!user||needsRole(user))return;
     const dialog=$('#photo-dialog');if(dialog.open)return;
     $('#account-menu').open=false;const current=++photoVersion,version=generation;
-    dialog.showModal();updateShellNavigation();
-    try{await GrowingQuestionBank.mount($('#photo-content'),api,esc,()=>dialog.open&&current===photoVersion&&generation===version,user);
-      if(dialog.open&&current===photoVersion){const back=$('#photo-content #question-bank-home');if(back)back.textContent='← 返回上一级';}
-    }catch(error){if(dialog.open&&current===photoVersion)$('#photo-content').innerHTML='<button id="question-bank-home">← 返回上一级</button><p role="status">'+esc(error.message)+'</p>';}
+    dialog.showModal();dialog.setAttribute('aria-label','我的试卷');updateShellNavigation();
+    try{await GrowingPapers.mount($('#photo-content'),api,esc,()=>dialog.open&&current===photoVersion&&generation===version,user,context);}
+    catch(error){if(dialog.open&&current===photoVersion)$('#photo-content').innerHTML='<button id="question-bank-home">← 返回上一级</button><p role="status">'+esc(error.message)+'</p>';}
   }
   function accountView(view){
     const doc=courseDocument();$('#account-menu').open=false;if(!doc)return;
@@ -203,7 +242,18 @@
   }
   $('#photo-dialog').addEventListener('close',()=>{photoVersion++;$('#photo-content').replaceChildren();updateShellNavigation();});
   document.addEventListener('click',event=>{if(!event.target.closest('#account-menu'))$('#account-menu').open=false;});
-  window.GrowingCloud={storage,activity,back:courseBack,pageReady:courseReady,openQuestionBank,
+  window.GrowingCloud={storage,activity,back:courseBack,pageReady:courseReady,openQuestionBank,openPapers,
+  paperReviewContext(){
+    if(!user||needsRole(user))throw Error('请先登录并选择身份。');
+    const id=user.id,version=generation;
+    return {user:{id,role:user.role},api:async(path,options)=>{
+      if(user?.id!==id||generation!==version)throw Error('账号已切换，请重新打开试卷。');
+      if(!path.startsWith('/question-bank/')&&path!=='/parent/children'&&!path.startsWith('/admin/members?'))throw Error('试卷接口无效。');
+      const result=await api(path,options);
+      if(user?.id!==id||generation!==version)throw Error('账号已切换，请重新打开试卷。');
+      return result;
+    }};
+  },
   async studentKnowledge(unit='',query='',topic=''){
     if(!user||user.role!=='Student'||needsRole(user))throw Error('请使用学生账号进入学习中心。');
     const id=user.id,version=generation;
@@ -230,14 +280,22 @@
     const id=user.id,version=generation;
     return {studentId:id,api:(path,options)=>{if(user?.id!==id||generation!==version)throw Error('学习会话已切换，请重新打开错题。');return api(path,options);}};
   }};
+  function questionBankRoute(){
+    if(!user||needsRole(user))return;
+    if(location.hash==='#question-bank'){if(!questionBankPage&&!$('#question-bank-page.question-bank-minimal'))openQuestionBank(false).catch(error=>hint(error.message));}
+    else if(questionBankPage)restoreQuestionBankPage();
+    else if($('#question-bank-page.question-bank-minimal'))enter(user).catch(error=>hint(error.message));
+  }
+  window.addEventListener('popstate',questionBankRoute);
+  window.addEventListener('hashchange',()=>{questionBankRoute();if(location.hash==='#my-papers'&&user&&!needsRole(user))enter(user,'my-papers').catch(error=>hint(error.message));});
   function hideRankings(){$('#my-rankings').hidden=true;$('#rankings-dialog').close();$('#rankings-content').replaceChildren();}
   function auth(){document.body.classList.remove('admin-console');clearInterval(timer);hideRankings();courseTrail.length=0;$('#account-menu').hidden=true;$('#account-menu').open=false;$('#photo-dialog').close();$('#download-apk').hidden=false;$('#question-bank').hidden=true;$('#logout').hidden=true;$('#settings').hidden=true;$('#learning-reports').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent='PC · 手机网页 · Android';
-    window.GrowingDuckCourse?.reset();
+    questionBankPage=null;window.GrowingDuckCourse?.reset();
     if(isNative&&!base){$('#app').innerHTML='<section class="panel"><h1>云服务尚未配置</h1><p>此安装包需要先配置服务端 HTTPS 地址，再登录云账号同步学习记录。</p><a class="button" href="../app-design/index.html">返回离线学习</a></section>';return;}
     $('#app').innerHTML=`<section class="panel auth"><p class="muted">逆流 · 学习与陪伴</p><h1>${authMode==='login'?'欢迎回来':'创建云账号'}</h1><p>${isNative&&!native.identityAccount?.()?'旧本机账号已登录，还需确认云账号身份。已有云账号请在下方登录，登录后选择学生或家长；没有云账号请点「注册」，注册时选择身份。后台保存成功后才能继续，原学习记录会保留。':'学生继续学习，家长看见进步。'}</p><form id="auth"><label>用户名<input name="username" autocomplete="username" minlength="2" maxlength="24" required></label><label>密码<input name="password" type="password" autocomplete="${authMode==='login'?'current-password':'new-password'}" minlength="8" maxlength="128" required></label>${authMode==='register'?'<label>称呼<input name="displayName" maxlength="40" required></label><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label>':''}${isNative?'<label><input name="consent" type="checkbox" style="display:inline;width:auto" required> 同意登录云账号；学生身份将关联本机学习记录（AI 密钥不上传）</label>':''}<button class="primary" type="submit">${authMode==='login'?'登录':'注册并登录'}</button></form><p><button id="switch-auth">${authMode==='login'?'还没有云账号？注册':'已有云账号？登录'}</button></p><p class="muted">旧版本机账号需关联云账号。本机记录和 AI 密钥保留；只有在此填写的云账号密码会发送到后台。</p></section>`;
   }
-  async function enter(profile,view=location.hash==='#question-bank'?'question-bank':location.hash==='#learning-reports'?'reports':'management'){management?.dispose();clearInterval(timer);clearTimeout(saveTimer);cloudReady=false;hideRankings();courseTrail.length=0;$('#photo-dialog').close();user=null;generation++;const version=generation;await rememberNativeSession(profile);if(version!==generation)return;user=profile;$('#account-menu').hidden=false;$('#account-menu').open=false;$('#account-identity').textContent=user.displayName;$('#logout').hidden=false;$('#learning-reports').hidden=true;$('#question-bank').hidden=needsRole(user)||user.role==='Student';hint('');
-    document.body.classList.toggle('admin-console',user.role==='Admin'&&view==='management');
+  async function enter(profile,view=location.hash==='#my-papers'?'my-papers':location.hash==='#question-bank'?'question-bank':location.hash==='#learning-reports'?'reports':'management'){management?.dispose();clearInterval(timer);clearTimeout(saveTimer);cloudReady=false;hideRankings();courseTrail.length=0;$('#photo-dialog').close();user=null;generation++;const version=generation;await rememberNativeSession(profile);if(version!==generation)return;user=profile;$('#account-menu').hidden=false;$('#account-menu').open=false;$('#account-identity').textContent=user.displayName;$('#logout').hidden=false;$('#learning-reports').hidden=true;$('#question-bank').hidden=needsRole(user)||user.role==='Student';hint('');
+    questionBankPage=null;document.body.classList.toggle('admin-console',user.role==='Admin'&&view==='management');
     window.GrowingDuckCourse?.reset();
     if(['Student','Admin'].includes(user.role)&&!needsRole(user))mountDuck();
     if(needsRole(user)){
@@ -248,9 +306,12 @@
     $('#my-rankings').hidden=user.role!=='Student';
     $('#learning-reports').hidden=!['Parent','Admin'].includes(user.role);
     $('#learning-reports').setAttribute('aria-pressed',String(view==='reports'));
-    history.replaceState(null,'',location.pathname+location.search+(view==='question-bank'?'#question-bank':view==='reports'&&user.role!=='Student'?'#learning-reports':''));
+    history.replaceState(null,'',location.pathname+location.search+(view==='my-papers'?'#my-papers':view==='question-bank'?'#question-bank':view==='reports'&&user.role!=='Student'?'#learning-reports':''));
     document.querySelectorAll('[data-admin-view]').forEach(button=>{const active=button.dataset.adminView===view;button.classList.toggle('primary',active);button.setAttribute('aria-pressed',String(active));});
-    if(view==='question-bank'){
+    if(view==='my-papers'){
+      $('#app').innerHTML='<div id="question-bank-page"></div>';
+      await GrowingPapers.mount($('#question-bank-page'),api,esc,()=>generation===version,user);
+    }else if(view==='question-bank'){
       $('#app').innerHTML='<div id="question-bank-page"></div>';
       await GrowingQuestionBank.mount($('#question-bank-page'),api,esc,()=>generation===version,user);
     }else if(view==='reports'&&['Admin','Parent'].includes(user.role)){
@@ -343,8 +404,8 @@
     if(b.id==='switch-auth'){authMode=authMode==='login'?'register':'login';auth();}
     if(b.dataset.adminView)await adminView(b.dataset.adminView);
     if(b.id==='learning-reports')await reportsView();
-    if(b.id==='question-bank'&&user&&!needsRole(user))await enter(user,'question-bank');
-    if(b.id==='question-bank-home'&&user){const back=new URLSearchParams(location.search).get('return');if(isNative&&back){const url=new URL(back,location.href);if(url.origin===location.origin&&url.pathname.startsWith('/assets/web/')&&!url.pathname.includes('/cloud/')){location.href=url.href;return;}}if($('#photo-dialog').open)$('#photo-dialog').close();else await enter(user,'management');}
+    if(b.id==='question-bank'&&user&&!needsRole(user))await openQuestionBank();
+    if(b.id==='question-bank-home'&&user){const back=new URLSearchParams(location.search).get('return');if(isNative&&back){const url=new URL(back,location.href);if(url.origin===location.origin&&url.pathname.startsWith('/assets/web/')&&!url.pathname.includes('/cloud/')){location.href=url.href;return;}}if($('#photo-dialog').open)$('#photo-dialog').close();else if(!backFromQuestionBank()){if(location.hash==='#question-bank'&&history.state?.questionBankFrom)history.back();else await enter(user,'management');}}
     if(b.id==='settings'){if(user?.role==='Admin')await adminView('settings');else if(user?.role==='Parent')await enter(user,'settings');}
     if(b.id==='add-child')parentSettings();
     if(b.id==='parent-home'){if(user?.role==='Admin')await adminView('parent');else if(user?.role==='Parent')await enter(user,'management');}

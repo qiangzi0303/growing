@@ -2,3 +2,5 @@
 :where(.task-bank){margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--line)}.task-bank h2{margin-top:0}.task-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}.task-actions select{flex:1;min-width:0;width:100%;max-width:100%}.task-actions button{flex-shrink:0}#task-preview{white-space:pre-wrap;font-size:14px}.task-bank details{margin-top:10px;padding-top:8px}#prompt{line-height:1.8}.task-bank select:focus-visible{outline:3px solid #d6a859;outline-offset:2px}
 .writing-navigation{display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between}.writing-navigation a{display:inline-flex;align-items:center;min-height:44px}@media(max-width:850px){.layout>.editor{grid-row:1}.layout>aside{grid-row:2}}
 @media(max-width:520px){.task-actions select{flex-basis:100%}.task-actions button{width:100%}}
+
+.layout{grid-template-columns:minmax(0,1fr)}.review input[hidden]{display:none}

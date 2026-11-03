@@ -1,5 +1,11 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const web=path.join(__dirname,'../app/src/main/assets/web/app-design'),H=require(path.join(web,'handwriting-core.js')),P=require(path.join(web,'fraction-paper-tasks.js'));
+test('photo originals round-trip with matching pages and reject URLs, excess sizes and mismatched pages',()=>{
+  const d=H.create('math','math-8b-10',P.tasks[0].prompt);d.photos=['data:image/jpeg;base64,/9j/AAAA'];
+  assert.ok(H.validate(JSON.parse(JSON.stringify(d))));
+  for(const photos of [[],['https://example.com/a.jpg'],['data:image/svg+xml;base64,AAAA'],['data:image/jpeg;base64,/9j/'+'A'.repeat(650000)],[null,null]])assert.equal(H.validate({...d,photos}),false);
+  d.pages.push([]);d.photos.push(null);assert.ok(H.validate(d));
+});
 test('all supported handwriting units use real course knowledge IDs, titles and destinations',()=>{
   for(const file of ['math-data.js','physics-data.js'])for(const c of require(path.join(web,file)).chapters){
     assert.deepEqual(H.knowledgeUnits[c.id],Object.fromEntries(c.nodes.map(n=>[n.id,n.title])));

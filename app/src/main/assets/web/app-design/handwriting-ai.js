@@ -3,10 +3,12 @@
   'use strict';
   const C=window.GrowingHandwriting;
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  function pageImage(strokes,draw,width=800,height=1100){
+  function pageImage(strokes,draw,width=800,height=1100,photo=null){
     const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;draw(canvas,strokes);
-    const ctx=canvas.getContext('2d');ctx.globalCompositeOperation='destination-over';ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.globalCompositeOperation='source-over';
-    return canvas.toDataURL('image/png');
+    const ctx=canvas.getContext('2d');ctx.globalCompositeOperation='destination-over';if(photo)ctx.drawImage(photo,0,0,width,height);ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.globalCompositeOperation='source-over';
+    let result=canvas.toDataURL('image/png');
+    if(photo){while(result.length>990000&&canvas.width>350){const smaller=document.createElement('canvas');smaller.width=Math.round(canvas.width*.85);smaller.height=Math.round(canvas.height*.85);smaller.getContext('2d').drawImage(canvas,0,0,smaller.width,smaller.height);canvas.width=smaller.width;canvas.height=smaller.height;canvas.getContext('2d').drawImage(smaller,0,0);result=canvas.toDataURL('image/png');}}
+    return result;
   }
   async function request(data,signal){
     const native=window.GrowingNative,base=String(native?.cloudApiUrl?.()||'').replace(/\/$/,'');

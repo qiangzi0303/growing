@@ -15,5 +15,6 @@ const knowledge=Object.entries(handwriting.knowledgeNodes).map(([id,title])=>{
 const models=context.window.GrowingGeometryModels.models.map(m=>({id:m.id,title:m.title,nodes:m.nodes,given:m.given,result:m.result,method:m.steps.slice(0,3),href:'app-design/geometry-models.html#model-'+m.id}));
 if(models.length!==41||new Set(models.map(m=>m.id)).size!==models.length)throw Error('Unexpected geometry catalog');
 const data={version:1,knowledge,models};
-fs.writeFileSync(path.join(repo,'cloudflare/src/photo-learning-catalog.json'),JSON.stringify(data,null,2)+'\n');
+const target=path.join(repo,'cloudflare/src/photo-learning-catalog.json'),output=JSON.stringify(data,null,2)+'\n';
+if(!fs.existsSync(target)||fs.readFileSync(target,'utf8')!==output)fs.writeFileSync(target,output);
 console.log('Photo review catalog: '+knowledge.length+' knowledge points, '+models.length+' geometry models.');

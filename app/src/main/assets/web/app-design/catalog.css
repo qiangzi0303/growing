@@ -55,6 +55,8 @@ h1{font-size:38px;line-height:1.4;font-weight:650;letter-spacing:2px;margin:0}
 @media(max-width:760px){.unit-row .unit-copy{grid-template-columns:minmax(0,1fr)}.unit-copy>.unit-actions{grid-column:1;grid-row:4;margin-top:9px;flex-wrap:wrap;gap:10px}}
 .unit-state{font-size:11px;color:#939a89;white-space:nowrap;padding:5px 9px;border-radius:7px;background:#f3f3ec}
 .is-ready .unit-state{color:#527545;background:#e7efde}
+.unit-row .unit-actions .unit-reward-trigger{min-height:0;padding:5px 9px;border:0;border-radius:7px;font:400 11px/normal "Segoe UI","Microsoft YaHei",system-ui,sans-serif;white-space:nowrap}
+@media(max-width:600px){.unit-row .unit-actions .unit-reward-trigger{font-size:10px;padding:3px 7px}}
 .unit-arrow{font-size:22px;color:#b9bead;margin-left:4px}
 .is-ready .unit-arrow{color:var(--accent)}
 .catalog-footnote{font-size:12px;text-align:center;color:#929987;margin:24px 0 0;letter-spacing:.4px}

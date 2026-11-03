@@ -4,16 +4,35 @@ import mathFormat from '../../platform-web/math-format.js';
 export type PhotoAssessment={
   verdict:'correct'|'partial'|'incorrect'|'unanswered'|'review';score:number|null;
   studentAnswer:string;feedback:string;
+  answerPages?:string[];
+  answerSource?:'handwriting-only';
+  answerAnnotations?:AnswerAnnotation[];
+  answerRegions?:PhotoRegion[];markedWrong?:boolean;
   corrections:{location:string;issue:string;correction:string}[];
   knowledge:{nodeId:string;role:'tested'|'gap';confidence:number;reason:string}[];
   models:{modelId:number;confidence:number;reason:string}[];
 };
 export type PhotoRegion={page:number;x:number;y:number;width:number;height:number};
+export type AnswerAnnotation=PhotoRegion&{kind:'correct'|'partial'|'incorrect';comment:string};
+export function validateAnswerAnnotations(value:any,pageCount:number):AnswerAnnotation[]|null{
+  if(value===undefined)return [];
+  if(!Array.isArray(value)||value.length>24)return null;
+  const pages=Array.from({length:pageCount},(_,i)=>i+1);
+  const result:AnswerAnnotation[]=[];
+  for(const item of value){
+    const [region]=validateRegions([item],pages)||[];
+    if(!region||!['correct','partial','incorrect'].includes(item.kind)||typeof item.comment!=='string'||!item.comment.trim()||item.comment.length>800)return null;
+    try{result.push({...region,kind:item.kind,comment:mathFormat.normalize(item.comment)});}catch{return null;}
+  }
+  return result;
+}
 const text=(v:unknown,max:number):v is string=>typeof v==='string'&&v.length<=max;
 const confidence=(v:unknown):v is number=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1;
-export function validateAssessment(v:any,unitId:string):PhotoAssessment|null{
-  if(!v||!['correct','partial','incorrect','unanswered','review'].includes(v.verdict)||!text(v.studentAnswer,6000)||!text(v.feedback,2400)||!v.feedback.trim()||
-    !Array.isArray(v.corrections)||v.corrections.length>12||!Array.isArray(v.knowledge)||v.knowledge.length>12||!Array.isArray(v.models)||v.models.length>3)return null;
+export function validateAssessment(v:any,unitId:string,limits:{feedback:number;corrections:number;legacyText?:boolean}={feedback:2400,corrections:12}):PhotoAssessment|null{
+  const answerRegions=validateRegions(v?.answerRegions??[],[1,2,3,4]);
+  if(!answerRegions||v?.markedWrong!==undefined&&typeof v.markedWrong!=='boolean')return null;
+  if(!v||!['correct','partial','incorrect','unanswered','review'].includes(v.verdict)||!text(v.studentAnswer,6000)||!text(v.feedback,limits.feedback)||!v.feedback.trim()||
+    !Array.isArray(v.corrections)||v.corrections.length>limits.corrections||!Array.isArray(v.knowledge)||v.knowledge.length>12||!Array.isArray(v.models)||v.models.length>3)return null;
   const verdict=v.verdict;
   if(['review','unanswered'].includes(verdict)?v.score!==null:!Number.isInteger(v.score)||v.score<0||v.score>100)return null;
   if(verdict==='correct'&&v.score!==100||verdict==='incorrect'&&v.score!==0||verdict==='partial'&&(v.score===0||v.score===100))return null;
@@ -31,8 +50,9 @@ export function validateAssessment(v:any,unitId:string):PhotoAssessment|null{
   }
   for(const c of v.corrections)if(!c||!['location','issue','correction'].every(k=>text(c[k],1400)&&c[k].trim()))return null;
   try{
-    const normalize=(s:string)=>mathFormat.normalize(s);
+    const normalize=(s:string)=>{if(limits.legacyText){mathFormat.validate(s);return s;}return mathFormat.normalize(s);};
     return {verdict,score:v.score,studentAnswer:v.studentAnswer,feedback:normalize(v.feedback),
+      ...(v.answerRegions!==undefined?{answerRegions}:{}),...(v.markedWrong!==undefined?{markedWrong:v.markedWrong}:{}),
       corrections:v.corrections.map((c:any)=>({location:normalize(c.location),issue:normalize(c.issue),correction:normalize(c.correction)})),
       knowledge:knowledge.map(k=>({...k,reason:normalize(k.reason)})),models:models.map(m=>({...m,reason:normalize(m.reason)}))};
   }catch{return null;}

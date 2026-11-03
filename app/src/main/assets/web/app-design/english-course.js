@@ -70,7 +70,7 @@
   let timeTick=Date.now(),timeAction=Date.now();
   function saveStudyTime(){
     const now=Date.now(),elapsed=Math.max(0,Math.min(now-timeTick,10000,timeAction+60000-timeTick));timeTick=now;
-    if(!elapsed||document.hidden||!document.hasFocus()||view==='settings'||doubtRequest||feynmanRequest)return;
+    if(!elapsed||document.hidden||!document.hasFocus()||document.querySelector('.unit-reward-dialog[open]')||view==='settings'||doubtRequest||feynmanRequest)return;
     try{
       const latest=read(),learning=latest.learningTime||{version:1,days:{}},day=new Date(now).toLocaleDateString('sv-SE');
       const previous=learning.days[day]??0;if(!Number.isFinite(previous)||previous<0)throw Error('学习计时异常');

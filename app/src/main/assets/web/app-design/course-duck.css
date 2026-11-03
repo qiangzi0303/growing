@@ -1,8 +1,8 @@
 #course-duck-host{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));z-index:1000;font:13px/1.5 "Microsoft YaHei",sans-serif;color:#355a44}
 #course-duck-host [hidden]{display:none!important}
 #course-duck-host.duck-invisible{opacity:0;pointer-events:none}
-.course-duck-launch{display:flex;align-items:center;justify-content:center;position:relative;z-index:2;box-sizing:border-box;width:44px;height:44px;padding:0;border:0;border-radius:35%;background:transparent;cursor:grab;touch-action:none;user-select:none;-webkit-tap-highlight-color:transparent}
-.course-duck-launch img{display:block;width:calc(104px / 3);height:40px;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none;filter:drop-shadow(0 2px 2px #19392925)}
+.course-duck-launch{display:flex;align-items:center;justify-content:center;position:relative;z-index:2;box-sizing:border-box;width:88px;height:88px;padding:0;border:0;border-radius:35%;background:transparent;cursor:grab;touch-action:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.course-duck-launch img{display:block;width:calc(208px / 3);height:80px;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none;filter:drop-shadow(0 2px 2px #19392925)}
 .duck-dragging .course-duck-launch{cursor:grabbing}
 .course-duck-launch:focus-visible{outline:3px solid #357b69;outline-offset:3px}
 .course-duck-launch:after{content:'拖动移位 · 双击说话';position:fixed;left:12px;bottom:12px;white-space:nowrap;background:#fffdf8;color:#355a44;padding:6px 10px;border:1px solid #c4d7c6;border-radius:10px;font-size:12px;opacity:0;pointer-events:none}
@@ -19,4 +19,4 @@
 .course-duck-summary [data-summary-dismiss]{position:absolute;right:6px;top:4px;background:transparent}
 #course-duck-host:has(.course-duck-panel:not([hidden])) .course-duck-summary{display:none}
 .duck-announcement{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-@media(max-width:520px){#course-duck-host{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}.course-duck-launch img{width:calc(86px / 3);height:calc(100px / 3)}}
+@media(max-width:520px){#course-duck-host{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}.course-duck-launch img{width:calc(172px / 3);height:calc(200px / 3)}}

@@ -51,7 +51,8 @@
       (v.needsReview?v.score===null&&v.parts===null:integer(v.score,100)&&Array.isArray(v.parts)&&v.parts.length===4&&v.parts.every(x=>integer(x,100))&&v.parts.reduce((a,b)=>a+b,0)===v.score);
   }
   function validate(d){
-    if(!exact(d,['version','unitId','subject','mode','prompt','pages','revision','recognition','grades','updatedAt'])||d.version!==1||!units(d.subject).includes(d.unitId)||d.mode!==(d.subject==='english'?'essay':'solution')||!str(d.prompt,6000)||!integer(d.revision,1e9)||!timestamp(d.updatedAt)||!Array.isArray(d.pages)||d.pages.length<1||d.pages.length>MAX_PAGES)return false;
+    if(!exact(d,['version','unitId','subject','mode','prompt','pages','revision','recognition','grades','updatedAt',...('photos' in (d||{})?['photos']:[])])||d.version!==1||!units(d.subject).includes(d.unitId)||d.mode!==(d.subject==='english'?'essay':'solution')||!str(d.prompt,6000)||!integer(d.revision,1e9)||!timestamp(d.updatedAt)||!Array.isArray(d.pages)||d.pages.length<1||d.pages.length>MAX_PAGES)return false;
+    if(d.photos!==undefined&&(!Array.isArray(d.photos)||d.photos.length!==d.pages.length||d.photos.some(p=>p!==null&&(typeof p!=='string'||p.length>650000||!/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(p)))||d.photos.reduce((n,p)=>n+(p?.length||0),0)>650000))return false;
     let points=0;
     for(const page of d.pages){
       if(!Array.isArray(page)||page.length>3000)return false;
@@ -70,7 +71,7 @@
   function evidence(documents,tasks){
     const latest=new Map();
     for(const d of documents){
-      if(!validate(d)||d.subject!=='math'||d.unitId!=='math-8b-10'||!d.pages.some(p=>p.some(s=>s.tool==='pen')))continue;
+      if(!validate(d)||d.subject!=='math'||d.unitId!=='math-8b-10'||!d.pages.some((p,i)=>d.photos?.[i]||p.some(s=>s.tool==='pen')))continue;
       const task=tasks.find(t=>t.prompt===d.prompt&&t.nodes?.length);if(!task)continue;
       for(const g of d.grades){
         if(g.revision!==d.revision||g.needsReview||!matchesKnowledge(g,task)||g.source!=='handwriting'&&(!d.recognition?.confirmed||!d.recognition.text.trim()))continue;

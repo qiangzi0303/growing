@@ -105,7 +105,7 @@ A. \(1\)　B. \(2\)　C. \(3\)　D. \(4\)
 图示条件：\(B,D,C\) 依次共线，连接 \(AD\)。
 【综合应用】
 （3）如图 3，在直角 \(\triangle ABC\) 中，\(\angle BAC=90^\circ\)，\(AB=AC\)。过点 \(C\) 作 \(MN\perp AC\)，点 \(D\) 是射线 \(CM\) 上一点。以 \(AD\) 为边作直角 \(\triangle ADE\)，\(\angle DAE=90^\circ\)，\(AD=AE\)，连接 \(BE\)。请判断 \(\triangle BAE\) 与 \(\triangle ACD\) 是否为积等三角形，并说明理由。
-图示条件：\(N,C,D,M\) 依次在同一直线上；\(B\) 与 \(E\) 位于直线 \(AD\) 的同侧，图中标注了 \(\angle BAC\)、\(\angle ACD\)、\(\angle DAE\) 为直角。`,
+图示条件：\(N,C,D,M\) 依次在同一直线上；\(B\) 与 \(E\) 位于直线 \(AD\) 的两侧，图中标注了 \(\angle BAC\)、\(\angle ACD\)、\(\angle DAE\) 为直角。`,
   28:String.raw`把分式 \(\frac{x}{x^{2}+y^{2}}\) 中 \(x\)、\(y\) 的值都缩小为原来的一半，所得分式的值（　）。
 A. 缩小到原来的 \(\frac{1}{4}\)
 B. 缩小到原来的 \(\frac{1}{2}\)

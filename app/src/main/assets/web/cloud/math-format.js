@@ -45,5 +45,9 @@
     try{return validate(source).map(p=>p.math?`<span class="${p.display?'math-display':'math-inline'}">${formula(p)}</span>`:escape(p.text)).join('');}
     catch(e){return `<span class="math-format-error">公式待核对：${escape(e.message)}</span><span class="math-source">${escape(source)}</span>`;}
   }
-  return {version,parts,validate,normalize,html};
+  function questionHtml(source){
+    // Diagram metadata is appended for processing, not part of the student-facing question.
+    return html(String(source??'').replace(/\s*图示条件\s*[：:][\s\S]*$/,'').trim());
+  }
+  return {version,parts,validate,normalize,html,questionHtml};
 });

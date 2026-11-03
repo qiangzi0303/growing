@@ -67,7 +67,7 @@ A. \(6\)　B. \(8\)　C. \(10\)　D. \(12\)`],
  ];
  const evidence={8:'选择题有明显错选与批改痕迹。',11:'填空答案与距离模型不符，需复习垂线段最短。',13:'手写周长与题设复核不符，需检查两直角三角形中斜边中线的性质。',17:'第（2）问有错误及扣分痕迹；第（1）问不据此判错。',18:'可见扣分痕迹；化简、取值与最终求值需重新独立核对。',22:'第（2）问证明有修改和部分得分痕迹；第（1）问不据此判错。',23:'三小问有明显错误或未完成痕迹，列为重点复习。',24:'第（1）问第二空及第（2）问有错误；第（3）问证明需补全。'};
  const source='文景实验学校八年级上数学期中复习卷（1）';
- const questions=rows.map(([number,unitId,title,concepts,text,note=''])=>({id:`midterm-20261029-${String(number).padStart(2,'0')}`,number,page:number<=11?1:number<=20?2:number<=23?3:4,unitId,unitIds:number===16?[unitId,'math-8a-02']:[unitId],title,concepts,text,format:'math-text-v1',sourceId:'midterm-20261029',sourceLabel:source,note,review:evidence[number]||'仅收录考查知识点；未凭照片认定本题做错。',priority:!!evidence[number],figure:[4,5,8,11,13,14,15,20,22,24].includes(number)?`math-midterm-figures/q${number}-original.webp`:null}));
+ const questions=rows.map(([number,unitId,title,concepts,text,note=''])=>({id:`midterm-20261029-${String(number).padStart(2,'0')}`,number,page:number<=11?1:number<=20?2:number<=23?3:4,unitId,unitIds:number===16?[unitId,'math-8a-02']:[unitId],title,concepts,text,format:'math-text-v1',sourceId:'midterm-20261029',sourceLabel:source,note,review:evidence[number]||'仅收录考查知识点；未凭照片认定本题做错。',priority:!!evidence[number],figure:[4,5,8,11,13,14,15,20,22,24].includes(number)?`math-midterm-figures/q${number}.svg`:null}));
  questions.find(q=>q.number===7).review='学生所选选项与按现有题面独立复核一致；旁侧批改痕迹需核对，暂不认定本题做错。';
  window.GrowingMidterm={source,questions,missing:[19],version:1};
  const bank=window.GrowingMathWrongQuestions;

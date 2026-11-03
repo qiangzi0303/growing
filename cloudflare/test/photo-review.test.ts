@@ -5,6 +5,8 @@ import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {createHandler,type Env} from '../src/index';
 import {connect,type Database} from '../src/database';
 import {validateAssessment,validateRegions} from '../src/photo-assessment';
+import drawing from '../../platform-web/question-drawing.js';
+import {runInNewContext} from 'node:vm';
 
 const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response("ok")}}',compatibilityDate:'2026-10-22',d1Databases:['DB']}));
 let db:Database,output:any,calls:any[]=[],hook:(()=>Promise<void>)|undefined;
@@ -33,6 +35,191 @@ before(async()=>{
   }
 });
 after(async()=>{await mf.dispose();});
+
+const vector=()=>({version:'question-svg-v1',figures:[{width:380,height:280,title:'题设三角形',elements:[{tag:'path',d:'M80 230 L180 30 L280 230 Z'},{tag:'text',x:180,y:22,text:'A'}]}],warnings:[]});
+
+test('examination review keeps immutable submissions, raw handwriting and student scope without awarding imported scores',async()=>{
+  const u=await register(),other=await register(),parent=await register('Parent');
+  const image='data:image/png;base64,iVBORw0KGgoAAA==';
+  const input={studentId:u.user.id,sourceId:'midterm-parallel-20261029',submissionId:crypto.randomUUID(),title:'检测卷',questions:[{number:'8',text:'根据题设求角度。',unitId:'math-8a-01',drawing:vector(),assessment:assessment({knowledge:[]}),answerPages:[image]}]};
+  const r=await call('/question-bank/exams','POST',input,u.token);assert.equal(r.status,200);
+  const saved=await r.json() as any,q=saved.questions[0];
+  assert.equal(saved.mode,'exam');assert.deepEqual(saved.warnings,[]);assert.deepEqual(q.grades[0].result.answerPages,[image]);assert.equal(q.drawingReviewed,1);
+  output={reply:'先核对角平分线对应的两个角。'};
+  assert.equal((await call('/question-bank/questions/'+q.id+'/followup','POST',{studentId:u.user.id,gradeId:q.grades[0].id,requestId:crypto.randomUUID(),prompt:'只提示下一步'},u.token)).status,200);
+  const followupContext=JSON.parse(calls.at(-1).messages[1].content[0].text);assert.deepEqual(followupContext.question.drawing,drawing.normalize(vector()));assert.equal(followupContext.answerPageCount,1);
+  const again=await (await call('/question-bank/exams','POST',input,u.token)).json() as any;assert.equal(saved.id,again.id);assert.equal(again.questions[0].grades.length,1);
+  assert.equal((await call('/question-bank/exams','POST',{...input,title:'覆盖旧试卷',questions:[{...input.questions[0],text:'不同题设'}]},u.token)).status,409);
+  const newer=await (await call('/question-bank/exams','POST',{...input,submissionId:crypto.randomUUID()},u.token)).json() as any;assert.notEqual(newer.id,saved.id);
+  const attempts=await db.query('SELECT * FROM "GrowingQuestionAttempts" WHERE "StudentId"=?1',[u.user.id]);assert.equal(attempts.length,0);
+  assert.equal((await call('/question-bank/exams','POST',input,other.token)).status,404);
+  assert.equal((await call('/question-bank/exams','POST',input,parent.token)).status,404);
+  await db.query('INSERT INTO "GrowingFamilyLinks" ("StudentId","ParentId","CreatedAt") VALUES (?1,?2,?)',[u.user.id,parent.user.id,'2026-11-03']);
+  assert.equal((await call('/question-bank/exams','POST',input,parent.token)).status,200);
+  const list=await (await call('/question-bank/papers?studentId='+u.user.id,'GET',undefined,u.token)).json() as any[];assert.equal(list.length,2);
+});
+
+test('blank examination registration is idempotent and rejects invalid vectors and answer sources',async()=>{
+  const u=await register(),input={studentId:u.user.id,sourceId:'midterm-20261029',submissionId:'default',title:'无答案试卷',questions:[{number:'11',text:'求角度。',unitId:'math-8a-01'}]};
+  const saved=await (await call('/question-bank/exams','POST',input,u.token)).json() as any;
+  assert.equal(saved.questions[0].grades.length,0);assert.deepEqual(saved.pages,[]);
+  const repeated=await (await call('/question-bank/exams','POST',input,u.token)).json() as any;assert.equal(saved.id,repeated.id);
+  for(const q of [{...input.questions[0],drawing:{version:'arbitrary-svg'}},{...input.questions[0],answerPages:['data:image/jpeg;base64,/9j/AA==']},{...input.questions[0],assessment:assessment({score:900})}]){
+    assert.equal((await call('/question-bank/exams','POST',{...input,questions:[q]},u.token)).status,400);
+  }
+});
+
+test('all bundled examination questions and course links can enter the shared review store',async()=>{
+  const u=await register(),scope:any={window:{}};
+  for(const file of ['math-exam-practice-data.js','math-exam-practice-links.js','math-midterm-20261029.js'])runInNewContext(await readFile(new URL('../../app/src/main/assets/web/app-design/'+file,import.meta.url),'utf8'),scope);
+  const practice=scope.window.GrowingParallelPaper,links=scope.window.GrowingParallelLinks;
+  const questions=practice.questions.map((q:any)=>({number:String(q.n),text:q.prompt+(q.options?'\n'+q.options.join('\n'):''),unitId:links[q.n].targets[0].chapter,assessment:assessment({verdict:'unanswered',score:null,studentAnswer:'',feedback:'本题未作答。\n'+q.solution,corrections:[],knowledge:links[q.n].targets.map((t:any)=>({nodeId:t.node,role:'tested',confidence:.95,reason:'本题考查'+t.title}))})}));
+  for(const q of questions)assert.ok(validateAssessment(q.assessment,q.unitId,{feedback:8000,corrections:40,legacyText:true}),'第'+q.number+'题：'+JSON.stringify(q));
+  let r=await call('/question-bank/exams','POST',{studentId:u.user.id,sourceId:practice.id,submissionId:crypto.randomUUID(),title:practice.title,questions},u.token);assert.equal(r.status,200,await r.text());
+  r=await call('/question-bank/exams','POST',{studentId:u.user.id,sourceId:'midterm-20261029',submissionId:'default',title:'无答案试卷',questions:scope.window.GrowingMidterm.questions.map((q:any)=>({number:String(q.number),text:q.text,unitId:q.unitId||''}))},u.token);assert.equal(r.status,200,await r.text());
+});
+
+test('whole paper lifecycle persists handwriting crops, blank unreadable answers, draft confirmation and independent wrong marks',async()=>{
+  const u=await register(),other=await register();output=paper();
+  const region={page:1,x:.1,y:.2,width:.7,height:.12};
+  output.questions[0].assessment.answerRegions=[region];
+  output.questions[0].assessment.markedWrong=true;output.questions[0].answer='不得出现在净卷的答案';
+  output.questions[3].assessment.markedWrong=true;
+  output.questions[3].assessment.answerRegions=[{...region,page:2}];
+  const input={studentId:u.user.id,requestId:crypto.randomUUID(),mode:'paper',pages};
+  const response=await call('/question-bank/import','POST',input,u.token);assert.equal(response.status,200);
+  const data=await response.json() as any,q=data.questions[0],missing=data.questions[3];
+  assert.equal(q.answer,'');assert.deepEqual(q.grades[0].result.answerRegions,[region]);
+  assert.equal(missing.grades[0].result.studentAnswer,'');assert.equal(missing.grades[0].result.feedback,'');
+  assert.deepEqual(missing.grades[0].result.corrections,[]);assert.deepEqual(missing.grades[0].result.answerRegions,[]);
+  assert.equal(missing.grades[0].result.markedWrong,true);
+  const query='?studentId='+u.user.id,path='/question-bank/papers/'+data.paperId;
+  assert.equal((await call('/question-bank/papers'+query,'GET',undefined,other.token)).status,404);
+  let rows=await (await call('/question-bank/papers'+query,'GET',undefined,u.token)).json() as any[];
+  assert.equal(rows.length,1);assert.equal(rows[0].mode,'paper-draft');assert.equal(rows[0].questionCount,4);assert.equal(rows[0].pages,undefined);
+  const retry=await (await call('/question-bank/import','POST',input,u.token)).json() as any;assert.equal(retry.paperId,data.paperId);assert.equal(retry.duplicate,true);
+  assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'我的期中试卷'},other.token)).status,404);
+  assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'  '},u.token)).status,400);
+  assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'我的期中试卷'},u.token)).status,200);
+  rows=await (await call('/question-bank/papers'+query,'GET',undefined,u.token)).json() as any[];assert.equal(rows[0].mode,'paper');assert.equal(rows[0].title,'我的期中试卷');
+  const mark='/question-bank/questions/'+q.id+'/paper-mark',body={studentId:u.user.id,revision:1,markedWrong:false};
+  assert.equal((await call(mark,'POST',body,other.token)).status,404);
+  assert.equal((await call(mark,'POST',{...body,revision:99},u.token)).status,409);
+  assert.equal((await call(mark,'POST',body,u.token)).status,200);
+  let saved=await (await call(path+query,'GET',undefined,u.token)).json() as any;
+  assert.equal(saved.questions[0].paperWrong,0);assert.deepEqual(saved.questions[0].grades,q.grades);
+  assert.equal(saved.pages.length,2);assert.equal(saved.pages[0].image,pages[0]);
+  assert.equal((await call('/question-bank/questions/'+q.id,'PUT',{studentId:u.user.id,number:q.number,text:'修改后的完整题干',answer:'',unitId:q.unitId,revision:1},u.token)).status,200);
+  saved=await (await call(path+query,'GET',undefined,u.token)).json() as any;
+  assert.equal(saved.questions[0].revision,2);assert.equal(saved.questions[0].paperWrong,null);assert.equal(saved.questions[0].grades[0].revision,1);
+});
+
+test('a linked parent imports a paper directly into the child library without exposing it to unrelated accounts',async()=>{
+  const child=await register(),parent=await register('Parent'),other=await register(),otherParent=await register('Parent');
+  const invite=await (await call('/student/invitations','POST',{},child.token)).json() as any;
+  assert.equal((await call('/parent/children','POST',{code:invite.code},parent.token)).status,200);
+  const input={studentId:child.user.id,requestId:crypto.randomUUID(),mode:'paper',pages};
+  output=paper();
+  assert.equal((await call('/question-bank/import','POST',input,otherParent.token)).status,404);
+  const imported=await call('/question-bank/import','POST',input,parent.token);
+  assert.equal(imported.status,200);
+  const data=await imported.json() as any,query='?studentId='+child.user.id,path='/question-bank/papers/'+data.paperId;
+  const childRows=await (await call('/question-bank/papers'+query,'GET',undefined,child.token)).json() as any[];
+  const parentRows=await (await call('/question-bank/papers'+query,'GET',undefined,parent.token)).json();
+  assert.deepEqual(parentRows,childRows);assert.equal(childRows.length,1);assert.equal(childRows[0].id,data.paperId);
+  const opened=await call(path+query,'GET',undefined,child.token);assert.equal(opened.status,200);
+  const saved=await opened.json() as any;
+  assert.deepEqual(saved.pages.map((p:any)=>p.image),pages);assert.deepEqual(saved.questions,data.questions);
+  assert.equal((await call(path+'/confirm','POST',{studentId:child.user.id,title:'家长拍照的试卷'},parent.token)).status,200);
+  const confirmed=await (await call(path+query,'GET',undefined,child.token)).json() as any;
+  assert.equal(confirmed.title,'家长拍照的试卷');assert.equal(confirmed.mode,'paper');
+  for(const account of [other,otherParent]){
+    assert.equal((await call('/question-bank/papers'+query,'GET',undefined,account.token)).status,404);
+    assert.equal((await call(path+query,'GET',undefined,account.token)).status,404);
+  }
+  assert.equal((await call(path+'?studentId='+other.user.id,'GET',undefined,other.token)).status,404);
+  await db.query('DELETE FROM "GrowingFamilyLinks" WHERE "StudentId"=?1 AND "ParentId"=?2',[child.user.id,parent.user.id]);
+  assert.equal((await call(path+query,'GET',undefined,parent.token)).status,404);
+  assert.equal((await call(path+query,'GET',undefined,child.token)).status,200);
+});
+
+test('handwriting crops cannot refer to another question source page or exceed the image',async()=>{
+  const u=await register();
+  for(const region of [{page:2,x:0,y:0,width:.5,height:.5},{page:1,x:.9,y:0,width:.5,height:.5}]){
+    output=paper();output.questions[0].assessment.answerRegions=[region];
+    const r=await call('/question-bank/import','POST',{studentId:u.user.id,requestId:crypto.randomUUID(),mode:'paper',pages},u.token);
+    assert.equal(r.status,502);
+  }
+  const rows=await (await call('/question-bank/papers?studentId='+u.user.id,'GET',undefined,u.token)).json();assert.deepEqual(rows,[]);
+});
+test('SVG generation, confirmation and source replacement preserve grades and attempts',async()=>{
+  const u=await register(),other=await register(),{data}=await importPaper(u),q=data.questions[1];
+  const path='/question-bank/questions/'+q.id,query='?studentId='+u.user.id;
+  const before=await db.query('SELECT * FROM "GrowingQuestionAttempts" WHERE "StudentId"=?1',[u.user.id]);
+  const input={studentId:u.user.id,figureVersion:q.figureVersion,revision:q.revision};output=vector();
+  assert.equal((await call(path+'/drawing','POST',input,other.token)).status,404);
+  assert.equal((await call(path+'/drawing','POST',input,u.token)).status,200);
+  let attachment=await (await call(path+'/figures'+query,'GET',undefined,u.token)).json() as any;
+  assert.deepEqual(attachment.drawing,drawing.normalize(vector()));assert.equal(attachment.drawingReviewed,0);assert.equal(attachment.drawingRevision,q.revision);
+  const context=JSON.parse(calls.at(-1).messages[1].content[0].text);assert.equal(context.number,q.number);assert.equal(context.answer,undefined);assert.equal(context.studentAnswer,undefined);
+  assert.match(calls.at(-1).messages[0].content,/手写答案和辅助线一律排除/);
+  assert.match(calls.at(-1).messages[0].content,/\bJSON\b/,'JSON response-mode providers require the prompt to name JSON');
+  assert.equal((await call(path+'/figures','PUT',{...input,figureVersion:attachment.figureVersion,revision:99,drawingReviewed:true},u.token)).status,409);
+  assert.equal((await call(path+'/figures','PUT',{...input,figureVersion:attachment.figureVersion,drawingReviewed:true},u.token)).status,200);
+  attachment=await (await call(path+'/figures'+query,'GET',undefined,u.token)).json() as any;assert.equal(attachment.drawingReviewed,1);
+  assert.equal((await call(path+'/drawing','POST',input,u.token)).status,409);
+  assert.equal((await call(path+'/figures','PUT',{studentId:u.user.id,figureVersion:attachment.figureVersion,image:pages[0]},u.token)).status,200);
+  attachment=await (await call(path+'/figures'+query,'GET',undefined,u.token)).json() as any;assert.equal(attachment.drawing,null);assert.equal(attachment.drawingReviewed,0);
+  const review=await (await call(path+'/review'+query,'GET',undefined,u.token)).json() as any;
+  assert.equal(review.question.revision,q.revision);assert.deepEqual(review.question.grades,q.grades);
+  assert.deepEqual(await db.query('SELECT * FROM "GrowingQuestionAttempts" WHERE "StudentId"=?1',[u.user.id]),before);
+});
+test('SVG generation detects concurrent question edits and family revocation before saving',async()=>{
+  const u=await register(),parent=await register('Parent'),{data}=await importPaper(u),q=data.questions[1],path='/question-bank/questions/'+q.id;
+  output=vector();hook=async()=>{await db.query('UPDATE "GrowingPhotoQuestions" SET "Revision"=2 WHERE "Id"=?1',[q.id]);};
+  assert.equal((await call(path+'/drawing','POST',{studentId:u.user.id,figureVersion:1,revision:1},u.token)).status,409);
+  assert.equal((await db.query<any>('SELECT "FigureDrawing" AS drawing FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[q.id]))[0].drawing,'');
+  const invite=await (await call('/student/invitations','POST',undefined,u.token)).json() as any;
+  assert.equal((await call('/parent/children','POST',{code:invite.code},parent.token)).status,200);
+  hook=async()=>{await db.query('DELETE FROM "GrowingFamilyLinks" WHERE "StudentId"=?1 AND "ParentId"=?2',[u.user.id,parent.user.id]);};
+  assert.equal((await call(path+'/drawing','POST',{studentId:u.user.id,figureVersion:1,revision:2},parent.token)).status,404);
+  assert.equal((await db.query<any>('SELECT "FigureDrawing" AS drawing FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[q.id]))[0].drawing,'');
+});
+test('new photo imports automatically persist SVGs in default transcription and grading modes',async()=>{
+  for(const mode of [undefined,'transcribe','grade']){
+    const u=await register();output=paper();output.questions[1].drawing=vector();
+    output.questions[1].figures=[{page:1,x:.2,y:.3,width:.25,height:.2}];
+    const before=calls.length;
+    const response=await call('/question-bank/import','POST',{studentId:u.user.id,requestId:crypto.randomUUID(),...(mode?{mode}:{}),pages},u.token);assert.equal(response.status,200);
+    const data=await response.json() as any,q=data.questions[1];assert.equal(q.hasDrawing,1);assert.equal(q.drawingReviewed,0);assert.equal(q.drawingRevision,q.revision);
+    assert.equal(calls.length,before+1,'SVG is generated during import without a manual drawing request');
+    assert.match(calls.at(-1).messages[0].content,/"drawing":null/,'both import schemas include the drawing field');
+    const suffix='?studentId='+u.user.id;
+    const attachment=await (await call('/question-bank/questions/'+q.id+'/figures'+suffix,'GET',undefined,u.token)).json() as any;
+    assert.deepEqual(attachment.drawing,drawing.normalize(vector()));
+    const source=await (await call('/question-bank/papers/'+data.paperId+suffix,'GET',undefined,u.token)).json() as any;assert.equal(source.pages.length,2);
+    assert.equal(q.grades.length,mode==='grade'?1:0);
+    const list=await (await call('/question-bank/questions'+suffix,'GET',undefined,u.token)).json() as any;
+    assert.equal(list.rows.find((item:any)=>item.id===q.id).hasDrawing,1);
+    assert.ok(!data.questions[0].uncertain.some((s:string)=>s.includes('SVG')),'text-only questions do not get spurious SVG warnings');
+  }
+});
+
+test('missing or malformed SVGs stay explicitly pending while source evidence and valid grades survive',async()=>{
+  for(const candidate of [undefined,null,{version:'question-svg-v1',figures:[{tag:'script'}],warnings:[]}]){
+    const u=await register();output=paper();const sourceQuestion=output.questions[1];
+    sourceQuestion.drawing=candidate;sourceQuestion.figures=[{page:1,x:.2,y:.3,width:.25,height:.2}];
+    sourceQuestion.unitId='';sourceQuestion.uncertain=Array.from({length:10},(_,i)=>'original uncertainty '+i);
+    const response=await call('/question-bank/import','POST',{studentId:u.user.id,requestId:crypto.randomUUID(),mode:'grade',pages},u.token);assert.equal(response.status,200);
+    const data=await response.json() as any,q=data.questions[1];assert.equal(q.hasDrawing,0);assert.equal(q.drawingReviewed,0);
+    assert.equal(q.uncertain.length,10);assert.ok(q.uncertain.some((s:string)=>s.includes('SVG')));assert.ok(q.uncertain.some((s:string)=>s.includes('单元未确定')));
+    assert.equal(q.grades.length,1);assert.equal(q.grades[0].result.score,100);
+    const source=await (await call('/question-bank/papers/'+data.paperId+'?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;assert.equal(source.pages.length,2);
+    assert.deepEqual(q.figures,sourceQuestion.figures);
+    const attachment=await (await call('/question-bank/questions/'+q.id+'/figures?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;
+    assert.equal(attachment.drawing,null);
+  }
+});
 
 test('assessment validators reject invented links, invalid scores and regions; low confidence is withheld',()=>{
   assert.ok(validateAssessment(assessment(),'math-8b-10'));
@@ -129,6 +316,92 @@ test('correction is a new immutable grade and attempt; concurrent retries preser
   assert.equal((await db.query('SELECT * FROM "GrowingQuestionAttempts" WHERE "QuestionId"=?1',[q.id])).length,2);
   assert.equal((await call(path,'POST',{...input,studentAnswer:'改了内容'},u.token)).status,409);
 });
+test('handwritten correction excludes old answer photos and preserves each independent grade',async()=>{
+  const u=await register(),other=await register(),{data}=await importPaper(u),q=data.questions[0],first=structuredClone(q.grades[0]);
+  const answerPages=['data:image/png;base64,iVBORw0KGgoAAA=='],path='/question-bank/questions/'+q.id+'/correct';
+  const input={studentId:u.user.id,revision:1,requestId:crypto.randomUUID(),answerPages};
+  const answerAnnotations=[{page:1,x:.1,y:.2,width:.5,height:.1,kind:'correct',comment:'这一步保留了负号。'}];
+  output=assessment({verdict:'correct',score:100,studentAnswer:'新手写：先通分再分配减号。',corrections:[],answerAnnotations});
+  assert.equal((await call(path,'POST',input,other.token)).status,404);
+  const response=await call(path,'POST',input,u.token);assert.equal(response.status,200);
+  const {grade}=await response.json() as any;
+  assert.deepEqual(grade.result.answerPages,answerPages);assert.equal(grade.result.studentAnswer,output.studentAnswer);
+  assert.deepEqual(grade.result.answerAnnotations,answerAnnotations);
+  assert.equal(grade.result.answerSource,'handwriting-only');
+  const message=calls.at(-1).messages[1].content,context=JSON.parse(message[0].text);
+  assert.equal(context.answerPageCount,1);assert.equal(context.studentAnswer,undefined);
+  assert.deepEqual(message.filter((m:any)=>m.type==='image_url').map((m:any)=>m.image_url.url),answerPages);
+  assert.equal(context.hasOriginalImages,false);assert.deepEqual(context.imageSourcePages,[]);
+  assert.equal(context.question.studentAnswer,undefined);
+  const before=calls.length;
+  assert.equal((await (await call(path,'POST',input,u.token)).json() as any).duplicate,true);assert.equal(calls.length,before);
+  assert.equal((await call(path,'POST',{...input,answerPages:['data:image/png;base64,iVBORw0KGgoAAB==']},u.token)).status,409);
+  const saved=await (await call('/question-bank/questions/'+q.id+'/review?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;
+  assert.deepEqual(saved.question.grades[0],first);assert.equal(saved.question.grades.length,2);
+  assert.deepEqual(saved.question.grades[1].result.answerPages,answerPages);
+  assert.deepEqual(saved.question.grades[1].result.answerAnnotations,answerAnnotations);
+  output={reply:'根据新手写说明。'};
+  assert.equal((await call('/question-bank/questions/'+q.id+'/followup','POST',{studentId:u.user.id,gradeId:grade.id,requestId:crypto.randomUUID(),prompt:'为什么'},u.token)).status,200);
+  const followup=calls.at(-1).messages[1].content;
+  assert.equal(JSON.parse(followup[0].text).assessment.answerPages,undefined);
+  assert.equal(followup.find((m:any)=>m.type==='image_url').image_url.url,answerPages[0]);
+  // A deliberate second submission is a new record, even with the same original.
+  output=assessment({answerAnnotations:[{...answerAnnotations[0],kind:'incorrect',comment:'本次批改的独立说明。'}]});
+  assert.equal((await call(path,'POST',{...input,requestId:crypto.randomUUID()},u.token)).status,200);
+  const reopened=await (await call('/question-bank/questions/'+q.id+'/review?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;
+  assert.equal(reopened.question.grades.length,3);
+  assert.deepEqual(reopened.question.grades[0],first);
+  assert.deepEqual(reopened.question.grades[1],saved.question.grades[1]);
+  assert.deepEqual(reopened.question.grades[2].result.answerPages,answerPages);
+  assert.equal(reopened.question.grades[2].result.answerAnnotations[0].kind,'incorrect');
+  assert.equal(reopened.question.grades[1].result.answerAnnotations[0].kind,'correct');
+});
+
+test('new handwriting uses reviewed current geometry without the original wrong answer image',async()=>{
+  const u=await register(),{data}=await importPaper(u),q=data.questions[0];
+  const geometry=vector();
+  await db.query('UPDATE "GrowingPhotoQuestions" SET "Text"=?1,"Answer"=?2,"FigureDrawing"=?3,"DrawingReviewed"=1,"DrawingRevision"=1 WHERE "Id"=?4',
+    ['OP=4，角平分线与射线的夹角为30度，求点到射线的最短距离。','2',JSON.stringify(geometry),q.id]);
+  output=assessment({verdict:'correct',score:100,studentAnswer:'2',feedback:'答案正确。',corrections:[]});
+  const response=await call('/question-bank/questions/'+q.id+'/correct','POST',
+    {studentId:u.user.id,requestId:crypto.randomUUID(),revision:1,answerPages:['data:image/png;base64,iVBORw0KGgoAAA==']},u.token);
+  assert.equal(response.status,200);
+  const message=calls.at(-1).messages[1].content,context=JSON.parse(message[0].text);
+  assert.deepEqual(context.question.drawing,geometry);assert.equal(context.question.referenceAnswer,'2');
+  assert.equal(message.filter((m:any)=>m.type==='image_url').length,1);
+  assert.equal((await response.json() as any).grade.result.studentAnswer,'2');
+  await db.query('UPDATE "GrowingPhotoQuestions" SET "DrawingRevision"=0 WHERE "Id"=?1',[q.id]);
+  await call('/question-bank/questions/'+q.id+'/correct','POST',
+    {studentId:u.user.id,requestId:crypto.randomUUID(),revision:1,answerPages:['data:image/png;base64,iVBORw0KGgoAAA==']},u.token);
+  assert.equal(JSON.parse(calls.at(-1).messages[1].content[0].text).question.drawing,null);
+});
+
+test('annotation pages and regions must belong to the submitted handwriting',async()=>{
+  const u=await register(),{data}=await importPaper(u),q=data.questions[0],path='/question-bank/questions/'+q.id+'/correct';
+  const mark={page:1,x:.1,y:.2,width:.5,height:.1,kind:'incorrect',comment:'漏负号'};
+  for(const answerAnnotations of [[{...mark,page:2}],[{...mark,x:.8}],[{...mark,y:-.1}],[{...mark,kind:'guess'}],Array(25).fill(mark)]){
+    output=assessment({answerAnnotations});
+    assert.equal((await call(path,'POST',{studentId:u.user.id,revision:1,requestId:crypto.randomUUID(),answerPages:['data:image/png;base64,iVBORw0KGgoAAA==']},u.token)).status,502);
+  }
+  assert.equal((await db.query('SELECT * FROM "GrowingPhotoGrades" WHERE "QuestionId"=?1',[q.id])).length,1);
+});
+
+test('handwritten corrections validate bounded image payloads and leave all grades intact on model failure',async()=>{
+  const u=await register(),{data}=await importPaper(u),q=data.questions[0],path='/question-bank/questions/'+q.id+'/correct';
+  const base={studentId:u.user.id,revision:1,requestId:crypto.randomUUID()},png='data:image/png;base64,iVBORw0KGgoAAA==';
+  const before=calls.length;
+  for(const answerPages of [[],[null],['https://external.test/image.png'],['data:image/jpeg;base64,/9j/AA=='],Array(5).fill(png),[png+'A'.repeat(600000)]]){
+    assert.equal((await call(path,'POST',{...base,answerPages},u.token)).status,400);
+  }
+  assert.equal((await call(path,'POST',{...base,answerPages:[png],studentAnswer:'ambiguous'},u.token)).status,400);
+  assert.equal(calls.length,before);
+  // Exceeds the old 40 KB route limit, while staying inside the image budget.
+  const answerPages=[png.slice(0,-2)+'A'.repeat(50000)+'=='];output={verdict:'correct',score:100};
+  assert.equal((await call(path,'POST',{...base,answerPages},u.token)).status,502);
+  assert.equal(calls.length,before+1);
+  assert.equal((await db.query('SELECT * FROM "GrowingPhotoGrades" WHERE "QuestionId"=?1',[q.id])).length,1);
+});
+
 test('incomplete AI results save nothing; edited questions invalidate stale follow-ups and in-flight corrections',async()=>{
   const u=await register();output=paper();output.questions[1].assessment.models[0].modelId=30;
   const before=(await db.query('SELECT * FROM "GrowingQuestionPapers" WHERE "StudentId"=?1',[u.user.id])).length;

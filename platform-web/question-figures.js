@@ -1,4 +1,4 @@
-/* Real source pixels remain separate from editable math text. No generated diagrams. */
+/* SVG question diagrams are primary; original evidence remains available for comparison. */
 (()=>{
   'use strict';
   async function photo(file){
@@ -39,26 +39,85 @@
       d.innerHTML=`<div class="actions"><h2>${esc(title)}</h2><button type="button" data-figure-close>关闭</button></div><div data-figure-body></div>`;
       d.querySelector('[data-figure-close]').onclick=close;d.addEventListener('cancel',e=>{e.preventDefault();close();});document.body.append(d);d.showModal();return d;
     }
-    async function mount(host,q){
+    async function mount(host,q,options={}){
+      if(options.originals===false&&!q.hasDrawing){host.hidden=true;host.replaceChildren();return;}
+      host.hidden=false;
       host.className='question-figures';host.innerHTML='<p class="muted">正在读取题图与原稿…</p>';
       const usable=()=>valid()&&host.isConnected;
       try{
         const p=await paper(q.paperId);if(!usable())return;
-        const attachment=q.hasFigureImage?await api('/question-bank/questions/'+q.id+'/figures?'+new URLSearchParams({studentId})):null;
+        const attachment=q.hasFigureImage||q.hasDrawing?await api('/question-bank/questions/'+q.id+'/figures?'+new URLSearchParams({studentId})):null;
         if(!usable())return;
-        const regions=q.figures?.length?q.figures:q.regions||[];
+        const vector=!q.sourceOnly&&!options.sourceOnly&&window.GrowingQuestionDrawing?.normalize(attachment?.drawing);
+        async function change(button,action){
+          const old=button.textContent;button.disabled=true;button.textContent='正在处理…';
+          const status=host.querySelector('[data-drawing-status]');if(status)status.textContent='';
+          try{await action();if(usable()){if(options.sourceOnly)close();await onChange();}}
+          catch(error){if(usable()&&status)status.textContent=error.message;}
+          finally{if(usable()){button.disabled=false;button.textContent=old;}}
+        }
+        function generate(button){return change(button,()=>api('/question-bank/questions/'+q.id+'/drawing',{method:'POST',body:JSON.stringify({studentId,revision:q.revision,figureVersion:attachment?.figureVersion??q.figureVersion})}));}
+        if(vector){
+          if(options.minimal){
+            host.className='bank-question-diagrams';
+            host.innerHTML=`<div class="question-svg-grid">${GrowingQuestionDrawing.render(vector).map(svg=>`<figure>${svg}</figure>`).join('')}</div>`;
+            return;
+          }
+          const markup=GrowingQuestionDrawing.render(vector),current=attachment.drawingRevision===q.revision,checked=current&&attachment.drawingReviewed;
+          host.innerHTML=`<div class="question-svg-heading"><strong>SVG 题设图</strong><span class="${checked?'drawing-checked':'drawing-pending'}">${!current?'题干已更新，请重新绘制':checked?'已核对':'待核对原稿'}</span></div><div class="question-svg-grid">${markup.map((svg,i)=>`<figure><button type="button" class="question-figure-zoom" data-svg-zoom="${i}" aria-label="放大${esc(vector.figures[i].title)}">${svg}</button><figcaption>${esc(vector.figures[i].title)} · 点击放大</figcaption></figure>`).join('')}</div>${vector.warnings.length?`<p class="warning">${vector.warnings.map(esc).join('；')}</p>`:''}<details class="question-original"><summary>核对原稿 / 补充图形</summary><div data-original-figures></div></details><div class="actions">${!checked&&current?'<button type="button" data-drawing-confirm>已核对，图形正确</button>':''}<button type="button" data-drawing-generate>重新绘制 SVG</button></div><p class="muted">按题设绘制，省去作答笔迹与答案标记。</p><p role="status" class="warning" data-drawing-status></p>`;
+          host.querySelectorAll('[data-svg-zoom]').forEach(button=>{button.onclick=()=>{const i=Number(button.dataset.svgZoom),d=modal('第 '+q.number+' 题 · '+vector.figures[i].title);d.querySelector('[data-figure-body]').innerHTML=markup[i];};});
+          const details=host.querySelector('details');let loaded=false;
+          if(options.originals===false)details.remove();
+          else details.ontoggle=()=>{if(details.open&&!loaded){loaded=true;mount(details.querySelector('[data-original-figures]'),{...q,hasDrawing:false,sourceOnly:true});}};
+          host.querySelector('[data-drawing-generate]').onclick=e=>generate(e.currentTarget);
+          const confirm=host.querySelector('[data-drawing-confirm]');if(confirm)confirm.onclick=()=>change(confirm,()=>api('/question-bank/questions/'+q.id+'/figures',{method:'PUT',body:JSON.stringify({studentId,figureVersion:attachment.figureVersion,revision:q.revision,drawingReviewed:true})}));
+          return;
+        }
+        if(options.originals===false){host.hidden=true;host.replaceChildren();return;}
+        const regions=options.sourceOnly?q.regions||[]:q.figures?.length?q.figures:q.regions||[];
         const pages=p.pages.filter(s=>q.pages.includes(s.page));
-        const items=attachment?.image?[{src:attachment.image,label:'本题图形 · 补传原图'}]:regions.length?await Promise.all(regions.map(async r=>{
-          const page=pages.find(p=>p.page===r.page);return page?{src:await crop(page.image,r),label:(q.figures?.length?(q.figureVersion>1?'题图':'AI 题图选区（待核对）'):'本题原稿选区（待核对）')+' · 第 '+r.page+' 页'}:null;
+        const items=!options.sourceOnly&&attachment?.image?[{src:attachment.image,label:'本题图形 · 补传原图'}]:regions.length?await Promise.all(regions.map(async r=>{
+          const page=pages.find(p=>p.page===r.page);return page?{src:await crop(page.image,r),label:(!options.sourceOnly&&q.figures?.length?(q.figureVersion>1?'题图':'AI 题图选区（待核对）'):'本题原稿选区（待核对）')+' · 第 '+r.page+' 页'}:null;
         })):pages.map(p=>({src:p.image,label:'来源页原稿 · 第 '+p.page+' 页（可框选本题图形）'}));
         // Model boxes are suggestions. Keep the actual page visible until a person confirms a crop.
-        if(!attachment?.image&&!(q.figureVersion>1)&&regions.length)items.push(...pages.map(p=>({src:p.image,label:'含图原页 · 第 '+p.page+' 页（请核对题图完整性）'})));
+        if(regions.length&&(options.sourceOnly||!attachment?.image&&!(q.figureVersion>1)))items.push(...pages.map(p=>({src:p.image,label:'含图原页 · 第 '+p.page+' 页（请核对题图完整性）'})));
+        if(options.sourceOnly&&attachment?.image)items.push({src:attachment.image,label:'本题图形 · 补传原图'});
         if(!usable())return;
         const available=items.filter(Boolean),missing=q.pages.filter(n=>!pages.some(p=>p.page===n));
-        host.innerHTML=`${available.map((item,i)=>`<figure><button type="button" class="question-figure-zoom" data-figure-zoom="${i}" aria-label="放大${esc(item.label)}"><img src="${esc(item.src)}" alt="第 ${esc(q.number)} 题 · ${esc(item.label)}" loading="lazy"></button><figcaption>${esc(item.label)} · 点击放大</figcaption></figure>`).join('')}${missing.length&&!attachment?.image?`<p class="warning">第 ${missing.join('、')} 页原稿未保留。题图不能由文字代替，请补回原稿或补传本题图形。</p>`:''}<button type="button" data-figure-edit>核对 / 补充题图</button>`;
+        host.innerHTML=`${available.map((item,i)=>`<figure><button type="button" class="question-figure-zoom" data-figure-zoom="${i}" aria-label="放大${esc(item.label)}"><img src="${esc(item.src)}" alt="第 ${esc(q.number)} 题 · ${esc(item.label)}" loading="lazy"></button><figcaption>${esc(item.label)} · 点击放大</figcaption></figure>`).join('')}${missing.length&&(options.sourceOnly||!attachment?.image)?`<p class="warning">第 ${missing.join('、')} 页原稿未保留。题图不能由文字代替，请补回原稿或补传本题图形。</p>`:''}<div class="actions"><button type="button" data-figure-edit>核对 / 补充题图</button>${!q.sourceOnly?'<button type="button" data-drawing-generate>生成 SVG 题图</button>':''}</div><p role="status" class="warning" data-drawing-status></p>`;
+        const generateButton=host.querySelector('[data-drawing-generate]');if(generateButton)generateButton.onclick=()=>generate(generateButton);
         host.querySelector('[data-figure-edit]').onclick=()=>edit(q).catch(e=>{if(usable()){const msg=document.createElement('p');msg.className='warning';msg.textContent=e.message;host.append(msg);}});
         host.querySelectorAll('[data-figure-zoom]').forEach(b=>{b.onclick=()=>{const item=available[Number(b.dataset.figureZoom)],d=modal('第 '+q.number+' 题 · '+item.label),img=document.createElement('img');img.src=item.src;img.alt=item.label;img.style.width='720px';d.querySelector('[data-figure-body]').append(img);};});
-      }catch(e){if(usable()){host.textContent='题图读取失败：'+e.message;const retry=document.createElement('button');retry.textContent='重试读取题图';retry.onclick=()=>mount(host,q);host.append(retry);}}
+      }catch(e){if(usable()){host.textContent='题图读取失败：'+e.message;const retry=document.createElement('button');retry.textContent='重试读取题图';retry.onclick=()=>mount(host,q,options);host.append(retry);}}
+    }
+    async function showOriginal(q){
+      if(!valid())return;
+      const d=modal('第 '+q.number+' 题 · 原题'),host=document.createElement('div');
+      host.className='question-original-images';
+      d.querySelector('[data-figure-body]').append(host);
+      host.textContent='正在读取原题…';
+      const usable=()=>valid()&&host.isConnected;
+      try{
+        const p=await paper(q.paperId);if(!usable())return;
+        const images=await Promise.all((q.regions||[]).map(async region=>{
+          const page=p.pages.find(page=>page.page===region.page);
+          return page?crop(page.image,region):null;
+        }));
+        if(!usable())return;
+        host.replaceChildren();
+        images.filter(Boolean).forEach((src,i)=>{
+          const button=document.createElement('button'),img=document.createElement('img');
+          button.type='button';button.className='question-figure-zoom';button.dataset.figureZoom=i;
+          button.setAttribute('aria-label','放大第 '+q.number+' 题原图');
+          img.src=src;img.alt='第 '+q.number+' 题原图';button.append(img);host.append(button);
+          button.onclick=()=>{const zoom=modal('第 '+q.number+' 题 · 原题'),image=document.createElement('img');image.src=src;image.alt=img.alt;image.style.width='720px';zoom.querySelector('[data-figure-body]').append(image);};
+        });
+        if(!host.childElementCount)host.textContent='暂无本题原图。';
+      }catch(error){
+        if(!usable())return;
+        host.textContent='原题读取失败。';
+        const retry=document.createElement('button');retry.type='button';retry.textContent='重试';retry.onclick=()=>showOriginal(q);host.append(retry);
+      }
     }
     async function edit(q){
       const [p,state]=await Promise.all([paper(q.paperId),api('/question-bank/questions/'+q.id+'/figures?'+new URLSearchParams({studentId}))]);if(!valid())return;
@@ -104,6 +163,6 @@
       });
       show();list();
     }
-    return {mount,clear:()=>papers.clear(),dispose(){disposed=true;papers.clear();close();}};
+    return {mount,showOriginal,clear:()=>papers.clear(),dispose(){disposed=true;papers.clear();close();}};
   }};
 })();

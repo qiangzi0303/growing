@@ -1,17 +1,17 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>手写作业 · 逆流</title><link rel="icon" href="brand-logo.webp"><link rel="stylesheet" href="assessment-feedback.css?v=red-1"><link rel="stylesheet" href="handwriting.css?v=direct-1"><script src="curriculum.js" defer></script><script src="handwriting-core.js?v=direct-1" defer></script><script src="fraction-paper-tasks.js" defer></script><script src="handwriting-tasks.js" defer></script><script src="handwriting-ai.js?v=direct-1" defer></script><script src="handwriting.js?v=direct-1" defer></script>  <script src="course-duck.js" defer></script>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>手写作业 · 逆流</title><link rel="icon" href="brand-logo.webp"><link rel="stylesheet" href="assessment-feedback.css?v=red-1"><link rel="stylesheet" href="handwriting.css?v=photo-answer-2"><script src="curriculum.js" defer></script><script src="handwriting-core.js?v=photo-answer-2" defer></script><script src="fraction-paper-tasks.js" defer></script><script src="handwriting-tasks.js" defer></script><script src="handwriting-ai.js?v=photo-answer-2" defer></script><script src="handwriting.js?v=photo-answer-2" defer></script>  <script src="course-duck.js" defer></script>
 </head>
 <body><main class="workspace">
-  <header><nav class="writing-navigation"><a id="back">← 返回课堂</a><a href="#archives">查看已保存原稿 ↓</a></nav><p class="eyebrow">GROWING · 真实书写</p><h1 id="page-title">手写作业</h1><p id="course-label"></p><p id="writing-guide"></p></header>
-  <div class="layout"><aside class="panel"><h2>我的手写作业</h2><button id="new">＋ 新建作业</button><div id="archives"></div><a id="unit-summary" target="_top">查看单元总结 →</a></aside>
+  <header><nav class="writing-navigation"><a id="back">← 返回课堂</a></nav><p class="eyebrow">GROWING · 真实书写</p><h1 id="page-title">手写作业</h1><p id="course-label"></p><p id="writing-guide"></p></header>
+  <div class="layout">
   <section class="editor panel">
-    <section class="task-bank" aria-labelledby="task-heading"><h2 id="task-heading">本单元手写题目</h2><p id="bank-description" hidden></p><label for="task-choice">选择题目</label><div class="task-actions"><select id="task-choice"></select><button id="use-task">用所选题目新建作业</button></div><p id="task-knowledge" class="muted"></p><details><summary>预览所选题目</summary><p id="task-preview"></p></details><p class="muted">也可选择自拟题目，填写老师布置的作业。</p></section>
+    <section class="task-bank" aria-labelledby="task-heading"><h2 id="task-heading">本单元手写题目</h2><p id="bank-description" hidden></p><label for="task-choice">选择题目</label><div class="task-actions"><select id="task-choice"></select></div><p id="task-knowledge" class="muted"></p></section>
     <label id="prompt-label" for="prompt">题目要求</label><textarea id="prompt" maxlength="6000" rows="7"></textarea>
     <div class="toolbar" role="group" aria-label="书写工具"><button id="pen" aria-pressed="true">钢笔</button><button id="eraser" aria-pressed="false">橡皮</button><label>笔宽<select id="width"><option value="2">细</option><option value="4" selected>中</option><option value="7">粗</option></select></label><button id="undo">撤销</button><button id="redo">重做</button><label class="check"><input type="checkbox" id="finger">允许手指书写</label></div>
     <div class="pages"><button id="prev" aria-label="上一页">←</button><span id="page-label"></span><button id="next" aria-label="下一页">→</button><button id="add-page">＋ 加一页</button></div>
     <p class="muted">默认只接收手写笔和鼠标，忽略手指误触。需要移动页面时，请在纸张外滑动。</p>
     <div class="paper"><canvas id="paper" width="800" height="1100" aria-label="手写作答纸，支持手写笔和鼠标">需要支持 Canvas 的浏览器。</canvas></div>
     <p id="save-status" role="status" aria-live="polite"></p><button id="save">立即保存原稿</button>
-    <section class="review"><h2>直接批改手写原稿</h2><p id="review-guide"></p><button id="grade" class="primary">AI 直接批改手写原稿</button><button id="cancel" hidden>取消批改</button><p id="ai-status" role="status" aria-live="polite"></p><div id="grades"></div></section>
+    <section class="review"><button id="grade" class="primary">AI批改</button><button id="photo-answer">拍照解答</button><input id="answer-photo" type="file" accept="image/*" capture="environment" hidden><button id="cancel" hidden>取消批改</button><p id="ai-status" role="status" aria-live="polite"></p><div id="grades"></div></section>
   </section></div>
 </main></body></html>

@@ -10,6 +10,11 @@
   if(source)source.value=params.get('source')==='midterm-20261029'?'midterm-20261029':'all';
   select.innerHTML=`<option value="all">全部单元 · ${data.questions.length} 题</option>`+data.units.map(u=>`<option value="${u.id}">${esc(unitName(u.id))} · ${data.questions.filter(q=>inUnit(q,u.id)).length} 题</option>`).join('');
   select.value=data.units.some(u=>u.id===params.get('unit'))?params.get('unit'):'all';
+  function figureMarkup(q){
+    const drawn=window.GrowingMathWrongFigures?.[q.id];
+    if(drawn)return `<figure class="wrong-figure"><div class="wrong-figure-grid">${(drawn.svgs||[drawn.svg]).join('')}</div></figure>`;
+    return q.figure?`<figure class="wrong-figure"><img class="midterm-figure" src="${esc(q.figure)}" alt="第${q.number}题SVG题设图" loading="lazy"></figure>`:'';
+  }
   function render(){
     const id=select.value,key=search.value.trim().toLowerCase();
     const unitRows=data.questions.filter(q=>inUnit(q,id)&&(!source||source.value==='all'||(q.sourceId||'1025141010')===source.value));
@@ -22,7 +27,7 @@
     const back=document.getElementById('back');
     back.href=id==='all'?'units.html?subject=math':id==='math-8b-10'?'../fraction-ops/分式作战_一分钟学习版.html':'math-course.html?'+new URLSearchParams({chapter:id});
     back.textContent=id==='all'?'← 数学目录':'← 返回本单元';
-    host.innerHTML=rows.map(q=>`<article class="question" id="${q.sourceId?q.id:'q'+q.number}"><p class="meta">${esc(unitName(q.unitId))} · ${esc(q.sourceLabel||'1025141010.pdf')} · 第 ${q.page} 页 · 第 ${q.number} 题</p><h2>${esc(q.title)}</h2>${q.note?`<p class="note">${esc(q.note)}</p>`:''}${q.review?`<p class="${q.priority?'note':'notice'}">${esc(q.review)}</p>`:''}<div class="question-text math-prose">${GrowingMathFormat.html(q.text)}</div>${q.figure?`<img class="midterm-figure" src="${esc(q.figure)}" alt="第${q.number}题真实原稿题图，含原有标注" loading="lazy">`:''}${attempts?attempts.markup('math',q.id):''}</article>`).join('')||'<p>没有符合条件的题目。</p>';
+    host.innerHTML=rows.map(q=>`<article class="question" id="${q.sourceId?q.id:'q'+q.number}"><p class="meta">${esc(unitName(q.unitId))} · ${esc(q.sourceLabel||'1025141010.pdf')} · 第 ${q.page} 页 · 第 ${q.number} 题</p><h2>${esc(q.title)}</h2>${q.note?`<p class="note">${esc(q.note)}</p>`:''}${q.review?`<p class="${q.priority?'note':'notice'}">${esc(q.review)}</p>`:''}<div class="question-text math-prose">${GrowingMathFormat.html(q.text)}</div>${figureMarkup(q)}${attempts?attempts.markup('math',q.id):''}</article>`).join('')||'<p>没有符合条件的题目。</p>';
     for(const q of rows){const card=document.getElementById(q.sourceId?q.id:'q'+q.number);card.insertAdjacentHTML('beforeend',GrowingWrongReview.markup(q));}GrowingWrongReview.hydrate();
     try{history.replaceState(null,'','?'+new URLSearchParams({unit:id,...(source&&source.value!=='all'?{source:source.value}:{})})+location.hash);}catch(_){}
   }

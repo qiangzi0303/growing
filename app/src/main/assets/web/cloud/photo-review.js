@@ -5,45 +5,82 @@
   function uuid(){if(crypto.randomUUID)return crypto.randomUUID();return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(Number(c)^crypto.getRandomValues(new Uint8Array(1))[0]&15>>Number(c)/4).toString(16));}
   window.GrowingPhotoReview={uuid,create(root,api,esc,alive,studentId,onChange,figures){
     const host=root.querySelector('[data-workbench]'),math=window.GrowingMathFormat,papers=new Map();
-    let disposed=false,sequence=0,current=null,paper=null,selectedGrade='',busy=false,pageNumber=1;
+    let disposed=false,sequence=0,current=null,paper=null,selectedGrade='',busy=false,pageNumber=1,sourceOpen=false,pad=null;
+    const sourceId='photo-review-original-'+uuid(),knowledgeId='photo-review-knowledge-'+uuid();
+    host.id||='photo-review-workbench-'+uuid();
     const draftKey='growing-photo-review-v1:'+studentId;
     let drafts={};try{drafts=JSON.parse(sessionStorage.getItem(draftKey)||'{}');}catch{}
     const valid=()=>!disposed&&alive()&&host.isConnected;
-    const save=()=>{try{sessionStorage.setItem(draftKey,JSON.stringify(drafts));}catch{}};
+    const save=()=>{try{sessionStorage.setItem(draftKey,JSON.stringify(drafts));}catch{status('草稿暂时无法保存到设备，笔迹仍保留在当前页面，请勿刷新或关闭。',true);}};
     const draft=()=>drafts[current.id]??=( {prompt:'',correction:'',requests:{}} );
     function request(kind,value){const d=draft();d.requests??={};const key=kind+':'+selectedGrade+':'+current.revision+':'+value;if(!d.requests[key])d.requests[key]=uuid();save();return d.requests[key];}
     const render=s=>math.html(String(s||''));
     const status=(text,error=false)=>{const el=host.querySelector('[data-review-status]');if(el){el.textContent=text;el.classList.toggle('warning',error);}};
     const grade=()=>current?.grades?.find(g=>g.id===selectedGrade)||current?.grades?.at(-1);
+    function revealGrade(message=''){
+      const outcome=host.querySelector('.photo-verdict');if(!outcome)return;
+      if(message){const saved=document.createElement('p');saved.className='photo-grade-saved';saved.setAttribute('role','status');saved.textContent=message;outcome.after(saved);}
+      outcome.tabIndex=-1;outcome.focus({preventScroll:true});outcome.scrollIntoView({block:'start',behavior:'instant'});
+    }
+    function centerQuestionTab(){
+      if(!valid()||host.hidden)return;
+      const tabs=host.querySelector('.photo-question-tabs'),active=tabs?.querySelector('[aria-current=page]');
+      if(!tabs?.clientWidth||!active)return;
+      const rail=tabs.getBoundingClientRect(),button=active.getBoundingClientRect();
+      tabs.scrollLeft+=button.left+button.width/2-rail.left-tabs.clientLeft-tabs.clientWidth/2;
+    }
     function source(){
-      const pages=paper?.pages||[],container=host.querySelector('[data-review-source]');if(!container)return;
+      const pages=paper?.pages||[],container=host.querySelector('[data-review-source]');if(!container||!sourceOpen)return;
       const source=pages.find(p=>p.page===pageNumber);
       if(!source){container.innerHTML='<p class="warning">该来源页没有保存原图。请在题目下方“核对 / 补充题图”中补回本页原稿或补传题图，已有题目和批改记录会保留。</p>';return;}
       const regions=(current.regions||[]).filter(r=>r.page===pageNumber);
       container.innerHTML=`<div class="actions">${pages.map(p=>`<button type="button" data-source-page="${p.page}" ${p.page===pageNumber?'aria-current="page"':''}>第 ${p.page} 页</button>`).join('')}</div><p class="muted">${regions.length?'虚线框标出本题与作答区域，请结合整页核对。':'本题没有可靠定位框，请结合来源页码核对。'}</p><div class="photo-paper"><img src="${esc(source.image)}" alt="第${pageNumber}页作业原图">${regions.map(r=>`<span class="photo-region" aria-hidden="true" style="left:${r.x*100}%;top:${r.y*100}%;width:${r.width*100}%;height:${r.height*100}%"></span>`).join('')}</div>`;
     }
-    function paint(){
-      if(!valid()||!current)return;const g=grade(),result=g?.result,d=draft(),stale=g&&g.revision!==current.revision;
-      host.hidden=false;
-      host.innerHTML=`<div class="actions"><h2>逐题批改工作台</h2><button type="button" data-review-close>收起工作台</button></div><p class="muted">${esc(paper.title)} · 单题100分制 · 首次批改与订正分别保留</p>${paper.warnings?.length?`<p class="warning">${esc(paper.warnings.join('；'))}</p>`:''}<nav class="photo-question-tabs" aria-label="切换题目">${paper.questions.map(q=>{const last=q.grades?.at(-1);return `<button type="button" data-review-question="${esc(q.id)}" ${q.id===current.id?'aria-current="page"':''}>第 ${esc(q.number||'?')} 题 · ${esc(verdicts[last?.result.verdict]||'未批改')}</button>`;}).join('')}</nav><div class="photo-review-grid"><section class="photo-source"><h3>原始作业</h3><div data-review-source></div></section><section class="photo-review-result"><h3>第 ${esc(current.number)} 题</h3><div class="bank-text math-prose">${render(current.text)}</div>${current.uncertain?.length?`<p class="warning">识别疑点：${esc(current.uncertain.join('；'))}</p>`:''}${g?`<label>查看批改记录<select data-review-grade>${current.grades.map((item,i)=>`<option value="${esc(item.id)}" ${item.id===g.id?'selected':''}>${item.kind==='initial'?'首次原稿批改':'订正批改 '+i} · ${esc(verdicts[item.result.verdict])}${item.result.score===null?'':' · '+item.result.score+'/100'}</option>`).join('')}</select></label>${stale?'<p class="warning">题干已修改。下方批改对应旧版本，请提交新作答后再追问。</p>':''}<p class="photo-verdict" data-verdict="${esc(result.verdict)}">${esc(verdicts[result.verdict])}${result.score===null?'':' · '+result.score+' / 100'}</p><h4>${g.kind==='initial'?'原图学生作答':'本次订正作答'}</h4><div class="bank-text math-prose">${render(result.studentAnswer||'未识别到作答')}</div><div class="bank-text math-prose">${render(result.feedback)}</div>${result.corrections.map(c=>`<article class="photo-correction"><strong>${esc(c.location)}</strong><div class="bank-text math-prose">${render(c.issue)}</div><p><strong>怎样改</strong></p><div class="bank-text math-prose">${render(c.correction)}</div></article>`).join('')}<section aria-label="关联知识点"><h4>关联知识点</h4>${result.knowledge.length?['gap','tested'].map(role=>{const links=result.knowledge.filter(k=>k.role===role);return links.length?`<h5>${role==='gap'?'错误反映的薄弱点':'本题考查的知识点'}</h5>${links.map(k=>`<p><a href="${esc(k.href)}" data-review-link>${esc(k.title)} →</a></p><div class="bank-text math-prose">${render(k.reason)}</div>`).join('')}`:'';}).join(''):'<p class="muted">尚未可靠关联，待核对题设与现有课程。</p>'}</section>${result.models.length?`<section aria-label="几何模型匹配"><h4>几何模型匹配</h4><p class="muted">先核对适用条件，再学习模型方法。</p>${result.models.map(m=>`<p><a href="${esc(m.href)}" data-review-link>${m.modelId}号 · ${esc(m.title)} →</a></p><div class="bank-text math-prose">${render(m.reason)}</div>`).join('')}</section>`:''}<section class="photo-followups"><h4>围绕这次批改追问</h4><div class="actions">${['这一步为什么错','只提示下一步','换一种讲法'].map(p=>`<button type="button" data-followup-preset="${p}" ${stale?'disabled':''}>${p}</button>`).join('')}</div><div data-followup-history>${(current.followups||[]).filter(f=>f.gradeId===g.id).map(f=>`<article><p><strong>我：</strong>${esc(f.prompt)}</p><div class="bank-text math-prose">${render(f.reply)}</div></article>`).join('')}</div><form data-followup><label>我的追问<textarea name="prompt" maxlength="1600" required ${stale?'disabled':''}>${esc(d.prompt)}</textarea></label><button class="primary" type="submit" ${stale?'disabled':''}>发送追问</button></form></section>`:'<p class="muted">该题尚无逐题批改。下方可以填写自己的完整作答；原题条件不全时请先核对题面。</p>'}<details class="photo-correct-form" ${!g?'open':''}><summary>订正后再练 · 保留首次批改</summary><form data-correction><label>写出新的完整解题过程<textarea name="studentAnswer" maxlength="6000" required rows="5">${esc(d.correction)}</textarea></label><button type="submit" class="primary">提交本次作答批改</button></form></details><p data-review-status role="status" aria-live="polite"></p></section></div>`;
-      const images=document.createElement('div');host.querySelector('.photo-review-result>.bank-text').after(images);figures.mount(images,current);source();lock();
+    function knowledge(result){
+      return `<div class="photo-knowledge"><button type="button" data-review-knowledge aria-expanded="false" aria-controls="${knowledgeId}">关联知识点</button><div id="${knowledgeId}" data-review-knowledge-content hidden><section aria-label="关联知识点">${result.knowledge.length?['gap','tested'].map(role=>{const links=result.knowledge.filter(k=>k.role===role);return links.length?`<h5>${role==='gap'?'错误反映的薄弱点':'本题考查的知识点'}</h5>${links.map(k=>`<p><a href="${esc(k.href)}" data-review-link>${esc(k.title)} →</a></p><div class="bank-text math-prose">${render(k.reason)}</div>`).join('')}`:'';}).join(''):'<p class="muted">尚未可靠关联，待核对题设与现有课程。</p>'}</section>${result.models.length?`<section aria-label="几何模型匹配"><h4>几何模型匹配</h4><p class="muted">先核对适用条件，再学习模型方法。</p>${result.models.map(m=>`<p><a href="${esc(m.href)}" data-review-link>${m.modelId}号 · ${esc(m.title)} →</a></p><div class="bank-text math-prose">${render(m.reason)}</div>`).join('')}</section>`:''}</div></div>`;
     }
-    function lock(){if(!valid())return;host.querySelectorAll('button,select,textarea').forEach(el=>{el.disabled=busy||!!(grade()&&grade().revision!==current?.revision&&(el.closest('[data-followup]')||el.hasAttribute('data-followup-preset')));});}
+    function paint(){
+      pad?.dispose();pad=null;
+      if(!valid()||!current)return;const g=grade(),result=g?.result,d=draft(),stale=g&&g.revision!==current.revision;
+      const inline=[...root.querySelectorAll('[data-review-open]')].some(button=>button.dataset.reviewOpen===current.id);
+      host.hidden=false;
+      host.innerHTML=`<div class="actions"><h2>逐题批改工作台</h2><button type="button" data-review-close>收起工作台</button></div><p class="muted">${esc(paper.title)} · 首次批改与订正分别保留</p>${paper.warnings?.length?`<p class="warning">${esc(paper.warnings.join('；'))}</p>`:''}<nav class="photo-question-tabs" aria-label="切换题目">${paper.questions.map(q=>{const last=q.grades?.at(-1);return `<button type="button" data-review-question="${esc(q.id)}" ${q.id===current.id?'aria-current="page"':''}>第 ${esc(q.number||'?')} 题 · ${esc(verdicts[last?.result.verdict]||'未批改')}</button>`;}).join('')}</nav><div class="photo-review-grid${sourceOpen?' photo-source-open':''}"><section class="photo-source" id="${sourceId}" ${sourceOpen?'':'hidden'}><h3>原始作业</h3><div data-review-source></div></section><section class="photo-review-result"><div class="photo-question-heading"><h3>第 ${esc(current.number)} 题</h3><button type="button" data-review-original aria-expanded="${sourceOpen}" aria-controls="${sourceId}">${sourceOpen?'收起原题':'查看原题'}</button></div>${inline?'':`<div class="bank-text math-prose">${math.questionHtml(current.text)}</div>`}${current.uncertain?.length?`<p class="warning">识别疑点：${esc(current.uncertain.join('；'))}</p>`:''}${g?`${stale?'<p class="warning">题干已修改。下方批改对应旧版本，请提交新作答后再追问。</p>':''}<p class="photo-verdict" data-verdict="${esc(result.verdict)}">${esc(verdicts[result.verdict])}</p>${knowledge(result)}${result.verdict==='correct'?'':`<section class="photo-followups"><h4>围绕这次批改追问</h4><div class="actions">${['这一步为什么错','只提示下一步','换一种讲法'].map(p=>`<button type="button" data-followup-preset="${p}" ${stale?'disabled':''}>${p}</button>`).join('')}</div><div data-followup-history>${(current.followups||[]).filter(f=>f.gradeId===g.id).slice(-1).map(f=>`<article><p><strong>我：</strong>${esc(f.prompt)}</p><div class="bank-text math-prose">${render(f.reply)}</div></article>`).join('')}</div><form data-followup><label>我的追问<textarea name="prompt" maxlength="1600" required ${stale?'disabled':''}>${esc(d.prompt)}</textarea></label><button class="primary" type="submit" ${stale?'disabled':''}>发送追问</button></form></section>`}`:'<p class="muted">该题尚无逐题批改。下方可以手写自己的完整作答；原题条件不全时请先核对题面。</p>'}${g?`<div class="photo-grade-history"><label>查看批改记录<select data-review-grade>${current.grades.map((item,i)=>`<option value="${esc(item.id)}" ${item.id===g.id?'selected':''}>${item.kind==='initial'?'首次原稿批改':'订正批改 '+i} · ${esc(verdicts[item.result.verdict])}</option>`).join('')}</select></label></div><div data-graded-answer></div>`:''}<details class="photo-correct-form" ${result?.verdict==='correct'&&!stale?'hidden':''} ${(d.correctionOpen??!g)?'open':''}><summary>订正后再练 · 保留首次批改</summary><form data-correction><div data-correction-pad></div><button type="submit" class="primary">提交本次作答批改</button></form></details><p data-review-status role="status" aria-live="polite"></p></section></div>`;
+      if(g)window.GrowingGradedAnswer.mount(host.querySelector('[data-graded-answer]'),g,current,paper,esc,render);
+      d.handwriting??={pages:[[]]};
+      pad=window.GrowingCorrectionPad.mount(host.querySelector('[data-correction-pad]'),d.handwriting,()=>{d.answerRevision=(d.answerRevision||0)+1;save();},status);
+      const wrong=!stale&&['incorrect','partial'].includes(result?.verdict);
+      host.querySelector('.photo-review-result>.bank-text')?.classList.toggle('question-wrong',wrong);
+      host.querySelector('.photo-question-heading>h3').classList.toggle('question-wrong',wrong);
+      if(!inline){const images=document.createElement('div');host.querySelector('.photo-review-result>.bank-text').after(images);figures.mount(images,current,{originals:false,minimal:true});}
+      source();lock();centerQuestionTab();
+    }
+    function sync(){
+      root.querySelectorAll('[data-review-open]').forEach(button=>{
+        const expanded=!host.hidden&&button.dataset.reviewOpen===host.dataset.anchorQuestion;
+        button.textContent=expanded?'返回':'此题批改';button.setAttribute('aria-expanded',String(expanded));button.setAttribute('aria-controls',host.id);button.disabled=busy;
+      });
+    }
+    function close(){if(!valid()||busy)return;host.hidden=true;sync();}
+    function lock(){if(!valid())return;host.querySelectorAll('button,select,textarea').forEach(el=>{el.disabled=busy||!!(grade()&&grade().revision!==current?.revision&&(el.closest('[data-followup]')||el.hasAttribute('data-followup-preset')));});pad?.lock(busy);sync();}
     async function loadQuestion(id){
       const n=++sequence;busy=true;lock();status('正在读取本题批改…');
       try{const data=await api('/question-bank/questions/'+id+'/review?'+new URLSearchParams({studentId}));if(!valid()||n!==sequence)return;
-        const q=paper.questions.find(q=>q.id===id);Object.assign(q,data.question,{followups:data.followups});current=q;selectedGrade=q.grades.at(-1)?.id||'';pageNumber=q.pages[0]||1;paint();
+        const q=paper.questions.find(q=>q.id===id);Object.assign(q,data.question,{followups:data.followups});current=q;selectedGrade=q.grades.at(-1)?.id||'';pageNumber=q.pages[0]||1;sourceOpen=false;
+        const trigger=[...root.querySelectorAll('[data-review-open]')].find(button=>button.dataset.reviewOpen===q.id);
+        trigger?.closest('.bank-question')?.after(host);host.dataset.anchorQuestion=q.id;paint();
       }catch(error){if(valid()&&n===sequence)status(error.message,true);}finally{if(valid()&&n===sequence){busy=false;lock();}}
     }
     async function open(q){
-      const n=++sequence;host.hidden=false;host.innerHTML='<p data-review-status role="status">正在打开逐题工作台…</p>';busy=true;
-      try{paper=papers.get(q.paperId);if(!paper){paper=await api('/question-bank/papers/'+q.paperId+'?'+new URLSearchParams({studentId}));if(!valid()||n!==sequence)return;papers.set(q.paperId,paper);}await loadQuestion(q.id);if(valid())host.scrollIntoView({block:'start',behavior:'smooth'});}
+      const trigger=[...root.querySelectorAll('[data-review-open]')].find(button=>button.dataset.reviewOpen===q.id);
+      trigger?.closest('.bank-question')?.after(host);host.dataset.anchorQuestion=q.id;
+      const n=++sequence;host.hidden=false;host.innerHTML='<p data-review-status role="status">正在打开逐题工作台…</p>';busy=true;sync();
+      try{paper=papers.get(q.paperId);if(!paper){paper=await api('/question-bank/papers/'+q.paperId+'?'+new URLSearchParams({studentId}));if(!valid()||n!==sequence)return;papers.set(q.paperId,paper);}await loadQuestion(q.id);}
       catch(error){if(valid())host.innerHTML='<p class="warning" role="status">'+esc(error.message)+'</p>';}finally{if(valid()){busy=false;lock();}}
     }
     async function followup(prompt){
       if(busy||!grade())return;const q=current,g=grade(),n=sequence;draft().prompt=prompt;save();busy=true;lock();status('正在结合本题原稿解释…');
       try{const result=await api('/question-bank/questions/'+q.id+'/followup',{method:'POST',body:JSON.stringify({studentId,gradeId:g.id,requestId:request('followup',prompt),prompt})});if(!valid()||n!==sequence)return;
-        q.followups??=[];if(!q.followups.some(f=>f.gradeId===g.id&&f.prompt===prompt&&f.reply===result.reply))q.followups.push({gradeId:g.id,prompt,reply:result.reply});draft().prompt='';save();paint();status('追问已保存；原评分保持不变。');
+        q.followups=(q.followups||[]).filter(f=>!(f.gradeId===g.id&&f.prompt===prompt&&f.reply===result.reply));q.followups.push({gradeId:g.id,prompt,reply:result.reply});draft().prompt='';save();paint();status('追问已保存；原评分保持不变。');
       }catch(error){if(valid()&&n===sequence)status(error.message+' 追问内容保留，可重试。',true);}finally{if(valid()&&n===sequence){busy=false;lock();}}
     }
     let study=null;
@@ -59,12 +96,23 @@
       study.addEventListener('cancel',event=>{event.preventDefault();closeStudy();});
     }
     host.addEventListener('input',event=>{if(!valid()||!current)return;if(event.target.name==='prompt')draft().prompt=event.target.value;if(event.target.name==='studentAnswer')draft().correction=event.target.value;save();});
-    host.addEventListener('change',event=>{if(valid()&&event.target.matches('[data-review-grade]')&&!busy){selectedGrade=event.target.value;paint();}});
+    host.addEventListener('change',event=>{if(valid()&&event.target.matches('[data-review-grade]')&&!busy){selectedGrade=event.target.value;paint();host.querySelector('[data-review-grade]').focus({preventScroll:true});}});
+    host.addEventListener('toggle',event=>{if(valid()&&current&&event.target.matches('.photo-correct-form')){draft().correctionOpen=event.target.open;save();}},true);
     host.addEventListener('click',async event=>{
       if(!valid())return;
       const link=event.target.closest('[data-review-link]');if(link){event.preventDefault();try{openStudy(link.getAttribute('href'));}catch(error){status(error.message,true);}return;}
       const b=event.target.closest('button');if(!b||busy)return;
-      if(b.hasAttribute('data-review-close')){host.hidden=true;return;}
+      if(b.hasAttribute('data-review-close')){close();return;}
+      if(b.hasAttribute('data-review-original')){
+        sourceOpen=!sourceOpen;host.querySelector('.photo-source').hidden=!sourceOpen;
+        host.querySelector('.photo-review-grid').classList.toggle('photo-source-open',sourceOpen);
+        b.textContent=sourceOpen?'收起原题':'查看原题';b.setAttribute('aria-expanded',String(sourceOpen));
+        if(sourceOpen)source();return;
+      }
+      if(b.hasAttribute('data-review-knowledge')){
+        const content=host.querySelector('[data-review-knowledge-content]');content.hidden=!content.hidden;
+        b.setAttribute('aria-expanded',String(!content.hidden));b.textContent=content.hidden?'关联知识点':'收起关联知识点';return;
+      }
       if(b.dataset.reviewQuestion)await loadQuestion(b.dataset.reviewQuestion);
       if(b.dataset.sourcePage){pageNumber=Number(b.dataset.sourcePage);source();}
       if(b.dataset.followupPreset)await followup(b.dataset.followupPreset);
@@ -73,13 +121,18 @@
       if(!valid())return;
       if(!event.target.matches('[data-followup],[data-correction]'))return;event.preventDefault();if(busy)return;
       if(event.target.matches('[data-followup]')){await followup(new FormData(event.target).get('prompt'));return;}
-      const studentAnswer=new FormData(event.target).get('studentAnswer'),q=current,n=sequence;busy=true;lock();status('正在批改本次订正，首次批改会保留…');
-      try{const result=await api('/question-bank/questions/'+q.id+'/correct',{method:'POST',body:JSON.stringify({studentId,revision:q.revision,requestId:request('correction',studentAnswer),studentAnswer})});if(!valid()||n!==sequence)return;
-        if(!q.grades.some(g=>g.id===result.grade.id))q.grades.push(result.grade);selectedGrade=result.grade.id;draft().correction='';save();paint();status('本次作答批改已保存；首次评分仍可查看。');await onChange();
-      }catch(error){if(valid()&&n===sequence)status(error.message+' 订正内容保留，可重试。',true);}finally{if(valid()&&n===sequence){busy=false;lock();}}
+      let answerPages;try{answerPages=pad.images();}catch(error){status(error.message,true);return;}
+      const q=current,n=sequence;let savedMessage='';busy=true;lock();status('正在批改本次手写订正，首次批改会保留…');
+      try{const result=await api('/question-bank/questions/'+q.id+'/correct',{method:'POST',body:JSON.stringify({studentId,revision:q.revision,requestId:request('handwriting',String(draft().answerRevision||0)),answerPages})});if(!valid()||n!==sequence)return;
+        const assessment=result.grade.result;
+        savedMessage=`本次手写作答批改已保存：${verdicts[assessment.verdict]}。`;
+        if(!q.grades.some(g=>g.id===result.grade.id))q.grades.push(result.grade);selectedGrade=result.grade.id;draft().correction='';draft().handwriting={pages:[[]]};draft().answerRevision=(draft().answerRevision||0)+1;save();paint();status(savedMessage);revealGrade(savedMessage);
+        try{await onChange();}catch(error){if(valid()&&n===sequence)status(savedMessage+' 题库列表刷新失败，请稍后重新打开。',true);}
+      }catch(error){if(valid()&&n===sequence)status(savedMessage?savedMessage+' 结果显示失败，请重新打开本题查看。':error.message+' 订正内容保留，可重试。',true);}finally{if(valid()&&n===sequence){busy=false;lock();}}
     });
+    const resizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(centerQuestionTab):null;resizeObserver?.observe(host);
     const observer=new MutationObserver(()=>{if(!host.isConnected)dispose();});observer.observe(document.body,{childList:true,subtree:true});
-    function dispose(){if(disposed)return;disposed=true;sequence++;observer.disconnect();closeStudy();window.removeEventListener('message',studyMessage);papers.clear();figures.dispose();host.replaceChildren();host.hidden=true;}
-    return {open,dispose,async refresh(){papers.clear();if(current&&!host.hidden)await open(current);}};
+    function dispose(){if(disposed)return;pad?.dispose();pad=null;disposed=true;sequence++;observer.disconnect();resizeObserver?.disconnect();closeStudy();window.removeEventListener('message',studyMessage);papers.clear();figures.dispose();host.replaceChildren();host.hidden=true;}
+    return {open,close,sync,dispose,async refresh(){papers.clear();if(current&&!host.hidden)await open(current);}};
   }};
 })();
