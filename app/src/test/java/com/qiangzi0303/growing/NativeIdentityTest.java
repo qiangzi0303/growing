@@ -32,10 +32,10 @@ public class NativeIdentityTest {
     @Test public void cloudAdministratorNeedsNoStudentParentSelection() throws Exception {
         assertEquals("Admin",new NativeIdentity(profile("Admin")).role);
     }
-    @Test public void repeatedConfirmationIsIdempotentButCannotChangeAccountOrRole() throws Exception {
+    @Test public void cloudRoleChangesRefreshTheSameIdentityButOtherAccountsNeedSeparateRecords() throws Exception {
         NativeIdentity previous=new NativeIdentity(profile("Student").put("roleSelectionRequired",false));
         new NativeIdentity(new JSONObject(previous.json())).requireSameAccount(previous);
-        assertThrows(IllegalArgumentException.class,()->new NativeIdentity(profile("Parent").put("roleSelectionRequired",false)).requireSameAccount(previous));
+        new NativeIdentity(profile("Parent").put("roleSelectionRequired",false)).requireSameAccount(previous);
         assertThrows(IllegalArgumentException.class,()->new NativeIdentity(profile("Student").put("roleSelectionRequired",false).put("id","00000000-0000-4000-8000-000000000002")).requireSameAccount(previous));
     }
 }

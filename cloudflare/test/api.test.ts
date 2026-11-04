@@ -6,6 +6,7 @@ import { createHandler, type Env } from "../src/index";
 import { connect, type Database, Store, nowSql } from "../src/database";
 import { hash, passwordHash, verifyPassword } from "../src/auth";
 import { rankingStatements } from '../src/rankings';
+import { Administration } from '../src/administration';
 import rankingRules from '../src/ranking-rules.json';
 import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
 import diagnosisRules from '../src/diagnosis-rules.json';
@@ -719,6 +720,187 @@ test("admin member filters, pagination and details expose safe profiles and fami
   assert.equal((await call('/api/admin/members/not-a-uuid','GET',undefined,a.token)).status,404);
   assert.equal((await call('/api/admin/students/'+p.user.id+'/report','GET',undefined,a.token)).status,404);
 });
+test('admin adds existing students to a chosen parent without credentials, preserving other families, sessions and data',async()=>{
+  const a=await administrator(),p=await register('Parent'),other=await register('Parent'),s=await register(),second=await register();
+  await bindStudent(s,other);
+  await call('/api/student/state/growing-math-lessons-v1','PUT',{revision:0,value:'{"topics":{"admin-child-sentinel":{"seen":true}}}'},s.token);
+  const store=new Store(db),before=await store.state(s.user.id),oldUser=await store.findUser(s.name.toUpperCase());
+  const path='/api/admin/members/'+p.user.id+'/children';
+  for(const child of [s,second]){
+    const response=await call(path,'POST',{studentId:child.user.id},a.token);
+    assert.equal(response.status,200);assert.deepEqual(await response.json(),{studentId:child.user.id});
+  }
+  const links=await db.query('SELECT * FROM "GrowingFamilyLinks" WHERE "ParentId"=?1 ORDER BY "StudentId"',[p.user.id]);
+  const duplicate=await Promise.all([call(path,'POST',{studentId:s.user.id},a.token),call(path,'POST',{studentId:s.user.id},a.token)]);
+  assert.ok(duplicate.every(r=>r.status===200));
+  assert.deepEqual(await db.query('SELECT * FROM "GrowingFamilyLinks" WHERE "ParentId"=?1 ORDER BY "StudentId"',[p.user.id]),links);
+  assert.deepEqual((await store.parents(s.user.id)).map((u:any)=>u.id).sort(),[p.user.id,other.user.id].sort());
+  const children=await (await call('/api/parent/children','GET',undefined,p.token)).json() as any[];
+  assert.deepEqual(children.map(u=>u.id).sort(),[s.user.id,second.user.id].sort());
+  assert.equal((await call('/api/parent/children/'+s.user.id+'/report','GET',undefined,p.token)).status,200);
+  assert.deepEqual(await store.state(s.user.id),before);assert.deepEqual(await store.findUser(s.name.toUpperCase()),oldUser);
+  for(const token of [p.token,s.token,other.token])assert.equal((await call('/api/auth/me','GET',undefined,token)).status,200);
+  const detail=await (await call('/api/admin/members/'+p.user.id,'GET',undefined,a.token)).json() as any;
+  assert.equal(detail.children.length,2);
+});
+
+test('only admins may add children and both targets must be confirmed parent/student accounts',async()=>{
+  const a=await administrator(),p=await register('Parent'),s=await register(),path='/api/admin/members/'+p.user.id+'/children',input={studentId:s.user.id};
+  assert.equal((await call(path,'POST',input)).status,401);
+  for(const token of [p.token,s.token])assert.equal((await call(path,'POST',input,token)).status,403);
+  assert.equal((await call(path,'POST',input,a.token,{'X-Growing-Client':''})).status,400);
+  for(const data of [{},{studentId:123},{studentId:'bad'},{studentId:p.user.id},{studentId:a.user.id},{studentId:crypto.randomUUID()}])
+    assert.equal((await call(path,'POST',data,a.token)).status,400);
+  for(const parent of [s.user.id,a.user.id,crypto.randomUUID()])
+    assert.equal((await call('/api/admin/members/'+parent+'/children','POST',input,a.token)).status,400);
+  assert.equal((await call('/api/admin/members/not-a-uuid/children','POST',input,a.token)).status,404);
+  assert.equal((await call(path,'GET',undefined,a.token)).status,404);
+  assert.equal((await call('/api/parent/children/account','POST',input,p.token)).status,400);
+  assert.equal((await call('/api/parent/children','POST',input,p.token)).status,400);
+  for(const target of [p,s]){
+    await db.query('UPDATE "GrowingUsers" SET "RoleConfirmed"=0 WHERE "Id"=?1',[target.user.id]);
+    assert.equal((await call(path,'POST',input,a.token)).status,400);
+    await db.query('UPDATE "GrowingUsers" SET "RoleConfirmed"=1 WHERE "Id"=?1',[target.user.id]);
+  }
+  assert.deepEqual(await new Store(db).children(p.user.id),[]);
+});
+
+test('admin removes only the chosen parent-child link, revoking access while preserving accounts, data and ledger',async()=>{
+  const a=await administrator(),p=await register('Parent'),other=await register('Parent'),s=await register(),second=await register();
+  const admin=new Administration(db),store=new Store(db);
+  await admin.addChild(p.user.id,s.user.id);await admin.addChild(p.user.id,second.user.id);await admin.addChild(other.user.id,s.user.id);
+  await call('/api/student/state/growing-math-lessons-v1','PUT',{revision:0,value:'{"topics":{"remove-child-sentinel":{"seen":true}}}'},s.token);
+  const before=await store.state(s.user.id),oldUser=await store.findUser(s.name.toUpperCase()),ledgerId=crypto.randomUUID();
+  await db.query(`INSERT INTO "GrowingRewardConfirmations" ("Id","StudentId","ParentId","DocumentKey","EntryHash","Kind","Amount","ClaimedParent","ClaimedAt") VALUES (?1,?2,?3,'growing-unit-rewards-v1:math-8a-01',?4,'game',10,'家长','2026-11-03T00:00:00Z')`,[ledgerId,s.user.id,p.user.id,'b'.repeat(64)]);
+  const path='/api/admin/members/'+p.user.id+'/children/'+s.user.id;
+  const response=await call(path,'DELETE',undefined,a.token);assert.equal(response.status,200);assert.deepEqual(await response.json(),{removed:true});
+  assert.deepEqual((await store.children(p.user.id)).map((c:any)=>c.id),[second.user.id]);
+  assert.deepEqual((await store.parents(s.user.id)).map((c:any)=>c.id),[other.user.id]);
+  for(const suffix of ['report','growth','rewards'])assert.equal((await call('/api/parent/children/'+s.user.id+'/'+suffix,'GET',undefined,p.token)).status,404);
+  assert.equal((await call('/api/parent/children/'+s.user.id+'/report','GET',undefined,other.token)).status,200);
+  assert.equal((await call('/api/parent/children/'+second.user.id+'/report','GET',undefined,p.token)).status,200);
+  assert.deepEqual(await store.state(s.user.id),before);assert.deepEqual(await store.findUser(s.name.toUpperCase()),oldUser);
+  assert.equal((await admin.confirmations(1,s.user.id,p.user.id)).rows.length,1);
+  for(const token of [p.token,s.token,other.token])assert.equal((await call('/api/auth/me','GET',undefined,token)).status,200);
+  assert.equal((await call(path,'DELETE',undefined,a.token)).status,404);
+  assert.equal((await call('/api/admin/members/'+p.user.id+'/children','POST',{studentId:s.user.id},a.token)).status,200);
+  assert.equal((await call('/api/parent/children/'+s.user.id+'/report','GET',undefined,p.token)).status,200);
+});
+
+test('child removal enforces admin authority, valid IDs and existing parent/student relationships',async()=>{
+  const a=await administrator(),p=await register('Parent'),s=await register(),admin=new Administration(db),store=new Store(db);
+  await admin.addChild(p.user.id,s.user.id);await bindStudent(s,a);
+  const path='/api/admin/members/'+p.user.id+'/children/'+s.user.id;
+  assert.equal((await call(path,'DELETE')).status,401);
+  for(const token of [p.token,s.token])assert.equal((await call(path,'DELETE',undefined,token)).status,403);
+  assert.equal((await call(path,'DELETE',undefined,a.token,{'X-Growing-Client':''})).status,400);
+  for(const [parent,child] of [['bad',s.user.id],[p.user.id,'bad'],[crypto.randomUUID(),s.user.id],[p.user.id,crypto.randomUUID()],[s.user.id,p.user.id],[a.user.id,s.user.id],[p.user.id,a.user.id]])
+    assert.equal((await call('/api/admin/members/'+parent+'/children/'+child,'DELETE',undefined,a.token)).status,404);
+  assert.equal((await call(path,'GET',undefined,a.token)).status,404);
+  assert.equal((await call(path,'POST',{},a.token)).status,404);
+  assert.equal((await store.children(p.user.id)).length,1);assert.equal((await store.children(a.user.id)).length,1);
+  await admin.changeRole(p.user.id,'Parent','Student');
+  assert.equal((await call(path,'DELETE',undefined,a.token)).status,404);
+  assert.equal((await store.children(a.user.id)).length,1);
+});
+
+test('admin child binding rejects stale roles without recreating removed family relationships',async()=>{
+  const a=await administrator(),p=await register('Parent'),s=await register(),admin=new Administration(db);
+  await admin.addChild(p.user.id,s.user.id);
+  await admin.changeRole(s.user.id,'Student','Parent');
+  await assert.rejects(admin.addChild(p.user.id,s.user.id),/账号类型可能已变化/);
+  await admin.changeRole(s.user.id,'Parent','Student');
+  await admin.addChild(p.user.id,s.user.id);
+  await admin.changeRole(p.user.id,'Parent','Student');
+  await assert.rejects(admin.addChild(p.user.id,s.user.id),/账号类型可能已变化/);
+  assert.deepEqual(await new Store(db).children(p.user.id),[]);
+  assert.deepEqual(await new Store(db).parents(s.user.id),[]);
+});
+
+test('admin changes Student to Parent and back, revoking sessions and bindings while preserving learning and ledger history',async()=>{
+  const a=await administrator(),s=await register(),p=await register('Parent'),child=await register();await bindStudent(s,p);
+  const store=new Store(db),path='/api/admin/members/'+s.user.id+'/role';
+  const second=await (await call('/api/auth/login','POST',{username:s.name,password})).json() as any;
+  await call('/api/student/state/growing-math-lessons-v1','PUT',{revision:0,value:'{"topics":{"role-change-sentinel":{"seen":true}}}'},s.token);
+  const before=await store.state(s.user.id),oldUser=(await store.findUser(s.name.toUpperCase()))!,code=await invite(s.token);
+  const ledgerId=crypto.randomUUID();
+  await db.query(`INSERT INTO "GrowingRewardConfirmations" ("Id","StudentId","ParentId","DocumentKey","EntryHash","Kind","Amount","ClaimedParent","ClaimedAt") VALUES (?1,?2,?3,'growing-unit-rewards-v1:math-8a-01',?4,'game',10,'家长','2026-11-03T00:00:00Z')`,[ledgerId,s.user.id,p.user.id,'a'.repeat(64)]);
+  let response=await call(path,'POST',{expectedRole:'Student',role:'Parent'},a.token);
+  assert.equal(response.status,200);assert.deepEqual(await response.json(),{changed:true,role:'Parent'});
+  for(const token of [s.token,second.token])assert.equal((await call('/api/auth/me','GET',undefined,token)).status,401);
+  assert.deepEqual(await store.parents(s.user.id),[]);assert.deepEqual(await store.children(p.user.id),[]);
+  assert.equal((await call('/api/parent/children/'+s.user.id+'/report','GET',undefined,p.token)).status,404);
+  assert.equal((await call('/api/parent/children','POST',{code},p.token)).status,400);
+  const parentLogin=await (await call('/api/auth/login','POST',{username:s.name,password})).json() as any;
+  assert.equal(parentLogin.user.role,'Parent');assert.equal(parentLogin.user.roleSelectionRequired,false);
+  assert.equal((await call('/api/student/state','GET',undefined,parentLogin.token)).status,403);
+  const parents=await (await call('/api/admin/members?q='+s.name+'&role=Parent','GET',undefined,a.token)).json() as any;
+  assert.equal(parents.total,1);assert.equal(parents.rows[0].role,'Parent');assert.equal(parents.rows[0].connections,0);
+  assert.deepEqual((await (await call('/api/admin/members/'+s.user.id,'GET',undefined,a.token)).json() as any).children,[]);
+  await assert.rejects(store.createSession(await hash('stale-role-proof'),s.user.id,new Date(Date.now()+60000).toISOString(),oldUser.passwordHash,'Student'),/登录信息已变更/);
+  await assert.rejects(store.invite(s.user.id,await hash('stale-student-invite'),new Date(Date.now()+60000).toISOString()),/身份已变更/);
+  await assert.rejects(store.bindStudent(p.user.id,s.user.id),/身份已变更/);
+  await bindStudent(child,{token:parentLogin.token});
+  // An outdated administrator form cannot revoke the fresh session or new binding.
+  assert.equal((await call(path,'POST',{expectedRole:'Student',role:'Parent'},a.token)).status,409);
+  assert.equal((await call('/api/auth/me','GET',undefined,parentLogin.token)).status,200);
+  assert.equal((await store.children(s.user.id))[0].id,child.user.id);
+  response=await call(path,'POST',{expectedRole:'Parent',role:'Student'},a.token);assert.equal(response.status,200);
+  assert.equal((await call('/api/auth/me','GET',undefined,parentLogin.token)).status,401);
+  assert.deepEqual(await store.children(s.user.id),[]);assert.deepEqual(await store.parents(child.user.id),[]);
+  const studentLogin=await (await call('/api/auth/login','POST',{username:s.name,password})).json() as any;
+  assert.equal(studentLogin.user.role,'Student');assert.equal(studentLogin.user.roleSelectionRequired,false);
+  assert.deepEqual(await (await call('/api/student/state','GET',undefined,studentLogin.token)).json(),before);
+  assert.equal((await db.query('SELECT "Id" FROM "GrowingRewardConfirmations" WHERE "Id"=?1',[ledgerId])).length,1);
+  assert.equal((await call('/api/auth/me','GET',undefined,p.token)).status,200);
+  assert.equal((await call('/api/auth/me','GET',undefined,a.token)).status,200);
+});
+
+test('parent conversion removes only its bindings and prevents stale in-flight binding requests',async()=>{
+  const a=await administrator(),p=await register('Parent'),other=await register('Parent'),s=await register();
+  await bindStudent(s,p);await bindStudent(s,other);const code=await invite(s.token),store=new Store(db);
+  assert.equal((await call('/api/admin/members/'+p.user.id+'/role','POST',{expectedRole:'Parent',role:'Student'},a.token)).status,200);
+  assert.deepEqual((await store.parents(s.user.id)).map(p=>p.id),[other.user.id]);
+  await assert.rejects(store.bindStudent(p.user.id,s.user.id),/身份已变更/);
+  await assert.rejects(store.bind(p.user.id,await hash(code)),/绑定码已失效/);
+  assert.equal((await call('/api/parent/children','POST',{code},other.token)).status,200);
+  // Older administrator accounts can bind without choosing a Student/Parent identity.
+  await db.query('UPDATE "GrowingUsers" SET "RoleConfirmed"=0 WHERE "Id"=?1',[a.user.id]);
+  assert.equal((await call('/api/parent/children','POST',{code:await invite(s.token)},a.token)).status,200);
+  assert.equal((await store.bindStudent(a.user.id,s.user.id)).studentId,s.user.id);
+  const logged=await (await call('/api/auth/login','POST',{username:p.name,password})).json() as any;
+  assert.equal(logged.user.role,'Student');assert.equal((await call('/api/parent/children','GET',undefined,logged.token)).status,403);
+  assert.deepEqual(await (await call('/api/student/state','GET',undefined,logged.token)).json(),[]);
+});
+
+test('role changes require administrator, valid roles and a current form; admin identities are protected',async()=>{
+  const a=await administrator(),s=await register(),p=await register('Parent'),path='/api/admin/members/'+s.user.id+'/role';
+  const input={expectedRole:'Student',role:'Parent'};
+  assert.equal((await call(path,'POST',input)).status,401);
+  for(const token of [s.token,p.token])assert.equal((await call(path,'POST',input,token)).status,403);
+  assert.equal((await call(path,'POST',input,a.token,{'X-Growing-Client':''})).status,400);
+  for(const data of [{},{role:'Parent'},{...input,role:'Admin'},{...input,role:'student'},{...input,role:3},{...input,expectedRole:'Admin'},{...input,expectedRole:null},{expectedRole:'Student',role:'Student'}])
+    assert.equal((await call(path,'POST',data,a.token)).status,400);
+  assert.equal((await call('/api/admin/members/'+a.user.id+'/role','POST',{expectedRole:'Parent',role:'Student'},a.token)).status,403);
+  assert.equal((await call('/api/admin/members/'+crypto.randomUUID()+'/role','POST',input,a.token)).status,404);
+  assert.equal((await call('/api/admin/members/bad-id/role','POST',input,a.token)).status,404);
+  assert.equal((await call(path,'GET',undefined,a.token)).status,404);
+  assert.equal((await call(path,'POST',{expectedRole:'Parent',role:'Student'},a.token)).status,409);
+  assert.equal((await call('/api/auth/me','GET',undefined,s.token)).status,200);
+  assert.equal((await call('/api/auth/me','GET',undefined,a.token)).status,200);
+});
+
+test('role transaction failure preserves sessions, original role and family links',async()=>{
+  const a=await administrator(),s=await register(),p=await register('Parent');await bindStudent(s,p);const code=await invite(s.token);
+  const failing:Database={...db,batch:statements=>db.batch([...statements,{sql:'SELECT * FROM MissingRoleChangeTable'}])};
+  await assert.rejects(new Administration(failing).changeRole(s.user.id,'Student','Parent'));
+  assert.equal((await new Store(db).findUser(s.name.toUpperCase()))!.role,'Student');
+  assert.equal((await new Store(db).parents(s.user.id))[0].id,p.user.id);
+  assert.equal((await call('/api/auth/me','GET',undefined,s.token)).status,200);
+  assert.equal((await call('/api/parent/children','POST',{code},p.token)).status,200);
+  assert.equal((await call('/api/auth/me','GET',undefined,a.token)).status,200);
+});
+
 test('admin password changes revoke all target sessions, preserve student records and reject stale login proofs',async()=>{
   const a=await administrator(),s=await register(),p=await register('Parent');await bindStudent(s,p);
   const second=await (await call('/api/auth/login','POST',{username:s.name,password})).json() as any;
@@ -734,7 +916,7 @@ test('admin password changes revoke all target sessions, preserve student record
   assert.deepEqual(await new Store(db).state(s.user.id),before);assert.equal((await new Store(db).parents(s.user.id))[0].id,p.user.id);
   const updated=(await new Store(db).findUser(s.name.toUpperCase()))!;
   assert.notEqual(updated.passwordHash,oldHash);assert.ok(!updated.passwordHash.includes(newPassword));assert(await verifyPassword(newPassword,updated.passwordHash));
-  await assert.rejects(new Store(db).createSession(await hash('stale-login-proof'),s.user.id,new Date(Date.now()+60000).toISOString(),oldHash),/登录信息已变更/);
+  await assert.rejects(new Store(db).createSession(await hash('stale-login-proof'),s.user.id,new Date(Date.now()+60000).toISOString(),oldHash,'Student'),/登录信息已变更/);
   assert.equal((await call('/api/auth/me','GET',undefined,a.token)).status,200);
 });
 

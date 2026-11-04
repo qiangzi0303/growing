@@ -113,7 +113,7 @@ export function createHandler(database: (env: Env) => Database = env => {
           user = found!;
         }
         const token = random(32), expiresAt = new Date(Date.now() + 14 * 86400_000).toISOString();
-        await store.createSession(await hash(token), user.id, expiresAt, user.passwordHash);
+        await store.createSession(await hash(token), user.id, expiresAt, user.passwordHash, user.role);
         return decorate(json({ user: profile(user), token, expiresAt }, 200, { "Set-Cookie": sessionCookie(token, request, expiresAt) }), request);
       }
       const token = sessionToken(request);
@@ -257,6 +257,20 @@ export function createHandler(database: (env: Env) => Database = env => {
         const q = url.searchParams.get('q') ?? '', role = url.searchParams.get('role') ?? '';
         if (q.length > 40 || !['','Student','Parent','Admin'].includes(role)) error(400, '筛选条件无效。');
         result = json(await admin.members(q, role, page()));
+      } else if (/^\/api\/admin\/members\/[^/]+\/role$/.test(path) && request.method === 'POST') {
+        const id = path.split('/')[4]; if (!uuid.test(id)) error(404, '未找到会员。');
+        const data = await body(request, 1024);
+        if ((data.role !== 'Student' && data.role !== 'Parent') || (data.expectedRole !== 'Student' && data.expectedRole !== 'Parent')) error(400, '请选择学生或家长。');
+        result = json(await admin.changeRole(id, data.expectedRole as 'Student' | 'Parent', data.role as 'Student' | 'Parent'));
+      } else if (/^\/api\/admin\/members\/[^/]+\/children$/.test(path) && request.method === 'POST') {
+        const id = path.split('/')[4]; if (!uuid.test(id)) error(404, '未找到家长。');
+        const data = await body(request, 1024);
+        if (typeof data.studentId !== 'string' || !uuid.test(data.studentId)) error(400, '请选择学生账号。');
+        result = json(await admin.addChild(id, data.studentId as string));
+      } else if (/^\/api\/admin\/members\/[^/]+\/children\/[^/]+$/.test(path) && request.method === 'DELETE') {
+        const id = path.split('/')[4], student = path.split('/')[6];
+        if (!uuid.test(id) || !uuid.test(student)) error(404, '未找到亲子绑定。');
+        result = json(await admin.removeChild(id, student));
       } else if (/^\/api\/admin\/members\/[^/]+\/password$/.test(path) && request.method === 'POST') {
         const id = path.split('/')[4]; if (!uuid.test(id)) error(404, '未找到会员。');
         const data = await body(request, 4096);

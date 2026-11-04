@@ -16,8 +16,8 @@ final class NativeIdentity {
             throw new IllegalArgumentException("请先选择学生或家长，并保存到后台。");
     }
     void requireSameAccount(NativeIdentity previous) {
-        if (previous != null && (!id.equals(previous.id) || !role.equals(previous.role)))
-            throw new IllegalArgumentException("此本机账号已关联其他云账号或身份，请使用原云账号，或退出本机账号后切换。");
+        if (previous != null && !id.equals(previous.id))
+            throw new IllegalArgumentException("切换云账号时需要切换学习记录。");
     }
     String json() throws Exception { return new JSONObject().put("id",id).put("role",role).put("roleSelectionRequired",false).toString(); }
 }

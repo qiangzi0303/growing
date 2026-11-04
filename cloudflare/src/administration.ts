@@ -43,6 +43,43 @@ export class Administration {
     if (!user) throw new HttpError(404, "未找到学生。");
     return user;
   }
+  async addChild(parent: string, student: string) {
+    const [link] = await this.db.query<{studentId: string}>(`INSERT INTO "GrowingFamilyLinks" ("ParentId","StudentId","CreatedAt")
+      SELECT p."Id",s."Id",${nowSql} FROM "GrowingUsers" p JOIN "GrowingUsers" s ON s."Id"=?2
+      WHERE p."Id"=?1 AND p."Role"='Parent' AND p."RoleConfirmed"=1
+        AND s."Role"='Student' AND s."RoleConfirmed"=1
+        AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId" IN (p."Id",s."Id"))
+      ON CONFLICT ("ParentId","StudentId") DO UPDATE SET "CreatedAt"="GrowingFamilyLinks"."CreatedAt"
+      RETURNING "StudentId" AS "studentId"`, [parent, student]);
+    if (!link) throw new HttpError(400, '请选择已确认身份的家长和学生账号；账号类型可能已变化，请刷新后重试。');
+    return link;
+  }
+  async removeChild(parent: string, student: string) {
+    const rows = await this.db.query(`DELETE FROM "GrowingFamilyLinks" WHERE "ParentId"=?1 AND "StudentId"=?2
+      AND EXISTS (SELECT 1 FROM "GrowingUsers" p JOIN "GrowingUsers" s ON s."Id"=?2
+        WHERE p."Id"=?1 AND p."Role"='Parent' AND s."Role"='Student'
+        AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId" IN (p."Id",s."Id")))
+      RETURNING "StudentId" AS "studentId"`, [parent, student]);
+    if (!rows.length) throw new HttpError(404, '未找到亲子绑定或账号类型已变化，请刷新后重试。');
+    return { removed: true };
+  }
+  async changeRole(id: string, expectedRole: 'Student' | 'Parent', role: 'Student' | 'Parent') {
+    if (role === expectedRole) throw new HttpError(400, '请选择不同的账号类型。');
+    const [member] = await this.db.query<User>(`SELECT ${memberFields} FROM "GrowingUsers" u LEFT JOIN "GrowingAdministrators" a ON a."UserId"=u."Id" WHERE u."Id"=?1`, [id]);
+    if (!member) throw new HttpError(404, '未找到会员。');
+    if (member.role === 'Admin') throw new HttpError(403, '管理员账号不能在此修改类型。');
+    // Cleanup and role update share one transaction; stale forms must change nothing.
+    const eligible = `EXISTS (SELECT 1 FROM "GrowingUsers" u WHERE u."Id"=?1 AND u."Role"=?2
+      AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=u."Id"))`;
+    const results = await this.db.batch([
+      { sql: `DELETE FROM "GrowingFamilyLinks" WHERE ("ParentId"=?1 OR "StudentId"=?1) AND ${eligible}`, params: [id, expectedRole] },
+      { sql: `DELETE FROM "GrowingInvitations" WHERE ("StudentId"=?1 OR "UsedBy"=?1) AND ${eligible}`, params: [id, expectedRole] },
+      { sql: `DELETE FROM "GrowingSessions" WHERE "UserId"=?1 AND ${eligible}`, params: [id, expectedRole] },
+      { sql: `UPDATE "GrowingUsers" SET "Role"=?3,"RoleConfirmed"=1 WHERE "Id"=?1 AND ${eligible} RETURNING "Id" AS id`, params: [id, expectedRole, role] },
+    ]);
+    if (!results[3].length) throw new HttpError(409, '账号类型已变化，请刷新会员详情后重试。');
+    return { changed: true, role };
+  }
   async studentReport(id: string, days: number) {
     const student = await this.requireStudent(id);
     const docs = await new Store(this.db).state(id), report = await studyReport(this.db,id,docs);

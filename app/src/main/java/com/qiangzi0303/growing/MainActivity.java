@@ -272,6 +272,15 @@ public final class MainActivity extends Activity {
         String result=pendingRegistration;pendingRegistration=null;return result==null?"":result;
     }
     String identityAccount(String id,long value){NativeIdentity identity=isSession(id,value)?accounts.identity(id):null;return identity==null?"":identity.id;}
+    boolean confirmCloudSession(String id,long value,String session) throws Exception {
+        if(!isSession(id,value))throw new SecurityException("登录已失效，请重新登录。");
+        String selected=accounts.confirmCloudSession(id,session);
+        boolean switched=!id.equals(selected);
+        runOnUiThread(()->{if(isSession(id,value)&&web!=null){
+            if(switched){currentId=selected;epoch++;showLearning();}else updateNavigation(web.getUrl());
+        }});
+        return switched;
+    }
     void confirmIdentity(String id,long value,String profile) throws Exception {
         if(!isSession(id,value))throw new SecurityException("登录已失效。");
         accounts.confirmIdentity(id,profile);

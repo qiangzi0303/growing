@@ -116,11 +116,88 @@
         try{const data=await api('/admin/members/'+id);if(!valid()||seq!==view)return;
           const m=data.member,relations=m.role==='Student'?data.parents:data.children;
           body.innerHTML=`<section class="panel"><button data-back>← 返回会员列表</button><h2>${esc(m.displayName)} <span class="badge">${roles[m.role]}</span></h2><p>${esc(m.username)} · 注册于 ${date(m.createdAt)}</p><h3>${m.role==='Student'?'关联家长':'关联学生'}</h3><div class="actions">${relations.map(c=>memberButton(c.id,c.displayName)).join('')||'<span class="muted">尚无关联</span>'}</div><p><button data-member-ledger="${m.id}" data-role="${m.role}">查看此会员的核销确认账本</button></p></section><section class="panel"><h2>修改会员密码</h2><p>正在修改 <strong>${esc(m.displayName)}（${esc(m.username)}）</strong> 的登录密码。保存后，该会员需要在各设备重新登录；学习记录、奖励和账号关联保留。</p><form id="member-password" data-member-id="${esc(m.id)}"><label>新密码<input name="newPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><label>确认新密码<input name="confirmPassword" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><button type="submit" class="primary">保存新密码</button><p data-password-status role="status" aria-live="polite"></p></form></section><section id="member-learning"></section>`;
+          if(m.role==='Student'||m.role==='Parent'){
+            const panel=document.createElement('section');panel.className='panel';
+            panel.innerHTML=`<h2>修改账号类型</h2><p>修改后将解除原亲子绑定、使旧绑定码失效，该会员需重新登录。学习记录和历史账本保留。</p><form id="member-role" data-member-id="${esc(m.id)}" data-current-role="${m.role}"><label>账号类型<select name="role">${['Student','Parent'].map(r=>`<option value="${r}" ${r===m.role?'selected':''}>${roles[r]}</option>`).join('')}</select></label><button type="submit" class="primary">保存账号类型</button><p data-role-status role="status" aria-live="polite"></p></form>`;
+            body.firstElementChild.after(panel);
+          }
+          if(m.role==='Parent'){
+            const panel=document.createElement('section');panel.className='panel';
+            panel.innerHTML='<h2>添加孩子</h2><p class="muted">搜索并选择已有学生，直接添加到这位家长名下，无需孩子密码。</p><form id="member-child-search" class="actions filters"><label>学生用户名或称呼<input name="q" maxlength="40" placeholder="搜索学生"></label><button type="submit">查询学生</button></form><p data-child-status role="status" aria-live="polite"></p><div data-child-results></div>';
+            body.firstElementChild.after(panel);
+            const results=panel.querySelector('[data-child-results]'),status=panel.querySelector('[data-child-status]');
+            const linked=new Set(relations.map(c=>c.id)),current=()=>valid()&&seq===view&&panel.isConnected;
+            let search='',page=1,searchVersion=0,saving=false,rows=[];
+            const relationRoot=body.firstElementChild.querySelector('.actions');
+            function updateChildren(){
+              relationRoot.innerHTML=relations.map(c=>`<span class="actions">${memberButton(c.id,c.displayName)}<button type="button" data-remove-child="${esc(c.id)}" aria-label="解除与${esc(c.displayName)}的绑定" ${saving?'disabled':''}>解除绑定</button></span>`).join('')||'<span class="muted">尚无关联</span>';
+              results.querySelectorAll('[data-child-id]').forEach(b=>{b.disabled=saving||linked.has(b.dataset.childId);b.textContent=linked.has(b.dataset.childId)?'已添加':'添加孩子';});
+            }
+            updateChildren();
+            listen(relationRoot,'click',async e=>{
+              const button=e.target.closest('[data-remove-child]'),child=relations.find(c=>c.id===button?.dataset.removeChild);
+              if(!current()||!child||saving)return;
+              if(!confirm('解除 '+m.displayName+' 与 '+child.displayName+' 的绑定？孩子账号、学习记录和历史账本会保留。'))return;
+              saving=true;updateChildren();status.className='';status.textContent='正在解除绑定…';
+              try{
+                await api('/admin/members/'+encodeURIComponent(id)+'/children/'+encodeURIComponent(child.id),{method:'DELETE'});
+                if(!current())return;
+                linked.delete(child.id);relations.splice(relations.findIndex(c=>c.id===child.id),1);
+                status.textContent='已解除 '+m.displayName+' 与 '+child.displayName+' 的绑定。';
+              }catch(error){if(current()){status.className='warning';status.textContent=error.message;}}
+              finally{saving=false;if(current())updateChildren();}
+            });
+            async function searchChildren(){
+              const version=++searchVersion;results.innerHTML='<p role="status">正在查询学生…</p>';
+              try{
+                const data=await api('/admin/members?'+new URLSearchParams({q:search,role:'Student',page}));
+                if(!current()||version!==searchVersion)return;
+                rows=data.rows;
+                results.innerHTML=table(['学生','操作'],rows.map(s=>`<tr><td>${esc(s.displayName)}<br><small>${esc(s.username)}</small></td><td><button type="button" data-child-id="${esc(s.id)}" ${saving||linked.has(s.id)?'disabled':''}>${linked.has(s.id)?'已添加':'添加孩子'}</button></td></tr>`))+pager(data,'children');
+              }catch(error){if(current()&&version===searchVersion)fail(results,error);}
+            }
+            listen(panel,'submit',e=>{
+              e.preventDefault();if(!current())return;
+              search=panel.querySelector('[name=q]').value.trim();page=1;searchChildren();
+            });
+            listen(panel,'click',async e=>{
+              const button=e.target.closest('button');if(!button||!current())return;
+              if(button.dataset.childrenPage){page=Number(button.dataset.childrenPage);searchChildren();return;}
+              const child=rows.find(s=>s.id===button.dataset.childId);
+              if(!child||saving||linked.has(child.id))return;
+              saving=true;updateChildren();
+              status.className='';status.textContent='正在添加 '+child.displayName+'…';
+              try{
+                await api('/admin/members/'+encodeURIComponent(id)+'/children',{method:'POST',body:JSON.stringify({studentId:child.id})});
+                if(!current())return;
+                linked.add(child.id);relations.push(child);
+                status.textContent='已为 '+m.displayName+' 添加孩子 '+child.displayName+'。';
+              }catch(error){if(current()){status.className='warning';status.textContent=error.message;}}
+              finally{
+                saving=false;
+                if(current())updateChildren();
+              }
+            });
+            searchChildren();
+          }
           if(m.role==='Student')await student(body.querySelector('#member-learning'),id,true);
           else body.querySelector('#member-learning').innerHTML=`<section class="panel"><h2>最近家长确认记录</h2>${ledgerTable(data.confirmations.rows,true)}${data.confirmations.total>20?'<p class="muted">更多记录请查看此会员的核销确认账本。</p>':''}</section>`;
         }catch(e){if(seq===view)fail(body,e);}
       }
       listen(root,'submit',async e=>{
+        if(e.target.id==='member-role'){
+          e.preventDefault();const form=e.target;if(!valid()||form.dataset.busy)return;
+          const status=form.querySelector('[data-role-status]'),button=form.querySelector('button[type=submit]'),select=form.querySelector('select');
+          const data={role:select.value,expectedRole:form.dataset.currentRole},id=form.dataset.memberId,seq=view;
+          if(data.role===data.expectedRole){status.textContent='请选择不同的账号类型。';return;}
+          form.dataset.busy='true';button.disabled=true;select.disabled=true;status.textContent='正在保存账号类型…';
+          try{
+            await api('/admin/members/'+encodeURIComponent(id)+'/role',{method:'POST',body:JSON.stringify(data)});
+            if(valid()&&seq===view){await member(id);if(valid()&&body.querySelector('#member-role')?.dataset.memberId===id)body.querySelector('[data-role-status]').textContent='账号类型已修改为'+roles[data.role]+'，该会员请重新登录。';await overview();}
+          }catch(error){if(valid()&&seq===view&&form.isConnected){status.className='warning';status.textContent=error.message;}}
+          finally{if(form.isConnected){delete form.dataset.busy;button.disabled=false;select.disabled=false;}}
+          return;
+        }
         if(e.target.id==='member-password'){
           e.preventDefault();const form=e.target;if(!valid()||form.dataset.busy)return;
           const status=form.querySelector('[data-password-status]'),button=form.querySelector('button[type=submit]'),data=Object.fromEntries(new FormData(form));

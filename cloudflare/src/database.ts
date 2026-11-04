@@ -63,8 +63,8 @@ export class Store {
       throw error;
     }
   }
-  async createSession(hash: string, userId: string, expires: string, expectedPasswordHash: string) {
-    const rows = await this.db.query('INSERT INTO "GrowingSessions" ("TokenHash","UserId","ExpiresAt") SELECT ?1,?2,?3 WHERE EXISTS (SELECT 1 FROM "GrowingUsers" WHERE "Id"=?2 AND "PasswordHash"=?4) RETURNING "UserId"', [hash, userId, expires, expectedPasswordHash]);
+  async createSession(hash: string, userId: string, expires: string, expectedPasswordHash: string, expectedRole: User['role']) {
+    const rows = await this.db.query(`INSERT INTO "GrowingSessions" ("TokenHash","UserId","ExpiresAt") SELECT ?1,?2,?3 WHERE EXISTS (SELECT 1 FROM "GrowingUsers" WHERE "Id"=?2 AND "PasswordHash"=?4 AND CASE WHEN EXISTS (SELECT 1 FROM "GrowingAdministrators" WHERE "UserId"=?2) THEN 'Admin' ELSE "Role" END=?5) RETURNING "UserId"`, [hash, userId, expires, expectedPasswordHash, expectedRole]);
     if (!rows.length) throw new HttpError(401, '登录信息已变更，请重新登录。');
   }
   async changePassword(userId: string, passwordHash: string) {
@@ -123,15 +123,21 @@ export class Store {
     throw new HttpError(409, '同步冲突，请重试或选择记录版本。', { current });
   }
   async invite(student: string, hash: string, expires: string) {
-    await this.db.batch([
+    const [, rows] = await this.db.batch([
       { sql: 'DELETE FROM "GrowingInvitations" WHERE "StudentId"=?1 AND "UsedBy" IS NULL', params: [student] },
-      { sql: 'INSERT INTO "GrowingInvitations" ("CodeHash","StudentId","ExpiresAt") VALUES (?1,?2,?3)', params: [hash, student, expires] },
+      { sql: `INSERT INTO "GrowingInvitations" ("CodeHash","StudentId","ExpiresAt") SELECT ?1,?2,?3
+          WHERE EXISTS (SELECT 1 FROM "GrowingUsers" WHERE "Id"=?2 AND "Role"='Student' AND "RoleConfirmed"=1)
+          AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" WHERE "UserId"=?2) RETURNING "StudentId"`, params: [hash, student, expires] },
     ]);
+    if (!rows.length) throw new HttpError(403, '学生身份已变更，请重新登录。');
   }
   async bind(parent: string, hash: string) {
     const claim = crypto.randomUUID();
     const [rows] = await this.db.batch([
-      { sql: `UPDATE "GrowingInvitations" SET "UsedBy"=?1,"ClaimId"=?3 WHERE "CodeHash"=?2 AND "UsedBy" IS NULL AND "ExpiresAt">${nowSql} RETURNING "StudentId" AS "studentId"`, params: [parent, hash, claim] },
+      { sql: `UPDATE "GrowingInvitations" SET "UsedBy"=?1,"ClaimId"=?3 WHERE "CodeHash"=?2 AND "UsedBy" IS NULL AND "ExpiresAt">${nowSql}
+          AND EXISTS (SELECT 1 FROM "GrowingUsers" p WHERE p."Id"=?1 AND ((p."Role"='Parent' AND p."RoleConfirmed"=1) OR EXISTS (SELECT 1 FROM "GrowingAdministrators" WHERE "UserId"=p."Id")))
+          AND EXISTS (SELECT 1 FROM "GrowingUsers" s WHERE s."Id"="GrowingInvitations"."StudentId" AND s."Role"='Student' AND s."RoleConfirmed"=1 AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" WHERE "UserId"=s."Id"))
+          RETURNING "StudentId" AS "studentId"`, params: [parent, hash, claim] },
       { sql: `INSERT INTO "GrowingFamilyLinks" ("ParentId","StudentId","CreatedAt") SELECT ?1,"StudentId",${nowSql} FROM "GrowingInvitations" WHERE "CodeHash"=?2 AND "ClaimId"=?3 ON CONFLICT DO NOTHING`, params: [parent, hash, claim] },
     ]);
     if (!rows[0]) throw new HttpError(400, "绑定码已失效或已被使用。");
@@ -145,6 +151,7 @@ export class Store {
       SELECT ?1,u."Id",${nowSql} FROM "GrowingUsers" u
       WHERE u."Id"=?2 AND u."Role"='Student' AND u."RoleConfirmed"=1
         AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=u."Id")
+        AND EXISTS (SELECT 1 FROM "GrowingUsers" p WHERE p."Id"=?1 AND ((p."Role"='Parent' AND p."RoleConfirmed"=1) OR EXISTS (SELECT 1 FROM "GrowingAdministrators" WHERE "UserId"=p."Id")))
       ON CONFLICT ("ParentId","StudentId") DO UPDATE SET "CreatedAt"="GrowingFamilyLinks"."CreatedAt"
       RETURNING "StudentId" AS "studentId"`, [parent, student]);
     if (!link) throw new HttpError(400, '孩子身份已变更，请重新验证学生账号。');
