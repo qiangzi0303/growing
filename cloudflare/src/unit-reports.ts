@@ -5,6 +5,7 @@ import englishData from './english-rules.json';
 import diagnosisData from './diagnosis-rules.json';
 import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
 import handwriting from '../../app/src/main/assets/web/app-design/handwriting-core.js';
+import practice from '../../app/src/main/assets/web/app-design/practice-progress.js';
 import { masteryBoards } from './rankings';
 import type { Document } from './database';
 
@@ -63,7 +64,7 @@ export function buildUnitReports(docs: Document[]) {
           exams.forEach(e => remember(e.at));
           const concept = Object.hasOwn(obj(s.learning?.mastery), id) || list.some(a => a.score >= 8 && !arr(a.criticalErrors).length);
           if (concept && exams.some(e => e.correct === e.total)) mastered++;
-        } else if (list.some(pass) && r.bestQuiz === 3) mastered++;
+        } else if (list.some(pass) && practice.result(r).passed) mastered++;
       }
       if (old) {
         for (const [d, ms] of Object.entries(obj(s.activity?.days))) time(d, ms);

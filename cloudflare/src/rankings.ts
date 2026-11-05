@@ -3,6 +3,7 @@ import mathFeedback from '../../app/src/main/assets/web/app-design/math-feedback
 import wordMastery from '../../app/src/main/assets/web/app-design/word-mastery-rules.js';
 import diagnosisData from './diagnosis-rules.json';
 import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
+import practice from '../../app/src/main/assets/web/app-design/practice-progress.js';
 import { HttpError, type Database, type Document, type Statement } from './database';
 
 type Data = Record<string, any>;
@@ -19,7 +20,8 @@ export interface Mastery {
   kind: 'unit' | 'course'; conceptDone: number; conceptTotal: number; testDone: number; testTotal: number;
   diagnosisDone: number; diagnosisTotal: number; score: number;
 }
-const score = (r: Omit<Mastery,'score'>): Mastery => ({...r,score:Math.round(3000*r.conceptDone/r.conceptTotal+4000*r.testDone/r.testTotal+3000*r.diagnosisDone/r.diagnosisTotal)});
+const weights = {concept:3000,practice:7000};
+const score = (r: Omit<Mastery,'score'>): Mastery => ({...r,score:Math.round(weights.concept*r.conceptDone/r.conceptTotal+weights.practice*r.testDone/r.testTotal)});
 export function masteryBoards(docs: Document[]): Mastery[] {
   const states = new Map<string,Data>();
   for (const doc of docs) if (doc.value !== null) {
@@ -45,7 +47,7 @@ export function masteryBoards(docs: Document[]): Mastery[] {
       for (const id of unit.topics) {
         const record=object(object(state.topics)[id]);
         started ||= record.seen===true || typeof record.draft==='string'&&record.draft.trim().length>0 || array(record.attempts).length>0 ||
-          array(record.exams).length>0 || ratio(record.bestQuiz,3)>0 || unit.kind==='fraction'&&Object.hasOwn(object(state.learning?.mastery),id);
+          array(record.exams).length>0 || practice.result(record).score>0 || unit.kind==='fraction'&&Object.hasOwn(object(state.learning?.mastery),id);
         if (unit.kind==='fraction') {
           // Old fraction AI results carry a validated flag; historical mastery is retained.
           conceptDone += Object.hasOwn(object(state.learning?.mastery),id)||array(record.attempts).some(a=>a?.valid===true&&ratio(a.score,10)>=.8&&
@@ -53,7 +55,7 @@ export function masteryBoards(docs: Document[]): Mastery[] {
           testDone += Math.max(0,...array(record.exams).filter(e=>e?.real===false&&Number.isInteger(e.total)&&e.total>0&&Number.isInteger(e.correct)).map(e=>ratio(e.correct,e.total)));
         } else {
           conceptDone += array(record.attempts).some(grade)?1:0;
-          testDone += Number.isInteger(record.bestQuiz)?ratio(record.bestQuiz,3):0;
+          const quiz=practice.result(record);testDone += quiz.score/quiz.total;
         }
       }
     } else if (unit.kind==='english') {
@@ -110,23 +112,25 @@ export function rankingStatements(student:string,docs:Document[],revision?:numbe
 
 const eligible=`FROM "GrowingRankings" r JOIN "GrowingUsers" u ON u."Id"=r."StudentId" WHERE u."Role"='Student'
   AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=u."Id")`;
+// Derive totals on reads so older cached scores use the current weights immediately.
+const currentPoints=`CAST(ROUND(${weights.concept}.0*r."ConceptDone"/r."ConceptTotal"+${weights.practice}.0*r."TestDone"/r."TestTotal") AS INTEGER)`;
 const fields=`r."BoardId" AS id,r."Kind" AS kind,r."Subject" AS subject,r."Term" AS term,r."Title" AS title,
   r."ConceptDone" AS conceptDone,r."ConceptTotal" AS conceptTotal,r."TestDone" AS testDone,r."TestTotal" AS testTotal,
-  r."DiagnosisDone" AS diagnosisDone,r."DiagnosisTotal" AS diagnosisTotal,r."Score" AS points,r."UpdatedAt" AS updatedAt`;
+  r."DiagnosisDone" AS diagnosisDone,r."DiagnosisTotal" AS diagnosisTotal,${currentPoints} AS points,r."UpdatedAt" AS updatedAt`;
 export class Rankings {
   constructor(private db:Database){}
   async list(student:string){
     const rows=await this.db.query<Data>(`SELECT ${fields},(SELECT COUNT(*) FROM "GrowingRankings" peer JOIN "GrowingUsers" pu ON pu."Id"=peer."StudentId"
       WHERE peer."BoardId"=r."BoardId" AND pu."Role"='Student' AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=pu."Id")) AS participants
       ${eligible} AND r."StudentId"=?1 ORDER BY r."Subject",r."Term",r."Kind",r."BoardId"`,[student]);
-    return {boards:rows.map(r=>this.percentages(r)),formula:'费曼评测 × 30% + 题目评测 × 40% + 图谱诊断评测 × 30%',note:'按最近云同步记录排名；学期按教材上册/下册划分，不是按自然日期清零。科目榜分母为本学期全部已开放单元，未掌握部分记 0。同分并列。英语图谱诊断尚未开放，该项暂记0。'};
+    return {boards:rows.map(r=>this.percentages(r)),formula:'费曼学习 × 30% + 应用练习 × 70%',note:'按最近云同步记录排名；学期按教材上册/下册划分。科目榜分母为本学期全部已开放单元，未掌握部分记0。同分并列。'};
   }
   percentages(row:Data){const {points,...rest}=row;return {...rest,score:points/100,conceptPercent:100*row.conceptDone/row.conceptTotal,testPercent:100*row.testDone/row.testTotal,diagnosisPercent:100*row.diagnosisDone/row.diagnosisTotal};}
   async board(student:string,id:string,page:number){
     const own=await this.db.query<Data>(`SELECT ${fields} ${eligible} AND r."StudentId"=?1 AND r."BoardId"=?2`,[student,id]);
     if(!own.length)throw new HttpError(404,'该学生尚未开始学习此课程，暂无对应排行榜。');
     const ranked=`WITH ranked AS (SELECT ${fields},r."StudentId" AS studentId,u."DisplayName" AS displayName,
-      RANK() OVER (ORDER BY r."Score" DESC) AS rank,COUNT(*) OVER () AS participants ${eligible} AND r."BoardId"=?1)`;
+      RANK() OVER (ORDER BY ${currentPoints} DESC) AS rank,COUNT(*) OVER () AS participants ${eligible} AND r."BoardId"=?1)`;
     const [rows,mine]=await this.db.batch([
       {sql:ranked+' SELECT * FROM ranked ORDER BY points DESC,studentId LIMIT 20 OFFSET ?2',params:[id,(page-1)*20]},
       {sql:ranked+' SELECT * FROM ranked WHERE studentId=?2',params:[id,student]},

@@ -3,11 +3,23 @@
 .student-answer-button{position:absolute;right:0;top:14px;padding:5px 12px;border:1px solid #bbc8ae;border-radius:8px;background:#fffdf9;color:#263c30;font-size:15px}
 #paper .q.is-wrong>.text,#paper .q.is-wrong>.note{color:#b42318}
 .wrong-ai{margin-top:14px;min-width:0;color:#263c30}
+.wrong-ai-actions{display:flex;flex-wrap:wrap;gap:8px}
 .wrong-ai button{min-height:44px;padding:8px 14px;border:1px solid #bbc8ae;border-radius:8px;background:#fffdf9;color:#263c30;font:inherit;cursor:pointer}
 .wrong-ai-panel{margin-top:12px;border-top:1px solid #d8dfd1;padding-top:12px}
 .wrong-ai [role=status]{font-size:14px;overflow-wrap:anywhere}
+.wrong-ai [role=status]:empty{display:none}
 .wrong-ai-output{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.9;min-width:0}
 .wrong-ai-output .katex-display{max-width:100%;overflow-x:auto;overflow-y:hidden}
+.wrong-ai .photo-graded-answer{white-space:normal;background:#fff;margin-top:12px}
+.wrong-ai .photo-graded-answer figure{margin:0}
+.wrong-ai .photo-graded-answer canvas{display:block;width:100%;height:auto;max-width:800px;margin:auto}
+.wrong-ai .photo-graded-sheet{display:grid;max-width:800px;margin:auto;min-width:0}
+.wrong-ai .photo-graded-sheet>canvas,.wrong-ai .photo-graded-sheet>.photo-grading-notes{grid-area:1/1;min-width:0}
+.wrong-ai .photo-graded-sheet>.photo-grading-notes{align-self:end;z-index:1;background:#fff;font-weight:600;overflow-wrap:anywhere}
+.wrong-ai .photo-grading-notes{padding:16px;border-top:1px solid #eedad7;color:#b42318;text-align:left;line-height:1.8}
+.wrong-ai .photo-grading-notes .katex{color:inherit}
+.wrong-ai .photo-grading-mark{margin-top:16px;padding-top:12px;border-top:1px solid #eedad7}
+.wrong-ai .wrong-models{margin-top:18px;border-top:1px solid #d8dfd1;padding-top:12px;white-space:normal}.wrong-ai .wrong-models h4{font-size:16px;margin:0 0 6px}.wrong-ai .wrong-models ul{list-style:none;padding:0;margin:0}.wrong-ai .wrong-models a{display:inline-block;min-height:44px;padding:8px 0;color:#216348;text-underline-offset:3px;overflow-wrap:anywhere}.wrong-ai .wrong-models p{font-size:14px;margin:0 0 10px;line-height:1.7;color:#526356}
 .student-answer-dialog{box-sizing:border-box;width:min(1000px,96vw);max-height:92vh;padding:20px;border:1px solid #bbc8ae;border-radius:14px;background:#fffdf9;color:#263c30}
 .student-answer-dialog::backdrop{background:#15251db0}
 .student-answer-dialog header{display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:-20px;background:#fffdf9;z-index:1}

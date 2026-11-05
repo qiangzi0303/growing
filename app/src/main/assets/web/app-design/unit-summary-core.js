@@ -2,6 +2,7 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.GrowingUnitSummary=factory();})(globalThis,()=>{
   'use strict';
   const wordRules=typeof module==='object'&&module.exports?require('./word-mastery-rules.js'):{passed:(w,r)=>globalThis.WordMasteryRules?.passed(w,r)};
+  const practice=typeof module==='object'&&module.exports?require('./practice-progress.js'):globalThis.GrowingPracticeProgress;
   const labels={weak:'薄弱',shaky:'不稳',untested:'未测',pending:'待复测',passed:'已通过',unknown:'记录不可用'};
   const result=(status='untested',detail='暂无已保存的检测记录')=>({status,detail});
   const grade=a=>a&&Number.isInteger(a.score)&&a.score>=0&&a.score<=10&&Array.isArray(a.criticalErrors)&&a.criticalErrors.every(x=>typeof x==='string')&&typeof a.feedback==='string';
@@ -10,9 +11,9 @@
     return {attempts,passed:attempts.some(a=>a.score>=8&&!a.criticalErrors.length)};
   }
   function course(r){
-    const c=concept(r),quiz=Number.isInteger(r?.bestQuiz)&&r.bestQuiz>=0&&r.bestQuiz<=3?r.bestQuiz:0;
-    if(c.passed&&quiz===3)return result('passed','课程达标 · AI解释与3题应用均通过');
-    if(c.passed||quiz>0)return result('shaky',`尚需巩固 · ${c.passed?'AI解释通过':'AI解释未通过'}，应用${quiz}/3`);
+    const c=concept(r),quiz=practice.result(r);
+    if(c.passed&&quiz.passed)return result('passed',`课程达标 · AI解释与${quiz.legacy?'旧版3':'10'}题应用均通过`);
+    if(c.passed||quiz.score>0)return result('shaky',`尚需巩固 · ${c.passed?'AI解释通过':'AI解释未通过'}，${quiz.legacy?'旧版':''}应用${quiz.score}/${quiz.total}`);
     if(c.attempts.length)return result('weak','AI解释尚未达标，需回看讲解');
     return result();
   }

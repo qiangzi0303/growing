@@ -12,6 +12,7 @@ import { PhotoReview } from './photo-review';
 import { QuestionAttempts } from './question-attempts';
 import { StudentKnowledge } from './student-knowledge';
 import { connectRealtime, realtimeInfo, type RealtimeEnv } from './realtime';
+import { consoleAssets } from './console-assets';
 
 export interface Env extends ReleaseEnv, VisionEnv, RealtimeEnv {
   ASSETS: Fetcher;
@@ -84,6 +85,7 @@ export function createHandler(database: (env: Env) => Database = env => {
       }
       if (!api && !path.startsWith("/learn/")) {
         if (!["GET", "HEAD"].includes(request.method)) error(405, "不支持的请求方法。");
+        if (path.startsWith('/console/')) return decorate(await consoleAssets(request, path, env.ASSETS), request);
         // Never let an encoded path be reinterpreted by Static Assets after authorization.
         url.pathname = path === "/" ? "/index.html" : path;
         return decorate(await env.ASSETS.fetch(new Request(url, request)), request);
@@ -147,6 +149,8 @@ export function createHandler(database: (env: Env) => Database = env => {
         if(path==='/api/question-bank/catalog'&&request.method==='GET')return decorate(json(questionUnits),request);
         if(path==='/api/question-bank/exams'&&request.method==='POST')
           return decorate(json(await bank.examPaper(await body(request,13000000))),request);
+        if(path==='/api/question-bank/unit-wrong'&&request.method==='POST')
+          return decorate(json(await bank.unitWrongQuestion(await body(request,4000))),request);
         if(path==='/api/question-bank/import'&&request.method==='POST')
           return decorate(json(await bank.import(await body(request,2_100_000),env,request.signal,aiFetch)),request);
         if(/^\/api\/question-bank\/papers\/[a-f0-9-]{36}\/confirm$/.test(path)&&request.method==='POST'){
@@ -191,6 +195,11 @@ export function createHandler(database: (env: Env) => Database = env => {
           return decorate(json(await bank.edit(student,path.split('/').at(-1)!,data)),request);
         }
         const student=await bank.authorize(url.searchParams.get('studentId'));
+        if(path==='/api/question-bank/unit-wrong-history'&&request.method==='GET'){
+          const page=Number(url.searchParams.get('page')||1);
+          if(!Number.isSafeInteger(page)||page<1||page>100000)error(400,'页码无效。');
+          return decorate(json(await bank.unitWrongHistory(student,page)),request);
+        }
         if(path==='/api/question-bank/papers'&&request.method==='GET')return decorate(json(await bank.papers(student)),request);
         if(path==='/api/question-bank/repeated'&&request.method==='GET'){
           const page=Number(url.searchParams.get('page')||1);
@@ -207,7 +216,7 @@ export function createHandler(database: (env: Env) => Database = env => {
         if(path==='/api/question-bank/questions'&&request.method==='GET'){
           const page=Number(url.searchParams.get('page')||1);
           if(!Number.isSafeInteger(page)||page<1||page>10000)error(400,'页码无效。');
-          return decorate(json(await bank.list(student,url.searchParams.get('unitId')??'all',page,url.searchParams.get('repeated')==='1')),request);
+          return decorate(json(await bank.list(student,url.searchParams.get('unitId')??'all',page,url.searchParams.get('repeated')==='1',url.searchParams.get('wrong')==='1')),request);
         }
         if(/^\/api\/question-bank\/papers\/[a-f0-9-]{36}$/.test(path)&&request.method==='GET')
           return decorate(json(await bank.paper(student,path.split('/').at(-1)!)),request);

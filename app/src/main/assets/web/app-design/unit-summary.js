@@ -30,11 +30,10 @@
     root.innerHTML=`<nav class="summary-nav"><a href="units.html?subject=${subject}&term=${term}" target="_top">← ${course.name}目录</a><a class="brand" href="index.html" target="_top"><img class="brand-logo" src="brand-logo.webp" alt="" width="32" height="32">逆流</a></nav>
       <header><p class="eyebrow">${course.name} · ${book.name} · ${subject==='english'?'Unit':'第'} ${unit.number}${subject==='english'?'':' 章'}</p><h1>${esc(unit.title)} · 单元总结</h1><p class="summary-overview">${summary.rows.length}个学习节点，已通过 <strong>${counts.passed}</strong> 个。先补薄弱，再巩固不稳，最后检查未测。</p></header>
       <div class="summary-pickers"><label>科目<select id="summary-subject">${Object.entries(C).map(([s,c])=>`<option value="${s}" ${s===subject?'selected':''}>${c.name}</option>`).join('')}</select></label><label>学期<select id="summary-term">${Object.entries(course.terms).filter(([,b])=>b.verified&&b.units.some(u=>u.entry)).map(([t,b])=>`<option value="${t}" ${t===term?'selected':''}>${b.name}</option>`).join('')}</select></label><label>单元<select id="summary-unit">${book.units.filter(u=>u.entry).map(u=>`<option value="${u.id}" ${u.id===unit.id?'selected':''}>${subject==='english'?'Unit':'第'} ${u.number}${subject==='english'?'':' 章'} · ${esc(u.title)}</option>`).join('')}</select></label></div>
-      <div class="summary-actions"><a href="${esc(unit.entry)}" target="_top">继续本单元学习 →</a>${subject!=='english'?`<a href="${subject==='physics'?'physics-knowledge.html':'knowledge.html'}?chapter=${unit.id}&mode=diagnosis" target="_top">开始 / 继续诊断 →</a>`:''}</div>
+      ${subject!=='english'?`<div class="summary-actions"><a href="${subject==='physics'?'physics-knowledge.html':'knowledge.html'}?chapter=${unit.id}&mode=diagnosis" target="_top">开始 / 继续诊断 →</a></div>`:''}
       <div class="summary-stats" role="group" aria-label="学习状态统计">${['weak','shaky','untested','pending','passed'].map(s=>`<div class="summary-stat ${s}"><strong>${counts[s]}</strong><span>${E.labels[s]}</span></div>`).join('')}</div>
-      <p class="summary-hint">未测不表示不会；诊断初筛通过与课程达标分别标注。</p>
       ${summary.warnings.map(w=>`<p class="summary-warning" role="status">${esc(w)}</p>`).join('')}${counts.unknown?`<p class="summary-warning">${counts.unknown}个节点的记录不可用，未计为未测或已通过。</p>`:''}
-      <footer class="summary-footer">${esc(summary.note||(unit.id==='math-8b-10'?'实卷按当前原稿的最近有效知识点评分标出薄弱、不稳；需要复核的结果不改变已有判定。本题通过不等于课程达标。其他节点参考诊断与课程记录。':'诊断以最近一轮直接作答为先，其他节点参考已保存的历史诊断和课程记录；未完成的一题证据仅列待复测。'))}<br>仅汇总当前账号在本设备上的已保存记录；重新进入或同步后会更新。不修改原稿、奖励或学习记录。</footer>`;
+      `;
   }
   root.addEventListener('change',e=>{
     if(e.target.id==='summary-subject'){const s=e.target.value,b=Object.values(C[s].terms).find(b=>b.verified&&b.units.some(u=>u.entry));location.href=link(s,b.units.find(u=>u.entry).id);}

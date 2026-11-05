@@ -45,8 +45,9 @@ const target=path.join(root,'cloudflare/src/english-rules.json'),output=JSON.str
 if(!fs.existsSync(target)||fs.readFileSync(target,'utf8')!==output)fs.writeFileSync(target,output);
 vm.runInContext(fs.readFileSync(path.join(web,'math-wrong-questions-transcribed.js'),'utf8'),context);
 vm.runInContext(fs.readFileSync(path.join(web,'math-wrong-questions-data.js'),'utf8'),context);
+vm.runInContext(fs.readFileSync(path.join(web,'math-midterm-20261029.js'),'utf8'),context);
 const wrongTarget=path.join(root,'cloudflare/src/math-wrong-question-rules.json');
-const wrongOutput=JSON.stringify(context.window.GrowingMathWrongQuestions.questions.map(({id,unitId,title,number})=>({id,unitId,title,number})),null,2)+'\n';
+const wrongOutput=JSON.stringify(context.window.GrowingMathWrongQuestions.questions.map(({id,unitId,title,number,text,note,sourceId})=>({id,unitId,title,number,text,note:note||'',sourceId:sourceId||'1025141010'})),null,2)+'\n';
 if(!fs.existsSync(wrongTarget)||fs.readFileSync(wrongTarget,'utf8')!==wrongOutput)fs.writeFileSync(wrongTarget,wrongOutput);
 const titles={};
 for(const data of [math,physics])for(const n of data.nodes)titles[n.id]=n.title;

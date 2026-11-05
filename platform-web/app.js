@@ -3,7 +3,10 @@
   const $=s=>document.querySelector(s),native=window.GrowingNative,raw=window.localStorage;
   const base=native?String(native.cloudApiUrl?.()||'').replace(/\/$/,''):'';
   const isNative=!!native,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let user=null,token='',authMode='login',generation=0,syncing=false,timer,conflicts=[],management,parentRequest=0;
+  let user=null,token='',authMode=!isNative&&location.hash==='#register'?'register':'login',generation=0,syncing=false,timer,conflicts=[],management,parentRequest=0;
+  const legacyContext=()=>{const query=new URLSearchParams(location.search);if(isNative)query.delete('return');return window.GrowingLegacy.parse(query.toString(),location.hash);};
+  function consoleBack(){const context=legacyContext();if(!isNative&&context.legacy&&!context.error){location.assign(context.returnTo);return true;}return false;}
+  window.addEventListener('growing:settings-closed',()=>{if(user)consoleBack();});
   let saveTimer,saveAgain=false,cloudReady=false,restoring=false;
   function queueSave(){
     if(user?.role!=='Student')return;
@@ -58,7 +61,7 @@
     const response=await fetch(base+'/api'+path,{...options,keepalive:!options.body||new TextEncoder().encode(options.body).length<60000,signal:controller.signal,credentials:isNative?'omit':'same-origin',headers:{'Content-Type':'application/json','X-Growing-Client':'1',...(token?{Authorization:'Bearer '+token}:{}),...options.headers}});
     if(response.status===204)return null;
     const text=await response.text();let result;try{result=text?JSON.parse(text):null;}catch{throw Error('服务返回格式不正确，请检查站点地址。');}
-    if(!response.ok){const error=Error(result?.error||(response.status===401?'云登录已失效，请重新登录。':response.status===403?'当前账号没有权限。':'请求未完成（'+response.status+'）'));error.status=response.status;throw error;}
+    if(!response.ok){const error=Error(result?.error||(response.status===401?'云登录已失效，请重新登录。':response.status===403?'当前账号没有权限。':'请求未完成（'+response.status+'）'));error.status=response.status;if(response.status===401&&user){generation++;clearInterval(timer);clearTimeout(saveTimer);user=null;token='';raw.removeItem(sessionKey);auth();hint(error.message);}throw error;}
     if(['POST','PUT'].includes(options.method)&&/^\/question-bank\/(import|attempts|questions\/[a-f0-9-]{36}(?:\/(correct|format))?)$/.test(path)){
       const studentId=JSON.parse(options.body||'{}').studentId;
       window.dispatchEvent(new CustomEvent('growing:knowledge-changed',{detail:{studentId}}));
@@ -292,14 +295,19 @@
     else if($('#question-bank-page.question-bank-minimal'))enter(user).catch(error=>hint(error.message));
   }
   window.addEventListener('popstate',questionBankRoute);
-  window.addEventListener('hashchange',()=>{questionBankRoute();if(location.hash==='#my-papers'&&user&&!needsRole(user))enter(user,'my-papers').catch(error=>hint(error.message));});
+  window.addEventListener('hashchange',()=>{if(!isNative&&!user){authMode=location.hash==='#register'?'register':'login';auth();return;}questionBankRoute();if(location.hash==='#my-papers'&&user&&!needsRole(user))enter(user,'my-papers').catch(error=>hint(error.message));});
   function hideRankings(){$('#my-rankings').hidden=true;$('#rankings-dialog').close();$('#rankings-content').replaceChildren();}
-  function auth(){document.body.classList.remove('admin-console');clearInterval(timer);hideRankings();courseTrail.length=0;$('#account-menu').hidden=true;$('#account-menu').open=false;$('#photo-dialog').close();$('#download-apk').hidden=false;$('#question-bank').hidden=true;$('#logout').hidden=true;$('#settings').hidden=true;$('#learning-reports').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent='PC · 手机网页 · Android';
+  function auth(){document.body.classList.remove('admin-console');clearInterval(timer);hideRankings();courseTrail.length=0;$('#console-return').hidden=true;$('#account-menu').hidden=true;$('#account-menu').open=false;$('#photo-dialog').close();$('#download-apk').hidden=false;$('#question-bank').hidden=true;$('#logout').hidden=true;$('#settings').hidden=true;$('#learning-reports').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent='PC · 手机网页 · Android';
     questionBankPage=null;window.GrowingDuckCourse?.reset();
     if(isNative&&!base){$('#app').innerHTML='<section class="panel"><h1>云服务尚未配置</h1><p>此安装包需要先配置服务端 HTTPS 地址，再登录云账号同步学习记录。</p><a class="button" href="../app-design/index.html">返回离线学习</a></section>';return;}
     $('#app').innerHTML=`<section class="panel auth"><p class="muted">逆流 · 学习与陪伴</p><h1>${authMode==='login'?'欢迎回来':'创建云账号'}</h1><p>学生继续学习，家长看见进步。</p><form id="auth"><label>用户名<input name="username" autocomplete="username" minlength="2" maxlength="24" required></label><label>密码<input name="password" type="password" autocomplete="${authMode==='login'?'current-password':'new-password'}" minlength="8" maxlength="128" required></label>${authMode==='register'?'<label>称呼<input name="displayName" maxlength="40" required></label><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label>':''}${isNative&&authMode==='register'?'<label><input name="consent" type="checkbox" style="display:inline;width:auto" required> 同意登录云账号；学生身份将关联本机学习记录（AI 密钥不上传）</label>':''}<button class="primary" type="submit">${authMode==='login'?'登录':'注册并登录'}</button></form><p><button id="switch-auth">${authMode==='login'?'还没有云账号？注册':'已有云账号？登录'}</button></p><p class="muted">使用云账号和密码登录。本机记录和 AI 密钥保留，切换账号后学习记录分别保存。</p></section>`;
   }
-  async function enter(profile,view=location.hash==='#my-papers'?'my-papers':location.hash==='#question-bank'?'question-bank':location.hash==='#learning-reports'?'reports':'management'){management?.dispose();clearInterval(timer);clearTimeout(saveTimer);cloudReady=false;hideRankings();courseTrail.length=0;$('#photo-dialog').close();user=null;generation++;const version=generation;if(await rememberNativeSession(profile)===false||version!==generation)return;user=profile;$('#account-menu').hidden=false;$('#account-menu').open=false;$('#account-identity').textContent=user.displayName;$('#logout').hidden=false;$('#learning-reports').hidden=true;$('#question-bank').hidden=needsRole(user)||user.role==='Student';hint('');
+  async function enter(profile,view){
+    const context=legacyContext(),destination=window.GrowingLegacy.destination(profile,isNative,context);
+    if(destination){location.replace(destination);return;}
+    view=view||(context.action==='classroom'?'student':context.action==='settings'||context.action==='voice-settings'?'settings':context.action||'management');
+    management?.dispose();clearInterval(timer);clearTimeout(saveTimer);cloudReady=false;hideRankings();courseTrail.length=0;$('#photo-dialog').close();user=null;generation++;const version=generation;if(await rememberNativeSession(profile)===false||version!==generation)return;user=profile;$('#account-menu').hidden=false;$('#account-menu').open=false;$('#account-identity').textContent=user.displayName;$('#logout').hidden=false;$('#learning-reports').hidden=true;$('#question-bank').hidden=needsRole(user)||user.role==='Student';hint('');
+    const back=$('#console-return');back.hidden=isNative||!context.legacy||!!context.error;back.href=context.returnTo||'/console/home';
     questionBankPage=null;document.body.classList.toggle('admin-console',user.role==='Admin'&&view==='management');
     window.GrowingDuckCourse?.reset();
     if(['Student','Admin'].includes(user.role)&&!needsRole(user))mountDuck();
@@ -307,6 +315,8 @@
       $('#settings').hidden=true;$('#admin-navigation').hidden=true;$('#identity').textContent=user.displayName+' · 待确认身份';
       $('#app').innerHTML='<section class="panel auth"><h1>请选择你的身份</h1><p>继续使用前，请确认你是学生还是家长。确认后，下次登录无需重复选择。</p><form id="choose-role"><label>身份<select name="role" required><option value="" selected disabled>请选择身份</option><option value="Student">我是学生</option><option value="Parent">我是家长</option></select></label><button type="submit" class="primary">保存身份并继续</button></form></section>';return;
     }
+    if(context.error){$('#app').innerHTML='<section class="panel"><h1>无法打开兼容入口</h1><p>'+esc(context.error)+'</p><a href="/console/home">返回后台</a></section>';return;}
+    if(context.action==='classroom'&&user.role==='Parent'){hint('当前账号没有课堂试用权限。');$('#app').textContent='家长请从后台查看孩子概况。';return;}
     management=GrowingManagement.create(api,esc,()=>generation===version,()=>{management?.dispose();generation++;clearInterval(timer);user=null;token='';raw.removeItem(sessionKey);auth();hint('密码已修改，请使用新密码重新登录。');});$('#settings').hidden=!['Parent','Admin'].includes(user.role);$('#admin-navigation').hidden=user.role!=='Admin';$('#identity').textContent=user.displayName+' · '+({Parent:'家长',Student:'学生',Admin:'管理员'}[user.role]);
     $('#my-rankings').hidden=user.role!=='Student';
     $('#learning-reports').hidden=!['Parent','Admin'].includes(user.role);
@@ -315,13 +325,16 @@
     document.querySelectorAll('[data-admin-view]').forEach(button=>{const active=button.dataset.adminView===view;button.classList.toggle('primary',active);button.setAttribute('aria-pressed',String(active));});
     if(view==='my-papers'){
       $('#app').innerHTML='<div id="question-bank-page"></div>';
-      await GrowingPapers.mount($('#question-bank-page'),api,esc,()=>generation===version,user);
+      await GrowingPapers.mount($('#question-bank-page'),api,esc,()=>generation===version,user,context);
     }else if(view==='question-bank'){
       $('#app').innerHTML='<div id="question-bank-page"></div>';
-      await GrowingQuestionBank.mount($('#question-bank-page'),api,esc,()=>generation===version,user);
+      await GrowingQuestionBank.mount($('#question-bank-page'),api,esc,()=>generation===version,user,context);
     }else if(view==='reports'&&['Admin','Parent'].includes(user.role)){
       $('#app').innerHTML='<div class="actions"><button id="parent-home">‹ 返回看板</button></div><div id="unit-reports-page"></div>';
       await GrowingUnitReports.mount($('#unit-reports-page'),api,esc,()=>generation===version,user.role==='Admin');
+    }else if(context.legacy&&['settings','voice-settings'].includes(context.action)){
+      $('#app').innerHTML='<section class="panel"><h1>本机连接设置</h1><p>设置只保存在当前账号的本机空间，密钥不上传。</p><button id="legacy-open-settings">重新打开连接设置</button></section>';
+      await Promise.resolve();if(version===generation)window.GrowingApiSettings.open(context.action==='voice-settings'?'voice':'deepseek');
     }else if(user.role==='Student'){await student();}else if(user.role==='Admin'){
       if(view==='student')await student();else if(view==='parent')await parent();else if(view==='settings')parentSettings();else await management.admin($('#app'));
     }else if(view==='settings')parentSettings();else await parent();
@@ -396,6 +409,7 @@
   });
   document.addEventListener('click',async event=>{const b=event.target.closest('button');if(!b)return;try{
     if(b.id==='my-rankings')await showRankings();
+    if(b.id==='legacy-open-settings')window.GrowingApiSettings.open(legacyContext().action==='voice-settings'?'voice':'deepseek');
     if(b.id==='close-rankings')$('#rankings-dialog').close();
     if(b.id==='retry-startup')await restoreSession();
     if(b.id==='startup-login'){startupAttempt++;token='';auth();hint('本机记录保留，请重新登录云账号。');}
@@ -410,7 +424,7 @@
     if(b.dataset.adminView)await adminView(b.dataset.adminView);
     if(b.id==='learning-reports')await reportsView();
     if(b.id==='question-bank'&&user&&!needsRole(user))await openQuestionBank();
-    if(b.id==='question-bank-home'&&user){const back=new URLSearchParams(location.search).get('return');if(isNative&&back){const url=new URL(back,location.href);if(url.origin===location.origin&&url.pathname.startsWith('/assets/web/')&&!url.pathname.includes('/cloud/')){location.href=url.href;return;}}if($('#photo-dialog').open)$('#photo-dialog').close();else if(!backFromQuestionBank()){if(location.hash==='#question-bank'&&history.state?.questionBankFrom)history.back();else await enter(user,'management');}}
+    if(b.id==='question-bank-home'&&user){if(consoleBack())return;const back=new URLSearchParams(location.search).get('return');if(isNative&&back){const url=new URL(back,location.href);if(url.origin===location.origin&&url.pathname.startsWith('/assets/web/')&&!url.pathname.includes('/cloud/')){location.href=url.href;return;}}if($('#photo-dialog').open)$('#photo-dialog').close();else if(!backFromQuestionBank()){if(location.hash==='#question-bank'&&history.state?.questionBankFrom)history.back();else await enter(user,'management');}}
     if(b.id==='settings'){if(user?.role==='Admin')await adminView('settings');else if(user?.role==='Parent')await enter(user,'settings');}
     if(b.id==='add-child')parentSettings();
     if(b.id==='parent-home'){if(user?.role==='Admin')await adminView('parent');else if(user?.role==='Parent')await enter(user,'management');}

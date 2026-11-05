@@ -2,6 +2,7 @@ import { type Database, type User, HttpError, nowSql } from './database';
 import { hash } from './auth';
 import { visionCompletion, type VisionEnv } from './handwriting-vision';
 import units from './question-unit-rules.json';
+import archiveQuestions from './math-wrong-question-rules.json';
 import mathFormat from '../../platform-web/math-format.js';
 import { validateAssessment, validateRegions, assessmentInstructions, photoLearningContext, type PhotoAssessment, type PhotoRegion } from './photo-assessment';
 import { attachPhotoGrades, photoGradeStatements } from './photo-review';
@@ -50,12 +51,25 @@ export class QuestionBank {
     if(!rows.length)return fail(404,'未找到学生或没有题库访问权限。');
     return id;
   }
-  async list(student:string,unit:string,page:number,repeated=false){
+  async list(student:string,unit:string,page:number,repeated=false,wrong=false){
     if(unit!=='all'&&!validUnit(unit))fail(400,'单元无效。');
-    const params=[student,unit],where=`p."StudentId"=?1 AND (?2='all' OR q."UnitId"=?2)${repeated?` AND (SELECT count(*) FROM "GrowingQuestionAttempts" a WHERE a."StudentId"=p."StudentId" AND a."Kind"='photo' AND a."QuestionId"=q."Id" AND a."Correct"=0)>=2`:''}`;
-    const [counts]=await this.db.query<{total:number}>(`SELECT count(*) AS total FROM "GrowingPhotoQuestions" q JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId" WHERE ${where}`,params);
-    const rows=decode(await this.db.query(`SELECT ${questionFields} FROM "GrowingPhotoQuestions" q JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId" WHERE ${where} ORDER BY p."CreatedAt" DESC,q.rowid LIMIT 20 OFFSET ?3`,[...params,(page-1)*20]));
+    const params=[student,unit],where=`p."StudentId"=?1 AND p."Mode" NOT LIKE 'unit-wrong-%' AND (?2='all' OR q."UnitId"=?2)${repeated?` AND (SELECT count(*) FROM "GrowingQuestionAttempts" a WHERE a."StudentId"=p."StudentId" AND a."Kind"='photo' AND a."QuestionId"=q."Id" AND a."Correct"=0)>=2`:''}`;
+    const wrongWhere=wrong?` AND (EXISTS (SELECT 1 FROM "GrowingPhotoGrades" g WHERE g."QuestionId"=q."Id" AND g."QuestionRevision"=q."Revision"
+      AND (json_extract(g."Result",'$.verdict') IN ('incorrect','partial') OR (g."Kind"='initial' AND q."PaperWrong"=1)))
+      OR (q."PaperWrong"=1 AND NOT EXISTS (SELECT 1 FROM "GrowingPhotoGrades" g WHERE g."QuestionId"=q."Id")))`:'';
+    const [counts]=await this.db.query<{total:number}>(`SELECT count(*) AS total FROM "GrowingPhotoQuestions" q JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId" WHERE ${where}${wrongWhere}`,params);
+    const rows=decode(await this.db.query(`SELECT ${questionFields} FROM "GrowingPhotoQuestions" q JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId" WHERE ${where}${wrongWhere} ORDER BY p."CreatedAt" DESC,q.rowid LIMIT 20 OFFSET ?3`,[...params,(page-1)*20]));
     return {rows:await attachPhotoGrades(this.db,rows),total:counts.total,page,pageSize:20};
+  }
+  async unitWrongHistory(student:string,page:number){
+    const where=`p."StudentId"=?1 AND p."Mode" LIKE 'unit-wrong-%' AND EXISTS (SELECT 1 FROM "GrowingPhotoGrades" g WHERE g."QuestionId"=q."Id")`;
+    const [count]=await this.db.query<{total:number}>(`SELECT count(*) AS total FROM "GrowingPhotoQuestions" q JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId" WHERE ${where}`,[student]);
+    const rows=await this.db.query(`SELECT q."Id" AS id,q."PaperId" AS paperId,p."Mode" AS mode,q."Number" AS number,q."UnitId" AS unitId,substr(q."Text",1,160) AS title,
+      (SELECT count(*) FROM "GrowingPhotoGrades" g WHERE g."QuestionId"=q."Id") AS gradeCount,
+      (SELECT max(g."CreatedAt") FROM "GrowingPhotoGrades" g WHERE g."QuestionId"=q."Id") AS latestAt
+      FROM "GrowingPhotoQuestions" q JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId" WHERE ${where}
+      ORDER BY latestAt DESC,q.rowid DESC LIMIT 20 OFFSET ?2`,[student,(page-1)*20]);
+    return {rows,total:count.total,page,pageSize:20};
   }
   async paper(student:string,id:string){
     const [paper]=await this.db.query<any>('SELECT "Id" AS id,"Title" AS title,"Warnings" AS warnings,"Mode" AS mode,"CreatedAt" AS createdAt FROM "GrowingQuestionPapers" WHERE "StudentId"=?1 AND "Id"=?2',[student,id]);
@@ -66,15 +80,23 @@ export class QuestionBank {
   async papers(student:string){
     return this.db.query(`SELECT p."Id" AS id,p."Title" AS title,p."Mode" AS mode,p."CreatedAt" AS createdAt,
       (SELECT count(*) FROM "GrowingPhotoQuestions" q WHERE q."PaperId"=p."Id") AS questionCount
-      FROM "GrowingQuestionPapers" p WHERE p."StudentId"=?1 ORDER BY p."CreatedAt" DESC,p.rowid DESC LIMIT 100`,[student]);
+      FROM "GrowingQuestionPapers" p WHERE p."StudentId"=?1 AND p."Mode" NOT LIKE 'unit-wrong-%' ORDER BY p."CreatedAt" DESC,p.rowid DESC LIMIT 100`,[student]);
   }
-  async examPaper(data:Record<string,unknown>){
+  async unitWrongQuestion(data:Record<string,unknown>){
+    if(Object.keys(data).some(k=>!['studentId','questionId'].includes(k)))fail(400,'错题内容无效。');
+    const q=archiveQuestions.find(q=>q.id===data.questionId);
+    if(!q)fail(404,'未找到单元错题。');
+    const paper=await this.examPaper({studentId:data.studentId,sourceId:'unit-wrong-'+q!.sourceId,submissionId:'default',title:'单元错题 · '+q!.sourceId,
+      questions:archiveQuestions.filter(item=>item.sourceId===q!.sourceId).map(item=>({number:String(item.number),text:item.text,unitId:item.unitId}))},true);
+    return {question:paper.questions.find((item:{number:string})=>item.number===String(q!.number)),paper};
+  }
+  async examPaper(data:Record<string,unknown>,archive=false){
     const student=await this.authorize(data.studentId);
     if(Object.keys(data).some(k=>!['studentId','sourceId','submissionId','title','questions'].includes(k))||
-      !['midterm-20261029','midterm-parallel-20261029'].includes(String(data.sourceId))||
+      !(archive?['unit-wrong-1025141010','unit-wrong-midterm-20261029']:['midterm-20261029','midterm-parallel-20261029']).includes(String(data.sourceId))||
       !(data.submissionId==='default'||typeof data.submissionId==='string'&&uuid.test(data.submissionId))||
-      !str(data.title,160)||!data.title.trim()||!Array.isArray(data.questions)||!data.questions.length||data.questions.length>40)fail(400,'试卷内容无效。');
-    const questions:{number:string;text:string;unitId:string;drawing:ReturnType<typeof drawing.normalize>;assessment?:PhotoAssessment}[]=[];
+      !str(data.title,160)||!data.title.trim()||!Array.isArray(data.questions)||!data.questions.length||data.questions.length>(archive?80:40))fail(400,'试卷内容无效。');
+    const questions:{number:string;text:string;unitId:string;uncertain:string[];drawing:ReturnType<typeof drawing.normalize>;assessment?:PhotoAssessment}[]=[];
     let imageSize=0;
     for(const q of data.questions as any[]){
       if(!q||Object.keys(q).some(k=>!['number','text','unitId','drawing','assessment','answerPages'].includes(k))||!str(q.number,40)||!q.number.trim()||!str(q.text,6000)||!q.text.trim()||!validUnit(q.unitId)||questions.some(old=>old.number===q.number))fail(400,'题号、题面或单元无效。');
@@ -88,7 +110,8 @@ export class QuestionBank {
       if(imageSize>12000000)fail(413,'整卷手写原稿过大，原作答保留。');
       let text:string;try{text=mathFormat.normalize(q.text);}catch{fail(400,'题面格式无效。');}
       if(!str(text!,6000))fail(400,'题面过长。');
-      questions.push({number:q.number,text:text!,unitId:q.unitId,drawing:vector,
+      const note=archive?archiveQuestions.find(item=>'unit-wrong-'+item.sourceId===data.sourceId&&String(item.number)===q.number)?.note:'';
+      questions.push({number:q.number,text:text!,unitId:q.unitId,uncertain:note?[note]:[],drawing:vector,
         assessment:assessment?{...assessment,answerPages:q.answerPages||[]}:undefined});
     }
     const fingerprint=await hash('exam:'+data.sourceId+':'+data.submissionId),content=await hash(JSON.stringify(questions));
@@ -98,9 +121,10 @@ export class QuestionBank {
     if(old){if(data.submissionId!=='default'&&old.requestId!==requestId)fail(409,'本次试卷提交内容已变化，请保留原记录并重新提交。');return this.paper(student,old.id);}
     const id=crypto.randomUUID();
     const statements:any[]=[{sql:`INSERT INTO "GrowingQuestionPapers" ("Id","StudentId","RequestId","Fingerprint","Title","Warnings","CreatedAt","Mode") SELECT ?1,?2,?3,?4,?5,'[]',${nowSql},'exam' WHERE (SELECT count(*) FROM "GrowingQuestionPapers" WHERE "StudentId"=?2)<100 ON CONFLICT DO NOTHING`,params:[id,student,requestId,fingerprint,data.title]}];
+    if(archive){statements[0].sql=statements[0].sql.replace("'exam'","?6");statements[0].params.push(data.sourceId);}
     for(const q of questions){
       const qid=crypto.randomUUID();
-      statements.push({sql:`INSERT INTO "GrowingPhotoQuestions" ("Id","PaperId","Number","Text","Answer","UnitId","Reason","Uncertain","Pages","Format","Regions","Figures","FigureDrawing","DrawingReviewed","DrawingRevision") SELECT ?1,?2,?3,?4,'',?5,'','[]','[]','math-text-v1','[]','[]',?6,?7,?7 WHERE EXISTS (SELECT 1 FROM "GrowingQuestionPapers" WHERE "Id"=?2)`,params:[qid,id,q.number,q.text,q.unitId,q.drawing?JSON.stringify(q.drawing):'',q.drawing?1:0]});
+      statements.push({sql:`INSERT INTO "GrowingPhotoQuestions" ("Id","PaperId","Number","Text","Answer","UnitId","Reason","Uncertain","Pages","Format","Regions","Figures","FigureDrawing","DrawingReviewed","DrawingRevision") SELECT ?1,?2,?3,?4,'',?5,'',?8,'[]','math-text-v1','[]','[]',?6,?7,?7 WHERE EXISTS (SELECT 1 FROM "GrowingQuestionPapers" WHERE "Id"=?2)`,params:[qid,id,q.number,q.text,q.unitId,q.drawing?JSON.stringify(q.drawing):'',q.drawing?1:0,JSON.stringify(q.uncertain)]});
       // Imported local examination snapshots are history, never evidence for rewards or rankings.
       if(q.assessment)statements.push(photoGradeStatements(qid,student,this.user.id,q.assessment,'initial',qid,content)[0]);
     }

@@ -2,7 +2,7 @@
 (()=>{
   'use strict';
   const verdicts={correct:'正确',partial:'部分正确',incorrect:'需要订正',unanswered:'未作答',review:'待人工核对'};
-  window.GrowingGradedAnswer={mount(root,grade,question,paper,esc,render){
+  window.GrowingGradedAnswer={mount(root,grade,question,paper,esc,render,{gradingOnly=false}={}){
     const result=grade.result,annotations=result.answerAnnotations||[];
     let sources=(result.answerPages||[]).map((image,i)=>({image,page:i+1,handwritten:true}));
     if(!sources.length&&grade.kind==='initial'){
@@ -12,13 +12,13 @@
     root.className='photo-graded-answer';root.dataset.gradeId=grade.id;
     const score=verdicts[result.verdict];
     const at=grade.at&&Number.isFinite(Date.parse(grade.at))?new Date(grade.at).toLocaleString('zh-CN',{hour12:false}):'';
-    const notes=`<div class="photo-grading-notes"><strong>批改记录 · ${esc(score)}</strong><div class="bank-text math-prose">${render(result.feedback)}</div>${annotations.map((a,i)=>`<div class="photo-grading-mark"><strong>第 ${a.page} 页 · 标记 ${i+1} · ${esc(verdicts[a.kind])}</strong><div class="bank-text math-prose">${render(a.comment)}</div></div>`).join('')}${result.corrections.map(c=>`<article class="photo-grading-mark"><strong>${esc(c.location)}</strong><div class="bank-text math-prose">${render(c.issue)}</div><strong>怎样改</strong><div class="bank-text math-prose">${render(c.correction)}</div></article>`).join('')}</div>`;
-    root.innerHTML=`<header><strong>${esc(grade.kind==='initial'?'首次作答与批改':'本次作答与批改')}</strong>${at?`<time datetime="${esc(grade.at)}">${esc(at)}</time>`:''}</header><div data-graded-pages></div>${sources.length?`<details class="photo-answer-transcription"><summary>识别文字</summary><div class="bank-text math-prose">${render(result.studentAnswer||'未识别到作答')}</div></details>`:`<div class="bank-text math-prose">${render(result.studentAnswer||'本条记录未保存可显示的手写原稿。')}</div>${notes}`}`;
+    const notes=`<div class="photo-grading-notes"><strong>批改记录 · ${esc(score)}</strong><div class="bank-text math-prose">${render(result.feedback)}</div>${annotations.map((a,i)=>`<div class="photo-grading-mark"><strong>第 ${a.page} 页 · 标记 ${i+1} · ${esc(verdicts[a.kind])}</strong><div class="bank-text math-prose">${render(a.comment)}</div></div>`).join('')}${result.corrections.map(c=>`<article class="photo-grading-mark"><strong>${esc(c.location)}</strong>${c.original?`<div class="bank-text math-prose">原卷：${render(c.original)}</div>`:''}<div class="bank-text math-prose">${render(c.issue)}</div><strong>怎样改</strong><div class="bank-text math-prose">${render(c.correction)}</div></article>`).join('')}</div>`;
+    root.innerHTML=`${gradingOnly?'':`<header><strong>${esc(grade.kind==='initial'?'首次作答与批改':'本次作答与批改')}</strong>${at?`<time datetime="${esc(grade.at)}">${esc(at)}</time>`:''}</header>`}<div data-graded-pages></div>${sources.length?(gradingOnly?'':`<details class="photo-answer-transcription"><summary>识别文字</summary><div class="bank-text math-prose">${render(result.studentAnswer||'未识别到作答')}</div></details>`):`${gradingOnly?'':`<div class="bank-text math-prose">${render(result.studentAnswer||'本条记录未保存可显示的手写原稿。')}</div>`}${notes}`}`;
     sources.forEach(source=>{
       const figure=document.createElement('figure'),canvas=document.createElement('canvas'),caption=document.createElement('figcaption');
       canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`第${source.page}页作答与红色批改：${score}`);
       const sheet=document.createElement('div');sheet.className='photo-graded-sheet';sheet.append(canvas);
-      caption.textContent=`第 ${source.page} 页`;figure.append(sheet,caption);
+      caption.textContent=`第 ${source.page} 页`;caption.hidden=gradingOnly;figure.append(sheet,caption);
       if(source===sources[0])sheet.insertAdjacentHTML('beforeend',notes);
       root.querySelector('[data-graded-pages]').append(figure);
       const image=new Image();
@@ -66,7 +66,7 @@
         }
         figure.dataset.loaded='true';
       };
-      image.onerror=()=>{canvas.remove();caption.textContent=`第 ${source.page} 页原稿加载失败，请重新打开本题；批改记录仍保留。`;caption.className='warning';};
+      image.onerror=()=>{canvas.remove();caption.hidden=false;caption.textContent=`第 ${source.page} 页原稿加载失败，请重新打开本题；批改记录仍保留。`;caption.className='warning';};
       image.src=source.image;
     });
   }};

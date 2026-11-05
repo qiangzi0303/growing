@@ -30,7 +30,7 @@
     version++;const panel=content.querySelector('.course-ai-settings');if(panel)window.GrowingCourseAI?.cancelTest(panel);
     content.replaceChildren();
   }
-  dialog.addEventListener('close',reset);
+  dialog.addEventListener('close',()=>{reset();window.dispatchEvent(new Event('growing:settings-closed'));});
   dialog.querySelector('#close-api-settings').addEventListener('click',()=>dialog.close());
   function select(kind){
     const voice=kind==='voice';
@@ -57,6 +57,7 @@
   }
   button.addEventListener('click',()=>open('deepseek'));
   voiceButton.addEventListener('click',()=>open('voice'));
+  window.GrowingApiSettings={open};
   // Logout and account changes discard draft keys and abort in-flight tests.
   const close=()=>{if(dialog.open)dialog.close();reset();};
   new MutationObserver(close).observe(identity,{childList:true,subtree:true,characterData:true});

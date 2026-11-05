@@ -2,6 +2,7 @@
 (()=>{
   'use strict';
   window.GrowingPapers={async mount(root,api,esc,alive,user,context={}){
+    context={...context};
     let studentId='',paper=null,photos=[],requestId=crypto.randomUUID(),busy=false,sequence=0,disposed=false,studentPage=1,studentQuery='';
     let paperReview=null;
     const closeReview=()=>{paperReview?.dispose();paperReview=null;};
@@ -35,8 +36,10 @@
     async function students(){
       const admin=user.role==='Admin',data=await api(admin?'/admin/members?'+new URLSearchParams({role:'Student',q:studentQuery,page:studentPage}):'/parent/children');if(!valid())return;
       const children=admin?data.rows:data;
+      const selected=await window.GrowingLegacy.target(children,user,api,context);if(!valid())return;
+      delete context.studentId;
       $('[data-students]').innerHTML=`${admin?`<form class="actions" data-student-search><label>搜索学生<input name="q" maxlength="40" value="${esc(studentQuery)}"></label><button>查询</button></form>`:''}${children.length?`<label>学生<select data-student>${children.map(c=>`<option value="${esc(c.id)}">${esc(c.displayName)}${admin?'（'+esc(c.username)+'）':''}</option>`).join('')}</select></label>`:'<p>暂无学生。</p>'}${admin?`<div class="actions"><button data-student-prev ${studentPage<=1?'disabled':''}>上一页学生</button><span>第 ${studentPage} 页</span><button data-student-next ${studentPage*data.pageSize>=data.total?'disabled':''}>下一页学生</button></div>`:''}`;
-      studentId=children[0]?.id||'';paper=null;photos=[];previews();$('[data-paper]').hidden=true;$('[data-list]').hidden=false;
+      studentId=selected;const select=$('[data-student]');if(select)select.value=selected;paper=null;photos=[];previews();$('[data-paper]').hidden=true;$('[data-list]').hidden=false;
       $('[data-list]').replaceChildren();$('[data-new]').disabled=!studentId;
       if(studentId)await list();
     }
@@ -109,8 +112,8 @@
       studentQuery=new FormData(e.target).get('q');studentPage=1;
       lock(true);try{await students();}catch(error){if(valid())message(error.message);}finally{if(valid())lock(false);}
     });
-    if(user.role==='Student')studentId=user.id;
-    else{await students();if(context.studentId&&context.paperId){const select=$('[data-student]');if(!select)throw Error('请先选择学生。');if(![...select.options].some(o=>o.value===context.studentId)){if(user.role!=='Admin')throw Error('未找到关联孩子。');select.add(new Option('当前学生',context.studentId));}select.value=context.studentId;studentId=context.studentId;await open(context.paperId);}return;}
+    if(user.role==='Student'){await window.GrowingLegacy.target([],user,api,context);studentId=user.id;}
+    else{await students();if(context.paperId)await open(context.paperId);return;}
     if(context.paperId)await open(context.paperId);else await list();
   }};
 })();

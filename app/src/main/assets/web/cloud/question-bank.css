@@ -48,6 +48,8 @@
 .question-wrong{color:#b42318}
 .bank-question textarea{display:block;width:100%;box-sizing:border-box;resize:vertical;font:inherit;padding:12px;border:1px solid #cbd5e1;border-radius:6px}
 .bank-question form{max-width:850px}.bank-question label{display:block;margin:14px 0}
+.bank-question-statement>button,.bank-question-statement>.bank-upload{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:auto;min-width:0;min-height:44px;margin:0;padding:8px 12px;border:1px solid #b7c7bc;border-radius:8px;background:#f3f7ef;color:#275e4d;font:inherit;line-height:1.5;white-space:nowrap;text-decoration:none;cursor:pointer}
+.bank-question-statement>button:focus-visible,.bank-question-statement>.bank-upload:focus-within{outline:3px solid #a1bc71;outline-offset:3px}
 .bank-question select,[data-filter]{max-width:100%}
 .bank-original{max-width:min(1000px,94vw);width:94vw;box-sizing:border-box;max-height:92vh;overflow:auto}
 .bank-original img{display:block;max-width:100%;height:auto;margin:0 auto 24px}.bank-original::backdrop{background:#0008}

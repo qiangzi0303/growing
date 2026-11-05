@@ -1,5 +1,6 @@
 import rulesData from "./english-rules.json";
 import type { Document } from "./database";
+import practice from '../../app/src/main/assets/web/app-design/practice-progress.js';
 
 type ObjectData = Record<string, any>;
 const obj = (v: unknown): ObjectData => v !== null && typeof v === "object" && !Array.isArray(v) ? v : {};
@@ -35,7 +36,7 @@ export function buildReport(docs: Document[], now = new Date()) {
         const report = doc.key.includes("physics") ? physics : math;
         for (const topic of Object.values(obj(data.topics))) {
           if (topic?.seen === true) report.read++;
-          if (arr(topic?.attempts).some(a => Number.isInteger(a?.score) && a.score >= 8 && a.score <= 10 && typeof a.feedback === "string" && Array.isArray(a.criticalErrors) && a.criticalErrors.length === 0) && num(topic?.bestQuiz) === 3) report.mastered++;
+          if (arr(topic?.attempts).some(a => Number.isInteger(a?.score) && a.score >= 8 && a.score <= 10 && typeof a.feedback === "string" && Array.isArray(a.criticalErrors) && a.criticalErrors.length === 0) && practice.result(topic).passed) report.mastered++;
         }
         for (const [date, rows] of Object.entries(obj(data.tools?.days))) {
           if(!validStudyDay(date,today))continue;

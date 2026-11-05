@@ -2,7 +2,15 @@
   'use strict';
   const data=window.GrowingMathWrongQuestions,params=new URLSearchParams(location.search);
   const select=document.getElementById('unit'),search=document.getElementById('search'),host=document.getElementById('questions');
-  const repeat=document.getElementById('repeat');let attempts=null;
+  const repeat=document.getElementById('repeat');let attempts=null,photoContext=null;
+  const photoHost=document.createElement('section');photoHost.setAttribute('aria-label','本单元拍照错题');host.before(photoHost);
+  function renderPhotos(){
+    photoHost.replaceChildren();
+    if(!photoContext||!window.top.GrowingQuestionBank)return;
+    if(source&&source.value!=='all')return;
+    const root=document.createElement('div');photoHost.append(root);
+    window.top.GrowingQuestionBank.mount(root,photoContext.api,esc,()=>root.isConnected,{role:'Student',id:photoContext.studentId},{unitId:select.value,wrongOnly:true,repeated:repeat.checked});
+  }
   const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const unitName=id=>{const u=data.units.find(u=>u.id===id);return `${u.term} · ${u.title}`;};
   const inUnit=(q,id)=>id==='all'||(q.unitIds||[q.unitId]).includes(id);
@@ -16,7 +24,9 @@
     return q.figure?`<figure class="wrong-figure"><img class="midterm-figure" src="${esc(q.figure)}" alt="第${q.number}题SVG题设图" loading="lazy"></figure>`:'';
   }
   function render(){
+    window.GrowingUnitWrongAnswers?.detach();
     const id=select.value,key=search.value.trim().toLowerCase();
+    renderPhotos();
     const unitRows=data.questions.filter(q=>inUnit(q,id)&&(!source||source.value==='all'||(q.sourceId||'1025141010')===source.value));
     const rows=unitRows.filter(q=>(!repeat.checked||attempts?.get('math',q.id).wrongCount>=2)&&(!key||`第${q.number}题 ${q.number} ${q.title} ${q.text} ${q.note} ${q.review||''} ${(q.concepts||[]).join(' ')}`.toLowerCase().includes(key)));
     if(attempts){
@@ -27,10 +37,21 @@
     const back=document.getElementById('back');
     back.href=id==='all'?'units.html?subject=math':id==='math-8b-10'?'../fraction-ops/分式作战_一分钟学习版.html':'math-course.html?'+new URLSearchParams({chapter:id});
     back.textContent=id==='all'?'← 数学目录':'← 返回本单元';
-    host.innerHTML=rows.map(q=>`<article class="question" id="${q.sourceId?q.id:'q'+q.number}"><p class="meta">${esc(unitName(q.unitId))} · ${esc(q.sourceLabel||'1025141010.pdf')} · 第 ${q.page} 页 · 第 ${q.number} 题</p><h2>${esc(q.title)}</h2>${q.note?`<p class="note">${esc(q.note)}</p>`:''}${q.review?`<p class="${q.priority?'note':'notice'}">${esc(q.review)}</p>`:''}<div class="question-text math-prose">${GrowingMathFormat.html(q.text)}</div>${figureMarkup(q)}${attempts?attempts.markup('math',q.id):''}</article>`).join('')||'<p>没有符合条件的题目。</p>';
-    for(const q of rows){const card=document.getElementById(q.sourceId?q.id:'q'+q.number);card.insertAdjacentHTML('beforeend',GrowingWrongReview.markup(q));}GrowingWrongReview.hydrate();
+    host.innerHTML=rows.map(q=>`<article class="question" id="${q.sourceId?q.id:'q'+q.number}"><p class="meta">${esc(unitName(q.unitId))} · ${esc(q.sourceLabel||'1025141010.pdf')} · 第 ${q.page} 页 · 第 ${q.number} 题</p><h2>${esc(q.title)}</h2>${q.note?`<p class="note">${esc(q.note)}</p>`:''}${q.review?`<p class="${q.priority?'note':'notice'}">${esc(q.review)}</p>`:''}<div class="question-text math-prose">${GrowingMathFormat.html(q.text)}</div>${figureMarkup(q)}</article>`).join('')||'<p>没有符合条件的题目。</p>';
+    for(const q of rows){const card=document.getElementById(q.sourceId?q.id:'q'+q.number);card.dataset.archiveQuestion=q.id;card.insertAdjacentHTML('beforeend',GrowingWrongReview.markup(q));}GrowingWrongReview.hydrate();
+    window.GrowingUnitWrongAnswers?.hydrate(async()=>{await attempts?.load('math');render();});
     try{history.replaceState(null,'','?'+new URLSearchParams({unit:id,...(source&&source.value!=='all'?{source:source.value}:{})})+location.hash);}catch(_){}
   }
   select.addEventListener('change',render);if(source)source.addEventListener('change',render);search.addEventListener('input',render);repeat.addEventListener('change',render);render();
-  (async()=>{try{const context=await GrowingQuestionAttempts.context();if(!context)return;attempts=GrowingQuestionAttempts.create(document.body,context.api,context.studentId,()=>true,render);await attempts.load('math');render();}catch(e){document.getElementById('attempt-summary').textContent='作答统计连接失败：'+e.message;}})();
+  (async()=>{try{
+    const context=await GrowingQuestionAttempts.context();if(!context)return;photoContext=context;
+    const catalog=await context.api('/question-bank/catalog');
+    for(const unit of catalog.filter(u=>u.id.startsWith('math-'))){
+      if(data.units.some(u=>u.id===unit.id))continue;
+      data.units.push({...unit,term:unit.id.includes('-8b-')?'八下':'八上'});
+      const option=document.createElement('option');option.value=unit.id;option.textContent=unitName(unit.id);select.append(option);
+    }
+    if(data.units.some(u=>u.id===params.get('unit')))select.value=params.get('unit');
+    attempts=GrowingQuestionAttempts.create(document.body,context.api,context.studentId,()=>true,render,{manualPractice:false});await attempts.load('math');render();
+  }catch(e){document.getElementById('attempt-summary').textContent='作答统计连接失败：'+e.message;}})();
 })();

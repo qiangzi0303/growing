@@ -6,6 +6,7 @@
 import argparse
 from contextlib import contextmanager
 import datetime as dt
+import hashlib
 import importlib.util
 import io
 import json
@@ -29,6 +30,18 @@ SITES = ('https://007yx.com', 'https://growing-platform.qiangzi0303.workers.dev'
 ACCOUNT = '6f0c4aab0809106135ea599bb0fa6f3e'
 DATABASE = '4c05083b-7ab5-4175-b3d6-9ac944b61716'
 BASE = 'repos/' + gh.REPO
+# Reviewed public Vite defaults only; any content change requires another review.
+PUBLIC_CONSOLE_ENV = {
+    'console-web/.env': '611eb1709645f1173fd1af7314d7b90eb7cf2fac7c249d984ad364876b6d322d',
+    'console-web/.env.prod': '95a41a63b0302ccce3f6282367575908b582ea0415f0f5a7d7b9182ead04ede3',
+    'console-web/.env.test': '6b7d92d62ec70922261c47adabe1874a24054136f8810f3016c13a8d6b0dda05',
+}
+
+
+def public_console_env(path):
+    expected = PUBLIC_CONSOLE_ENV.get(path.relative_to(REPO).as_posix())
+    return bool(expected and path.is_file() and
+                hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest() == expected)
 
 
 def save(path, value):
@@ -146,7 +159,7 @@ class Release:
                 raise RuntimeError('Changed path escapes the repository')
             if (path.suffix.lower() in ('.jks', '.keystore', '.p12', '.pem', '.key', '.pfx') or
                     path.name in ('signing.json', 'keystore.properties', 'local.properties') or
-                    path.name.startswith(('.env', '.dev.vars')) or '.nmai' in path.parts):
+                    (path.name.startswith(('.env', '.dev.vars')) and not public_console_env(path)) or '.nmai' in path.parts):
                 raise RuntimeError('Private/configuration file would be committed: ' + name)
             if path.is_file():
                 content = path.read_bytes()
@@ -172,6 +185,10 @@ class Release:
         self.run('Release orchestration tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_release.py'])
         self.run('APK distribution tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_publish_apk.py'])
         self.run('GitHub transport tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_release_github.py'])
+        console = REPO / 'console-web'
+        self.run('Console TypeScript check', [self.node, 'node_modules/vue-tsc/bin/vue-tsc.js',
+                                             '--noEmit', '--skipLibCheck'], console)
+        self.run('Console behavior tests', [self.node, 'node_modules/vitest/vitest.mjs', 'run'], console)
         for script in ('sync-platform.py', 'build-worker-assets.py', 'verify-assets.py'):
             self.run(script, [sys.executable, REPO / 'scripts' / script])
         tests = ['test-platform', 'realtime.test', 'handwriting.test', 'unit-summary.test', 'rewards.test', 'year8.test', 'math-lab.test', 'math-format.test', 'fraction-grading.test', 'panorama.test',

@@ -1,4 +1,5 @@
 import catalogData from './ranking-rules.json';
+import practice from '../../app/src/main/assets/web/app-design/practice-progress.js';
 import graphsData from './diagnosis-rules.json';
 import english from './english-rules.json';
 import titlesData from './knowledge-titles.json';
@@ -113,7 +114,7 @@ export function buildKnowledge(docs: Document[], wrongQuestions: Data[] = [], no
       else if (item.type === 'legacyTest') mastered = typeof state.best?.[id] === 'number' && state.best[id] >= 80 && state.best[id] <= 100;
       else if (item.type === 'lesson') mastered = r.protocol === 'three-correct' && Array.isArray(r.answers) && r.answers.length === item.answers.length && r.answers.every((a: any, i: number) => typeof a === 'string' && a === item.answers[i]);
       else if (old) mastered = (concept || Object.hasOwn(obj(state.learning?.mastery), id)) && arr(r.exams).some(e => e?.real === false && Number.isInteger(e.total) && e.total > 0 && e.correct === e.total);
-      else mastered = concept && r.bestQuiz === 3;
+      else mastered = concept && practice.result(r).passed;
       const evidence: string[] = [];
       if (mastered) evidence.push('按该课堂现有达标规则已通过；不是对所有能力的保证。');
       if (latest) {
@@ -121,7 +122,8 @@ export function buildKnowledge(docs: Document[], wrongQuestions: Data[] = [], no
         evidence.push(...arr(latest.criticalErrors).map(v => '核心问题：' + text(v)), ...arr(latest.gaps).map(v => '待补充：' + text(v)));
         if (latest.score < 8) evidence.push(text(latest.feedback));
       }
-      if (r.bestQuiz > 0 && r.bestQuiz < 3) evidence.push('应用练习留存最好结果：' + r.bestQuiz + '/3');
+      const quiz=practice.result(r);
+      if (quiz.score > 0 && !quiz.passed) evidence.push((quiz.legacy?'旧版':'')+'应用练习留存最好结果：' + quiz.score + '/'+quiz.total);
       if (r.oral && (r.oral.meaningPassed === false || r.oral.posPassed === false)) evidence.push('词义或词类口述尚未通过：' + text(r.oral.feedback));
       let diagnostic: string | null = null;
       const archive = states.get('growing-diagnosis-v1:' + unit.id), session = archive?.records?.[id];

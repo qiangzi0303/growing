@@ -42,3 +42,19 @@ test('shell settings use the classroom account storage and never fall back to an
   t.api.clear();account='student-a';assert.equal(t.api.info().configured,true);
   t.window.GrowingCourseAIStorage=()=>{throw Error('session expired');};await assert.rejects(t.api.request({task:'问题'}),/无法读取/);
 });
+
+test('embedded course uses the account menu settings and never falls back after logout',async()=>{
+  const t=setup(),accounts=new Map();let account='student-a';
+  t.window.top={GrowingCloud:{storage:()=>{
+    if(!account)throw Error('session expired');
+    return {getItem:k=>accounts.get(account+':'+k)||null,setItem:(k,v)=>accounts.set(account+':'+k,v),removeItem:k=>accounts.delete(account+':'+k)};
+  }}};
+  t.api.save({apiKey:'fake-account-a-key'});assert.equal(t.data.size,0);
+  assert.equal(await t.api.request({task:'问题'}),'解释内容');
+  assert.equal(t.calls.at(-1).options.headers.Authorization,'Bearer fake-account-a-key');
+  account='student-b';assert.equal(t.api.info().configured,false);
+  await assert.rejects(t.api.request({task:'问题'}),/API Key/);
+  t.data.set('growing-course-ai-v1',JSON.stringify({apiKey:'fake-unscoped-key'}));
+  account=null;await assert.rejects(t.api.request({task:'问题'}),/无法读取/);
+  assert.equal(t.calls.length,1);
+});

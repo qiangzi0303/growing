@@ -130,13 +130,12 @@ public final class MainActivity extends Activity {
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);outer.addView(scroll,new LinearLayout.LayoutParams(-1,-1));
         FrameLayout center=new FrameLayout(this);scroll.addView(center,new ScrollView.LayoutParams(-1,-2));
         LinearLayout form=loginForm();center.addView(form,new FrameLayout.LayoutParams(-1,-2,Gravity.CENTER));
-        ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.brand_logo);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);form.addView(logo,new LinearLayout.LayoutParams(dp(96),dp(96)));
-        TextView title=text("逆流",34,Color.rgb(45,68,52));title.setTypeface(null,Typeface.BOLD);form.addView(title);
-        TextView hint=text(registering?"创建你的学习账号":"登录，继续你的学习",18,Color.rgb(80,110,70));hint.setPadding(0,dp(12),0,dp(24));form.addView(hint);
-        EditText name=input("用户名（2—24 个字符）",false);name.setContentDescription("用户名");form.addView(name);
-        EditText password=input("密码（至少 8 个字符）",true);password.setContentDescription("密码");form.addView(password);
+        ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.brand_logo);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);LinearLayout.LayoutParams logoParams=new LinearLayout.LayoutParams(dp(96),dp(96));logoParams.gravity=Gravity.CENTER_HORIZONTAL;form.addView(logo,logoParams);
+        TextView title=text("逆流",34,Color.rgb(45,68,52));title.setTypeface(null,Typeface.BOLD);title.setGravity(Gravity.CENTER);title.setPadding(0,0,0,dp(24));form.addView(title);
+        if(registering){TextView hint=text("创建你的学习账号",18,Color.rgb(80,110,70));hint.setPadding(0,dp(12),0,dp(24));form.addView(hint);}
+        EditText name=input("用户名",false);name.setContentDescription("用户名");form.addView(name);
+        EditText password=input("密码",true);password.setContentDescription("密码");form.addView(password);
         EditText confirm=input("再次输入密码",true);confirm.setContentDescription("确认密码");if(registering)form.addView(confirm);
-        CheckBox legacy=new CheckBox(this);legacy.setText("旧本机账号迁移 / 断网使用已有缓存");if(!registering)form.addView(legacy);
         RadioGroup roles=new RadioGroup(this);roles.setContentDescription("账号身份");
         RadioButton student=new RadioButton(this);student.setId(View.generateViewId());student.setText("我是学生");roles.addView(student);
         RadioButton parent=new RadioButton(this);parent.setId(View.generateViewId());parent.setText("我是家长");roles.addView(parent);
@@ -145,8 +144,6 @@ public final class MainActivity extends Activity {
         TextView error=text("",14,Color.rgb(160,90,60));error.setPadding(0,dp(12),0,dp(8));form.addView(error);
         Button submit=button(registering?"注册并保存身份":"登录");form.addView(submit);
         Button toggle=button(registering?"已有账号？去登录":"还没有账号？注册");form.addView(toggle);
-        Button updates=button("检查更新 · "+BuildConfig.VERSION_NAME);updates.setOnClickListener(v->updater.check(true));form.addView(updates);
-        TextView note=text("使用同一云账号登录，可在新设备恢复已保存的学习记录，无需重新注册。旧本机账号请勾选迁移后登录并关联云账号。\n课程记录自动保存到云端；断网缓存将在联网后补传。清除设备数据前，请确认云端保存成功。",12,Color.rgb(125,136,118));note.setPadding(0,dp(22),0,0);note.setLineSpacing(dp(3),1);form.addView(note);
         toggle.setOnClickListener(v->{registering=!registering;showLogin();});
         submit.setOnClickListener(v->{
             if(registering&&roles.getCheckedRadioButtonId()==-1){error.setText("请选择学生或家长身份。");return;}
@@ -154,15 +151,13 @@ public final class MainActivity extends Activity {
             String username=name.getText().toString();char[] secret=password.getText().toString().toCharArray();
             if(registering && !Arrays.equals(secret,confirm.getText().toString().toCharArray())){Arrays.fill(secret,'\0');error.setText("两次输入的密码不一致。");return;}
             boolean register=registering;String role=roles.getCheckedRadioButtonId()==student.getId()?"Student":"Parent";
-            boolean localLogin=!register&&legacy.isChecked();
             submit.setEnabled(false);toggle.setEnabled(false);error.setText("正在验证，请稍候…");
             executor.execute(()->{
                 try{String id;
-                    if(localLogin)id=accounts.authenticate(username,secret,false);
-                    else id=accounts.loginCloud(username,secret,new CloudAuthClient(BuildConfig.CLOUD_API_URL).authenticate(username,secret,register,role));
+                    id=accounts.loginCloud(username,secret,new CloudAuthClient(BuildConfig.CLOUD_API_URL).authenticate(username,secret,register,role));
                     final String loggedIn=id;
                     runOnUiThread(()->{if(isFinishing()||isDestroyed())return;pendingRegistration=null;currentId=loggedIn;epoch++;showLearning();});}
-                catch(Exception e){String message=e instanceof java.io.IOException?"无法连接云服务，请检查网络。已有缓存可选择「旧本机账号迁移 / 断网使用已有缓存」。":e.getMessage();runOnUiThread(()->{if(isFinishing()||isDestroyed())return;error.setText(message==null?"操作未完成，请重试。":message);submit.setEnabled(true);toggle.setEnabled(true);});}
+                catch(Exception e){String message=e instanceof java.io.IOException?"无法连接云服务，请检查网络后重试。":e.getMessage();runOnUiThread(()->{if(isFinishing()||isDestroyed())return;error.setText(message==null?"操作未完成，请重试。":message);submit.setEnabled(true);toggle.setEnabled(true);});}
                 finally{Arrays.fill(secret,'\0');}
             });
         });

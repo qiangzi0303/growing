@@ -54,6 +54,20 @@ class ReleaseTests(unittest.TestCase):
         self.r.run.assert_not_called()
         self.assertFalse(self.r.state_path.exists())
 
+    def test_only_reviewed_public_console_env_contents_are_allowed(self):
+        for name in release.PUBLIC_CONSOLE_ENV:
+            self.assertTrue(release.public_console_env(release.REPO / name), name)
+        repo = Path(self.temp.name)
+        env = repo / 'console-web/.env.prod'
+        env.parent.mkdir()
+        env.write_text('VITE_PRIVATE_TOKEN=must-not-be-published\n', encoding='utf-8')
+        self.r.git = Mock(side_effect=['console-web/.env.prod', ''])
+        with patch.object(release, 'REPO', repo):
+            with self.assertRaisesRegex(RuntimeError, 'Private/configuration'):
+                release.Release.check_changes(self.r)
+            self.assertFalse(release.public_console_env(repo / 'console-web/.env.local'))
+            self.assertFalse(release.public_console_env(repo / '.env'))
+
     def test_offline_check_does_not_access_remote(self):
         self.args.check = self.args.offline = True
         self.r.execute()

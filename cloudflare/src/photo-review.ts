@@ -3,6 +3,7 @@ import { hash } from './auth';
 import { visionCompletion, type VisionEnv } from './handwriting-vision';
 import { type PhotoAssessment, assessmentLinks, assessmentInstructions, photoLearningContext, validateAssessment, validateAnswerAnnotations } from './photo-assessment';
 import mathFormat from '../../platform-web/math-format.js';
+import archiveQuestions from './math-wrong-question-rules.json';
 
 const fail=(status:number,message:string):never=>{throw new HttpError(status,message);};
 const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(v);
@@ -13,19 +14,19 @@ export async function attachPhotoGrades(db:Database,questions:any[]){
   const grades=await db.query<any>(`SELECT ${gradeSelect} FROM "GrowingPhotoGrades" WHERE "QuestionId" IN (${questions.map(()=>'?').join(',')}) ORDER BY "CreatedAt",rowid`,questions.map(q=>q.id));
   return questions.map(q=>({...q,figures:typeof q.figures==='string'?JSON.parse(q.figures):q.figures||[],regions:typeof q.regions==='string'?JSON.parse(q.regions):q.regions||[],grades:grades.filter(g=>g.questionId===q.id).map(decodeGrade)}));
 }
-export function photoGradeStatements(questionId:string,student:string,actor:string,result:PhotoAssessment,kind:'initial'|'correction',requestId:string,fingerprint:string,revision=1):Statement[]{
+export function photoGradeStatements(questionId:string,student:string,actor:string,result:PhotoAssessment,kind:'initial'|'correction',requestId:string,fingerprint:string,revision=1,mathId?:string):Statement[]{
   const id=crypto.randomUUID();
   const statements:Statement[]=[{sql:`INSERT INTO "GrowingPhotoGrades" ("Id","QuestionId","RequestId","Fingerprint","QuestionRevision","Kind","StudentAnswer","Result","CreatedAt")
     SELECT ?1,?2,?3,?4,?5,?6,?7,?8,${nowSql} WHERE EXISTS (SELECT 1 FROM "GrowingPhotoQuestions" WHERE "Id"=?2 AND "Revision"=?5) ON CONFLICT DO NOTHING`,
     params:[id,questionId,requestId,fingerprint,revision,kind,result.studentAnswer,JSON.stringify(result)]}];
   if(!['review','unanswered'].includes(result.verdict))statements.push({sql:`INSERT INTO "GrowingQuestionAttempts" ("StudentId","AttemptId","Kind","QuestionId","Correct","ActorId","CreatedAt")
-    SELECT ?1,?2,'photo',?3,?4,?5,${nowSql} WHERE EXISTS (SELECT 1 FROM "GrowingPhotoGrades" WHERE "Id"=?2) ON CONFLICT DO NOTHING`,params:[student,id,questionId,result.verdict==='correct'?1:0,actor]});
+    SELECT ?1,?2,'${mathId?'math':'photo'}',?3,?4,?5,${nowSql} WHERE EXISTS (SELECT 1 FROM "GrowingPhotoGrades" WHERE "Id"=?2) ON CONFLICT DO NOTHING`,params:[student,id,mathId||questionId,result.verdict==='correct'?1:0,actor]});
   return statements;
 }
 export class PhotoReview{
   constructor(private db:Database,private user:User,private authorize:(id:unknown)=>Promise<string>){}
   private async question(student:string,id:string){
-    const [q]=await this.db.query<any>(`SELECT q."Id" AS id,q."PaperId" AS paperId,q."Number" AS number,q."Text" AS text,q."Answer" AS answer,q."UnitId" AS unitId,q."Revision" AS revision,q."Pages" AS pages,q."Uncertain" AS uncertain,q."Regions" AS regions
+    const [q]=await this.db.query<any>(`SELECT p."Mode" AS mode,q."PaperWrong" AS paperWrong,q."Id" AS id,q."PaperId" AS paperId,q."Number" AS number,q."Text" AS text,q."Answer" AS answer,q."UnitId" AS unitId,q."Revision" AS revision,q."Pages" AS pages,q."Uncertain" AS uncertain,q."Regions" AS regions
       FROM "GrowingPhotoQuestions" q JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId" WHERE p."StudentId"=?1 AND q."Id"=?2`,[student,id]);
     if(!q)fail(404,'未找到题目。');
     const [figure]=await this.db.query<any>('SELECT "Figures" AS figures,"FigureVersion" AS figureVersion,(length("FigureImage")>0) AS hasFigureImage,(length("FigureDrawing")>0) AS hasDrawing,"DrawingReviewed" AS drawingReviewed,"DrawingRevision" AS drawingRevision FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[id]);
@@ -108,7 +109,8 @@ export class PhotoReview{
     if(handwritten){result.answerPages=data.answerPages as string[];result.answerSource='handwriting-only';}
     if(signal.aborted)fail(499,'订正批改已取消，原评分保留。');
     await this.authorize(student);
-    await this.db.batch(photoGradeStatements(id,student,this.user.id,result,'correction',data.requestId as string,fingerprint,q.revision).map(s=>s.sql.includes('INSERT INTO "GrowingPhotoGrades"')?{...s,sql:s.sql.replace('ON CONFLICT DO NOTHING','AND (SELECT count(*) FROM "GrowingPhotoGrades" WHERE "QuestionId"=?2)<20 ON CONFLICT DO NOTHING')}:s));
+    const mathId=q.mode?.startsWith('unit-wrong-')?archiveQuestions.find(item=>item.sourceId===q.mode.slice(11)&&String(item.number)===q.number)?.id:undefined;
+    await this.db.batch(photoGradeStatements(id,student,this.user.id,result,'correction',data.requestId as string,fingerprint,q.revision,mathId).map(s=>s.sql.includes('INSERT INTO "GrowingPhotoGrades"')?{...s,sql:s.sql.replace('ON CONFLICT DO NOTHING','AND (SELECT count(*) FROM "GrowingPhotoGrades" WHERE "QuestionId"=?2)<20 ON CONFLICT DO NOTHING')}:s));
     const saved=await existing();if(!saved)fail(409,'批改期间题目已变化或批改次数已满，请刷新后重试。');
     return {grade:decodeGrade(saved)};
   }

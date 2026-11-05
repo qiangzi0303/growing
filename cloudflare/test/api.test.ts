@@ -15,6 +15,7 @@ const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: 'exp
 let db: Database;
 let aiMode = 'ok', aiRequests: {url:string;headers:Headers;data:any}[] = [];
 let handwrittenOutput:any={needsReview:false,score:65,parts:[15,20,20,10],feedback:'第1页第2步忽略了符号，请订正。',corrections:[{location:'第1页第2步',issue:'通分时漏了负号',correction:'括号前的减号应分配到括号内各项'}],knowledge:[{nodeId:'add',score:45,feedback:'第2步通分时应保留减号'}]};
+let originalReview:any={needsReview:false,verdict:'partial',feedback:'第（1）问正确，第（2）问推理依据不足。',corrections:[{location:'第（2）问第3步',original:'由两角相等得两三角形全等',issue:'两个角相等只能说明对应角相等，缺少对应边条件。',correction:'先证明对应边相等，再使用ASA判定。'}],answerAnnotations:[{page:1,x:.1,y:.2,width:.5,height:.1,kind:'incorrect',comment:'此处缺少对应边条件。'}]};
 let paperOutput:any={format:'math-text-v1',title:'混合试卷',warnings:['第2页有图形，请核对原图'],questions:[
   {number:'1',text:String.raw`计算 \(\frac{x^{2}-1}{x-1}\)，其中 \(x\ne1\)。`,answer:'',unitId:'math-8b-10',confidence:.98,reason:'分式化简',uncertain:[],pages:[1]},
   {number:'2',text:'图中给定条件【不清楚】',answer:'',unitId:'invented-unit',confidence:.99,reason:'不能匹配',uncertain:['图中条件需核对'],pages:[2]},
@@ -32,6 +33,7 @@ const handler = createHandler(() => db, (async (url: string | URL | Request, opt
   if(aiMode==='format'){const hook=formatHook;formatHook=undefined;if(hook)await hook();return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(formatOutput)}}]});}
   if(aiMode==='paper')return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(paperOutput)}}]});
   if(aiMode==='handwritten')return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(handwrittenOutput)}}]});
+  if(aiMode==='original-review')return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(originalReview)}}]});
   const content=aiMode==='bad-recognition'?'{"text":"","uncertain":[]}':'{"text":"第1页：x=2","uncertain":[]}';
   return Response.json({choices:[{finish_reason:aiMode==='truncated'?'length':'stop',message:{content:aiMode==='empty'?'':content,reasoning_content:'private reasoning'}}],private:'must-not-return'});
 }) as typeof fetch);
@@ -388,6 +390,38 @@ test('handwriting vision authenticates, validates images, protects credentials a
   const retry=await fallback(new Request('https://learn.test'+path,{method:'POST',headers:{'X-Growing-Client':'1',Authorization:'Bearer '+student.token},body:JSON.stringify(input)}),env,context);
   assert.equal(retry.status,200);assert.equal(tried,2);env.HANDWRITING_VISION_MODELS=config;
   assert.equal((await call(path,'POST',input,student.token,{'Content-Length':'9100001'})).status,413);
+});
+
+test('original paper review sends the actual image and returns cited errors without personal scores',async()=>{
+  const student=await register(),parent=await register('Parent'),original=structuredClone(originalReview),path='/api/handwriting/ai';
+  const image='data:image/png;base64,iVBORw0KGgoAAA==',input={kind:'review-original',questionNumber:'22',prompt:'分小问证明线段相等。',pages:[image]};
+  try{
+    aiMode='original-review';
+    assert.equal((await call(path,'POST',input)).status,401);
+    assert.equal((await call(path,'POST',input,parent.token)).status,403);
+    const response=await call(path,'POST',input,student.token);assert.equal(response.status,200);
+    const result=await response.json() as any;
+    assert.deepEqual(result,{...original,source:'original-paper'});
+    assert.equal(result.score,undefined);assert.equal(result.knowledge,undefined);assert.equal(result.solution,undefined);
+    const sent=aiRequests.at(-1)!.data;
+    assert.equal(sent.messages[1].content.filter((c:any)=>c.type==='image_url').length,1);
+    assert.equal(sent.messages[1].content.find((c:any)=>c.type==='image_url').image_url.url,image);
+    assert.deepEqual(JSON.parse(sent.messages[1].content[0].text),{questionNumber:'22',prompt:input.prompt,answerSource:'本题固定参考原卷图片'});
+    assert.match(sent.messages[0].content,/不能把教师批注当成学生原句/);
+    assert.match(sent.messages[0].content,/每处错误必须.*引用图片/);
+    assert.match(sent.messages[0].content,/逐小问独立判断/);
+    assert.match(sent.messages[0].content,/不另写完整解答/);
+    assert.match(sent.messages[0].content,/answerAnnotations/);
+    const before=aiRequests.length;
+    for(const patch of [{pages:[]},{pages:[image,image]},{pages:['https://fake.test/image.png']},{questionNumber:''},{prompt:''},{reference:'旧核对摘要'},{studentId:student.user.id}])assert.equal((await call(path,'POST',{...input,...patch},student.token)).status,400);
+    assert.equal(aiRequests.length,before);
+    for(const patch of [{solution:'多余的完整解答'},{verdict:'invented'},{needsReview:true},{answerAnnotations:[{...original.answerAnnotations[0],page:2}]},{answerAnnotations:[{...original.answerAnnotations[0],x:.9}]},{feedback:''},{corrections:[{location:'第2步',issue:'错误',correction:'改正'}]},{score:0}]){
+      originalReview={...original,...patch};assert.equal((await call(path,'POST',input,student.token)).status,502);
+    }
+    originalReview={needsReview:true,verdict:'review',feedback:'第（2）问最后一行裁剪不全，无法判断最终证明。',corrections:[],answerAnnotations:[]};
+    const partial=await call(path,'POST',input,student.token);assert.equal(partial.status,200);assert.equal((await partial.json() as any).needsReview,true);
+    aiLimited=true;assert.equal((await call(path,'POST',input,student.token)).status,429);aiLimited=false;
+  }finally{originalReview=original;aiMode='ok';aiLimited=false;}
 });
 
 test('direct handwritten grading sees every original without transcription and returns verified corrections and course nodes',async()=>{
@@ -1027,6 +1061,8 @@ test('rankings use real D1 scoring, ties, privacy, pagination and bound-parent a
   };
   await save(a,3);await save(b,3);await save(c,0);
   await saveDiagnosis(a);await saveDiagnosis(b);
+  // Old cached totals must not control the score, order or ties after a weight change.
+  await db.query('UPDATE "GrowingRankings" SET "Score"=CASE "StudentId" WHEN ?1 THEN 3000 WHEN ?2 THEN 0 ELSE 10000 END WHERE "StudentId" IN (?1,?2,?3)',[a.user.id,b.user.id,c.user.id]);
   const path='/api/student/rankings?board='+rule.id;
   const first=await (await call(path,'GET',undefined,a.token)).json() as any;
   assert.equal(first.self.rank,1);assert.equal(first.self.score,100);assert.equal(first.total,3);
@@ -1037,6 +1073,8 @@ test('rankings use real D1 scoring, ties, privacy, pagination and bound-parent a
   assert.ok(first.rows.filter((r:any)=>!r.isSelf).every((r:any)=>/^同学 [A-F0-9]{8}$/.test(r.label)));
   const overview=await (await call('/api/student/rankings','GET',undefined,a.token)).json() as any;
   assert.deepEqual(overview.boards.map((r:any)=>r.id).sort(),[rule.id,'physics:upper'].sort());
+  assert.equal(overview.boards.find((r:any)=>r.id===rule.id).score,100);
+  assert.equal(overview.formula,'费曼学习 × 30% + 应用练习 × 70%');
   assert.equal((await call('/api/student/rankings?board=math:upper','GET',undefined,a.token)).status,404);
   assert.equal((await call(path+'&page=0','GET',undefined,a.token)).status,400);
   assert.equal((await call(path)).status,401);
@@ -1063,7 +1101,7 @@ test('rankings use real D1 scoring, ties, privacy, pagination and bound-parent a
   assert.equal(second.rows.length,3);assert.ok(second.rows.some((r:any)=>r.isSelf));
   await save(c,3,1);await saveDiagnosis(c);assert.equal((await (await call(path,'GET',undefined,c.token)).json() as any).self.rank,1);
   await call('/api/student/state/growing-physics-lessons-v1','PUT',{revision:2,value:null},c.token);
-  assert.equal((await (await call(path,'GET',undefined,c.token)).json() as any).self.score,30);
+  assert.equal((await (await call(path,'GET',undefined,c.token)).json() as any).self.score,0);
   await call('/api/student/state/growing-diagnosis-v1:'+rule.id,'PUT',{revision:1,value:null},c.token);
   assert.equal((await call(path,'GET',undefined,c.token)).status,404);
 });

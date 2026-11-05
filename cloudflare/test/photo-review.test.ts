@@ -38,6 +38,47 @@ after(async()=>{await mf.dispose();});
 
 const vector=()=>({version:'question-svg-v1',figures:[{width:380,height:280,title:'题设三角形',elements:[{tag:'path',d:'M80 230 L180 30 L280 230 Z'},{tag:'text',x:180,y:22,text:'A'}]}],warnings:[]});
 
+test('unit wrong questions save independent photo answers and immutable history in the student scope',async()=>{
+  const u=await register(),other=await register(),parent=await register('Parent');
+  const input={studentId:u.user.id,questionId:'1025141010-28'};
+  let r=await call('/question-bank/unit-wrong','POST',input,u.token);assert.equal(r.status,200,await r.clone().text());
+  const saved=await r.json() as any,q=saved.question;
+  assert.equal(q.number,'28');assert.equal(q.unitId,'math-8b-10');assert.equal(saved.paper.questions.length,53);assert.equal(q.grades.length,0);
+  assert.equal(saved.paper.mode,'unit-wrong-1025141010');
+  const again=await (await call('/question-bank/unit-wrong','POST',input,u.token)).json() as any;assert.equal(again.question.id,q.id);
+  assert.equal((await call('/question-bank/unit-wrong','POST',input,other.token)).status,404);
+  assert.equal((await call('/question-bank/unit-wrong','POST',input,parent.token)).status,404);
+  assert.equal((await call('/question-bank/unit-wrong','POST',{...input,questionId:'not-a-question'},u.token)).status,404);
+  assert.equal((await call('/question-bank/unit-wrong','POST',{...input,text:'伪造题面'},u.token)).status,400);
+  const image1='data:image/png;base64,iVBORw0KGgoAAA==',image2='data:image/png;base64,iVBORw0KGgoAAQ==';
+  const body={studentId:u.user.id,revision:q.revision,requestId:crypto.randomUUID(),answerPages:[image1]};
+  const path='/question-bank/questions/'+q.id;
+  output=assessment({studentAnswer:'本次照片中的答案',answerAnnotations:[]});
+  r=await call(path+'/correct','POST',body,u.token);assert.equal(r.status,200,await r.clone().text());
+  const first=(await r.json() as any).grade;
+  const context=JSON.parse(calls.at(-1).messages[1].content[0].text);
+  assert.deepEqual(context.imageSourcePages,[]);assert.equal(context.answerPageCount,1);
+  assert.deepEqual(calls.at(-1).messages[1].content.filter((p:any)=>p.type==='image_url').map((p:any)=>p.image_url.url),[image1]);
+  const beforeCalls=calls.length;
+  const retry=await (await call(path+'/correct','POST',body,u.token)).json() as any;assert.equal(retry.grade.id,first.id);assert.equal(calls.length,beforeCalls);
+  output=assessment({verdict:'correct',score:100,studentAnswer:'第二次照片答案',corrections:[],answerAnnotations:[]});
+  r=await call(path+'/correct','POST',{...body,requestId:crypto.randomUUID(),answerPages:[image2]},u.token);assert.equal(r.status,200);
+  const history=await (await call(path+'/review?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;
+  assert.equal(history.question.grades.length,2);assert.deepEqual(history.question.grades[0],first);
+  assert.deepEqual(history.question.grades.map((g:any)=>g.result.answerPages),[[image1],[image2]]);
+  const stats=await (await call('/question-bank/attempt-stats?studentId='+u.user.id+'&kind=math','GET',undefined,u.token)).json() as any[];
+  assert.equal(stats.find(s=>s.questionId===input.questionId).totalCount,2);assert.equal(stats.find(s=>s.questionId===input.questionId).wrongCount,1);
+  assert.equal((await call(path+'/review?studentId='+u.user.id,'GET',undefined,other.token)).status,404);
+  await db.query('INSERT INTO "GrowingFamilyLinks" ("StudentId","ParentId","CreatedAt") VALUES (?1,?2,?)',[u.user.id,parent.user.id,'2026-11-04']);
+  assert.equal((await call(path+'/review?studentId='+u.user.id,'GET',undefined,parent.token)).status,200);
+  await db.query('DELETE FROM "GrowingFamilyLinks" WHERE "StudentId"=?1',[u.user.id]);
+  assert.equal((await call(path+'/review?studentId='+u.user.id,'GET',undefined,parent.token)).status,404);
+  const photoRows=await (await call('/question-bank/questions?studentId='+u.user.id+'&unitId=all&wrong=1','GET',undefined,u.token)).json() as any;
+  assert.equal(photoRows.total,0,'Bundled questions should not be duplicated in photographed wrong questions');
+  const midterm=await (await call('/question-bank/unit-wrong','POST',{...input,questionId:'midterm-20261029-08'},u.token)).json() as any;
+  assert.equal(midterm.paper.questions.length,23);assert.notEqual(midterm.question.id,q.id);
+});
+
 test('examination review keeps immutable submissions, raw handwriting and student scope without awarding imported scores',async()=>{
   const u=await register(),other=await register(),parent=await register('Parent');
   const image='data:image/png;base64,iVBORw0KGgoAAA==';
@@ -67,6 +108,27 @@ test('blank examination registration is idempotent and rejects invalid vectors a
   for(const q of [{...input.questions[0],drawing:{version:'arbitrary-svg'}},{...input.questions[0],answerPages:['data:image/jpeg;base64,/9j/AA==']},{...input.questions[0],assessment:assessment({score:900})}]){
     assert.equal((await call('/question-bank/exams','POST',{...input,questions:[q]},u.token)).status,400);
   }
+});
+
+test('unit wrong filter includes checked originals and retains corrected history',async()=>{
+  const u=await register();
+  const imported=await importPaper(u),q=imported.data.questions[0],path='/question-bank/questions/'+q.id;
+  const wrong=async()=>await (await call('/question-bank/questions?'+new URLSearchParams({studentId:u.user.id,unitId:'all',wrong:'1'}),'GET',undefined,u.token)).json() as any;
+  assert.ok((await wrong()).rows.some((row:any)=>row.id===q.id));
+  output=assessment({verdict:'correct',score:100,corrections:[]});
+  assert.equal((await call(path+'/correct','POST',{studentId:u.user.id,revision:1,requestId:crypto.randomUUID(),studentAnswer:'正确订正'},u.token)).status,200);
+  assert.equal((await wrong()).rows.find((row:any)=>row.id===q.id).grades.at(-1).result.verdict,'correct');
+  output=assessment({verdict:'partial'});
+  assert.equal((await call(path+'/correct','POST',{studentId:u.user.id,revision:1,requestId:crypto.randomUUID(),studentAnswer:'部分订正'},u.token)).status,200);
+  assert.ok((await wrong()).rows.some((row:any)=>row.id===q.id));
+  // A checked original can be wrong even when no AI assessment exists.
+  await db.query('DELETE FROM "GrowingPhotoGrades" WHERE "QuestionId"=?1',[q.id]);
+  await db.query('UPDATE "GrowingPhotoQuestions" SET "PaperWrong"=1 WHERE "Id"=?1',[q.id]);
+  assert.ok((await wrong()).rows.some((row:any)=>row.id===q.id));
+  const review=await (await call(path+'/review?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;
+  assert.equal(review.question.paperWrong,1);
+  await db.query('UPDATE "GrowingPhotoQuestions" SET "PaperWrong"=0 WHERE "Id"=?1',[q.id]);
+  assert.equal((await wrong()).rows.some((row:any)=>row.id===q.id),false);
 });
 
 test('all bundled examination questions and course links can enter the shared review store',async()=>{
@@ -464,4 +526,21 @@ test('a graded test topic is distinct from an evidenced gap and cannot establish
   const p=await (await call('/student/knowledge?unit=math-8b-10&topic=add','GET',undefined,u.token)).json() as any;
   assert.equal(p.context.mistakeFocus[0].association,'graded-topic');assert.equal(p.context.mistakeFocus[0].cause,null);
   assert.equal(p.topics.find((t:any)=>t.id==='add').status,'unknown');assert.ok(p.wrongQuestions[0].photoReview.error.corrections.length);
+});
+test('photo mistakes are automatically collected once per student and unit, retaining corrected history',async()=>{
+  const u=await register(),other=await register();
+  const {data}=await importPaper(u);
+  const query=(unit:string,token=u.token,student=u.user.id)=>call('/question-bank/questions?'+new URLSearchParams({studentId:student,unitId:unit,wrong:'1'}),'GET',undefined,token);
+  const all=await (await query('all')).json() as any;
+  assert.equal(all.total,1);assert.equal(all.rows[0].number,'1');
+  assert.equal((await (await query('math-8a-01')).json() as any).total,0);
+  assert.equal((await query('all',other.token)).status,404);
+  const q=all.rows[0];
+  output=assessment({verdict:'correct',score:100,studentAnswer:'正确订正',corrections:[]});
+  const corrected=await call('/question-bank/questions/'+q.id+'/correct','POST',{studentId:u.user.id,revision:q.revision,requestId:crypto.randomUUID(),studentAnswer:'正确订正'},u.token);
+  assert.equal(corrected.status,200);
+  const after=await (await query('math-8b-10')).json() as any;
+  assert.equal(after.total,1);assert.equal(after.rows[0].id,q.id);assert.equal(after.rows[0].grades.length,2);
+  await db.query('UPDATE "GrowingPhotoQuestions" SET "Revision"="Revision"+1 WHERE "Id"=?1',[q.id]);
+  assert.equal((await (await query('all')).json() as any).total,0);
 });

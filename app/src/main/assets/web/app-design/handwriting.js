@@ -4,12 +4,15 @@
   const subject=['math','physics','english'].includes(params.get('subject'))?params.get('subject'):'math';
   const unitId=C.units(subject).includes(params.get('unit'))?params.get('unit'):C.units(subject)[0];
   const course=Object.values(GrowingCurriculum[subject].terms).flatMap(t=>t.units).find(u=>u.id===unitId);
-  const tasks=GrowingHandwritingTasks.forUnit(subject,unitId),essay=subject==='english';
+  const applicationTask=window.GrowingApplicationPractice?.tasks(subject,unitId).find(t=>t.id===params.get('practice'));
+  if(params.has('practice')&&!applicationTask){document.querySelector('.workspace').innerHTML='<h1>未找到对应应用题</h1><p>请返回知识点的应用练习重新选择，原有作答保留。</p>';return;}
+  const tasks=[...(applicationTask?[applicationTask]:[]),...GrowingHandwritingTasks.forUnit(subject,unitId)],essay=subject==='english';
   const currentTask=()=>tasks.find(t=>t.prompt===doc.prompt&&t.nodes?.length);
   const canvas=$('#paper');
   let importing=false;const photoCache=new Map();
   let doc,key,page=0,tool='pen',redo=[],active=null,job=null,blocked=false,dirty=false,saveTimer;
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function writingUrl(){const route=new URLSearchParams({subject,unit:unitId,id:key.slice(C.PREFIX.length)});if(applicationTask)route.set('practice',applicationTask.id);return '?'+route;}
   $('#course-label').textContent=GrowingCurriculum[subject].name+' · '+course.title+' · '+(subject==='english'?'作文 / 书面表达':'解答题 / 推导过程');
   document.title=GrowingCurriculum[subject].name+'手写'+(essay?'作文':'解答题')+' · '+course.title;
   $('#page-title').textContent=GrowingCurriculum[subject].name+'手写'+(essay?'作文':'解答题');
@@ -25,7 +28,7 @@
   function matchTask(){const task=tasks.find(t=>t.prompt===doc.prompt);$('#task-choice').value=task?.id||'custom';previewTask();}
   function selectedPrompt(){return tasks.find(t=>t.id===$('#task-choice').value)?.prompt||'';}
   $('#task-choice').onchange=newDoc;
-  $('#back').href=course.entry||(subject==='english'?'english-course.html?unit=':subject==='physics'?'physics-course.html?chapter=':'math-course.html?chapter=')+unitId;
+  $('#back').href=applicationTask?(subject==='physics'?'physics-course.html':'math-course.html')+'?'+new URLSearchParams({chapter:unitId,node:applicationTask.nodeId,practice:'1'}):course.entry||(subject==='english'?'english-course.html?unit=':subject==='physics'?'physics-course.html?chapter=':'math-course.html?chapter=')+unitId;
   $('#back').target='_top';
   function say(id,text,error=false){$(id).textContent=text;$(id).classList.toggle('error',error);}
   function save(){
@@ -71,14 +74,14 @@
     $('#prev').disabled=blocked||!!job||page===0;$('#next').disabled=blocked||!!job||page===doc.pages.length-1;
     $('#add-page').disabled=blocked||!!job||doc.pages.length>=C.MAX_PAGES;
     $('#undo').disabled=blocked||!!job||!doc.pages[page].length;$('#redo').disabled=blocked||!!job||!redo.length;
-    $('#prompt').disabled=blocked||!!job||importing;review();
-    $('#task-choice').disabled=!!job||importing;$('#photo-answer').disabled=blocked||!!job||importing;
+    $('#prompt').disabled=blocked||!!job||importing||!!applicationTask;review();
+    $('#task-choice').disabled=!!job||importing||!!applicationTask;$('#photo-answer').disabled=blocked||!!job||importing;
   }
   function review(){
     $('#grade').disabled=blocked||!!job||importing;
     $('#grades').innerHTML=doc.grades.slice().reverse().map(g=>`<article><strong>${g.revision===doc.revision?'本份原稿':'历史点评 · 原稿已修改'}</strong><p class="score">${g.needsReview?'需要复核 · 不计分':g.score+' / 100'}</p>${g.parts?`<p>${(doc.mode==='essay'?['内容','结构','语言','标点与格式']:['审题','思路','推导','表达']).map((n,i)=>`<span class="${g.parts[i]<(doc.mode==='essay'?[25,20,35,20]:[20,30,30,20])[i]?'assessment-gap':''}">${n} ${g.parts[i]}/${(doc.mode==='essay'?[25,20,35,20]:[20,30,30,20])[i]}</span>`).join(' · ')}</p>`:''}<p class="${g.needsReview||g.score<80?'assessment-gap':''}">${esc(g.feedback)}</p>${GrowingHandwritingAI.details(g)}<small>${esc(g.at.slice(0,19).replace('T',' '))} · ${g.source==='handwriting'?'直接查看手写原稿':'历史文字点评'}</small></article>`).join('');
   }
-  function newDoc(){if(job||active||importing||dirty&&!save())return;doc=C.create(subject,unitId,selectedPrompt());key=C.PREFIX+crypto.randomUUID();page=0;redo=[];blocked=false;dirty=true;matchTask();render();save();say('#ai-status',doc.prompt?'已按所选题目新建，请在下方书写'+(essay?'作文。':'解答过程。'):'已新建自拟作业，请先填写'+(essay?'作文要求。':'题目与条件。'));history.replaceState(null,'','?'+new URLSearchParams({subject,unit:unitId,id:key.slice(C.PREFIX.length)}));}
+  function newDoc(){if(job||active||importing||dirty&&!save())return;doc=C.create(subject,unitId,selectedPrompt());key=C.PREFIX+crypto.randomUUID();page=0;redo=[];blocked=false;dirty=true;matchTask();render();save();say('#ai-status',doc.prompt?'已按所选题目新建，请在下方书写'+(essay?'作文。':'解答过程。'):'已新建自拟作业，请先填写'+(essay?'作文要求。':'题目与条件。'));history.replaceState(null,'',writingUrl());}
 
   $('#save').onclick=()=>{if(!active)save();};
   $('#prompt').oninput=()=>{C.change(doc);doc.prompt=$('#prompt').value;dirty=true;matchTask();review();say('#save-status','正在保存…');clearTimeout(saveTimer);saveTimer=setTimeout(save,400);};
@@ -128,8 +131,8 @@
     finally{clearTimeout(timer);if(job===controller){job=null;$('#cancel').hidden=true;render();}}
   }
   $('#grade').onclick=request;$('#cancel').onclick=()=>job?.abort();
-  doc=C.create(subject,unitId,(params.get('prompt')||(tasks.find(t=>t.id===params.get('task'))||tasks[0])?.prompt||'').slice(0,6000));key=C.PREFIX+crypto.randomUUID();
-  const requested=C.PREFIX+params.get('id');if(C.KEY.test(requested)){try{const d=JSON.parse(localStorage.getItem(requested));if(!C.validate(d)||d.unitId!==unitId)throw Error();doc=d;key=requested;}catch{blocked=true;say('#ai-status','该原稿无法读取，已停止覆盖。原记录保留，请返回课堂后重新进入。',true);}}
-  if(!C.KEY.test(requested))history.replaceState(null,'','?'+new URLSearchParams({subject,unit:unitId,id:key.slice(C.PREFIX.length)}));
+  doc=C.create(subject,unitId,(applicationTask?.prompt||params.get('prompt')||(tasks.find(t=>t.id===params.get('task'))||tasks[0])?.prompt||'').slice(0,6000));key=C.PREFIX+crypto.randomUUID();
+  const requested=C.PREFIX+params.get('id');if(C.KEY.test(requested)){try{const d=JSON.parse(localStorage.getItem(requested));if(!C.validate(d)||d.unitId!==unitId||applicationTask&&d.prompt!==applicationTask.prompt)throw Error();doc=d;key=requested;}catch{blocked=true;say('#ai-status','该原稿无法读取或不属于本题，已停止覆盖。原记录保留，请返回课堂后重新进入。',true);}}
+  if(!C.KEY.test(requested))history.replaceState(null,'',writingUrl());
   matchTask();render();if(!C.KEY.test(requested)){dirty=true;save();}
 })();

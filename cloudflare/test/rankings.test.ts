@@ -9,19 +9,24 @@ const doc=(key:string,value:unknown):Document=>({key,value:JSON.stringify(value)
 const good={score:8,feedback:'概念准确，例子恰当。',criticalErrors:[]};
 const math=catalog.find(u=>u.id==='math-8a-01')!;
 
-test('50% Feynman, 100% questions and no diagnosis give 55; semester keeps fixed denominators',()=>{
+test('50% Feynman and 100% application practice give 85; semester keeps fixed denominators',()=>{
   const topics=Object.fromEntries(math.topics!.map((id,i)=>[id,{seen:true,bestQuiz:3,attempts:i<6?[good]:[]}]));
   const rows=masteryBoards([doc('growing-math-lessons-v1',{topics})]);
   const unit=rows.find(r=>r.id===math.id)!,course=rows.find(r=>r.id==='math:upper')!;
-  assert.equal(unit.conceptTotal,12);assert.equal(unit.conceptDone,6);assert.equal(unit.score,5500);
-  assert.equal(course.conceptTotal,32);assert.equal(course.testTotal,32);assert.equal(course.diagnosisTotal,32);assert.equal(course.score,2063);
+  assert.equal(unit.conceptTotal,12);assert.equal(unit.conceptDone,6);assert.equal(unit.score,8500);
+  assert.equal(course.conceptTotal,32);assert.equal(course.testTotal,32);assert.equal(course.diagnosisTotal,32);assert.equal(course.score,3188);
   assert.equal(rows.length,2);
 });
-test('Feynman alone earns 30, questions alone 40, both without diagnosis 70',()=>{
-  for(const [concept,quiz,expected] of [[true,0,3000],[false,3,4000],[true,3,7000]] as const){
+test('Feynman alone earns 30, application practice alone 70, and both earn 100',()=>{
+  for(const [concept,quiz,expected] of [[true,0,3000],[false,3,7000],[true,3,10000]] as const){
     const topics=Object.fromEntries(math.topics!.map(id=>[id,{seen:true,bestQuiz:quiz,attempts:concept?[good]:[]}]));
     assert.equal(masteryBoards([doc('growing-math-lessons-v1',{topics})])[0].score,expected);
   }
+});
+test('ten-question application practice uses its actual score with the 70% weight',()=>{
+  const topics=Object.fromEntries(math.topics!.map((id,i)=>[id,{seen:true,bestQuiz:3,practice10:{version:1,total:10,best:8},attempts:i<6?[good]:[]}]));
+  const unit=masteryBoards([doc('growing-math-lessons-v1',{topics})]).find(r=>r.id===math.id)!;
+  assert.equal(unit.score,7100);
 });
 test('invalid scores, unknown topics, browsing, rewards and clocks cannot award points',()=>{
   const topics={unknown:{bestQuiz:3,attempts:[good]},[math.topics![0]]:{seen:true,bestQuiz:999,attempts:[{...good,score:'10'},{...good,score:11},{...good,criticalErrors:['错误']}]}};
@@ -35,7 +40,7 @@ test('English recall is test credit and never concept credit; real explanations 
   const r=masteryBoards([doc('growing-english-course-v1:'+u.id,value)])[0];
   assert.equal(r.conceptDone,1);assert.equal(r.conceptTotal,4);assert.equal(r.testDone,2);
   assert.equal(r.testTotal,u.rules!.words.length+4);
-  assert.equal(r.score,Math.round(750+8000/r.testTotal));
+  assert.equal(r.score,Math.round(750+14000/r.testTotal));
   value.feynman[lesson.id].attempts=[];assert.equal(masteryBoards([doc('growing-english-course-v1:'+u.id,value)])[0].conceptDone,0);
 });
 
@@ -47,12 +52,12 @@ function assessment(targets:string[],correct=true){
 }
 const diagnosticDoc=(unit:any,session:any)=>doc('growing-diagnosis-v1:'+unit.id,{version:1,score:10000,
   records:Object.fromEntries(unit.diagnosisTopics.map((id:string)=>[id,session]))});
-test('complete diagnosis is worth 30; all three components are worth exactly 100',()=>{
+test('diagnosis history is retained but adds no ranking points',()=>{
   const session=assessment(math.diagnosisTopics!);
   const diagnostic=diagnosticDoc(math,session);
   const only=masteryBoards([diagnostic]);
-  assert.equal(only[0].score,3000);assert.equal(only[0].diagnosisDone,12);assert.equal(only[0].diagnosisTotal,12);
-  assert.equal(only.find(r=>r.id==='math:upper')!.score,1125);
+  assert.equal(only[0].score,0);assert.equal(only[0].diagnosisDone,12);assert.equal(only[0].diagnosisTotal,12);
+  assert.equal(only.find(r=>r.id==='math:upper')!.score,0);
   const topics=Object.fromEntries(math.topics!.map(id=>[id,{bestQuiz:3,attempts:[good]}]));
   assert.equal(masteryBoards([diagnostic,doc('growing-math-lessons-v1',{topics})])[0].score,10000);
   assert.deepEqual(masteryBoards([{...diagnostic,value:null}]),[]);
@@ -72,14 +77,14 @@ test('one completed target contributes only its two-question fraction, without d
   const session={...full,answers:[full.answers[0],{...full.answers[1],choice:null}]};
   const record=doc('growing-diagnosis-v1:'+math.id,{version:1,records:{[id]:session,unknown:full}});
   const rows=masteryBoards([record,record]);
-  assert.equal(rows[0].diagnosisDone,.5);assert.equal(rows[0].diagnosisTotal,12);assert.equal(rows[0].score,125);
+  assert.equal(rows[0].diagnosisDone,.5);assert.equal(rows[0].diagnosisTotal,12);assert.equal(rows[0].score,0);
 });
 test('fraction diagnostic and semester denominators use the actual graph independently of legacy concept counts',()=>{
   const fraction=catalog.find(u=>u.kind==='fraction')!;
   const rows=masteryBoards([diagnosticDoc(fraction,assessment(fraction.diagnosisTopics!))]);
   const unit=rows.find(r=>r.id===fraction.id)!,course=rows.find(r=>r.id==='math:lower')!;
-  assert.equal(unit.diagnosisTotal,11);assert.equal(unit.diagnosisDone,11);assert.equal(unit.score,3000);
-  assert.equal(course.diagnosisTotal,36);assert.equal(course.score,917);
+  assert.equal(unit.diagnosisTotal,11);assert.equal(unit.diagnosisDone,11);assert.equal(unit.score,0);
+  assert.equal(course.diagnosisTotal,36);assert.equal(course.score,0);
 });
 test('legacy fraction and Unit 3 keep valid records; bonus exams cannot inflate the test denominator',()=>{
   const fraction=catalog.find(u=>u.kind==='fraction')!,english=catalog.find(u=>u.kind==='legacy-english')!;

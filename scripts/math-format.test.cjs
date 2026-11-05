@@ -4,6 +4,34 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 const math=require('../platform-web/math-format.js');
+test('AI solutions distinguish reasons, key steps and conclusions without changing formulas or saved text',()=>{
+  const source=String.raw`因为
+
+\[AB=AC\]
+
+【关键步骤】作辅助线，得到 \(\frac{AD}{DB}=\frac{AE}{EC}\)。
+
+所以
+
+\[DF=EF\]`;
+  const rendered=math.solutionHtml(source);
+  assert.match(rendered,/<div class="solution-step solution-reason">∵\n<span class="math-display">/);
+  assert.match(rendered,/<div class="solution-step solution-key">【关键步骤】/);
+  assert.match(rendered,/<div class="solution-step solution-conclusion">∴\n<span class="math-display">/);
+  assert.match(rendered,/<mfrac>/);
+  assert.equal((rendered.match(/class="katex"/g)||[]).length,3);
+  assert.match(source,/因为/);assert.match(source,/所以/);
+  assert.equal(math.html('因为条件，所以成立'),'因为条件，所以成立');
+  assert.match(math.solutionHtml('因为条件，所以成立'),/∵条件，∴成立/);
+  assert.match(math.solutionHtml('【错误原因】缺少对应边条件。'),/class="solution-step solution-error"/);
+  assert.match(math.solutionHtml('**因为**条件\n\n**所以**成立'),/solution-conclusion">∴成立/);
+  assert.match(math.solutionHtml(String.raw`\[\begin{aligned}a&=b\\
+
+b&=c\end{aligned}\]`),/class="katex"/);
+  assert.doesNotMatch(math.solutionHtml('<script>alert(1)</script>'),/<script>/);
+  assert.match(math.solutionHtml(String.raw`\(\href{javascript:alert(1)}{x}\)`),/math-format-error/);
+  assert.match(math.solutionHtml(String.raw`\(x`),/math-format-error/);
+});
 test('standard math preserves fractions, radicals, subscripts, cases and operation order',()=>{
   const source=String.raw`计算 \(\left(1-\frac{1}{x+1}\right)\div\frac{x^2}{x^2-1}\)。\[\sqrt[3]{216}+S_{n+1}\]`;
   assert.equal(math.normalize(source),source);

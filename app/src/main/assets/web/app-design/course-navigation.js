@@ -15,7 +15,7 @@
   style.textContent+='.course-return-nav{position:relative;z-index:4;flex-shrink:0;width:100%}';
   style.textContent+='.course-return-nav{flex-wrap:wrap}';
   style.textContent+='.course-quick-tools{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.course-quick-tools a{padding:10px 14px;border:1px solid #b9c6a9;border-radius:10px;color:inherit;text-decoration:none}';
-  window.GrowingCourseNavigation={subject,unit:id,writing:prefix+'handwriting.html?'+new URLSearchParams({subject,unit:id}),wrong:subject==='math'&&['math-8a-01','math-8a-02','math-8b-09','math-8b-10'].includes(id)?prefix+'math-wrong-questions.html?'+new URLSearchParams({unit:id}):''};
+  window.GrowingCourseNavigation={subject,unit:id,writing:prefix+'handwriting.html?'+new URLSearchParams({subject,unit:id}),wrong:subject==='math'?prefix+'math-wrong-questions.html?'+new URLSearchParams({unit:id}):''};
   window.GrowingCourseNavigation.openPhotoBank=()=>{
     try{if(window.top.GrowingCloud?.openQuestionBank)return window.top.GrowingCloud.openQuestionBank();if(window.GrowingPhotoBank)return window.GrowingPhotoBank.open();
       let status=document.getElementById('photo-entry-status');if(!status){status=document.createElement('p');status.id='photo-entry-status';status.setAttribute('role','status');nav.after(status);}status.textContent='拍照题库需要云账号，请从学习中心登录后进入课堂。';

@@ -2,8 +2,12 @@
 (()=>{
   'use strict';
   const verdicts={correct:'正确',partial:'部分正确',incorrect:'需要订正',unanswered:'未作答',review:'待人工核对'};
+  function isWrong(question,grade=question.grades?.filter(g=>g.revision===question.revision).at(-1)){
+    if(grade)return grade.revision===question.revision&&(grade.kind==='initial'&&question.paperWrong!=null?!!question.paperWrong:['incorrect','partial'].includes(grade.result?.verdict));
+    return !question.grades?.length&&!!question.paperWrong;
+  }
   function uuid(){if(crypto.randomUUID)return crypto.randomUUID();return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(Number(c)^crypto.getRandomValues(new Uint8Array(1))[0]&15>>Number(c)/4).toString(16));}
-  window.GrowingPhotoReview={uuid,create(root,api,esc,alive,studentId,onChange,figures){
+  window.GrowingPhotoReview={uuid,isWrong,create(root,api,esc,alive,studentId,onChange,figures){
     const host=root.querySelector('[data-workbench]'),math=window.GrowingMathFormat,papers=new Map();
     let disposed=false,sequence=0,current=null,paper=null,selectedGrade='',busy=false,pageNumber=1,sourceOpen=false,pad=null;
     const sourceId='photo-review-original-'+uuid(),knowledgeId='photo-review-knowledge-'+uuid();
@@ -48,7 +52,7 @@
       if(g)window.GrowingGradedAnswer.mount(host.querySelector('[data-graded-answer]'),g,current,paper,esc,render);
       d.handwriting??={pages:[[]]};
       pad=window.GrowingCorrectionPad.mount(host.querySelector('[data-correction-pad]'),d.handwriting,()=>{d.answerRevision=(d.answerRevision||0)+1;save();},status);
-      const wrong=!stale&&['incorrect','partial'].includes(result?.verdict);
+      const wrong=isWrong(current,g);
       host.querySelector('.photo-review-result>.bank-text')?.classList.toggle('question-wrong',wrong);
       host.querySelector('.photo-question-heading>h3').classList.toggle('question-wrong',wrong);
       if(!inline){const images=document.createElement('div');host.querySelector('.photo-review-result>.bank-text').after(images);figures.mount(images,current,{originals:false,minimal:true});}
@@ -57,8 +61,9 @@
     function sync(){
       root.querySelectorAll('[data-review-open]').forEach(button=>{
         const expanded=!host.hidden&&button.dataset.reviewOpen===host.dataset.anchorQuestion;
-        button.textContent=expanded?'返回':'此题批改';button.setAttribute('aria-expanded',String(expanded));button.setAttribute('aria-controls',host.id);button.disabled=busy;
+        button.textContent=expanded?'返回':button.dataset.reviewLabel||'此题批改';button.setAttribute('aria-expanded',String(expanded));button.setAttribute('aria-controls',host.id);button.disabled=busy;
       });
+      root.querySelectorAll('[data-review-camera]').forEach(input=>input.disabled=busy);
     }
     function close(){if(!valid()||busy)return;host.hidden=true;sync();}
     function lock(){if(!valid())return;host.querySelectorAll('button,select,textarea').forEach(el=>{el.disabled=busy||!!(grade()&&grade().revision!==current?.revision&&(el.closest('[data-followup]')||el.hasAttribute('data-followup-preset')));});pad?.lock(busy);sync();}
@@ -67,15 +72,25 @@
       try{const data=await api('/question-bank/questions/'+id+'/review?'+new URLSearchParams({studentId}));if(!valid()||n!==sequence)return;
         const q=paper.questions.find(q=>q.id===id);Object.assign(q,data.question,{followups:data.followups});current=q;selectedGrade=q.grades.at(-1)?.id||'';pageNumber=q.pages[0]||1;sourceOpen=false;
         const trigger=[...root.querySelectorAll('[data-review-open]')].find(button=>button.dataset.reviewOpen===q.id);
-        trigger?.closest('.bank-question')?.after(host);host.dataset.anchorQuestion=q.id;paint();
+        trigger?.closest('.bank-question,.question')?.after(host);host.dataset.anchorQuestion=q.id;paint();
       }catch(error){if(valid()&&n===sequence)status(error.message,true);}finally{if(valid()&&n===sequence){busy=false;lock();}}
     }
     async function open(q){
+      if(busy)return;
+      pad?.dispose();pad=null;current=null;
       const trigger=[...root.querySelectorAll('[data-review-open]')].find(button=>button.dataset.reviewOpen===q.id);
-      trigger?.closest('.bank-question')?.after(host);host.dataset.anchorQuestion=q.id;
+      trigger?.closest('.bank-question,.question')?.after(host);host.dataset.anchorQuestion=q.id;
       const n=++sequence;host.hidden=false;host.innerHTML='<p data-review-status role="status">正在打开逐题工作台…</p>';busy=true;sync();
       try{paper=papers.get(q.paperId);if(!paper){paper=await api('/question-bank/papers/'+q.paperId+'?'+new URLSearchParams({studentId}));if(!valid()||n!==sequence)return;papers.set(q.paperId,paper);}await loadQuestion(q.id);}
       catch(error){if(valid())host.innerHTML='<p class="warning" role="status">'+esc(error.message)+'</p>';}finally{if(valid()){busy=false;lock();}}
+    }
+    async function addPhotos(id,files){
+      if(busy||!valid()||current?.id!==id||!pad)throw Error('题目尚未打开，请重新选择答案照片。');
+      const form=host.querySelector('.photo-correct-form');form.hidden=false;form.open=true;draft().correctionOpen=true;
+      // The pad locks itself while decoding; keep question navigation locked as well.
+      busy=true;sync();host.querySelectorAll('button,select,textarea').forEach(el=>el.disabled=true);
+      try{await pad.addPhotos(files);status('答案照片已准备，请核对后提交AI批改。');}
+      finally{busy=false;lock();}
     }
     async function followup(prompt){
       if(busy||!grade())return;const q=current,g=grade(),n=sequence;draft().prompt=prompt;save();busy=true;lock();status('正在结合本题原稿解释…');
@@ -133,6 +148,6 @@
     const resizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(centerQuestionTab):null;resizeObserver?.observe(host);
     const observer=new MutationObserver(()=>{if(!host.isConnected)dispose();});observer.observe(document.body,{childList:true,subtree:true});
     function dispose(){if(disposed)return;pad?.dispose();pad=null;disposed=true;sequence++;observer.disconnect();resizeObserver?.disconnect();closeStudy();window.removeEventListener('message',studyMessage);papers.clear();figures.dispose();host.replaceChildren();host.hidden=true;}
-    return {open,close,sync,dispose,async refresh(){papers.clear();if(current&&!host.hidden)await open(current);}};
+    return {open,close,sync,dispose,addPhotos,async refresh(){papers.clear();if(current&&!host.hidden)await open(current);}};
   }};
 })();

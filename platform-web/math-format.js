@@ -49,5 +49,30 @@
     // Diagram metadata is appended for processing, not part of the student-facing question.
     return html(String(source??'').replace(/\s*图示条件\s*[：:][\s\S]*$/,'').trim());
   }
-  return {version,parts,validate,normalize,html,questionHtml};
+  function solutionHtml(source){
+    // Split prose only: a multiline formula must stay intact, escaped and validated.
+    let tokens;try{tokens=validate(source);}catch(e){return html(source);}
+    const blocks=[[]];
+    for(const p of tokens){
+      if(p.math){blocks.at(-1).push(p);continue;}
+      for(const [i,text] of p.text.split(/(\r?\n[ \t]*\r?\n)/).entries()){
+        if(i%2)blocks.push([]);else if(text)blocks.at(-1).push({text});
+      }
+    }
+    const label=/^\s*(?:#{1,6}\s*)?(?:\*\*)?(?:【)?(错误原因|关键步骤|最终答案|结论|答案|因为|所以|∵|∴)(?:】)?(?:\*\*)?[：:，, \t]*/;
+    const prose=text=>escape(text.replace(/(^|[，。；：;:\n]\s*)(?:\*\*)?(因为|所以)(?:\*\*)?[：:，,]?/g,(_,before,word)=>before+(word==='因为'?'∵':'∴')));
+    return blocks.map((block,i)=>{
+      const first=block[0]?.text||'',match=first.match(label);
+      if(match&&first.slice(match[0].length).trim()===''&&block.length===1){
+        let next=i+1;while(next<blocks.length&&!blocks[next].length)next++;
+        if(next<blocks.length){block.push({text:'\n'},...blocks[next]);blocks[next]=[];}
+      }
+      if(!block.length)return '';
+      const kind=!match?'':match[1]==='因为'||match[1]==='∵'?'reason':match[1]==='关键步骤'?'key':match[1]==='错误原因'?'error':'conclusion';
+      const body=block.map(p=>p.math?`<span class="${p.display?'math-display':'math-inline'}">${formula(p)}</span>`:prose(p.text)).join('');
+      return `<div class="solution-step${kind?' solution-'+kind:''}">${body}</div>`;
+    }).join('');
+  }
+  const solutionPrompt='证明中的“因为”写作 ∵，“所以”写作 ∴。关键构造或推导以“【关键步骤】”开头，最终结论以“【结论】”开头，分别独立成段，保留推理依据；不要输出 HTML 或用颜色命令标记公式。';
+  return {version,parts,validate,normalize,html,questionHtml,solutionHtml,solutionPrompt};
 });

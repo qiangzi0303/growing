@@ -3,8 +3,11 @@ from pathlib import Path
 import shutil
 import subprocess
 import runpy
+import os
 
 repo = Path(__file__).resolve().parents[1]
+subprocess.run(['pnpm.cmd' if os.name == 'nt' else 'pnpm', '--dir', str(repo / 'console-web'), 'run', 'build'], check=True)
+stage_console = runpy.run_path(str(repo / 'scripts/stage-console.py'))['stage_console']
 subprocess.run(['node', str(repo / 'scripts/build-duck-catalog.cjs')], check=True)
 subprocess.run(['node', str(repo / 'scripts/build-photo-learning-catalog.cjs')], check=True)
 runpy.run_path(str(repo / 'scripts/sync-duck.py'))
@@ -21,6 +24,7 @@ subprocess.run(['node', str(repo / 'scripts/vendor-math-format.cjs')], check=Tru
 # This is a generated, ignored directory. Preserve unchanged files during dev reload.
 target.mkdir(parents=True, exist_ok=True)
 expected = set()
+expected.update(stage_console(repo / 'console-web/dist', target))
 def copy(source, destination):
     expected.add(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)

@@ -13,11 +13,11 @@
       return {studentId:session.user.id,api:async(path,options={})=>{
         const current=JSON.parse(localStorage.getItem('growing-cloud-session-v1')||'null');
         if(current?.token!==session.token||current.user?.id!==session.user.id)throw Error('账号已切换，请重新打开错题。');
-        const response=await fetch(base+'/api'+path,{...options,signal:AbortSignal.timeout(12000),credentials:'omit',headers:{'Content-Type':'application/json','X-Growing-Client':'1',Authorization:'Bearer '+session.token}});
+        const response=await fetch(base+'/api'+path,{...options,signal:AbortSignal.timeout(/\/questions\/[^/]+\/(correct|followup)$/.test(path)?110000:12000),credentials:'omit',headers:{'Content-Type':'application/json','X-Growing-Client':'1',Authorization:'Bearer '+session.token}});
         const result=await response.json();if(!response.ok)throw Error(result.error||'记录未保存，请重试。');return result;
       }};
     },
-    create(root,api,studentId,alive=()=>true,onChange=()=>{}){
+    create(root,api,studentId,alive=()=>true,onChange=()=>{},options={}){
       let disposed=false;const valid=()=>!disposed&&root.isConnected&&alive();
       const stats=new Map(),states=new Map(),loaded=new Set(),loadErrors=new Map();
       const key=(kind,id)=>kind+':'+id;
@@ -33,7 +33,7 @@
       function content(kind,id){
         const k=key(kind,id),s=state(k),v=get(kind,id),ready=loaded.has(kind),disabled=s.busy||!ready||s.blocked;
         const action=(name,text)=>`<button type="button" data-attempt-action="${name}" ${disabled?'disabled':''}>${text}</button>`;
-        return `<p class="attempt-count ${v.wrongCount>=2?'attempt-repeat':''}">${ready?`累计做错 <strong>${v.wrongCount}</strong> 次 · 做对 ${v.correctCount} 次 · 共 ${v.totalCount} 次${v.wrongCount>=2?' · 反复错题（≥2次）':''}`:esc(loadErrors.get(kind)||'正在读取作答统计…')}</p>${v.lastAt?`<p class="attempt-meta">最近记录：${esc(stamp(v.lastAt))}（北京时间）</p>`:''}<p class="attempt-meta">独立作答并核对后，记录本次对错。</p><div class="attempt-actions">${!s.pending?action('start',s.message?'再练一次':'开始本次练习'):s.pending.correct===null?action('wrong','本次做错')+action('correct','本次做对')+action('cancel','取消本次练习'):action('retry',s.busy?'正在保存…':'重试保存本次结果')}${action('history','查看作答记录')}</div><p role="status" class="attempt-status">${esc(s.message)}</p>${s.history?`<div class="attempt-history"><p>作答记录 · 第 ${s.history.page} 页（北京时间）</p><ol>${s.history.rows.map(r=>`<li>${esc(stamp(r.at))} · ${r.correct?'做对':'做错'}</li>`).join('')||'<li>尚无作答记录。</li>'}</ol><div class="attempt-actions">${s.history.page>1?action('history-prev','上一页'):''}${s.history.page*20<s.history.totalCount?action('history-next','下一页'):''}</div></div>`:''}`;
+        return `<p class="attempt-count ${v.wrongCount>=2?'attempt-repeat':''}">${ready?`累计做错 <strong>${v.wrongCount}</strong> 次 · 做对 ${v.correctCount} 次 · 共 ${v.totalCount} 次${v.wrongCount>=2?' · 反复错题（≥2次）':''}`:esc(loadErrors.get(kind)||'正在读取作答统计…')}</p>${v.lastAt?`<p class="attempt-meta">最近记录：${esc(stamp(v.lastAt))}（北京时间）</p>`:''}${options.manualPractice!==false?'<p class="attempt-meta">独立作答并核对后，记录本次对错。</p>':''}<div class="attempt-actions">${!s.pending?(options.manualPractice===false?'':action('start',s.message?'再练一次':'开始本次练习')):s.pending.correct===null?action('wrong','本次做错')+action('correct','本次做对')+action('cancel','取消本次练习'):action('retry',s.busy?'正在保存…':'重试保存本次结果')}${action('history','查看作答记录')}</div><p role="status" class="attempt-status">${esc(s.message)}</p>${s.history?`<div class="attempt-history"><p>作答记录 · 第 ${s.history.page} 页（北京时间）</p><ol>${s.history.rows.map(r=>`<li>${esc(stamp(r.at))} · ${r.correct?'做对':'做错'}</li>`).join('')||'<li>尚无作答记录。</li>'}</ol><div class="attempt-actions">${s.history.page>1?action('history-prev','上一页'):''}${s.history.page*20<s.history.totalCount?action('history-next','下一页'):''}</div></div>`:''}`;
       }
       function markup(kind,id){return `<section class="question-attempt" data-attempt-key="${esc(key(kind,id))}" aria-label="作答与错误次数">${content(kind,id)}</section>`;}
       function paint(kind,id){if(!valid())return;const k=key(kind,id);for(const el of root.querySelectorAll('[data-attempt-key]'))if(el.dataset.attemptKey===k)el.innerHTML=content(kind,id);}

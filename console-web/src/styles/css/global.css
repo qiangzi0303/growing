@@ -1,0 +1,22 @@
+@import './reset.css';
+@import './nprogress.css';
+@import './transition.css';
+
+html,
+body,
+#app {
+  height: 100%;
+  text-autospace: normal;
+}
+
+html {
+  overflow-x: hidden;
+  color: rgb(var(--base-text-color));
+}
+
+.console-page { display: flex; flex-direction: column; gap: 24px; width: 100%; min-width: 0; box-sizing: border-box; }
+.console-page h1 { font-size: 24px; line-height: 1.4; font-weight: 600; margin-bottom: 6px; }
+.console-page .page-description { color: #617268; line-height: 1.6; }
+.console-page p { overflow-wrap: anywhere; }
+.console-page :focus-visible { outline: 2px solid #38694f; outline-offset: 3px; }
+@media (max-width: 480px) { .console-page { gap: 20px; } .console-page h1 { font-size: 22px; } }
