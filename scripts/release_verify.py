@@ -6,6 +6,15 @@ import struct
 import zipfile
 
 
+def asset_matches(source, packaged):
+    local = source.read_bytes()
+    if local == packaged:
+        return True
+    # These text types are checked out as LF on CI by the repository .gitattributes.
+    lf_types = {'.java', '.js', '.gradle', '.xml', '.yml', '.html', '.css', '.py', '.sh'}
+    return source.suffix in lf_types and local.replace(b'\r\n', b'\n') == packaged
+
+
 def manifest_attributes(data, element='manifest'):
     strings = []
     offset = 8
@@ -89,7 +98,7 @@ def verify(repo, folder, run_number):
         actual = {name for name in archive.namelist() if name.startswith('assets/') and not name.endswith('/')}
         require(actual == set(expected), 'APK packaged asset file list differs from local source')
         for name, source in expected.items():
-            require(archive.read(name) == source.read_bytes(), 'APK asset differs: ' + name)
+            require(asset_matches(source, archive.read(name)), 'APK asset differs: ' + name)
             checked += 1
     return {'versionName': version, 'versionCode': run_number, 'sha256': digest,
             'matchedAssets': checked, 'certificateSha256': identity['certificateSha256'], 'file': str(apk)}

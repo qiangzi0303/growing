@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import release
+from release_verify import asset_matches
 
 
 class ReleaseTests(unittest.TestCase):
@@ -75,6 +76,16 @@ class ReleaseTests(unittest.TestCase):
                                          '--cached', '--others', '--exclude-standard', '--', *required],
                                         timeout=30).decode().splitlines()
         self.assertTrue(set(required).issubset(files), 'Console configuration must not be ignored')
+
+    def test_asset_verification_accepts_only_declared_text_line_endings(self):
+        source = Path(self.temp.name) / 'page.html'
+        source.write_bytes(b'<p>same</p>\r\n')
+        self.assertTrue(asset_matches(source, b'<p>same</p>\n'))
+        self.assertFalse(asset_matches(source, b'<p>changed</p>\n'))
+        binary = source.with_suffix('.png')
+        binary.write_bytes(b'\x89PNG\r\n')
+        self.assertTrue(asset_matches(binary, b'\x89PNG\r\n'))
+        self.assertFalse(asset_matches(binary, b'\x89PNG\n'))
 
     def test_offline_check_does_not_access_remote(self):
         self.args.check = self.args.offline = True
