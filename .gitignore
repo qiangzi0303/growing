@@ -1,5 +1,6 @@
 .gradle/
 **/build/
+!console-web/build/
 local.properties
 *.jks
 *.keystore

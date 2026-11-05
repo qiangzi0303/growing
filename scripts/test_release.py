@@ -68,6 +68,14 @@ class ReleaseTests(unittest.TestCase):
             self.assertFalse(release.public_console_env(repo / 'console-web/.env.local'))
             self.assertFalse(release.public_console_env(repo / '.env'))
 
+    def test_console_build_configuration_is_included_in_release_sources(self):
+        required = ['console-web/.env', 'console-web/build/config/index.ts',
+                    'console-web/build/plugins/index.ts']
+        files = subprocess.check_output(['git', '-C', str(release.REPO), 'ls-files',
+                                         '--cached', '--others', '--exclude-standard', '--', *required],
+                                        timeout=30).decode().splitlines()
+        self.assertTrue(set(required).issubset(files), 'Console configuration must not be ignored')
+
     def test_offline_check_does_not_access_remote(self):
         self.args.check = self.args.offline = True
         self.r.execute()
