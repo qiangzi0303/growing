@@ -10,6 +10,7 @@ import { Administration } from '../src/administration';
 import rankingRules from '../src/ranking-rules.json';
 import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
 import diagnosisRules from '../src/diagnosis-rules.json';
+import sentenceRules from '../src/english-sentence-rules.json';
 
 const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: 'export default {fetch(){return new Response("ok")}}', compatibilityDate: '2026-10-22', d1Databases: ['DB'] }));
 let db: Database;
@@ -1178,6 +1179,28 @@ test('cloud learning archives follow the student across device sessions includin
   assert.equal((await call(route,'PUT',{value:row.value,revision:0},next.token)).status,409);
   assert.equal((await call(route,'PUT',{value:'{}',revision:row.revision},other.token)).status,409);
   assert.equal((await call('/api/student/state/growing-course-ai-v1','PUT',{value:'{}',revision:0},next.token)).status,400);
+});
+
+test('synced English completions are stored in D1 and visible to bound parents and administrators only',async()=>{
+  const s=await register(),p=await register('Parent'),other=await register('Parent'),a=await administrator();await bindStudent(s,p);
+  const unit='english-8a-01',sentence=sentenceRules[unit][0];
+  const value=JSON.stringify({version:1,sentences:{[sentence.id]:{protocol:'sentence-typing-v1',answer:sentence.en,wrong:0,hints:0,revealed:false,at:Date.now()}}});
+  const key='growing-english-sentences-v1:'+unit;
+  assert.equal((await call('/api/student/state/'+key,'PUT',{revision:0,value},s.token)).status,200);
+  const course=JSON.stringify({version:1,words:{friendship:{protocol:'seven-recalls',answers:Array(7).fill('friendship')},honest:{protocol:'seven-recalls',answers:Array(7).fill('honest')}},lessons:{}});
+  assert.equal((await call('/api/student/state/growing-english-course-v1:'+unit,'PUT',{revision:0,value:course},s.token)).status,200);
+  const [stored]=await db.query<any>('SELECT "Value" FROM "GrowingDocuments" WHERE "StudentId"=?1 AND "Key"=?2',[s.user.id,key]);
+  assert.equal(stored.Value,value);
+  for(const [target,token] of [['/api/parent/children/'+s.user.id+'/unit-report',p.token],['/api/admin/students/'+s.user.id+'/unit-report',a.token]]){
+    const response=await call(target,'GET',undefined,token);assert.equal(response.status,200);
+    const data=await response.json() as any,r=data.units.find((u:any)=>u.id===unit);
+    assert.deepEqual(r.sentences,{completed:1,total:sentenceRules[unit].length});assert.equal(r.words.mastered,2);
+    assert.equal(r.words.total,(rankingRules.find(u=>u.id===unit) as any).rules.wordCount);
+    assert.ok(!JSON.stringify(data).includes(sentence.en));
+  }
+  assert.equal((await call('/api/parent/children/'+s.user.id+'/unit-report','GET',undefined,other.token)).status,404);
+  assert.equal((await call('/api/student/state/'+key,'PUT',{revision:1,value},p.token)).status,403);
+  assert.equal((await call('/api/student/state/growing-english-sentences-v1:english-8b-01','PUT',{revision:0,value},s.token)).status,400);
 });
 
 test('unit reports are read-only and enforce role, family binding and admin revocation',async()=>{

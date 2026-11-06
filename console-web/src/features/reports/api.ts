@@ -6,6 +6,8 @@ export interface UnitReport {
   id: string; title: string; subject: string; subjectName: string; term: string; termName: string;
   activeMinutes: number | null; firstStudyDay: string | null; lastStudyDay: string | null; studyDays: number;
   mastered: number; total: number; masteryPercent: number;
+  words?: { mastered: number; total: number } | null;
+  sentences?: { completed: number; total: number } | null;
   concept: { passed: number; total: number; retainedAttempts: number; best: number | null; latest: number | null };
   practice: { done: number; total: number };
   diagnostic: { passed: number; shaky: number; weak: number; tested: number; total: number };

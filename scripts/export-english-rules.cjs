@@ -3,7 +3,7 @@ const root=path.resolve(__dirname,'..'),web=path.join(root,'app/src/main/assets/
 const wordRules=require(path.join(web,'word-mastery-rules.js'));
 for(const file of ['english-vocabulary.js','english-lessons.js'])vm.runInContext(fs.readFileSync(path.join(web,file),'utf8'),context,{filename:file});
 const rules=Object.fromEntries(Object.entries(context.window.GrowingEnglishVocabulary).map(([number,words])=>['english-8a-'+number.padStart(2,'0'),{
-  words:words.filter(w=>!w.optional).map(w=>wordRules.describe(w)),lessons:(context.window.GrowingEnglishLessons[number]||[]).map(l=>({id:l.id,answers:l.questions.map(q=>q.answer)}))
+  wordCount:words.length,words:words.filter(w=>!w.optional).map(w=>wordRules.describe(w)),lessons:(context.window.GrowingEnglishLessons[number]||[]).map(l=>({id:l.id,answers:l.questions.map(q=>q.answer)}))
 }]));
 const legacy=vm.createContext({window:{}}),fraction=fs.readFileSync(path.join(root,'app/src/main/assets/web/fraction-ops/分式作战_一分钟学习版.html'),'utf8');
 const fractionScript=[...fraction.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)][0][1];
@@ -11,6 +11,10 @@ vm.runInContext(fractionScript.slice(0,fractionScript.indexOf('window.MINUTE_LES
 const wordHtml=fs.readFileSync(path.join(root,'app/src/main/assets/web/word-ops-unit3/index.html'),'utf8');
 vm.runInContext([...wordHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)][0][1],legacy);
 const unit=legacy.window.UNIT3;
+const sentenceData=require(path.join(web,'english-sentence-data.js'));
+const sentenceRules=Object.fromEntries(Object.values(sentenceData.units).map(u=>[u.id,u.topics.flatMap(t=>t.sentences.map(({id,en})=>({id,en})))]));
+const sentenceTarget=path.join(root,'cloudflare/src/english-sentence-rules.json'),sentenceOutput=JSON.stringify(sentenceRules,null,2)+'\n';
+if(!fs.existsSync(sentenceTarget)||fs.readFileSync(sentenceTarget,'utf8')!==sentenceOutput)fs.writeFileSync(sentenceTarget,sentenceOutput);
 const summaryLegacy={words:unit.words.map(({id,en,cn,pos})=>({id,en,cn,pos})),lessons:unit.lessons.map(({id,title})=>({id,title}))};
 const summaryTarget=path.join(web,'unit-summary-legacy.js'),summaryOutput='/* Generated from the original Unit 3 classroom. */\nwindow.GrowingSummaryLegacy='+JSON.stringify(summaryLegacy)+';\n';
 if(!fs.existsSync(summaryTarget)||fs.readFileSync(summaryTarget,'utf8')!==summaryOutput)fs.writeFileSync(summaryTarget,summaryOutput);

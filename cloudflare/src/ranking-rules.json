@@ -432,6 +432,7 @@
     "termName": "八年级上册",
     "kind": "english",
     "rules": {
+      "wordCount": 52,
       "words": [
         {
           "id": "friendship",
@@ -844,6 +845,7 @@
     "termName": "八年级上册",
     "kind": "english",
     "rules": {
+      "wordCount": 59,
       "words": [
         {
           "id": "plastic",
@@ -1345,6 +1347,7 @@
     "termName": "八年级上册",
     "kind": "english",
     "rules": {
+      "wordCount": 58,
       "words": [
         {
           "id": "mooncake",
@@ -1745,6 +1748,7 @@
     "termName": "八年级上册",
     "kind": "english",
     "rules": {
+      "wordCount": 54,
       "words": [
         {
           "id": "wild",
@@ -2136,6 +2140,7 @@
     "termName": "八年级上册",
     "kind": "english",
     "rules": {
+      "wordCount": 50,
       "words": [
         {
           "id": "snowy",
@@ -2476,6 +2481,7 @@
     "termName": "八年级上册",
     "kind": "english",
     "rules": {
+      "wordCount": 55,
       "words": [
         {
           "id": "penguin",
@@ -2773,6 +2779,7 @@
     "termName": "八年级上册",
     "kind": "english",
     "rules": {
+      "wordCount": 60,
       "words": [
         {
           "id": "sound",

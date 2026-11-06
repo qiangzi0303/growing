@@ -1,6 +1,6 @@
 (()=>{
   'use strict';
-  const D=window.SentenceDemo,root=document.getElementById('sentence-app');
+  const D=window.SentenceDemo,P=window.EnglishSentenceProgress,root=document.getElementById('sentence-app');
   const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const button=(text,action,extra='')=>`<button type="button" data-action="${action}" ${extra}>${text}</button>`;
   const params=new URLSearchParams(location.search),practice=D.getPractice(params.get('unit'),params.get('topic'));
@@ -14,8 +14,23 @@
     root.innerHTML=`<main class="sheet" id="workspace"><section class="results"><h1>暂时无法开始练习</h1><p>${esc(practice.error)}</p><div class="result-actions">${practice.unit?`<a href="${esc(unitHref(practice.unit))}">重新选择知识点</a>`:''}<a href="units.html?subject=english&amp;term=upper">返回英语目录</a></div></section></main>`;
     return;
   }
+  const progressKey=P.key(practice.unit.id),readProgress=()=>P.restore(JSON.parse(localStorage.getItem(progressKey)||'null'));
+  let progressMessage='',pending=[];
+  const progressNotice=()=>progressMessage?`<p role="status">${esc(progressMessage)} ${button('重试保存','save-progress')}</p>`:'';
+  function saveProgress(){
+    try{
+      let saved=readProgress();for(const item of pending)saved=P.complete(saved,item.sentence,item.result,item.at);
+      localStorage.setItem(progressKey,JSON.stringify(saved));pending=[];progressMessage='';
+    }catch(error){progressMessage='句子完成记录暂未保存：'+error.message+'。请保持页面打开，恢复存储后重试。';}
+  }
+  const backNavigation=`<nav class="practice-nav" aria-label="返回导航">${practice.topic?`<a href="${esc(unitHref(practice.unit))}"><span aria-hidden="true">←</span> 返回知识点</a>`:''}<a href="${esc(practice.backHref)}"><span aria-hidden="true">←</span> 返回课堂</a></nav>`;
   if(!practice.topic){
-    root.innerHTML=`<main class="sheet" id="workspace"><section class="results topic-picker"><p class="topic-eyebrow">八年级上册 · 句子闯关</p><h1>Unit ${practice.unit.number} · ${esc(practice.unit.title)}</h1><p>选择知识点，先逐词练习，再完成整句挑战。</p><ul class="topic-list">${practice.unit.topics.map(t=>`<li><a href="${esc(unitHref(practice.unit))}&amp;topic=${encodeURIComponent(t.id)}"><strong>${esc(t.title)}</strong><span>10句 · 6基础 / 2提高 / 1难题 / 1综合应用 →</span></a></li>`).join('')}</ul><p class="rules">按本单元已核对的课程内容编写，句子为原创练习。刷新后重开当前题组。</p></section></main>`;
+    let saved;try{saved=readProgress();}catch(error){progressMessage=error.message;}
+    const progress=P.summary(practice.unit.topics.flatMap(t=>t.sentences),saved);
+    root.innerHTML=`<main class="sheet" id="workspace">${backNavigation}<section class="results topic-picker"><p class="topic-eyebrow">八年级上册 · 句子闯关</p><h1>Unit ${practice.unit.number} · ${esc(practice.unit.title)}</h1><p>句子互动已完成 <strong class="topic-completed-count">${progress.completed}</strong>/${progress.total} 项</p>${progressMessage?`<p role="status">${esc(progressMessage)}</p>`:''}<ul class="topic-list">${practice.unit.topics.map(t=>{
+      const status=P.summary(t.sentences,saved),complete=status.total>0&&status.completed===status.total;
+      return `<li><a${complete?' class="is-complete"':''} href="${esc(unitHref(practice.unit))}&amp;topic=${encodeURIComponent(t.id)}" aria-label="${esc(t.title)}，已完成 ${status.completed}/${status.total}句"><strong>${esc(t.title)}</strong>${complete?'<span class="topic-check" aria-hidden="true">✓</span>':''}</a></li>`;
+    }).join('')}</ul></section></main>`;
     return;
   }
   const selectedSentences=practice.sentences;
@@ -34,7 +49,7 @@
   function resetSentence(){record=emptyRecord();words=D.wordPrompts(current());wordIndex=0;phase='preview';resetTask();}
   function header(){
     const total=words.length+1,index=phase==='sentence'?words.length:wordIndex,done=showResults?total:index;
-    return `<div class="progress-line"><span>${showResults?'本轮练习完成':`用键盘输入英文，按空格确认（${index+1}/${total}）`}</span><strong id="points" aria-label="本轮练习积分">${score}</strong><span id="combo" class="sr-only">${combo}</span></div><div class="progress-inset"><div class="progress-track" role="progressbar" aria-label="当前句子练习进度" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}"><div class="progress-fill" style="width:${done/total*100}%"></div></div></div>`;
+    return `${backNavigation}${progressNotice()}<div class="progress-line"><span>${showResults?'本轮练习完成':`用键盘输入英文，按空格确认（${index+1}/${total}）`}</span><strong id="points" aria-label="本轮练习积分">${score}</strong><span id="combo" class="sr-only">${combo}</span></div><div class="progress-inset"><div class="progress-track" role="progressbar" aria-label="当前句子练习进度" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${done}"><div class="progress-fill" style="width:${done/total*100}%"></div></div></div>`;
   }
   function wordMarkup(word){
     const posClass=/动词|动名词|系动词/.test(word.pos)?'verb':word.pos==='代词'?'pronoun':word.pos==='形容词'?'adjective':word.pos==='名词'?'noun':word.pos==='副词'?'adverb':'other';
@@ -104,7 +119,7 @@
     phaseDone=true;const independent=!task.wrong&&!task.revealed;
     if(!credited){score+=task.revealed?0:task.wrong?300:1000;combo=independent?combo+1:0;bestCombo=Math.max(bestCombo,combo);credited=true;}
     rating=task.revealed?'':independent?'Perfect':'Good';message=rating||'已完成';
-    if(phase==='sentence')D.complete(round,record);
+    if(phase==='sentence'&&D.complete(round,record)){pending.push({sentence:current(),result:{...record},at:Date.now()});saveProgress();}
     render(touchTyping?'typing-answer':undefined);if(!touchTyping)focusAction('next');
   }
   function reveal(){
@@ -127,6 +142,7 @@
   root.addEventListener('pointerdown',event=>{if(touchTyping&&event.target.closest('.support-actions button'))event.preventDefault();});
   root.addEventListener('click',event=>{
     const el=event.target.closest('button[data-action]');if(!el)return;const action=el.dataset.action;
+    if(action==='save-progress'){saveProgress();render();return;}
     if(action==='restart'||action==='retry'){
       const list=action==='retry'?round.sentences.filter((s,i)=>round.results[i]?.points<100):selectedSentences;
       round=D.createRound(list);showResults=false;combo=0;bestCombo=0;score=0;resetSentence();render();window.scrollTo({top:0,behavior:'instant'});return;

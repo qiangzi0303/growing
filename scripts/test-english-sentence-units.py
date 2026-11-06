@@ -16,6 +16,10 @@ def shot(page, name):
     page.screenshot(path=str(OUT / (name + '.png')), full_page=True)
 
 
+def other_storage(page):
+    return page.evaluate('Object.fromEntries(Object.entries(localStorage).filter(([k])=>!k.startsWith("growing-english-sentences-v1:")))')
+
+
 def finish_sentence(page, sentence, mobile=False, reveal=False):
     page.locator('[data-action=start]').click()
     words = page.evaluate('(s)=>SentenceDemo.wordPrompts(s)', sentence)
@@ -72,13 +76,14 @@ def check():
                 sentences = selected['sentences']
                 assert page.locator('.back-link').get_attribute('href') == selected['backHref']
                 page.evaluate('(id)=>{localStorage.setItem("growing-english-course-v1:"+id,"protected-existing-record");localStorage.setItem("growing-unit-rewards-v1:"+id,"protected-reward")}', uid)
-                before = page.evaluate('({...localStorage})')
+                before = other_storage(page)
                 total = 0
                 for index, sentence in enumerate(sentences):
                     total += finish_sentence(page, sentence, reveal=tindex == 0 and index == 0)
                 assert page.locator('.result-list > li').count() == 10
                 assert page.locator('#points').inner_text() == str(total * 1000 - (1000 if tindex == 0 else 0))
-                assert page.evaluate('({...localStorage})') == before
+                assert other_storage(page) == before
+                assert page.evaluate('(u)=>EnglishSentenceProgress.summary(SentenceDemo.units[u].topics.flatMap(t=>t.sentences),JSON.parse(localStorage.getItem(EnglishSentenceProgress.key(u))))', uid)['completed'] == (tindex + 1) * 10
                 if tindex == 0:
                     assert page.locator('.result-metrics strong').first.inner_text() == '9 / 10'
                     page.locator('[data-action=retry]').click()
@@ -91,7 +96,7 @@ def check():
                     page.locator('[data-action=restart]').click()
                 assert page.locator('#points').inner_text() == '0'
                 assert page.locator('.prompt').inner_text() == sentences[0]['zh']
-                assert page.evaluate('({...localStorage})') == before
+                assert other_storage(page) == before
                 counts['topics'] += 1
                 counts['sentences'] += 10
                 counts['tasks'] += total
@@ -118,13 +123,14 @@ def check():
         phone.wait_for_url('**topic=when-while')
         phone.wait_for_selector('[data-action=start]')
         selected = phone.evaluate('SentenceDemo.getPractice("english-8a-08","when-while")')
-        mobile_before = phone.evaluate('({...localStorage})')
+        mobile_before = other_storage(phone)
         for index, sentence in enumerate(selected['sentences']):
             if index == 9:
                 shot(phone, 'phone-long-preview')
             finish_sentence(phone, sentence, mobile=True)
         assert phone.locator('.result-list > li').count() == 10
-        assert phone.evaluate('({...localStorage})') == mobile_before
+        assert other_storage(phone) == mobile_before
+        assert phone.evaluate('EnglishSentenceProgress.summary(SentenceDemo.units["english-8a-08"].topics.flatMap(t=>t.sentences),JSON.parse(localStorage.getItem(EnglishSentenceProgress.key("english-8a-08"))))')['completed'] == 10
         shot(phone, 'phone-results')
         assert not errors, 'Unexpected browser errors; see error report'
         result = {'status': 'PASS', **counts, 'mobileSentences': 10, 'pageErrors': errors,

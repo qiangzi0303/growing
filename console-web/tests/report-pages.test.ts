@@ -28,6 +28,13 @@ const report = { subjects: [{ subject: '数学', read: 2, mastered: 1, practice:
 const unit = { id: 'math-upper-1', title: '三角形', subject: 'math', subjectName: '数学', term: 'upper', termName: '八年级上册', activeMinutes: null, firstStudyDay: null, lastStudyDay: null, studyDays: 0, mastered: 1, total: 4, masteryPercent: 25, concept: { passed: 1, total: 2, retainedAttempts: 1, best: 8, latest: 7 }, practice: { done: 0, total: 2 }, diagnostic: { passed: 0, shaky: 0, weak: 0, tested: 0, total: 2 }, handwriting: { graded: 1, latest: { score: 100, needsReview: false, at: '2026-11-04T18:00:00Z' } } };
 const units = { units: [unit], lastSyncedAt: null, warnings: [], note: '课程达标独立计算' };
 const emptyRewards: RewardReport = { entries: [], summaries: [], invalid: 0, confirmations: [], note: '' };
+it('shows word mastery and sentence completion independently in the shared parent/admin unit report', () => {
+  const page = mount(UnitReports, { props: { report: { ...units, units: [{ ...unit, subject: 'english', words: { mastered: 2, total: 52 }, sentences: { completed: 3, total: 40 } }] } } });
+  const cells = page.findAll('tbody td');
+  expect(page.text()).toContain('单词掌握'); expect(page.text()).toContain('句子互动');
+  expect(cells[1].text()).toBe('2 / 52 个'); expect(cells[2].text()).toBe('3 / 40 项完成');
+  expect(page.text()).toContain('25%'); page.unmount();
+});
 beforeEach(() => { vi.clearAllMocks(); auth.profile = { id: 'p', role: 'Parent' }; auth.sessionRevision++; mocks.api.mockResolvedValue(units); });
 it('retains null snapshot gaps and genuine zero minutes, formatting Beijing time', () => {
   expect(growthValues(growth, '数学', 'mastered')).toEqual([null, 1]);
@@ -84,7 +91,8 @@ it('labels concept scores out of ten and preserves retained best versus unknown 
   await page.setProps({ report: { ...units, units: [{ ...unit, concept: { ...unit.concept, latest: null, best: 8 } }] } });
   expect(page.text()).toContain('留存最好 8/10'); expect(page.text()).not.toContain('最近 0/10');
   await page.setProps({ report: { ...units, units: [{ ...unit, concept: { ...unit.concept, latest: null, best: null } }] } });
-  expect(page.get('.unit-table tbody tr td:nth-child(6)').text()).toContain('按历史达标记录'); expect(page.get('.unit-table tbody tr td:nth-child(6)').text()).not.toContain('0/10');
+  const conceptCell = page.findAll('tbody td').find(cell => cell.text().includes('项通过'))!;
+  expect(conceptCell.text()).toContain('按历史达标记录'); expect(conceptCell.text()).not.toContain('0/10');
   await page.setProps({ report: { ...units, units: [{ ...unit, concept: { ...unit.concept, passed: 0, latest: null, best: null } }] } });
   expect(page.text()).toContain('暂无有效评分'); page.unmount();
 });

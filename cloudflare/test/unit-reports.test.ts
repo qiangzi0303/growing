@@ -5,6 +5,7 @@ import type { Document } from '../src/database';
 import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
 import graphs from '../src/diagnosis-rules.json';
 import english from '../src/english-rules.json';
+import sentences from '../src/english-sentence-rules.json';
 const doc=(key:string,data:any):Document=>({key,value:JSON.stringify(data),revision:1,updatedAt:'2026-10-24T03:00:00Z'});
 const good={score:8,feedback:'解释正确',criticalErrors:[],at:Date.UTC(2026,9,23,17)};
 test('only studied units appear; rewards and subject-wide time cannot manufacture unit time',()=>{
@@ -42,4 +43,17 @@ test('valid complete graph assessments stay separate from course mastery; incomp
 test('invalid document is reported without exposing source text',()=>{
   const r=buildUnitReports([{key:'growing-math-lessons-v1',value:'broken private data',revision:1,updatedAt:'2026-10-24T00:00:00Z'}]);
   assert.equal(r.units.length,0);assert.equal(r.warnings.length,1);assert.ok(!JSON.stringify(r).includes('private data'));
+});
+
+test('word counts include the full unit vocabulary and sentence-only learning appears without awarding mastery',()=>{
+  const unit='english-8a-01',sentence=sentences[unit][0];
+  const completed={protocol:'sentence-typing-v1',answer:sentence.en,wrong:1,hints:0,revealed:false,at:Date.UTC(2026,10,6)};
+  const docs=[doc('growing-english-sentences-v1:'+unit,{version:1,sentences:{[sentence.id]:completed,unknown:completed,[sentences[unit][1].id]:{...completed,answer:'unfinished'}}})];
+  const [r]=buildUnitReports(docs).units;
+  assert.equal(r.id,unit);assert.deepEqual(r.words,{mastered:0,total:english[unit].wordCount});
+  assert.deepEqual(r.sentences,{completed:1,total:sentences[unit].length});assert.equal(r.mastered,0);assert.equal(r.activeMinutes,null);
+  assert.equal(r.firstStudyDay,'2026-11-06');
+  const [legacy]=buildUnitReports([doc('wordops_8A_unit3',{mastered:{w1:{protocol:'seven-recalls',answers:Array(7).fill('learner')}}})]).units;
+  assert.deepEqual(legacy.words,{mastered:1,total:english.__legacy.words.length});
+  assert.deepEqual(legacy.sentences,{completed:0,total:sentences['english-8a-03'].length});
 });

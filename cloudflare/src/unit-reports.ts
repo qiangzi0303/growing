@@ -2,6 +2,8 @@ import catalogData from './ranking-rules.json';
 import mathFeedback from '../../app/src/main/assets/web/app-design/math-feedback.js';
 import wordMastery from '../../app/src/main/assets/web/app-design/word-mastery-rules.js';
 import englishData from './english-rules.json';
+import sentenceRules from './english-sentence-rules.json';
+import sentenceProgress from '../../app/src/main/assets/web/app-design/english-sentence-progress.js';
 import diagnosisData from './diagnosis-rules.json';
 import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
 import handwriting from '../../app/src/main/assets/web/app-design/handwriting-core.js';
@@ -43,6 +45,8 @@ export function buildUnitReports(docs: Document[]) {
   const units = (catalogData as Data[]).flatMap(unit => {
     const board = boards.get(unit.id);
     let started = !!board, mastered = 0, total = 0, minutes = 0, hasTime = false;
+    let words: { mastered: number; total: number } | null = null;
+    let sentences: { completed: number; total: number } | null = null;
     const dates = new Set<string>(), grades: any[] = [], daily = new Map<string, number>();
     const remember = (v: any) => { const d = dayOf(v); if (d) dates.add(d); };
     const time = (day: string, ms: any) => {
@@ -77,6 +81,7 @@ export function buildUnitReports(docs: Document[]) {
       const s = states.get('growing-english-course-v1:' + unit.id) ?? {};
       total = unit.rules.words.length + unit.rules.lessons.length;
       for (const w of unit.rules.words) { const r = s.words?.[w.id]; if (wordPassed(w, r)) mastered++; if (r) remember(r.at); }
+      words = { mastered, total: unit.rules.wordCount ?? unit.rules.words.length };
       for (const l of unit.rules.lessons) {
         const r = s.lessons?.[l.id];
         if (r?.protocol === 'three-correct' && arr(r.answers).length === l.answers.length && r.answers.every((a: any, i: number) => typeof a === 'string' && a === l.answers[i])) mastered++;
@@ -87,10 +92,20 @@ export function buildUnitReports(docs: Document[]) {
       const s = states.get('wordops_8A_unit3') ?? {};
       total = legacy.words.length + unit.tests.length;
       for (const w of legacy.words) { const r = s.mastered?.[w.id]; if (wordPassed(w, r, true)) mastered++; if (r) remember(r.at); }
+      words = { mastered, total: legacy.words.length };
       for (const id of unit.tests) if (typeof s.best?.[id] === 'number' && s.best[id] >= 80 && s.best[id] <= 100) mastered++;
       arr(s.records).forEach(r => remember(r?.at));
       for (const [d, ms] of Object.entries(obj(s.learningTime?.days))) time(d, ms);
       for (const [d, row] of Object.entries(obj(s.studyHistory?.days))) if (validDay(d) && ['words','cards','quizzes','feynman'].some(k => Object.keys(obj(row)[k] ?? {}).length)) { dates.add(d); started = true; }
+    }
+    if (unit.subject === 'english') {
+      const rules = (sentenceRules as Record<string, { id: string; en: string }[]>)[unit.id] ?? [];
+      const saved = states.get(sentenceProgress.key(unit.id));
+      sentences = sentenceProgress.summary(rules, saved);
+      if (sentences.completed) {
+        started = true;
+        rules.filter(s => saved?.version === 1 && sentenceProgress.valid(s, saved.sentences?.[s.id])).forEach(s => remember(saved!.sentences[s.id].at));
+      }
     }
     const diagnostic = { passed: 0, shaky: 0, weak: 0, tested: 0, total: unit.diagnosisTopics?.length ?? 0 };
     const archive = states.get('growing-diagnosis-v1:' + unit.id);
@@ -120,7 +135,7 @@ export function buildUnitReports(docs: Document[]) {
     written.sort((a, b) => a.at.localeCompare(b.at));
     return [{ id: unit.id, title: unit.title, subject: unit.subject, subjectName: unit.subjectName, term: unit.term, termName: unit.termName,
       activeMinutes: hasTime ? minutes : null, firstStudyDay: ordered[0] ?? null, lastStudyDay: ordered.at(-1) ?? null, studyDays: ordered.length,
-      mastered, total, masteryPercent: Math.round(100 * mastered / total),
+      mastered, total, masteryPercent: Math.round(100 * mastered / total), words, sentences,
       concept: { passed: board?.conceptDone ?? 0, total: board?.conceptTotal ?? unit.topics?.length ?? unit.rules?.lessons.length, retainedAttempts: grades.length,
         best: grades.length ? Math.max(...grades.map(g => g.score)) : null, latest: timedGrades.at(-1)?.score ?? null },
       practice: { done: board?.testDone ?? 0, total: board?.testTotal ?? total }, diagnostic,
@@ -128,5 +143,5 @@ export function buildUnitReports(docs: Document[]) {
     }];
   });
   return { units, lastSyncedAt: docs.map(d => d.updatedAt).sort().at(-1) ?? null, warnings: [...new Set(warnings)],
-    note: '仅显示已有学习记录的已开放单元。时长为课程实际保存的有效学习计时，缺失时不补算；学习日期来自留存活动与评测，不代表完整历史。课程达标沿用各课堂标准：数学/物理须概念与应用均通过，英语按必会词汇和阅读语法检测（Unit 3含知识关卡）。图谱初筛单独展示，不计作课程达标。' };
+    note: '仅显示已有学习记录的已开放单元。时长为课程实际保存的有效学习计时，缺失时不补算；学习日期来自留存活动与评测，不代表完整历史。课程达标沿用各课堂标准：数学/物理须概念与应用均通过，英语按必会词汇和阅读语法检测（Unit 3含知识关卡）。单词总数含选学词；句子互动按完成整句挑战计数，同一句重复练习只计一次，独立于课程达标和奖励。图谱初筛单独展示，不计作课程达标。' };
 }

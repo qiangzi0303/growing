@@ -1,6 +1,7 @@
 import rulesData from "./english-rules.json";
 import type { Document } from "./database";
 import practice from '../../app/src/main/assets/web/app-design/practice-progress.js';
+import wordMastery from '../../app/src/main/assets/web/app-design/word-mastery-rules.js';
 
 type ObjectData = Record<string, any>;
 const obj = (v: unknown): ObjectData => v !== null && typeof v === "object" && !Array.isArray(v) ? v : {};
@@ -10,6 +11,7 @@ const rules = rulesData as ObjectData;
 const normalize = (v: unknown) => String(v ?? "").trim().toLowerCase().replace(/[’‘]/g, "'")
   .replace(/…/g, "...").replace(/\s*\.\.\.\s*/g, " ... ").replace(/\s*-\s*/g, "-").replace(/\s+/g, " ").trim();
 function wordPassed(word: any, record: any) {
+  if (record?.protocol === 'word-mastery-v2') return wordMastery.passed(word, record);
   const variants: Record<string, string[]> = { humour: ["humour", "humor"], programme: ["programme", "program"], "sec.": ["sec.", "sec"] };
   return record?.protocol === "seven-recalls" && Array.isArray(record.answers) && record.answers.length === 7 &&
     record.answers.every((answer: unknown) => (variants[word.word] ?? [word.word]).some(v => normalize(v) === normalize(answer)));
@@ -73,7 +75,7 @@ export function buildReport(docs: Document[], now = new Date()) {
         const oldNormalize = (v: unknown) => String(v ?? "").normalize("NFKC").trim().replace(/[’‘]/g, "'").replace(/\s+/g, " ");
         for (const word of legacy.words) {
           const record = data.mastered?.[word.id];
-          if (record?.protocol === "seven-recalls" && Array.isArray(record.answers) && record.answers.length === 7 && record.answers.every((answer: unknown) =>
+          if (record?.protocol === 'word-mastery-v2' ? wordMastery.passed(word, record) : record?.protocol === "seven-recalls" && Array.isArray(record.answers) && record.answers.length === 7 && record.answers.every((answer: unknown) =>
             word.id === "w34" ? oldNormalize(answer) === oldNormalize(word.word) : oldNormalize(answer).toLowerCase() === oldNormalize(word.word).toLowerCase())) english.mastered++;
         }
         for (const id of legacy.tests) if (num(data.best?.[id]) >= 80 && num(data.best?.[id]) <= 100) english.mastered++;

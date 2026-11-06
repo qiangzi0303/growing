@@ -20,9 +20,11 @@ const completed = computed(() => props.report.units.filter(unit => unit.mastered
     <p v-if="!rows.length">{{ report.units.length ? '该筛选下暂无已学习单元' : '尚无单元学习记录' }}</p>
     <div v-else class="table-scroll" role="region" aria-label="单元学习报告表" tabindex="0">
       <NTable size="small" :bordered="false" :single-line="true" class="unit-table">
-        <thead><tr><th scope="col">单元</th><th scope="col">学科 / 册次</th><th scope="col">课程达标</th><th scope="col">有效学习时长</th><th scope="col">有记录的学习日期</th><th scope="col">概念复述</th><th scope="col">题目评测</th><th scope="col">图谱诊断</th><th scope="col">手写评测</th></tr></thead>
+        <thead><tr><th scope="col">单元</th><th scope="col">学科 / 册次</th><th scope="col">单词掌握</th><th scope="col">句子互动</th><th scope="col">课程达标</th><th scope="col">有效学习时长</th><th scope="col">有记录的学习日期</th><th scope="col">概念复述</th><th scope="col">题目评测</th><th scope="col">图谱诊断</th><th scope="col">手写评测</th></tr></thead>
         <tbody><tr v-for="unit in rows" :key="unit.id">
           <th scope="row">{{ unit.title }}</th><td>{{ unit.subjectName }} · {{ unit.termName }}</td>
+          <td><template v-if="unit.words"><strong class="completed-count">{{ unit.words.mastered }}</strong> / <span class="total-count">{{ unit.words.total }}</span> 个</template><template v-else>—</template></td>
+          <td><template v-if="unit.sentences"><strong class="completed-count">{{ unit.sentences.completed }}</strong> / <span class="total-count">{{ unit.sentences.total }}</span> 项完成</template><template v-else>—</template></td>
           <td><strong>{{ unit.masteryPercent }}%</strong> · {{ unit.mastered }} / {{ unit.total }} 项达标<progress :max="unit.total || 1" :value="unit.mastered" :aria-label="`${unit.title}课程达标`" /></td>
           <td>{{ formatDuration(unit.activeMinutes) }}</td><td>{{ unit.firstStudyDay ? `${unit.firstStudyDay} 至 ${unit.lastStudyDay} · 共 ${unit.studyDays} 天` : '暂无日期记录' }}</td>
           <td>{{ unit.concept.passed }} / {{ unit.concept.total }} 项通过 · <template v-if="unit.concept.latest !== null">最近 {{ unit.concept.latest }}/10 · 最好 {{ unit.concept.best === null ? '暂无有效评分' : `${unit.concept.best}/10` }}</template><template v-else-if="unit.concept.best !== null">留存最好 {{ unit.concept.best }}/10</template><template v-else>{{ unit.concept.passed ? '按历史达标记录' : '暂无有效评分' }}</template></td>
@@ -39,7 +41,8 @@ const completed = computed(() => props.report.units.filter(unit => unit.mastered
 .units { display: grid; gap: 16px; min-width: 0; } .filters { display: flex; flex-wrap: wrap; gap: 12px; } label { display: grid; gap: 4px; } select { min-height: 38px; padding: 4px 8px; border: 1px solid #b9c8be; border-radius: 6px; background: white; color: #213a2c; } progress { display: block; width: 100%; margin-top: 6px; accent-color: #38694f; } h2 { margin: 0; font-size: 20px; }
 .table-scroll { min-width: 0; overflow-x: auto; border: 1px solid #e0e7e1; border-radius: 6px; background: white; }
 .table-scroll:focus-visible { outline: 2px solid #38694f; outline-offset: 2px; }
-.unit-table { min-width: 1640px; table-layout: fixed; }
+.unit-table { min-width: 1880px; table-layout: fixed; }
+.completed-count { color: #2e7d32; } .total-count { color: #2b5b84; }
 .unit-table :deep(th), .unit-table :deep(td) { padding: 12px 16px; vertical-align: top; overflow-wrap: anywhere; }
 .unit-table :deep(thead th) { background: #f3f7f4; color: #53665a; }
 </style>
