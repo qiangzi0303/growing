@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { NButton, NCard, NModal } from 'naive-ui';
+import { NAlert, NButton, NCard, NModal } from 'naive-ui';
 import { api } from '@/service/request';
 import type { Member } from '../api';
 import { useMemberAction } from '../use-member-action';
@@ -17,4 +17,4 @@ function save() {
   });
 }
 </script>
-<template><NCard v-if="member.role !== 'Admin'" title="账号类型" size="small"><p>更改身份会解除原有亲子绑定、使绑定码失效并要求重新登录；学习历史和确认账本保留。</p><NButton :disabled="pending" @click="confirming = true">改为{{ member.role === 'Student' ? '家长' : '学生' }}</NButton><p role="status">{{ message }}</p><NModal v-model:show="confirming" preset="dialog" title="确认更改账号类型" :content="`更改 ${member.displayName} 的身份？原绑定将解除，绑定码失效，历史保留。`" positive-text="确认更改" negative-text="取消" :positive-button-props="{ disabled: pending }" :mask-closable="!pending" :closable="!pending" @positive-click="save" /></NCard></template>
+<template><NCard v-if="member.role !== 'Admin'" title="账号类型" size="small"><p>更改身份会解除原有亲子绑定、使绑定码失效并要求重新登录；学习历史和确认账本保留。</p><NButton :disabled="pending" @click="confirming = true">改为{{ member.role === 'Student' ? '家长' : '学生' }}</NButton><NAlert v-if="message" type="info" role="status">{{ message }}</NAlert><NModal v-model:show="confirming" preset="dialog" title="确认更改账号类型" :content="`更改 ${member.displayName} 的身份？原绑定将解除，绑定码失效，历史保留。`" positive-text="确认更改" negative-text="取消" :positive-button-props="{ disabled: pending }" :mask-closable="!pending" :closable="!pending" @positive-click="save" /></NCard></template>

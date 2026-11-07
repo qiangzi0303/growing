@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { users } from './fixtures/local-users';
-import { authenticate, capture, trackProblems } from './fixtures/browser-helpers';
+import { authenticate, capture, trackProblems, selectControl, choose } from './fixtures/browser-helpers';
 
 for (const width of [1280, 768, 390, 320]) {
   test(`new console parent layout and real historical images at ${width}`, async ({ page }) => {
@@ -8,21 +8,22 @@ for (const width of [1280, 768, 390, 320]) {
     const verify = trackProblems(page);
     await authenticate(page, 'parentA');
     await page.goto('/console/home');
-    const picker = page.getByRole('combobox', { name: '选择孩子', exact: true });
+    const picker = selectControl(page, '选择孩子');
     await expect(picker).toBeVisible();
-    await picker.selectOption(users.childA.id);
+    await choose(page, '选择孩子', users.childA.displayName);
     await expect(page.getByRole('heading', { name: users.childA.displayName + '的学习概况' })).toBeVisible();
     await capture(page, `parent-${width}-home`);
-    await picker.focus();
+    await picker.locator('.n-base-selection').focus();
+    await page.keyboard.press('Enter');
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
     await expect(page.getByRole('heading', { name: users.childB.displayName + '的学习概况' })).toBeVisible();
     await page.goto(`/console/students/${users.childA.id}`);
     await expect(page.getByRole('heading', { name: '单元学习报告' })).toBeVisible();
-    await page.getByRole('combobox', { name: '曲线天数' }).selectOption('30');
-    await page.getByRole('combobox', { name: '曲线天数' }).selectOption('90');
-    await page.getByRole('combobox', { name: '单元学科' }).selectOption('math');
-    await page.getByRole('combobox', { name: '单元册次' }).selectOption('upper');
+    await choose(page, '曲线天数', '30 天');
+    await choose(page, '曲线天数', '90 天');
+    await choose(page, '单元学科', '数学');
+    await choose(page, '单元册次', '八年级上册');
     await page.getByRole('button', { name: '查看原稿、错题与排名' }).click();
     await page.getByRole('button', { name: '查看原稿与点评' }).click();
     await expect(page.getByRole('heading', { name: '当前保存的手写原稿' })).toBeVisible();
@@ -32,7 +33,7 @@ for (const width of [1280, 768, 390, 320]) {
     expect(await canvas.evaluate((element: HTMLCanvasElement) => element.getContext('2d')!.getImageData(0, 0, 800, 1100).data.some((value, index) => index % 4 === 3 && value > 0))).toBe(true);
     await canvas.evaluate(element => element.scrollIntoView({ block: 'start' }));
     await capture(page, `parent-${width}-manuscript`);
-    await page.getByRole('combobox', { name: '作业记录类型' }).selectOption('photo');
+    await choose(page, '作业记录类型', '单元拍照答案');
     await page.getByRole('button', { name: '查看答案记录' }).click();
     const image = page.getByRole('img', { name: '所选批改第 1 页作答' });
     await expect(image).toBeVisible();
@@ -40,8 +41,7 @@ for (const width of [1280, 768, 390, 320]) {
     const latest = await image.getAttribute('src');
     await image.scrollIntoViewIfNeeded();
     await capture(page, `parent-${width}-photo-latest`);
-    const grades = page.getByRole('combobox', { name: '批改记录', exact: true });
-    await grades.selectOption({ index: 0 });
+    await choose(page, '批改记录', 0);
     await expect(page.getByText('第一次：角度计算遗漏', { exact: true })).toBeVisible();
     expect((await image.getAttribute('src')) !== latest).toBe(true);
     expect(await image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth === 80)).toBe(true);
@@ -50,14 +50,15 @@ for (const width of [1280, 768, 390, 320]) {
     await page.getByRole('button', { name: '查看最近作答' }).click();
     await expect(page.getByRole('heading', { name: '所选题最近作答' })).toBeVisible();
     const ranking = page.locator('[aria-label="匿名课程排名"]');
+    const rankingScroll = ranking.locator('.n-scrollbar-container').first();
     await expect(ranking).toBeVisible();
     await ranking.focus();
     await expect(ranking).toBeFocused();
-    expect(await ranking.evaluate(element => getComputedStyle(element).overflowX)).toBe('auto');
-    if (width <= 390) expect(await ranking.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
-    if (await ranking.evaluate(element => element.scrollWidth > element.clientWidth)) {
+    expect(['auto', 'scroll']).toContain(await rankingScroll.evaluate(element => getComputedStyle(element).overflowX));
+    if (width <= 390) expect(await rankingScroll.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
+    if (await rankingScroll.evaluate(element => element.scrollWidth > element.clientWidth)) {
       await page.keyboard.press('ArrowRight');
-      await expect.poll(() => ranking.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+      await expect.poll(() => rankingScroll.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
     }
     await ranking.scrollIntoViewIfNeeded();
     await capture(page, `parent-${width}-rankings`);
@@ -82,11 +83,12 @@ for (const width of [1280, 768, 390, 320]) {
     const search = page.getByRole('textbox', { name: '姓名或账号', exact: true });
     await search.fill('e2e_page');
     await search.press('Tab');
-    await expect(page.getByRole('combobox', { name: '身份', exact: true })).toBeFocused();
-    await page.getByRole('combobox', { name: '身份', exact: true }).selectOption('Student');
+    const role = selectControl(page, '身份').locator('.n-base-selection');
+    await expect.poll(() => role.evaluate(element => element.contains(document.activeElement))).toBe(true);
+    await choose(page, '身份', '学生');
     await page.getByRole('button', { name: '搜索', exact: true }).click();
     await expect(page.getByText('共 22 位会员 · 第 1 页', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: '下一页', exact: true }).click();
+    await page.getByRole('navigation', { name: '会员分页' }).locator('.n-pagination-item').filter({ hasText: /^2$/ }).click();
     await expect(page.getByText('共 22 位会员 · 第 2 页', { exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByText('共 22 位会员 · 第 2 页', { exact: true })).toBeVisible();

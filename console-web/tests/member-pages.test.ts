@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { reactive } from 'vue';
+import { NSelect, NPagination, NDataTable } from 'naive-ui';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import Members from '@/views/members/index.vue';
 import Detail from '@/views/members/[id].vue';
@@ -20,9 +21,10 @@ it('searches, filters and pages with URL state and escapes names', async () => {
   const { wrapper: w, router } = await render(Members, '/members?q=anna&role=Parent&page=2');
   expect(mocks.list.mock.lastCall?.[0]).toMatchObject({ q: 'anna', role: 'Parent', page: 2 });
   expect(w.text()).toContain(member.displayName); expect(w.find('img').exists()).toBe(false); expect(w.text()).toContain('暂无快照');
-  await w.get('input').setValue('bob'); await w.get('select').setValue('Student'); await w.get('form').trigger('submit'); await flushPromises();
+  expect(w.findComponent(NDataTable).exists()).toBe(true);
+  await w.get('input').setValue('bob'); w.getComponent(NSelect).vm.$emit('update:value', 'Student'); await w.get('form').trigger('submit'); await flushPromises();
   expect(router.currentRoute.value.query).toMatchObject({ q: 'bob', role: 'Student', page: '1' });
-  await w.get('[aria-label="下一页"]').trigger('click'); await flushPromises(); expect(router.currentRoute.value.query.page).toBe('2'); w.unmount();
+  w.getComponent(NPagination).vm.$emit('update:page', 2); await flushPromises(); expect(router.currentRoute.value.query.page).toBe('2'); w.unmount();
 });
 it('links relations, ledger and preserves return filters', async () => {
   const { wrapper: w } = await render(Detail, '/members/a?q=anna&role=Parent&page=2');

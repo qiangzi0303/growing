@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { password, users } from './fixtures/local-users';
-import { authenticate, capture, trackProblems } from './fixtures/browser-helpers';
+import { authenticate, capture, trackProblems, selectControl, choose } from './fixtures/browser-helpers';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -32,9 +32,9 @@ test('real browser student and unconfirmed identities leave console for the exis
 test('real browser parent child switch ignores a delayed true response from the previous child', async ({ page }) => {
   await authenticate(page, 'parentA');
   await page.goto('/console/home');
-  const picker = page.getByRole('combobox', { name: '选择孩子', exact: true });
+  const picker = selectControl(page, '选择孩子');
   await expect(page.getByRole('heading', { name: users.childA.displayName + '的学习概况' })).toBeVisible();
-  await picker.selectOption(users.childB.id);
+  await choose(page, '选择孩子', users.childB.displayName);
   await expect(page.getByRole('heading', { name: users.childB.displayName + '的学习概况' })).toBeVisible();
   let ready!: () => void;
   let release!: () => void;
@@ -50,14 +50,14 @@ test('real browser parent child switch ignores a delayed true response from the 
     finally { complete(); }
   });
   try {
-    await picker.selectOption(users.childA.id);
+    await choose(page, '选择孩子', users.childA.displayName);
     await waiting;
-    await picker.selectOption(users.childB.id);
+    await choose(page, '选择孩子', users.childB.displayName);
     await expect(page.getByRole('heading', { name: users.childB.displayName + '的学习概况' })).toBeVisible();
     release();
     await completed;
     expect(transportError).toBeUndefined();
-    await expect(picker).toHaveValue(users.childB.id);
+    await expect(picker).toContainText(users.childB.displayName);
     await expect(page.getByRole('heading', { name: users.childA.displayName + '的学习概况' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: users.childB.displayName + '的学习概况' })).toBeVisible();
   } finally { release(); }

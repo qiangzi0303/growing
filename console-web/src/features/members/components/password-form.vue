@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { NButton, NCard, NInput } from 'naive-ui';
+import { NForm, NFormItem, NAlert, NButton, NCard, NInput } from 'naive-ui';
 import { api } from '@/service/request';
 import type { Member } from '../api';
 import { useMemberAction } from '../use-member-action';
@@ -19,4 +19,4 @@ function save() {
   });
 }
 </script>
-<template><NCard title="修改密码" size="small"><p>修改后该会员所有设备需重新登录。</p><form @submit.prevent="save"><NInput v-model:value="password" type="password" :disabled="pending" :input-props="{ 'aria-label': '新密码', autocomplete: 'new-password', maxlength: 128 }" placeholder="新密码" /><NInput v-model:value="confirm" type="password" :disabled="pending" :input-props="{ 'aria-label': '确认密码', autocomplete: 'new-password', maxlength: 128 }" placeholder="确认密码" /><NButton attr-type="submit" :disabled="pending">保存密码</NButton></form><p role="status">{{ message }}</p></NCard></template>
+<template><NCard title="修改密码" size="small"><p>修改后该会员所有设备需重新登录。</p><NForm @submit.prevent="save"><NFormItem label="新密码"><NInput v-model:value="password" type="password" :disabled="pending" :input-props="{ 'aria-label': '新密码', autocomplete: 'new-password', maxlength: 128 }" placeholder="新密码" /></NFormItem><NFormItem label="确认密码"><NInput v-model:value="confirm" type="password" :disabled="pending" :input-props="{ 'aria-label': '确认密码', autocomplete: 'new-password', maxlength: 128 }" placeholder="确认密码" /></NFormItem><NButton attr-type="submit" :disabled="pending">保存密码</NButton></NForm><NAlert v-if="message" type="info" role="status">{{ message }}</NAlert></NCard></template>

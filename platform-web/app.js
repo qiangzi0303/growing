@@ -236,7 +236,7 @@
     }catch(error){if(alive())root.innerHTML='<button id="question-bank-home">← 返回上一级</button><p role="status">'+esc(error.message)+'</p>';}
   }
   async function openPapers(context={}){
-    if(!user||needsRole(user))return;
+    if(!user||needsRole(user))throw Error('请先登录云账号并确认身份，再打开我的试卷。');
     const dialog=$('#photo-dialog');if(dialog.open)return;
     $('#account-menu').open=false;const current=++photoVersion,version=generation;
     dialog.showModal();dialog.setAttribute('aria-label','我的试卷');updateShellNavigation();

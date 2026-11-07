@@ -1,14 +1,14 @@
 import { expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { legacy } from '@/features/legacy/links';
-it('routes confirmed web managers only and preserves Native and role choice', () => {
- for (const role of ['Admin','Parent']) expect(legacy.destination({role, roleSelectionRequired:false},false,legacy.parse('',''))).toBe('/console/home');
+it('keeps website entries on the website and returns only explicit console registration', () => {
+ for (const role of ['Admin','Parent']) {
+  for (const hash of ['', '#register', '#learning-reports', '#question-bank']) expect(legacy.destination({role, roleSelectionRequired:false},false,legacy.parse('',hash))).toBeNull();
+ }
  expect(legacy.destination({role:'Student',roleSelectionRequired:false},false,legacy.parse('',''))).toBeNull();
  expect(legacy.destination({role:'Parent'},false,legacy.parse('',''))).toBeNull();
  expect(legacy.destination({role:'Admin'},true,legacy.parse('',''))).toBeNull();
  expect(legacy.destination({role:'Parent',roleSelectionRequired:false},false,legacy.parse('?legacy=1&action=settings',''))).toBeNull();
- expect(legacy.destination({role:'Admin'},false,legacy.parse('','#learning-reports'))).toBe('/console/reports');
- expect(legacy.destination({role:'Admin'},false,legacy.parse('','#question-bank'))).toContain('legacy=1');
  expect(legacy.destination({role:'Parent',roleSelectionRequired:false},false,legacy.parse('?legacy=1','#register'))).toBe('/console/home');
 });
 it('resolves exact bound children and protected Admin members without fallback', async () => {

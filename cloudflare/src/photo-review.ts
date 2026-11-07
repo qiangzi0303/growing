@@ -1,7 +1,7 @@
 import { type Database, type Statement, type User, HttpError, nowSql } from './database';
 import { hash } from './auth';
 import { visionCompletion, type VisionEnv } from './handwriting-vision';
-import { type PhotoAssessment, assessmentLinks, assessmentInstructions, photoLearningContext, validateAssessment, validateAnswerAnnotations } from './photo-assessment';
+import { type PhotoAssessment, assessmentLinks, assessmentInstructionsFor, learningContextFor, validateAssessment, validateAnswerAnnotations } from './photo-assessment';
 import mathFormat from '../../platform-web/math-format.js';
 import archiveQuestions from './math-wrong-question-rules.json';
 
@@ -26,7 +26,7 @@ export function photoGradeStatements(questionId:string,student:string,actor:stri
 export class PhotoReview{
   constructor(private db:Database,private user:User,private authorize:(id:unknown)=>Promise<string>){}
   private async question(student:string,id:string){
-    const [q]=await this.db.query<any>(`SELECT p."Mode" AS mode,q."PaperWrong" AS paperWrong,q."Id" AS id,q."PaperId" AS paperId,q."Number" AS number,q."Text" AS text,q."Answer" AS answer,q."UnitId" AS unitId,q."Revision" AS revision,q."Pages" AS pages,q."Uncertain" AS uncertain,q."Regions" AS regions
+    const [q]=await this.db.query<any>(`SELECT p."Subject" AS subject,p."Mode" AS mode,q."PaperWrong" AS paperWrong,q."Id" AS id,q."PaperId" AS paperId,q."Number" AS number,q."Text" AS text,q."Answer" AS answer,q."UnitId" AS unitId,q."Revision" AS revision,q."Pages" AS pages,q."Uncertain" AS uncertain,q."Regions" AS regions
       FROM "GrowingPhotoQuestions" q JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId" WHERE p."StudentId"=?1 AND q."Id"=?2`,[student,id]);
     if(!q)fail(404,'未找到题目。');
     const [figure]=await this.db.query<any>('SELECT "Figures" AS figures,"FigureVersion" AS figureVersion,(length("FigureImage")>0) AS hasFigureImage,(length("FigureDrawing")>0) AS hasDrawing,"DrawingReviewed" AS drawingReviewed,"DrawingRevision" AS drawingRevision FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[id]);
@@ -57,14 +57,18 @@ export class PhotoReview{
     const history=await this.db.query<any>('SELECT "GradeId" AS gradeId,"Prompt" AS prompt,"Reply" AS reply FROM "GrowingPhotoFollowups" WHERE "QuestionId"=?1 ORDER BY "CreatedAt",rowid',[id]);
     if(history.length>=30)fail(413,'本题已保存30次追问，请结合已有讲解完成订正。');
     if(!(await env.AI_LIMITER.limit({key:'vision:'+this.user.id})).success)fail(429,'追问过于频繁，请稍后重试。');
-    const pages=await this.images(q);
+    const isolatedEnglish=q.subject!=='math'&&(JSON.parse(grade.result).answerPages||[]).length>0;
+    const pages=isolatedEnglish?[]:await this.images(q);
+    const [illustration]=isolatedEnglish?await this.db.query<any>('SELECT "FigureImage" AS image FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[id]):[];
+    const questionFigures=illustration?.image?[illustration.image]:[];
+    if(isolatedEnglish&&JSON.parse(q.figures||'[]').length&&!questionFigures.length)fail(409,'本题独立题设插图缺失，请先补回题图再追问；原批改保留。');
     const [figure]=await this.db.query<any>('SELECT "FigureDrawing" AS drawing,"DrawingReviewed" AS reviewed,"DrawingRevision" AS revision FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[id]);
     const question={...q,drawing:figure?.reviewed&&figure.revision===q.revision?JSON.parse(figure.drawing||'null'):null};
     const {answerPages=[],...assessment}=JSON.parse(grade.result);
     const response=await visionCompletion(env,signal,upstream,
-      assessmentInstructions+'当前任务仅解释当前题的错因，不重新评分，不改动原评分。结合给定批改、真实知识点、原始手写及追问历史解释。如answerPageCount大于0，前answerPageCount页是所选批改的订正原稿，后续图片仅用于核对题设，不能把旧答案当成本次作答。用户选择“只提示下一步”时，只给下一步提示，不能直接公布完整答案；“为什么错”要引用实际步骤；“换一种讲法”用不同例子解释。没有原图时不得声称看过图片。条件模糊就先问清楚，不捏造。只返回JSON {"reply":"讲解"}。',
-      {question,assessment,...photoLearningContext,history:history.filter(h=>h.gradeId===grade.id).slice(-8),prompt:data.prompt,answerPageCount:answerPages.length,imageSourcePages:q.pages,hasOriginalImages:pages.length>0},[...answerPages,...pages],
-      v=>{try{return v&&typeof v.reply==='string'&&v.reply.trim()&&v.reply.length<=12000?{reply:mathFormat.normalize(v.reply)}:null;}catch{return null;}});
+      assessmentInstructionsFor(q.subject)+'当前任务仅解释当前题的错因，不重新评分，不改动原评分。结合给定批改、真实知识点、原始手写及追问历史解释。如answerPageCount大于0，前answerPageCount页是所选批改的订正原稿，后续图片仅用于核对题设，不能把旧答案当成本次作答。用户选择“只提示下一步”时，只给下一步提示，不能直接公布完整答案；“为什么错”要引用实际步骤；“换一种讲法”用不同例子解释。没有原图时不得声称看过图片。条件模糊就先问清楚，不捏造。只返回JSON {"reply":"讲解"}。',
+      {question,assessment,...learningContextFor(q.subject),history:history.filter(h=>h.gradeId===grade.id).slice(-8),prompt:data.prompt,answerPageCount:answerPages.length,questionFigureCount:questionFigures.length,imageSourcePages:isolatedEnglish?[]:q.pages,hasOriginalImages:pages.length>0},[...answerPages,...questionFigures,...pages],
+      v=>{try{return v&&typeof v.reply==='string'&&v.reply.trim()&&v.reply.length<=12000?{reply:q.subject==='english'?v.reply:mathFormat.normalize(v.reply)}:null;}catch{return null;}});
     const result=await response.json() as {reply:string};
     if(signal.aborted)fail(499,'追问已取消，原批改保留。');
     await this.authorize(student);
@@ -92,17 +96,20 @@ export class PhotoReview{
     if(!(await env.AI_LIMITER.limit({key:'vision:'+this.user.id})).success)fail(429,'订正批改过于频繁，请稍后重试。');
     // Old paper photos contain previous answers and must never enter a new handwriting grade.
     const pages=handwritten?[]:await this.images(q);
+    const [illustration]=handwritten&&q.subject!=='math'?await this.db.query<any>('SELECT "FigureImage" AS image FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[id]):[];
+    const questionFigures=illustration?.image?[illustration.image]:[];
+    if(handwritten&&q.subject!=='math'&&JSON.parse(q.figures||'[]').length&&!questionFigures.length)fail(409,'本题需要独立题设插图，请先核对并补传独立题图，再提交批改；本次未评分，手写原稿保留。');
     const [drawing]=handwritten?await this.db.query<any>('SELECT "FigureDrawing" AS drawing,"DrawingReviewed" AS reviewed,"DrawingRevision" AS revision FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[id]):[];
-    const question=handwritten?{number:q.number,text:q.text,referenceAnswer:q.answer,unitId:q.unitId,uncertain:q.uncertain,
+    const question=handwritten?{subject:q.subject,number:q.number,text:q.text,referenceAnswer:q.answer,unitId:q.unitId,uncertain:q.uncertain,
       figures:JSON.parse(q.figures||'[]'),drawing:drawing?.reviewed&&drawing.revision===q.revision?JSON.parse(drawing.drawing||'null'):null}:q;
     const annotationInstructions=handwritten?'在assessment中另外返回answerAnnotations数组，把可可靠定位的正误步骤标到本次手写原稿。每项为{"page":1,"x":0.1,"y":0.2,"width":0.5,"height":0.1,"kind":"correct|partial|incorrect","comment":"本步骤的判断与具体批改，可含LaTeX公式"}。坐标相对对应手写页左上角归一化到0至1，矩形不能越界，page只能为前answerPageCount页；最多24处，框住实际作答，不能把原题或旧答案标作本次作答。正确步骤也可标correct。定位不可靠时不猜坐标，用空数组并在feedback或corrections说明。':'';
     const response=await visionCompletion(env,signal,upstream,
-      assessmentInstructions+annotationInstructions+(handwritten?'当前任务是单题手写订正批改，所有图片仅为本次新作答，不含原试卷照片。题设只使用question.text及已审核的question.drawing，referenceAnswer仅供独立核验，不是学生作答。不得从参考答案、题设或目录抄写studentAnswer；忠实转录图片中的实际笔迹。缺少必要题图条件或笔迹不清时使用review，不猜测。填空题只填写正确答案即可判correct，不强求未要求的解题过程。空白用unanswered。':'当前仅批改本题新提交的文字订正过程，原图用于核对题设和几何条件，原图里的旧答案不是本次作答，不拿旧错误扣分。studentAnswer字段必须记录这次给定的订正文字。')+'不得重新批改其他题。只返回一个assessment JSON对象。',
-      {question,...(handwritten?{answerPageCount:(data.answerPages as string[]).length}:{studentAnswer:data.studentAnswer}),...photoLearningContext,imageSourcePages:handwritten?[]:q.pages,hasOriginalImages:pages.length>0},
-      [...(handwritten?data.answerPages as string[]:[]),...pages],v=>{
-        const result=validateAssessment(handwritten?v:{...v,studentAnswer:data.studentAnswer},q.unitId);
+      assessmentInstructionsFor(q.subject)+annotationInstructions+(handwritten?'当前任务是单题手写订正批改，前answerPageCount张是本次新作答，其后questionFigureCount张是独立题设插图，不含原试卷整页或旧答案。题设使用question.text、独立插图及已审核的question.drawing，referenceAnswer仅供独立核验，不是学生作答。不得从参考答案、题设或目录抄写studentAnswer；忠实转录图片中的实际笔迹。缺少必要题图条件或笔迹不清时使用review，不猜测。填空题只填写正确答案即可判correct，不强求未要求的解题过程。空白用unanswered。':'当前仅批改本题新提交的文字订正过程，原图用于核对题设和几何条件，原图里的旧答案不是本次作答，不拿旧错误扣分。studentAnswer字段必须记录这次给定的订正文字。')+'不得重新批改其他题。只返回一个assessment JSON对象。',
+      {question,...(handwritten?{answerPageCount:(data.answerPages as string[]).length}:{studentAnswer:data.studentAnswer}),questionFigureCount:questionFigures.length,...learningContextFor(q.subject),imageSourcePages:handwritten?[]:q.pages,hasOriginalImages:pages.length>0},
+      [...(handwritten?data.answerPages as string[]:[]),...questionFigures,...pages],v=>{
+        const result=validateAssessment(handwritten?v:{...v,studentAnswer:data.studentAnswer},q.unitId,undefined,q.subject);
         if(!result||!handwritten)return result;
-        const annotations=validateAnswerAnnotations(v.answerAnnotations,(data.answerPages as string[]).length);
+        const annotations=validateAnswerAnnotations(v.answerAnnotations,(data.answerPages as string[]).length,q.subject);
         return annotations?{...result,answerAnnotations:annotations}:null;
       },false,true);
     const result=await response.json() as PhotoAssessment;

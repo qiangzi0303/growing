@@ -28,7 +28,7 @@
       </header>
       <div class="catalog-actions">
         <nav class="term-switch" aria-label="选择学期">${Object.entries(course.terms).map(([key,value])=>`<a href="${catalogLink(key)}" ${key===term?'aria-current="page"':''}>${value.name}<span>${key==='upper'?'上学期':'下学期'}</span></a>`).join('')}</nav>
-        ${subject==='math'?`<a class="resources-link" href="math-resources.html?term=${term}">试卷和推导 <span aria-hidden="true">→</span></a>`:''}
+        ${subject==='math'?`<a class="resources-link" href="math-resources.html?term=${term}">试卷和推导 <span aria-hidden="true">→</span></a>`:`<a class="resources-link" href="${subject}-resources.html?term=${term}">试卷 <span aria-hidden="true">→</span></a>`}
       </div>
       ${subject==='english'?`<nav class="catalog-tools" aria-label="英语学习工具"><a class="english-animation-button" href="english-visual-lab.html?term=${term}">动画记单词 →</a></nav>`:''}
       ${!book.verified?`<p class="verification-note"><span aria-hidden="true">ⓘ</span> ${subject==='physics'?'下册暂不开放，当前先学习上册。上册已按2025年第4版核对。':'下册教材目录待核对，目前预留 8 个单元位置，名称与数量以教材为准。'}</p>`:''}

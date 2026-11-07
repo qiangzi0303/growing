@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f7f8f3"><title>英语试卷 · 逆流</title><link rel="icon" href="brand-logo.webp"><link rel="stylesheet" href="catalog.css?v=english-papers-1"><link rel="stylesheet" href="brand.css"><script src="course-duck.js" defer></script></head>
+<body class="english"><main class="catalog-shell">
+<nav class="page-nav" aria-label="页面导航"><a class="back-link" id="resources-back" href="units.html?subject=english&term=upper">← 返回英语目录</a><span class="mini-brand"><img class="brand-logo" src="brand-logo.webp" alt="" width="32" height="32">逆流</span></nav>
+<header class="catalog-heading"><div><p class="eyebrow">英语</p><h1>试卷</h1></div></header>
+<section class="my-papers" aria-labelledby="my-papers-title"><h2 id="my-papers-title">我的试卷</h2><div class="paper-entry" style="margin-bottom:12px"><div><h3>拍照整理试卷</h3></div><nav aria-label="我的拍照试卷"><button type="button" id="open-my-papers" style="font:inherit;text-align:left;padding:14px 16px;border:1px solid #bbc8ae;border-radius:12px;color:inherit;background:#fffdf9;cursor:pointer">我的拍照试卷 / 拍照导入 <span aria-hidden="true">→</span></button></nav></div><p role="status" id="paper-entry-status"></p></section>
+</main><script>
+const params=new URLSearchParams(location.search),unit=params.get('unit'),term=params.get('term')==='lower'?'lower':'upper';
+document.getElementById('resources-back').href=/^english-8[ab]-\d{2}$/.test(unit||'')?(unit==='english-8a-03'?'../word-ops-unit3/index.html':'english-course.html?unit='+encodeURIComponent(unit)):'units.html?subject=english&term='+term;
+document.getElementById('open-my-papers').addEventListener('click',async()=>{
+ try{if(window.top.GrowingCloud?.openPapers)await window.top.GrowingCloud.openPapers({subject:'english'});
+ else if(window.GrowingNative)location.href='../cloud/index.html?subject=english&return='+encodeURIComponent(location.href)+'#my-papers';
+ else location.href='/?subject=english#my-papers';}
+ catch(error){document.getElementById('paper-entry-status').textContent='试卷暂时无法打开：'+error.message;}
+});
+</script></body></html>

@@ -6,13 +6,38 @@ import { users, password } from './fixtures/local-users';
 const paper = '13000000-0000-4000-8000-000000000301';
 const legacy = (action: string, extra = '') => `/?legacy=1&action=${action}&return=%2Fconsole%2Faccount${extra}`;
 
+test('website home stays separate from explicit console entry for every role', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#auth')).toBeVisible();
+  for (const role of ['admin', 'parentA', 'childA', 'unknown'] as const) {
+    await authenticate(page, role);
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      await expect(page.locator('#account-identity')).toHaveText(users[role].displayName);
+      expect(new URL(page.url()).pathname).toBe('/');
+      if (role === 'childA') await expect(page.locator('#course')).toBeVisible();
+      if (role === 'unknown') await expect(page.locator('#choose-role')).toBeVisible();
+      await page.reload();
+      await expect(page.locator('#account-identity')).toHaveText(users[role].displayName);
+      expect(new URL(page.url()).pathname).toBe('/');
+    }
+    if (role === 'admin' || role === 'parentA') {
+      await page.goto('/console/home');
+      await expect(page.locator('.console-page')).toBeVisible();
+      await expect(page).toHaveURL(/\/console\/home$/);
+    }
+  }
+});
+
 for (const role of ['parentA', 'admin'] as const) for (const width of [1280, 320]) {
   test(`real legacy ${role} ${width}: designated child papers, refresh, return and settings`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     const verify = trackProblems(page);
     await authenticate(page, role);
     await page.goto('/#learning-reports');
-    await expect(page).toHaveURL(/\/console\/reports$/);
+    await expect(page.getByRole('heading', { name: '学生学习报告', exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/#learning-reports$/);
     await page.goto('/#question-bank');
     await expect(page.locator('[data-student]')).toBeVisible();
     await page.goto(legacy('question-bank', `&student=${users.childB.id}#question-bank`));
@@ -115,7 +140,8 @@ test('real registration and both pending identity submissions enter the correct 
   const registered = page.waitForResponse(response => new URL(response.url()).pathname === '/api/auth/register');
   await page.getByRole('button', { name: '注册并登录', exact: true }).click();
   expect((await registered).status()).toBe(200);
-  await expect(page).toHaveURL(/\/console\/home$/);
+  await expect(page.locator('#account-identity')).toHaveText('注册验收家长');
+  expect(new URL(page.url()).pathname).toBe('/');
   const profile = await page.evaluate(async () => {
     const response = await fetch('/api/auth/me');
     const user = await response.json();
@@ -127,7 +153,10 @@ test('real registration and both pending identity submissions enter the correct 
     await page.goto('/?choose-role=1');
     await page.locator('#choose-role select[name=role]').selectOption(role);
     await page.getByRole('button', { name: '保存身份并继续', exact: true }).click();
-    if (role === 'Parent') await expect(page).toHaveURL(/\/console\/home$/);
+    if (role === 'Parent') {
+      await expect(page.locator('#account-identity')).toContainText(users.pendingParent.displayName);
+      expect(new URL(page.url()).pathname).toBe('/');
+    }
     else {
       await expect(page.getByRole('heading', { name: '请选择你的身份' })).toHaveCount(0);
       await expect(page.locator('#account-identity')).toContainText(users.pendingStudent.displayName);

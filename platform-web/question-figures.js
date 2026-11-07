@@ -26,7 +26,31 @@
     canvas.getContext('2d').drawImage(image,x,y,canvas.width,canvas.height,0,0,canvas.width,canvas.height);
     return canvas.toDataURL('image/jpeg',.94);
   }
-  window.GrowingQuestionFigures={photo,create(api,esc,alive,studentId,onChange){
+  async function englishFigureImage(question,paper){
+    if(!question.figures?.length)throw Error('本题没有已核对的题图选框。');
+    const images=new Map(),regions=[];
+    for(const region of question.figures){
+      const page=paper.pages.find(p=>p.page===region.page);
+      if(!page)throw Error('题图来源页缺失，请补回原稿或补传本题图形后再批改。');
+      if(!images.has(region.page)){const image=new Image();image.src=page.image;await image.decode();if(!image.naturalWidth||!image.naturalHeight)throw Error('题图来源图片无法读取，请补传本题图形。');images.set(region.page,image);}
+      const image=images.get(region.page),{x,y,width,height}=region;
+      if(![x,y,width,height].every(Number.isFinite)||x<0||y<0||width<=0||height<=0||x+width>1.000001||y+height>1.000001)throw Error('题图选框无效，请先核对题图。');
+      regions.push({image,x:x*image.naturalWidth,y:y*image.naturalHeight,width:width*image.naturalWidth,height:height*image.naturalHeight});
+    }
+    const width=Math.min(1600,Math.max(...regions.map(r=>r.width))),gap=12;
+    const height=regions.reduce((sum,r)=>sum+r.height*Math.min(1,width/r.width),0)+gap*(regions.length-1);
+    let scale=Math.min(1,2000/Math.max(width,height));
+    const canvas=document.createElement('canvas');
+    for(let attempt=0;attempt<5;attempt++){
+      canvas.width=Math.max(1,Math.ceil(width*scale));canvas.height=Math.max(1,Math.ceil(height*scale));
+      const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);let top=0;
+      for(const r of regions){const size=Math.min(1,width/r.width)*scale;ctx.drawImage(r.image,r.x,r.y,r.width,r.height,0,top,r.width*size,r.height*size);top+=r.height*size+gap*scale;}
+      for(const quality of [.9,.8,.7,.6]){const data=canvas.toDataURL('image/jpeg',quality);if(data.length<=500000)return data;}
+      scale*=.8;
+    }
+    throw Error('题图无法压缩，请补传裁好的本题图形后再批改。');
+  }
+  window.GrowingQuestionFigures={photo,englishFigureImage,create(api,esc,alive,studentId,onChange){
     const papers=new Map();let disposed=false,dialog=null;
     const valid=()=>!disposed&&alive();
     async function paper(id){
@@ -40,7 +64,7 @@
       d.querySelector('[data-figure-close]').onclick=close;d.addEventListener('cancel',e=>{e.preventDefault();close();});document.body.append(d);d.showModal();return d;
     }
     async function mount(host,q,options={}){
-      if(options.originals===false&&!q.hasDrawing){host.hidden=true;host.replaceChildren();return;}
+      if(options.originals===false&&!q.hasDrawing&&!q.hasFigureImage&&!q.figures?.length){host.hidden=true;host.replaceChildren();return;}
       host.hidden=false;
       host.className='question-figures';host.innerHTML='<p class="muted">正在读取题图与原稿…</p>';
       const usable=()=>valid()&&host.isConnected;
@@ -48,7 +72,8 @@
         const p=await paper(q.paperId);if(!usable())return;
         const attachment=q.hasFigureImage||q.hasDrawing?await api('/question-bank/questions/'+q.id+'/figures?'+new URLSearchParams({studentId})):null;
         if(!usable())return;
-        const vector=!q.sourceOnly&&!options.sourceOnly&&window.GrowingQuestionDrawing?.normalize(attachment?.drawing);
+        const photoSubject=['english','physics'].includes(q.subject||p.subject);
+        const vector=!photoSubject&&!q.sourceOnly&&!options.sourceOnly&&window.GrowingQuestionDrawing?.normalize(attachment?.drawing);
         async function change(button,action){
           const old=button.textContent;button.disabled=true;button.textContent='正在处理…';
           const status=host.querySelector('[data-drawing-status]');if(status)status.textContent='';
@@ -73,7 +98,13 @@
           const confirm=host.querySelector('[data-drawing-confirm]');if(confirm)confirm.onclick=()=>change(confirm,()=>api('/question-bank/questions/'+q.id+'/figures',{method:'PUT',body:JSON.stringify({studentId,figureVersion:attachment.figureVersion,revision:q.revision,drawingReviewed:true})}));
           return;
         }
-        if(options.originals===false){host.hidden=true;host.replaceChildren();return;}
+        if(options.originals===false&&!photoSubject){host.hidden=true;host.replaceChildren();return;}
+        if(options.minimal&&photoSubject){
+          host.replaceChildren();
+          const imageSource=attachment?.image|| (q.figures?.length?await englishFigureImage(q,p):'');
+          if(!usable()||!imageSource)return;
+          const image=new Image();image.src=imageSource;image.alt='第 '+q.number+' 题插图';image.style.maxWidth='100%';host.append(image);return;
+        }
         const regions=options.sourceOnly?q.regions||[]:q.figures?.length?q.figures:q.regions||[];
         const pages=p.pages.filter(s=>q.pages.includes(s.page));
         const items=!options.sourceOnly&&attachment?.image?[{src:attachment.image,label:'本题图形 · 补传原图'}]:regions.length?await Promise.all(regions.map(async r=>{
@@ -85,7 +116,7 @@
         if(!usable())return;
         const available=items.filter(Boolean),missing=q.pages.filter(n=>!pages.some(p=>p.page===n));
         host.innerHTML=`${available.map((item,i)=>`<figure><button type="button" class="question-figure-zoom" data-figure-zoom="${i}" aria-label="放大${esc(item.label)}"><img src="${esc(item.src)}" alt="第 ${esc(q.number)} 题 · ${esc(item.label)}" loading="lazy"></button><figcaption>${esc(item.label)} · 点击放大</figcaption></figure>`).join('')}${missing.length&&(options.sourceOnly||!attachment?.image)?`<p class="warning">第 ${missing.join('、')} 页原稿未保留。题图不能由文字代替，请补回原稿或补传本题图形。</p>`:''}<div class="actions"><button type="button" data-figure-edit>核对 / 补充题图</button>${!q.sourceOnly?'<button type="button" data-drawing-generate>生成 SVG 题图</button>':''}</div><p role="status" class="warning" data-drawing-status></p>`;
-        const generateButton=host.querySelector('[data-drawing-generate]');if(generateButton)generateButton.onclick=()=>generate(generateButton);
+        const generateButton=host.querySelector('[data-drawing-generate]');if(generateButton){if(photoSubject)generateButton.remove();else generateButton.onclick=()=>generate(generateButton);}
         host.querySelector('[data-figure-edit]').onclick=()=>edit(q).catch(e=>{if(usable()){const msg=document.createElement('p');msg.className='warning';msg.textContent=e.message;host.append(msg);}});
         host.querySelectorAll('[data-figure-zoom]').forEach(b=>{b.onclick=()=>{const item=available[Number(b.dataset.figureZoom)],d=modal('第 '+q.number+' 题 · '+item.label),img=document.createElement('img');img.src=item.src;img.alt=item.label;img.style.width='720px';d.querySelector('[data-figure-body]').append(img);};});
       }catch(e){if(usable()){host.textContent='题图读取失败：'+e.message;const retry=document.createElement('button');retry.textContent='重试读取题图';retry.onclick=()=>mount(host,q,options);host.append(retry);}}
@@ -163,6 +194,6 @@
       });
       show();list();
     }
-    return {mount,showOriginal,clear:()=>papers.clear(),dispose(){disposed=true;papers.clear();close();}};
+    return {mount,showOriginal,edit,clear:()=>papers.clear(),dispose(){disposed=true;papers.clear();close();}};
   }};
 })();

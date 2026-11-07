@@ -5,7 +5,8 @@
   const validReturn=value=>typeof value==='string'&&/^\/console\/(?:home|students(?:\/[A-Za-z0-9_-]{1,100})?|reports|members(?:\/[A-Za-z0-9_-]{1,100})?|rewards|account)?$/.test(value);
   function parse(search,hash){
     const query=new URLSearchParams(search),result={legacy:query.get('legacy')==='1',register:hash==='#register',returnTo:'/console/home'};
-    for(const key of ['legacy','action','student','paper','return'])if(query.getAll(key).length>1)return {...result,error:'兼容入口参数无效。'};
+    for(const key of ['legacy','action','student','paper','return','subject'])if(query.getAll(key).length>1)return {...result,error:'兼容入口参数无效。'};
+    if(query.has('subject')){if(!['math','english','physics'].includes(query.get('subject')))return {...result,error:'学科参数无效。'};result.subject=query.get('subject');}
     if(query.has('legacy')&&!result.legacy)return {...result,error:'兼容入口参数无效。'};
     result.action=query.has('action')?query.get('action'):({'#question-bank':'question-bank','#my-papers':'my-papers','#learning-reports':'reports'}[hash]);
     if(query.has('action')&&!actions.includes(result.action))return {...result,error:'兼容入口参数无效。'};
@@ -17,14 +18,16 @@
     if(query.has('return')){if(!validReturn(query.get('return')))return {...result,error:'返回地址无效。'};result.returnTo=query.get('return');}
     return result;
   }
-  function link(action,returnTo='/console/home',studentId,paperId){
+  function link(action,returnTo='/console/home',studentId,paperId,subject){
+    if(subject!==undefined&&!['math','english','physics'].includes(subject))throw Error('学科参数无效。');
     if(!actions.includes(action)||!validReturn(returnTo)||studentId!==undefined&&!validId(studentId)||paperId!==undefined&&(!validId(paperId)||!studentId||action!=='my-papers'))throw Error('兼容入口参数无效。');
     const q=new URLSearchParams({legacy:'1',action,return:returnTo});if(studentId!==undefined)q.set('student',studentId);if(paperId!==undefined)q.set('paper',paperId);
+    if(subject!==undefined)q.set('subject',subject);
     return '/?'+q+(action==='question-bank'||action==='my-papers'?'#'+action:'');
   }
   function destination(profile,native,context){
-    if(native||context.error||context.legacy&&!context.register||!['Admin','Parent'].includes(profile.role)||profile.role!=='Admin'&&profile.roleSelectionRequired!==false)return null;
-    if(['question-bank','my-papers'].includes(context.action))return link(context.action,context.returnTo,context.studentId,context.paperId);
+    if(native||context.error||!context.legacy||!context.register||!['Admin','Parent'].includes(profile.role)||profile.role!=='Admin'&&profile.roleSelectionRequired!==false)return null;
+    if(['question-bank','my-papers'].includes(context.action))return link(context.action,context.returnTo,context.studentId,context.paperId,context.subject);
     return context.action==='reports'?'/console/reports':'/console/home';
   }
   async function target(children,user,api,context){

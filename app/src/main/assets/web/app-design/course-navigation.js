@@ -21,6 +21,7 @@
       let status=document.getElementById('photo-entry-status');if(!status){status=document.createElement('p');status.id='photo-entry-status';status.setAttribute('role','status');nav.after(status);}status.textContent='拍照题库需要云账号，请从学习中心登录后进入课堂。';
     }catch(error){alert('拍照题库暂时无法打开：'+error.message);}
   };
+  window.GrowingCourseNavigation.papers=prefix+(subject==='english'?'english-resources.html':subject==='physics'?'physics-resources.html':'math-resources.html')+'?'+new URLSearchParams({unit:id,term});
   document.addEventListener('DOMContentLoaded',()=>{
     if(!window.GrowingNative||document.querySelector('.course-tools-nav'))return;
     const tools=document.createElement('nav');tools.className='course-quick-tools';tools.setAttribute('aria-label','课堂工具');const photo=document.createElement('button');photo.type='button';photo.textContent='拍照题库';photo.addEventListener('click',window.GrowingCourseNavigation.openPhotoBank);tools.append(photo);nav.after(tools);

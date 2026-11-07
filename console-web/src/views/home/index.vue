@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onUnmounted, ref, watch } from 'vue';
-import { NAlert, NButton, NCard } from 'naive-ui';
+import { NAlert, NButton, NCard, NSpin } from 'naive-ui';
 import { useAuthStore } from '@/store/modules/auth';
 import { api } from '@/service/request';
 import StudentOverview from '@/features/students/components/student-overview.vue';
@@ -27,10 +27,10 @@ onUnmounted(() => { generation++; controller?.abort(); });
     <header><h1>{{ auth.profile?.role === 'Parent' ? '孩子概况' : '工作台' }}</h1><p class="page-description">逆流 · {{ auth.profile?.role === 'Parent' ? '陪伴每一天的成长' : '学习档案与家庭管理' }}</p></header>
     <StudentOverview v-if="auth.profile?.role === 'Parent'" />
     <template v-else-if="auth.profile?.role === 'Admin'">
-      <p v-if="loading" role="status">正在加载全站概况…</p>
+      <NSpin v-if="loading" size="small"><template #description><span role="status">正在加载全站概况…</span></template></NSpin>
       <NAlert v-else-if="error" title="概况加载失败" type="error"><p>{{ error }}</p><NButton @click="load">重试</NButton></NAlert>
       <div v-else-if="data" class="overview-grid"><NCard v-for="[key, title] in fields" :key="key" :title="title" size="small"><strong class="overview-number">{{ data[key] == null ? '暂无记录' : key === 'cashCents' ? (data[key] / 100).toFixed(2) : data[key] }}</strong></NCard></div>
-      <nav class="overview-links" aria-label="管理功能"><RouterLink to="/students">查看学生档案</RouterLink><RouterLink to="/members">管理注册会员</RouterLink><RouterLink to="/rewards">查看奖励账本</RouterLink></nav>
+      <nav class="overview-links" aria-label="管理功能"><RouterLink v-slot="{ href, navigate }" to="/students" custom><NButton tag="a" :href="href" @click="navigate">查看学生档案</NButton></RouterLink><RouterLink v-slot="{ href, navigate }" to="/members" custom><NButton tag="a" :href="href" @click="navigate">管理注册会员</NButton></RouterLink><RouterLink v-slot="{ href, navigate }" to="/rewards" custom><NButton tag="a" :href="href" @click="navigate">查看奖励账本</NButton></RouterLink></nav>
     </template>
   </main>
 </template>
@@ -38,5 +38,5 @@ onUnmounted(() => { generation++; controller?.abort(); });
 <style scoped>
 .overview-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
 .overview-number { font-size: 28px; font-weight: 600; color: #38694f; }
-.overview-links { display: flex; flex-wrap: wrap; gap: 16px; } a { color: #38694f; text-decoration: underline; text-underline-offset: 3px; }
+.overview-links { display: flex; flex-wrap: wrap; gap: 16px; }
 </style>

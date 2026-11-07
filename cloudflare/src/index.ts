@@ -200,7 +200,7 @@ export function createHandler(database: (env: Env) => Database = env => {
           if(!Number.isSafeInteger(page)||page<1||page>100000)error(400,'页码无效。');
           return decorate(json(await bank.unitWrongHistory(student,page)),request);
         }
-        if(path==='/api/question-bank/papers'&&request.method==='GET')return decorate(json(await bank.papers(student)),request);
+        if(path==='/api/question-bank/papers'&&request.method==='GET')return decorate(json(await bank.papers(student,url.searchParams.get('subject'))),request);
         if(path==='/api/question-bank/repeated'&&request.method==='GET'){
           const page=Number(url.searchParams.get('page')||1);
           if(!Number.isSafeInteger(page)||page<1||page>100000)error(400,'页码无效。');

@@ -45,8 +45,8 @@
     document.getElementById('resources-back').href='units.html?subject=math&term='+term;
     document.getElementById('open-my-papers').addEventListener('click',event=>{
       event.preventDefault();
-      if(window.top.GrowingCloud?.openPapers)window.top.GrowingCloud.openPapers();
-      else location.href=window.GrowingNative?'../cloud/index.html?return='+encodeURIComponent(location.href)+'#my-papers':'/#my-papers';
+      if(window.top.GrowingCloud?.openPapers)window.top.GrowingCloud.openPapers({subject:'math'});
+      else location.href=window.GrowingNative?'../cloud/index.html?subject=math&return='+encodeURIComponent(location.href)+'#my-papers':'/?subject=math#my-papers';
     });
   </script>
 </body>

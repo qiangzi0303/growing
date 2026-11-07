@@ -1,6 +1,8 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { reactive } from 'vue';
+import { NCollapseItem, NDataTable, NPagination, NSelect } from 'naive-ui';
+import type { VueWrapper } from '@vue/test-utils';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import StudySummary from '@/features/reports/components/study-summary.vue';
 import GrowthChart from '@/features/reports/components/growth-chart.vue';
@@ -28,11 +30,24 @@ const report = { subjects: [{ subject: '数学', read: 2, mastered: 1, practice:
 const unit = { id: 'math-upper-1', title: '三角形', subject: 'math', subjectName: '数学', term: 'upper', termName: '八年级上册', activeMinutes: null, firstStudyDay: null, lastStudyDay: null, studyDays: 0, mastered: 1, total: 4, masteryPercent: 25, concept: { passed: 1, total: 2, retainedAttempts: 1, best: 8, latest: 7 }, practice: { done: 0, total: 2 }, diagnostic: { passed: 0, shaky: 0, weak: 0, tested: 0, total: 2 }, handwriting: { graded: 1, latest: { score: 100, needsReview: false, at: '2026-11-04T18:00:00Z' } } };
 const units = { units: [unit], lastSyncedAt: null, warnings: [], note: '课程达标独立计算' };
 const emptyRewards: RewardReport = { entries: [], summaries: [], invalid: 0, confirmations: [], note: '' };
+async function selectValue(page: VueWrapper, label: string, value: string | number) {
+  const select = page.findAllComponents(NSelect).find(item => item.attributes('aria-label') === label);
+  expect(select, `Naive select ${label}`).toBeDefined();
+  select!.vm.$emit('update:value', value); await flushPromises();
+}
+it('uses Naive data tables and disclosure controls while retaining report values', () => {
+  const summary = mount(StudySummary, { props: { report } });
+  expect(summary.findComponent(NDataTable).exists()).toBe(true);
+  expect(summary.text()).toContain('99 分钟'); summary.unmount();
+  const chart = mount(GrowthChart, { props: { report: growth, days: 7 } });
+  expect(chart.findAllComponents(NSelect)).toHaveLength(3);
+  expect(chart.findComponent(NCollapseItem).exists()).toBe(true); chart.unmount();
+});
 it('shows word mastery and sentence completion independently in the shared parent/admin unit report', () => {
   const page = mount(UnitReports, { props: { report: { ...units, units: [{ ...unit, subject: 'english', words: { mastered: 2, total: 52 }, sentences: { completed: 3, total: 40 } }] } } });
   const cells = page.findAll('tbody td');
   expect(page.text()).toContain('单词掌握'); expect(page.text()).toContain('句子互动');
-  expect(cells[1].text()).toBe('2 / 52 个'); expect(cells[2].text()).toBe('3 / 40 项完成');
+  expect(cells[2].text()).toBe('2 / 52 个'); expect(cells[3].text()).toBe('3 / 40 项完成');
   expect(page.text()).toContain('25%'); page.unmount();
 });
 beforeEach(() => { vi.clearAllMocks(); auth.profile = { id: 'p', role: 'Parent' }; auth.sessionRevision++; mocks.api.mockResolvedValue(units); });
@@ -48,13 +63,14 @@ it('shows retained study-time totals rather than reconstructing from course mast
 });
 it('changes chart subject and metric locally and emits supported day windows', async () => {
   const page = mount(GrowthChart, { props: { report: growth, days: 7 } });
+  await page.get('.n-collapse-item__header-main').trigger('click');
   expect(page.get('[data-testid="growth-values"]').text()).toContain('0');
-  await page.get('[aria-label="曲线指标"]').setValue('mastered');
+  await selectValue(page, '曲线指标', 'mastered');
   expect(page.get('[data-testid="growth-values"]').text()).toContain('暂无快照');
   expect(mocks.update.mock.lastCall?.[0]()).toMatchObject({ series: [{ data: [null, 1], connectNulls: false }] });
-  await page.get('[aria-label="曲线学科"]').setValue('英语');
+  await selectValue(page, '曲线学科', '英语');
   expect(page.get('[data-testid="growth-values"]').text()).not.toContain('8 分钟');
-  for (const days of [30, 90, 7]) await page.get('[aria-label="曲线天数"]').setValue(String(days));
+  for (const days of [30, 90, 7]) await selectValue(page, '曲线天数', days);
   expect(page.emitted('update:days')).toEqual([[30], [90], [7]]); page.unmount();
 });
 it('uses the existing admin report contract for growth and validates supported windows before I/O', async () => {
@@ -69,9 +85,9 @@ it('filters units without requests and keeps unknown duration and handwriting se
   expect(page.text()).toContain('暂无时间记录'); expect(page.text()).not.toContain('0 分钟');
   expect(page.text()).toContain('25%'); expect(page.text()).toContain('不直接计入课程达标');
   expect(page.text()).toContain('未测');
-  await page.get('[aria-label="单元学科"]').setValue('english'); expect(page.text()).toContain('该筛选下暂无已学习单元');
-  await page.get('[aria-label="单元学科"]').setValue('math');
-  await page.get('[aria-label="单元册次"]').setValue('lower'); expect(page.text()).not.toContain('三角形');
+  await selectValue(page, '单元学科', 'english'); expect(page.text()).toContain('该筛选下暂无已学习单元');
+  await selectValue(page, '单元学科', 'math');
+  await selectValue(page, '单元册次', 'lower'); expect(page.text()).not.toContain('三角形');
   expect(mocks.api).not.toHaveBeenCalled(); page.unmount();
 });
 it('distinguishes an empty unit report', () => {
@@ -82,7 +98,7 @@ it('distinguishes an empty unit report', () => {
 it('counts fully mastered units across the report independently of local filters', async () => {
   const page = mount(UnitReports, { props: { report: { ...units, units: [unit, { ...unit, id: 'done', mastered: 4, masteryPercent: 100 }] } } });
   expect(page.text()).toContain('已完成课程达标的单元 1 / 2');
-  await page.get('[aria-label="单元学科"]').setValue('english');
+  await selectValue(page, '单元学科', 'english');
   expect(page.text()).toContain('已完成课程达标的单元 1 / 2'); page.unmount();
 });
 it('labels concept scores out of ten and preserves retained best versus unknown scores', async () => {
@@ -100,7 +116,7 @@ it('loads units separately; changes days without reloading units or summary', as
   const page = mount(ReportPanel, { props: { student: { id: 'a', displayName: '安' }, report, growth } }); await flushPromises();
   expect(mocks.api).toHaveBeenCalledWith('/parent/children/a/unit-report', expect.anything());
   mocks.api.mockResolvedValueOnce(growth);
-  await page.get('[aria-label="曲线天数"]').setValue('30'); await flushPromises();
+  await selectValue(page, '曲线天数', 30); await flushPromises();
   expect(mocks.api.mock.lastCall?.[0]).toBe('/parent/children/a/growth?days=30');
   expect(mocks.api).toHaveBeenCalledTimes(2); expect(page.text()).toContain('99 分钟');
   await page.get('[data-testid="refresh-units"]').trigger('click'); await flushPromises();
@@ -140,7 +156,7 @@ it('supports admin report selection with real search and server pagination', asy
   expect(page.get('input').attributes('id')).toBe('report-search');
   await page.get('input').setValue('安'); await page.get('form').trigger('submit'); await flushPromises();
   expect(mocks.list.mock.lastCall?.[1]).toMatchObject({ q: '安', page: 1 });
-  await page.get('[aria-label="下一页"]').trigger('click'); await flushPromises();
+  page.getComponent(NPagination).vm.$emit('update:page', 2); await flushPromises();
   expect(mocks.list.mock.lastCall?.[1]).toMatchObject({ q: '安', page: 2 });
   const select = page.findAll('button').find(button => button.text() === '查看报告')!;
   await select.trigger('click'); await flushPromises();
@@ -150,9 +166,9 @@ it('rapid day-window changes cancel old requests and do not revive late results 
   const page = mount(ReportPanel, { props: { student: { id: 'a', displayName: '安' }, report, growth } }); await flushPromises();
   let resolve!: (value: unknown) => void;
   mocks.api.mockImplementationOnce(() => new Promise(done => { resolve = done; })).mockResolvedValueOnce({ ...growth, points: [] });
-  await page.get('[aria-label="曲线天数"]').setValue('30');
+  await selectValue(page, '曲线天数', 30);
   const signal = mocks.api.mock.lastCall?.[1].signal as AbortSignal;
-  await page.get('[aria-label="曲线天数"]').setValue('90'); await flushPromises();
+  await selectValue(page, '曲线天数', 90); await flushPromises();
   expect(signal.aborted).toBe(true); expect(page.text()).toContain('暂无成长快照');
   resolve(growth); await flushPromises(); expect(page.text()).toContain('暂无成长快照');
   page.unmount();
@@ -161,7 +177,7 @@ it('keeps a parent child picker on a bookmarked report and never falls back for 
   mocks.list.mockResolvedValue({ rows: [{ id: 'a', displayName: '安' }, { id: 'b', displayName: '北' }] });
   mocks.detail.mockImplementation((_role, student) => Promise.resolve({ student, report, growth, rewards: emptyRewards }));
   const page = mount(StudentOverview, { props: { studentId: 'a', showReports: true }, global: { stubs: { RouterLink: true } } });
-  await flushPromises(); await page.get('select').setValue('b'); await flushPromises();
+  await flushPromises(); page.findAllComponents(NSelect)[0].vm.$emit('update:value', 'b'); await flushPromises();
   expect(mocks.detail.mock.lastCall?.[1].id).toBe('b'); expect(page.text()).toContain('北的学习概况');
   mocks.detail.mockClear(); await page.setProps({ studentId: 'unbound' }); await flushPromises();
   expect(page.text()).toContain('未绑定'); expect(mocks.detail).not.toHaveBeenCalled(); page.unmount();

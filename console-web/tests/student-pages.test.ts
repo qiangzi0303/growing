@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { reactive } from 'vue';
+import { NDataTable, NPagination, NSelect } from 'naive-ui';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { createPinia, setActivePinia } from 'pinia';
 import { useRouteStore } from '@/store/modules/route';
@@ -31,6 +32,7 @@ beforeEach(() => {
 });
 it('shows only bound parent children and an account link when empty', async () => {
   const page = await render(Students);
+  expect(page.findComponent(NDataTable).exists()).toBe(true);
   expect(page.text()).toContain('我的孩子'); expect(page.text()).toContain('小安');
   expect(page.find('input').exists()).toBe(false);
   expect(mocks.list.mock.calls[0][0]).toBe('Parent'); page.unmount();
@@ -55,7 +57,7 @@ it('searches and pages admin students using server pagination', async () => {
   const page = await render(Students);
   await page.get('input').setValue('小安'); await page.get('form').trigger('submit'); await flushPromises();
   expect(mocks.list.mock.lastCall?.[1]).toMatchObject({ q: '小安', page: 1 });
-  await page.get('[aria-label="下一页"]').trigger('click'); await flushPromises();
+  page.getComponent(NPagination).vm.$emit('update:page', 2); await flushPromises();
   expect(mocks.list.mock.lastCall?.[1]).toMatchObject({ q: '小安', page: 2 }); page.unmount();
 });
 it('associates the search label with the native keyboard-focusable input', async () => {
@@ -82,8 +84,8 @@ it('clears the previous child immediately and ignores a late failure', async () 
   const page = await render(Home); expect(page.text()).toContain('待确认奖励'); expect(page.text()).toContain('数学');
   let reject!: (error: Error) => void;
   mocks.detail.mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail; })).mockResolvedValueOnce(bundle('a'));
-  await page.get('select').setValue('b'); expect(page.text()).not.toContain('数学'); expect(page.text()).toContain('正在加载');
-  await page.get('select').setValue('a'); await flushPromises(); reject(new Error('迟到失败')); await flushPromises();
+  page.getComponent(NSelect).vm.$emit('update:value', 'b'); await flushPromises(); expect(page.text()).not.toContain('数学'); expect(page.text()).toContain('正在加载');
+  page.getComponent(NSelect).vm.$emit('update:value', 'a'); await flushPromises(); reject(new Error('迟到失败')); await flushPromises();
   expect(page.text()).toContain('数学'); expect(page.text()).not.toContain('迟到失败'); page.unmount();
 });
 it('does not silently select another child on an unbound direct detail URL', async () => {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue';
+import { NAlert } from 'naive-ui';
 import type { Stroke } from '../api';
 const props = defineProps<{ strokes: Stroke[]; photo?: string | null; page: number }>();
 const canvas = ref<HTMLCanvasElement | null>(null); const imageError = ref(false);
@@ -20,6 +21,6 @@ watch(() => [props.strokes, props.photo], async () => {
 </script>
 <template>
   <div class="original-page"><img v-if="photo && !imageError" :src="photo" :alt="`第 ${page} 页原稿照片底图`" @error="imageError = true" /><canvas ref="canvas" width="800" height="1100" :aria-label="`第 ${page} 页手写原稿`" /></div>
-  <p v-if="imageError" role="alert">原稿照片无法加载，笔迹仍保留。</p>
+  <NAlert v-if="imageError" type="warning">原稿照片无法加载，笔迹仍保留。</NAlert>
 </template>
 <style scoped>.original-page { position: relative; max-width: 800px; background: white; border: 1px solid #d8e0d9; } canvas { display: block; width: 100%; height: auto; position: relative; } img { position: absolute; width: 100%; height: 100%; inset: 0; }</style>

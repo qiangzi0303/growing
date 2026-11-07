@@ -161,6 +161,10 @@ before(async () => {
   await db.batch(drawingMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
   const paperMigration=await readFile(new URL('../migrations/0014_photo_papers.sql',import.meta.url),'utf8');
   await db.batch(paperMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
+  const subjectMigration=await readFile(new URL('../migrations/0015_paper_subject.sql',import.meta.url),'utf8');
+  await db.batch(subjectMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
+  const classificationMigration=await readFile(new URL('../migrations/0016_paper_classification.sql',import.meta.url),'utf8');
+  await db.batch(classificationMigration.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
 });
 after(async () => { await mf.dispose(); });
 
@@ -284,12 +288,13 @@ test('photo imports atomically retain standard math and originals, classify unce
     assert.equal((await db.query<any>('SELECT count(*) AS n FROM "GrowingQuestionPages" WHERE "PaperId"=?1',[first.paperId]))[0].n,2);
     for(const token of [other.token])for(const target of [originalPath,'/api/question-bank/questions'+query])assert.equal((await call(target,'GET',undefined,token)).status,404);
     assert.equal((await call(originalPath,'GET',undefined,a.token)).status,200);
-    const q=all.rows.find((q:any)=>q.unitId===''),edit={studentId:s.user.id,revision:q.revision,number:q.number,text:'核对后的完整题目',answer:'家长补充的答案',unitId:'physics-8a-02'},editPath='/api/question-bank/questions/'+q.id;
+    const q=all.rows.find((q:any)=>q.unitId===''),edit={studentId:s.user.id,revision:q.revision,number:q.number,text:'核对后的完整题目',answer:'家长补充的答案',unitId:'math-8a-02'},editPath='/api/question-bank/questions/'+q.id;
     assert.equal((await call(editPath,'PUT',edit,other.token)).status,404);
     assert.equal((await call(editPath,'PUT',{...edit,unitId:'made-up'},p.token)).status,400);
+    assert.equal((await call(editPath,'PUT',{...edit,unitId:'physics-8a-02'},p.token)).status,400);
     assert.equal((await call(editPath,'PUT',edit,p.token)).status,200);
     assert.equal((await call(editPath,'PUT',edit,s.token)).status,409);
-    const corrected=await (await call('/api/question-bank/questions'+query+'&unitId=physics-8a-02','GET',undefined,s.token)).json() as any;
+    const corrected=await (await call('/api/question-bank/questions'+query+'&unitId=math-8a-02','GET',undefined,s.token)).json() as any;
     assert.equal(corrected.total,1);assert.equal(corrected.rows[0].reviewed,true);assert.equal(corrected.rows[0].text,edit.text);
     await call('/api/student/parents/'+p.user.id,'DELETE',undefined,s.token);
     assert.equal((await call(originalPath,'GET',undefined,p.token)).status,404);

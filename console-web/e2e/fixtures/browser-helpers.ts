@@ -15,6 +15,16 @@ export async function authenticate(page: Page, name: keyof typeof users) {
 }
 export async function noOverflow(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  expect(await page.locator('main').evaluateAll(elements => elements.every(element => element.scrollWidth <= element.clientWidth + 1))).toBe(true);
+}
+export function selectControl(page: Page, name: string) {
+  return page.locator(`.n-select[aria-label="${name}"]`);
+}
+export async function choose(page: Page, name: string, label: string | number) {
+  await selectControl(page, name).click();
+  const options = page.locator('.n-base-select-option:visible');
+  if (typeof label === 'number') await options.nth(label).click();
+  else await options.getByText(label, { exact: true }).click();
 }
 export async function capture(page: Page, label: string) {
   await noOverflow(page);

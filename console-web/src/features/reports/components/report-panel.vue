@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onUnmounted, ref, shallowRef, watch } from 'vue';
-import { NAlert, NButton } from 'naive-ui';
+import { NAlert, NButton, NSpin } from 'naive-ui';
 import { useAuthStore } from '@/store/modules/auth';
 import type { ConsoleRole, GrowthReport, ReportDays, StudentIdentity, StudyReport } from '@/features/students/api';
 import { getGrowth, getUnitReports } from '../api';
@@ -53,7 +53,7 @@ onUnmounted(clear);
     <StudySummary :report="report" />
     <GrowthChart :report="growth" :days="days" :loading="growthLoading" :error="growthError" @update:days="changeDays" @retry="changeDays(days)" />
     <div><NButton data-testid="refresh-units" :disabled="unitLoading" @click="loadUnits">刷新单元报告</NButton></div>
-    <p v-if="unitLoading" role="status">正在读取单元学习记录…</p>
+    <NSpin v-if="unitLoading" size="small" role="status"><span>正在读取单元学习记录…</span></NSpin>
     <NAlert v-else-if="unitError" title="单元报告加载失败" type="error"><p>{{ unitError }}</p><NButton data-testid="retry-units" @click="loadUnits">重试读取报告</NButton></NAlert>
     <UnitReports v-else-if="units" :report="units" />
   </section>
