@@ -10,6 +10,7 @@ import { assess, type VisionEnv } from './handwriting-vision';
 import { QuestionBank, questionUnits } from './question-bank';
 import { PaperImportJobs } from './paper-import-jobs';
 import { PhotoReview } from './photo-review';
+import { paperAI } from './paper-ai';
 import { QuestionAttempts } from './question-attempts';
 import { StudentKnowledge } from './student-knowledge';
 import { connectRealtime, realtimeInfo, type RealtimeEnv } from './realtime';
@@ -147,6 +148,10 @@ export function createHandler(database: (env: Env) => Database = env => {
       }
       if(path.startsWith('/api/question-bank/')){
         const bank=new QuestionBank(db,current);
+        if(/^\/api\/question-bank\/questions\/[a-f0-9-]{36}\/paper-ai$/.test(path)&&request.method==='POST'){
+          const data=await body(request,40000),student=await bank.authorize(data.studentId);
+          return decorate(await paperAI(db,student,path.split('/').at(-2)!,data,env,current.id,request.signal,aiFetch),request);
+        }
         if(path==='/api/question-bank/catalog'&&request.method==='GET')return decorate(json(questionUnits),request);
         if(path==='/api/question-bank/exams'&&request.method==='POST')
           return decorate(json(await bank.examPaper(await body(request,13000000))),request);

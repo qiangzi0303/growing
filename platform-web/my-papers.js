@@ -135,7 +135,7 @@
       const filter=document.createElement('label');filter.innerHTML='<input type="checkbox" data-only-wrong> 只显示错题（含部分正确）';filter.querySelector('input').checked=onlyWrong;$('[data-print]').before(filter);
       const empty=document.createElement('p');empty.dataset.wrongEmpty='';empty.className='muted';empty.setAttribute('role','status');empty.hidden=true;empty.textContent='暂无错题或部分正确的题目。';$('[data-sheet]').before(empty);
       renderUnitChoices(classification(paper).unitIds);
-      paperReview=GrowingPaperReview.mount($('[data-sheet]'),api,esc,valid,studentId,paper,q=>$('[data-q="'+q.id+'"]'),saved=>{paper=saved;for(const q of saved.questions){const button=$('[data-mark="'+q.id+'"]');if(button)button.textContent=wrong(q)?'取消错题标记':'标记为错题';}applyWrongFilter();});
+      paperReview=GrowingPaperAI.mount($('[data-sheet]'),api,esc,valid,studentId,paper,q=>$('[data-q="'+q.id+'"]'));
       applyWrongFilter();
       if(context.paperId===paper.id&&context.questionId){
         const target=[...root.querySelectorAll('[data-q]')].find(card=>card.dataset.q===context.questionId);
