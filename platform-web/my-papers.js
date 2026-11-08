@@ -24,19 +24,20 @@
     const $=s=>root.querySelector(s),message=s=>{$('[data-status]').textContent=s;};
     const jobsHost=document.createElement('section');jobsHost.className='papers-import-jobs';$('[data-list]').before(jobsHost);
     const pause=document.createElement('button');pause.dataset.pauseImport='';pause.textContent='暂存并退出整理';pause.hidden=true;$('[data-status]').after(pause);
-    function stopImport(){jobGeneration++;runningJob=false;pause.hidden=true;lock(false);message('进度已保存，可继续整理。');}
+    function stopImport(){jobGeneration++;runningJob=false;pause.hidden=true;jobsHost.hidden=false;lock(false);message('进度已保存，可继续整理。');}
     pause.onclick=stopImport;
     function jobCard(job){return `<article class="papers-import-job"><strong>${esc(subjectName(job.subject))} · ${job.status==='failed'?'整理中断':'待继续整理'}</strong><p>已规划 ${job.plannedPages}/${job.pageCount} 页 · 已整理 ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题</p>${job.error?`<p class="warning">${esc(job.error)}</p>`:''}<button data-resume="${esc(job.id)}">${job.status==='failed'?'重试整理':'继续整理'}</button></article>`;}
     async function runJob(initial){
       const student=studentId,selectedSubject=subject,generation=++jobGeneration;
       const current=()=>valid()&&generation===jobGeneration&&student===studentId&&selectedSubject===subject;
-      runningJob=true;lock(true);pause.hidden=false;pause.disabled=false;
+      runningJob=true;lock(true);jobsHost.hidden=true;pause.hidden=false;pause.disabled=false;
       // A selection change cancels local progression; a server step already in flight may finish safely.
       root.querySelectorAll('[data-student],[data-subject]').forEach(e=>{e.disabled=false;});
       let job=initial;
       try{
         while(current()){
           if(job.status==='complete'){runningJob=false;pause.hidden=true;await open(job.paperId);return;}
+          jobsHost.innerHTML=jobCard(job);
           message(`正在整理：已规划 ${job.plannedPages}/${job.pageCount} 页，已整理 ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题。`);
           const detail=await api('/question-bank/import-jobs/'+job.id+'?'+new URLSearchParams({studentId:student}));if(!current())return;job=detail;
           if(job.status==='complete')continue;
@@ -50,7 +51,7 @@
           if(current()&&job.status==='failed')throw Error(job.error||'整理失败，请重试。');
         }
       }catch(error){if(current()){jobsHost.innerHTML=jobCard(job);message(error.message+' 进度已保存，可继续整理。');}}
-      finally{if(current()){runningJob=false;pause.hidden=true;lock(false);}}
+      finally{if(current()){runningJob=false;pause.hidden=true;lock(false);if(job.status!=='complete')jobsHost.hidden=false;}}
     }
     const heading=root.querySelector('.papers-heading .muted');
     const updateSubject=()=>{heading.textContent=subjectName(subject)+' · 我的试卷';};

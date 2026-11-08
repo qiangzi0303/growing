@@ -5,6 +5,7 @@ import { validateAnswerAnnotations } from './photo-assessment';
 export interface VisionEnv {
   HANDWRITING_VISION_MODELS?: string;
   PAPER_RECOGNITION_MODELS?: string;
+  PAPER_FIGURE_MODELS?: string;
   AI_LIMITER: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
 type Model = { name: string; model: string; endpoint: string; apiKey: string; customHeaders?: Record<string,string>; additionalConfig?: string };
@@ -79,15 +80,15 @@ export async function recognize(data: Record<string,unknown>, env: VisionEnv, us
 }
 
 export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upstream: typeof fetch, system: string,
-  context: unknown, pages: string[], validate: (value: any) => object | null, paper = false, grading = false, options: {maxTokens?:number;paperRecognition?:boolean} = {}): Promise<Response> {
+  context: unknown, pages: string[], validate: (value: any) => object | null, paper = false, grading = false, options: {maxTokens?:number;paperRecognition?:boolean;paperFigures?:boolean} = {}): Promise<Response> {
   const deadline=Date.now()+100000;
   let models: Model[];
   try {
     // Keep grading and figure generation on their existing models.
-    const config=options.paperRecognition&&!grading?(env.PAPER_RECOGNITION_MODELS??env.HANDWRITING_VISION_MODELS):env.HANDWRITING_VISION_MODELS;
+    const config=options.paperFigures&&!grading?env.PAPER_FIGURE_MODELS:options.paperRecognition&&!grading?(env.PAPER_RECOGNITION_MODELS??env.HANDWRITING_VISION_MODELS):env.HANDWRITING_VISION_MODELS;
     models = JSON.parse(config || '[]');
     if (!Array.isArray(models) || !models.length || models.length > 4 || models.some(m => !m.model || !m.apiKey || !m.endpoint || new URL(m.endpoint).protocol !== 'https:')) throw Error();
-  } catch { return fail(503,paper?'试卷识别尚未配置，请联系管理员配置视觉模型。':grading?'手写原稿批改尚未配置视觉模型，请联系管理员；原稿已保留。':'手写图片识别尚未配置，请联系管理员；原稿已保留。'); }
+  } catch { return fail(503,options.paperFigures?'题图识别尚未配置，请联系管理员；原卷与整理进度已保留。':paper?'试卷识别尚未配置，请联系管理员配置视觉模型。':grading?'手写原稿批改尚未配置视觉模型，请联系管理员；原稿已保留。':'手写图片识别尚未配置，请联系管理员；原稿已保留。'); }
   for (const model of models) {
     if(Date.now()>=deadline)break;
     if (signal.aborted) return fail(499,'请求已取消，原稿已保留。');
@@ -121,5 +122,5 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
     }
     finally { clearTimeout(timer);signal.removeEventListener('abort',abort); }
   }
-  return fail(502,paper?'试卷识别失败或结果不完整，未录入题库。照片仍保留在当前页面，可重试或分批上传。':grading?'手写原稿批改失败、超时或结果不完整，本次不计分。原稿已保留，请稍后重试。':'手写图片识别失败或超时，原稿已保留。请稍后重试；仍失败请联系管理员检查视觉模型。');
+  return fail(502,options.paperFigures?'本题题图识别失败、超时或结果不完整，已保存进度，请重试。':paper?'试卷识别失败或结果不完整，未录入题库。照片仍保留在当前页面，可重试或分批上传。':grading?'手写原稿批改失败、超时或结果不完整，本次不计分。原稿已保留，请稍后重试。':'手写图片识别失败或超时，原稿已保留。请稍后重试；仍失败请联系管理员检查视觉模型。');
 }

@@ -54,3 +54,43 @@ test('English and physics retain their formats and real figures without SVG or g
   assert.ok(result.question.text);assert.equal(result.question.drawing,null);assert.equal(result.question.answer,'');assert.equal(result.question.figures.length,1);
  }
 });
+
+test('dedicated OCR text is paired with independently localized original figures',async()=>{
+ const ocr={...env,PAPER_RECOGNITION_MODELS:JSON.stringify([{name:'ocr',model:'ocr',endpoint:'https://ocr.test',apiKey:'ocr-test'}]),PAPER_FIGURE_MODELS:env.HANDWRITING_VISION_MODELS};
+ const value={...rawQuestion(),questions:[{...rawQuestion().questions[0],figures:[{crop:[.15,.45,.35,.65],originalImage:1}]}]};
+ const requests:string[]=[];
+ const provider=(async(url:any,options:any)=>{
+  requests.push(url);const body=JSON.parse(options.body),context=JSON.parse(body.messages[1].content[0].text);
+  if(context.questionText){
+   assert.equal(body.messages[1].content.filter((p:any)=>p.type==='image_url').length,1);
+   assert.equal(body.messages[1].content.find((p:any)=>p.type==='image_url').image_url.url,image);
+   return upstream({number:'1',complete:true,hasFigures:true,figures:[{page:1,bbox:[100,200,700,500]}],warnings:[]})(url,options);
+  }
+  assert.match(body.messages[0].content,/figures必须为\[\]/);return upstream(value)(url,options);
+ }) as typeof fetch;
+ const result=await transcribeQuestion(ocr,signal(),provider,'math',task,source,[]);
+ assert.equal(result.question.number,'1');assert.deepEqual(result.question.figures,[{page:1,x:.096,y:.196,width:.608,height:.308}]);
+ assert.match(result.question.text,/3x-6/);assert.deepEqual(requests,['https://ocr.test/chat/completions','https://vision.test/chat/completions']);
+ await assert.rejects(()=>transcribeQuestion(ocr,signal(),upstream({...value,complete:false}),'math',task,source,[]));
+ await assert.rejects(()=>transcribeQuestion(env,signal(),upstream(value),'math',task,source,[]));
+});
+
+test('incomplete, missing or foreign-page figure localization never succeeds as text-only import',async()=>{
+ const ocr={...env,PAPER_RECOGNITION_MODELS:env.HANDWRITING_VISION_MODELS,PAPER_FIGURE_MODELS:env.HANDWRITING_VISION_MODELS};
+ for(const output of [
+  {complete:false,hasFigures:true,figures:[{page:1,bbox:[100,200,700,500]}]},
+  {complete:true,hasFigures:true,figures:[]},
+  {complete:true,hasFigures:true,figures:[{page:2,bbox:[100,200,700,500]}]},
+  {complete:true,hasFigures:false,figures:[{page:1,bbox:[100,200,700,500]}]},
+  {complete:true,hasFigures:true,figures:[{page:1,bbox:[100,200,70,500]}]},
+  {complete:true,hasFigures:true,figures:[{page:1,bbox:[100,200,1700,500]}]}
+ ]){
+  let calls=0;
+  const provider=(async(url:any,options:any)=>upstream(++calls===1?rawQuestion():{number:'1',warnings:[],...output})(url,options)) as typeof fetch;
+  await assert.rejects(()=>transcribeQuestion(ocr,signal(),provider,'math',task,source,[]));assert.equal(calls,2);
+ }
+ let calls=0;
+ const provider=(async(url:any,options:any)=>upstream(++calls===1?rawQuestion():{number:'1',complete:true,hasFigures:false,figures:[],warnings:[]})(url,options)) as typeof fetch;
+ const result=await transcribeQuestion(ocr,signal(),provider,'math',task,source,[]);assert.deepEqual(result.question.figures,[]);assert.equal(calls,2);
+ await assert.rejects(()=>transcribeQuestion({...ocr,PAPER_FIGURE_MODELS:undefined},signal(),upstream(rawQuestion()),'math',task,source,[]),/题图识别尚未配置/);
+});

@@ -87,7 +87,7 @@ export class PaperImportJobs{
    const saved=await this.db.batch(statements);if(!saved.at(-1)?.length)fail(409,'任务状态已变化或试卷容量已满，请刷新后重试。');
   }catch(error){
    // Preserve the pre-step snapshot, so partial planning/recognition cannot skip work.
-   const previous:State=JSON.parse(r.State);previous.error=error instanceof HttpError&&error.status===429?'':'本步识别失败，已保存进度，请重试。';
+   const previous:State=JSON.parse(r.State);previous.error=error instanceof HttpError&&error.status===429?'':error instanceof HttpError&&[502,503].includes(error.status)?error.message:'本步识别失败，已保存进度，请重试。';
    await this.db.query('UPDATE "GrowingPaperImportJobs" SET "State"=?4,"Revision"="Revision"+1,"LeaseToken"=\'\',"LeaseUntil"=0 WHERE "Id"=?1 AND "LeaseToken"=?2 AND "Revision"=?3',[id,token,r.Revision,packed(previous)]);
    if(error instanceof HttpError&&[429,499,404,409].includes(error.status))throw error;
   }

@@ -13,6 +13,20 @@ async function fixture(fail=false,options={}){
 }
 test('saved import resumes with cropped fragments and opens only completed paper',async()=>{const {dom,root,requests}=await fixture();assert.ok(root.querySelector('[data-resume]'));root.querySelector('[data-resume]').click();await tick();assert.equal(requests.find(r=>r.path.endsWith('/step')).body.fragments[0].image,'cropped');assert.ok(root.querySelector('[data-paper-title]'));dom.window.close();});
 test('failed step keeps resumable task and actionable error',async()=>{const {dom,root}=await fixture(true);root.querySelector('[data-resume]').click();await tick();assert.match(root.querySelector('[data-status]').textContent,/模型失败/);assert.ok(root.querySelector('[data-resume]'));dom.window.close();});
+
+test('retry hides the old failure while running and restores enabled retry on failure',async()=>{
+ const job={id:'j1',subject:'math',status:'failed',revision:13,pageCount:2,plannedPages:2,recognizedQuestions:5,totalQuestions:30,error:'本步识别失败，已保存进度，请重试。',next:{kind:'question',number:'6',pages:[1],regions:[]}};
+ let finish;
+ const {dom,root}=await fixture(false,{api:path=>path.endsWith('/step')?new Promise(resolve=>{finish=resolve;}):path.includes('/import-jobs/')?{...job,sourcePages:[]}:path.includes('/import-jobs?')?[job]:undefined});
+ root.querySelector('[data-resume]').click();await tick();
+ assert.equal(root.querySelector('.papers-import-jobs').hidden,true);
+ assert.match(root.querySelector('[data-status]').textContent,/已整理 5\/30/);
+ finish(job);await tick();
+ assert.equal(root.querySelector('.papers-import-jobs').hidden,false);
+ assert.equal(root.querySelector('[data-resume]').disabled,false);
+ assert.equal(root.querySelector('[data-pause-import]').hidden,true);
+ dom.window.close();
+});
 test('exit while step is pending saves progress without opening the completed response',async()=>{
  let finish;const {dom,root,requests}=await fixture(false,{api:(path)=>path.endsWith('/step')?new Promise(resolve=>{finish=resolve;}):undefined});root.querySelector('[data-resume]').click();await tick();root.querySelector('[data-pause-import]').click();assert.match(root.querySelector('[data-status]').textContent,/进度已保存，可继续整理/);finish({status:'complete',paperId:'p1'});await tick();assert.equal(requests.filter(r=>r.path.includes('/papers/')).length,0);assert.ok(root.querySelector('[data-resume]'));dom.window.close();
 });

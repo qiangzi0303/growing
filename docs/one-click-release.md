@@ -21,6 +21,7 @@
 - 无网络时：`growing\release.bat --check --offline`，只验证本机。
 - 自定义提交说明：`growing\release.bat --message "更新手写作答功能"`。
 - CI 默认每个工作流最多等待 60 分钟；可用 `--wait-minutes 90` 调整。
+- 用户明确要求快速发布时：`growing\release.bat --skip-tests --message "发布说明"`。跳过本机与 CI 测试及 Android 模拟器，直接构建、部署并签名打包，保留固定签名、版本与公开下载校验；提交说明自动带 `[skip tests]`。默认发布仍运行测试。
 
 检查模式会同步生成资源、生成本地打包输出和日志；不改变线上服务。源码改动尚未保存到 Git 时，检查也可以运行。
 

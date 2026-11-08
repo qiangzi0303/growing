@@ -182,6 +182,12 @@ class Release:
             raise RuntimeError('Cloudflare login does not include the configured account')
 
     def validate(self):
+        if self.args.skip_tests:
+            print('FAST RELEASE: tests skipped by explicit request; building assets only.', flush=True)
+            for script in ('sync-platform.py', 'build-worker-assets.py', 'verify-assets.py'):
+                self.run(script, [sys.executable, REPO / 'scripts' / script])
+            self.check_changes()
+            return
         self.run('Release orchestration tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_release.py'])
         self.run('APK distribution tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_publish_apk.py'])
         self.run('GitHub transport tests (offline)', [sys.executable, '-B', REPO / 'scripts/test_release_github.py'])
@@ -228,7 +234,8 @@ class Release:
                 if not self.state.get(key):
                     if gh.request(BASE + '/git/ref/heads/main')['object']['sha'] != sha:
                         raise RuntimeError('Remote main changed during release')
-                    gh.request(BASE + '/actions/workflows/' + workflow + '/dispatches', 'POST', {'ref': 'main'})
+                    gh.request(BASE + '/actions/workflows/' + workflow + '/dispatches', 'POST',
+                               {'ref': 'main', 'inputs': {'skip_tests': self.args.skip_tests}})
                     self.record(**{key: True})
                 status = 'waiting for workflow to start'
             else:
@@ -246,7 +253,8 @@ class Release:
                                 raise RuntimeError('Remote main changed before CI retry')
                             if workflow == 'android-release.yml':
                                 # A job rerun could rebuild different APK bytes under an existing immutable version/tag.
-                                gh.request(BASE + '/actions/workflows/' + workflow + '/dispatches', 'POST', {'ref': 'main'})
+                                gh.request(BASE + '/actions/workflows/' + workflow + '/dispatches', 'POST',
+                                           {'ref': 'main', 'inputs': {'skip_tests': self.args.skip_tests}})
                             else:
                                 gh.request(BASE + '/actions/runs/' + str(run['id']) + '/rerun-failed-jobs', 'POST')
                             requested_retry = failure
@@ -307,6 +315,8 @@ class Release:
             name = self.git('config', '--get', 'user.name') if self.has_config('user.name') else self.git('log', '-1', '--format=%an')
             email = self.git('config', '--get', 'user.email') if self.has_config('user.email') else self.git('log', '-1', '--format=%ae')
             message = self.args.message or 'Release ' + dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            if self.args.skip_tests and '[skip tests]' not in message:
+                message += ' [skip tests]'
             self.run('Commit project changes', ['git', '-C', REPO, '-c', 'user.name=' + name,
                      '-c', 'user.email=' + email, 'commit', '-m', message])
         sha = self.git('rev-parse', 'HEAD')
@@ -358,6 +368,7 @@ def main():
     parser.add_argument('--check', action='store_true', help='Validate without publishing')
     parser.add_argument('--offline', action='store_true', help='Skip remote preflight (requires --check)')
     parser.add_argument('--message', help='Optional Git commit message; default includes local time')
+    parser.add_argument('--skip-tests', action='store_true', help='Build and publish without local or CI tests')
     parser.add_argument('--wait-minutes', type=int, default=60, help='CI wait limit per workflow')
     args = parser.parse_args()
     if args.offline and not args.check:

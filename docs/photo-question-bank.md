@@ -51,6 +51,10 @@
 
 ## 接口与迁移
 
+“我的试卷”的可恢复整理使用 `PAPER_RECOGNITION_MODELS` 转录文字，使用独立的 `PAPER_FIGURE_MODELS` 自动核对印刷题图归属并定位原卷裁剪；批改仍使用 `HANDWRITING_VISION_MODELS`。三个绑定均为服务端 Secret，图形定位模型需支持真实图片和空间定位。当前题图配置为已实测的 Doubao Seed 2.0 Pro，不能用只擅长转录的 OCR 模型代替定位模型。
+
+题图阶段使用 0–1000 的原页角点坐标，校验后转换为题库的归一化宽高，并留少量边距保留点名。题图识别失败、未配置、跨错页或缺图时不推进当前题，不以空图冒充成功；原卷和前面已整理的题保留，重试从当前题继续。整理结果仍为待人工核对的草稿，不以 JSON 校验通过代替内容准确性。
+
 - `POST /api/question-bank/import`：增加 `mode=grade|transcribe`；旧客户端不传 mode 时兼容为 transcribe。
 - `GET /api/question-bank/papers/:id`：返回原图（如有）及整份试卷题目。
 - `GET /api/question-bank/questions/:id/review`：读取逐题评分与追问。

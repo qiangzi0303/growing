@@ -6,11 +6,18 @@ on:
   pull_request:
     paths: ['console-web/**', 'cloudflare/**', 'server/database/**', 'platform-web/**', 'scripts/*platform*', 'scripts/*worker*', 'scripts/stage-console.py', 'scripts/export-english-rules.cjs', 'app/src/main/assets/web/**', '.github/workflows/platform.yml']
   workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: Build and publish without tests
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      FAST_RELEASE: ${{ inputs.skip_tests == true || contains(github.event.head_commit.message, '[skip tests]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,17 +35,21 @@ jobs:
       - name: Install pinned console dependencies without lifecycle scripts
         run: pnpm --dir console-web install --frozen-lockfile --ignore-scripts
       - name: Verify console types and behavior
+        if: env.FAST_RELEASE != 'true'
         run: |
           pnpm --dir console-web run typecheck
           pnpm --dir console-web run test
       - run: npm ci
         working-directory: cloudflare
       - run: node --test scripts/test-platform.cjs scripts/handwriting.test.cjs scripts/unit-summary.test.cjs scripts/math-format.test.cjs scripts/fraction-grading.test.cjs
+        if: env.FAST_RELEASE != 'true'
       - run: node --test scripts/realtime.test.cjs
+        if: env.FAST_RELEASE != 'true'
       - run: python scripts/build-worker-assets.py
       - run: npm run check
         working-directory: cloudflare
       - run: npm test
+        if: env.FAST_RELEASE != 'true'
         working-directory: cloudflare
       - run: npm run bundle
         working-directory: cloudflare

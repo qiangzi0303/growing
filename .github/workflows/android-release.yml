@@ -4,6 +4,11 @@ on:
     branches: [main]
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: Build and publish without tests
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -14,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      FAST_RELEASE: ${{ inputs.skip_tests == true || contains(github.event.head_commit.message, '[skip tests]') }}
       GROWING_VERSION_CODE: ${{ github.run_number }}
       GROWING_VERSION_NAME: 1.0.${{ github.run_number }}
       # Use the versioned update-site.json; ignore stale repository overrides.
@@ -37,18 +43,24 @@ jobs:
         run: npm ci
         working-directory: cloudflare
       - name: Verify native speech adapter behavior
+        if: env.FAST_RELEASE != 'true'
         run: node scripts/test-speech.cjs
       - name: Verify APK distribution protocol without network access
+        if: env.FAST_RELEASE != 'true'
         run: python3 -B scripts/test_publish_apk.py
       - name: Sync shared platform interface
         run: python3 scripts/sync-platform.py
       - name: Verify cloud synchronization decisions
+        if: env.FAST_RELEASE != 'true'
         run: node --test scripts/test-platform.cjs scripts/handwriting.test.cjs scripts/unit-summary.test.cjs scripts/math-format.test.cjs scripts/fraction-grading.test.cjs
       - name: Verify Android AI and storage adapter
+        if: env.FAST_RELEASE != 'true'
         run: node scripts/test-ai.cjs
       - name: Verify Qwen account settings and signalling
+        if: env.FAST_RELEASE != 'true'
         run: node --test scripts/realtime.test.cjs
       - name: Verify packaged rewards, curriculum and panorama rules
+        if: env.FAST_RELEASE != 'true'
         run: node --test scripts/rewards.test.cjs scripts/year8.test.cjs scripts/panorama.test.cjs scripts/english.test.cjs scripts/physics.test.cjs scripts/course-tools.test.cjs scripts/course-ai.test.cjs
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -72,7 +84,12 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: gradle --no-daemon testDebugUnitTest lintRelease assembleRelease assembleReleaseAndroidTest
+        run: |
+          if [[ "$FAST_RELEASE" == "true" ]]; then
+            gradle --no-daemon assembleRelease
+          else
+            gradle --no-daemon testDebugUnitTest lintRelease assembleRelease assembleReleaseAndroidTest
+          fi
       - name: Verify signature and archive APK
         run: |
           set -euo pipefail
@@ -84,11 +101,13 @@ jobs:
           cp docs/release-identity.json dist/release-identity.json
           python3 scripts/create-update-manifest.py --apk "dist/growing-${GROWING_VERSION_NAME}.apk" --version-code "$GROWING_VERSION_CODE" --version-name "$GROWING_VERSION_NAME" --notes-file docs/release-notes.md --output dist/update.json
       - name: Enable Android emulator acceleration
+        if: env.FAST_RELEASE != 'true'
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Prepare virtual host microphone for WebRTC
+        if: env.FAST_RELEASE != 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y pulseaudio
@@ -99,6 +118,7 @@ jobs:
           pactl set-default-source growing_ci_mic
           pactl list short sources
       - name: Verify accounts, overwrite update and tablet rotation on Android
+        if: env.FAST_RELEASE != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         env:
           QEMU_AUDIO_DRV: pa
