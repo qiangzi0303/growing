@@ -8,6 +8,7 @@ import { Rankings } from "./rankings";
 import handwriting from '../../app/src/main/assets/web/app-design/handwriting-core.js';
 import { assess, type VisionEnv } from './handwriting-vision';
 import { QuestionBank, questionUnits } from './question-bank';
+import { PaperImportJobs } from './paper-import-jobs';
 import { PhotoReview } from './photo-review';
 import { QuestionAttempts } from './question-attempts';
 import { StudentKnowledge } from './student-knowledge';
@@ -153,6 +154,23 @@ export function createHandler(database: (env: Env) => Database = env => {
           return decorate(json(await bank.unitWrongQuestion(await body(request,4000))),request);
         if(path==='/api/question-bank/import'&&request.method==='POST')
           return decorate(json(await bank.import(await body(request,2_100_000),env,request.signal,aiFetch)),request);
+        if(path==='/api/question-bank/import-jobs'&&request.method==='POST')
+          return decorate(json(await new PaperImportJobs(db,current).create(await body(request,2_100_000))),request);
+        if(path==='/api/question-bank/import-jobs'&&request.method==='GET'){
+          const student=await bank.authorize(url.searchParams.get('studentId'));
+          return decorate(json(await new PaperImportJobs(db,current).list(student,url.searchParams.get('subject')||undefined)),request);
+        }
+        if(/^\/api\/question-bank\/import-jobs\/[a-f0-9-]{36}(?:\/step)?$/.test(path)){
+          const jobs=new PaperImportJobs(db,current),id=path.split('/')[4];
+          if(path.endsWith('/step')&&request.method==='POST'){
+            const data=await body(request,2_100_000),student=await bank.authorize(data.studentId);
+            return decorate(json(await jobs.step(student,id,data,env,request.signal,aiFetch)),request);
+          }
+          if(!path.endsWith('/step')&&request.method==='GET'){
+            const student=await bank.authorize(url.searchParams.get('studentId'));
+            return decorate(json(await jobs.get(student,id)),request);
+          }
+        }
         if(/^\/api\/question-bank\/papers\/[a-f0-9-]{36}\/confirm$/.test(path)&&request.method==='POST'){
           const data=await body(request,4000),student=await bank.authorize(data.studentId);
           return decorate(json(await bank.confirmPaper(student,path.split('/').at(-2)!,data)),request);
@@ -200,6 +218,7 @@ export function createHandler(database: (env: Env) => Database = env => {
           if(!Number.isSafeInteger(page)||page<1||page>100000)error(400,'页码无效。');
           return decorate(json(await bank.unitWrongHistory(student,page)),request);
         }
+        if(path==='/api/question-bank/paper-graph'&&request.method==='GET')return decorate(json(await bank.paperGraph(student)),request);
         if(path==='/api/question-bank/papers'&&request.method==='GET')return decorate(json(await bank.papers(student,url.searchParams.get('subject'))),request);
         if(path==='/api/question-bank/repeated'&&request.method==='GET'){
           const page=Number(url.searchParams.get('page')||1);

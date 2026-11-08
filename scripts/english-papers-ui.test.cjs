@@ -21,18 +21,65 @@ test('unknown and duplicate paper subjects are rejected',()=>{
 });
 const {JSDOM}=require('../console-web/node_modules/jsdom');
 const tick=()=>new Promise(resolve=>setTimeout(resolve,15));
-async function mount(subject,paperId,questions){
+async function mount(subject,paperId,questions,questionId){
  const dom=new JSDOM('<body><main></main></body>',{url:'https://test.invalid/',runScripts:'outside-only'}),w=dom.window,requests=[];
  w.GrowingLegacy={target:async()=> 'student1'};
  w.GrowingQuestionFigures={photo:async()=> 'test-photo'};
  w.GrowingMathFormat={html:s=>s,questionHtml:s=>s};
- w.GrowingPaperReview={mount:()=>({dispose(){}})};
+ let onSaved;
+ w.GrowingPaperReview={mount:(...args)=>{onSaved=args[7];return {dispose(){},close(){}};}};
  w.eval(source('my-papers.js'));
  const root=w.document.querySelector('main');
- const api=async(path,opts)=>{requests.push({path,body:opts&&JSON.parse(opts.body)});if(path.includes('/papers/'))return {id:'paper1',subject:'english',title:'English',mode:'paper',warnings:[],questions:questions||[{id:'q1',number:'1',text:'Read  this\nA. One',figures:[],uncertain:[]}],pages:[]};return [];};
- await w.GrowingPapers.mount(root,api,s=>String(s),()=>true,{role:'Student',id:'student1'},{...(subject?{subject}:{}),...(paperId?{paperId}:{})});
- return {dom,w,root,requests};
+ const api=async(path,opts)=>{requests.push({path,body:opts&&JSON.parse(opts.body)});if(path==='/question-bank/import-jobs'&&opts)return {id:'j1',subject,status:'complete',paperId:'paper1',pageCount:1,plannedPages:1,recognizedQuestions:1,totalQuestions:1};if(path.includes('/papers/'))return {id:'paper1',subject:'english',title:'English',mode:'paper',warnings:[],questions:questions||[{id:'q1',number:'1',text:'Read  this\nA. One',figures:[],uncertain:[]}],pages:[]};return [];};
+ await w.GrowingPapers.mount(root,api,s=>String(s),()=>true,{role:'Student',id:'student1'},{...(subject?{subject}:{}),...(paperId?{paperId}:{}),...(questionId?{questionId}:{})});
+ return {dom,w,root,requests,refreshPaper:saved=>onSaved(saved)};
 }
+
+test('graph question entry focuses the matching stable question ID within the paper',async()=>{
+ const questions=['q1','q2'].map(id=>({id,number:'11',text:'Question',figures:[],uncertain:[]}));
+ const {dom,w,root}=await mount('math','paper1',questions,'q2');
+ assert.equal(w.document.activeElement,root.querySelector('[data-q="q2"]'));
+ assert.equal(root.querySelector('[data-only-wrong]').checked,false);dom.window.close();
+});
+
+test('only-wrong filter includes partial grades and manual marks, excludes correct and stale results, and preserves cards',async()=>{
+ const grade=(verdict,revision=1)=>({revision,result:{verdict}});
+ const questions=[
+  {id:'partial',paperWrong:false,grades:[grade('partial')]},
+  {id:'incorrect',grades:[grade('incorrect')]},
+  {id:'correct',paperWrong:true,grades:[grade('incorrect'),grade('correct')]},
+  {id:'stale',grades:[grade('incorrect',0)]},
+  {id:'manual',paperWrong:true},
+  {id:'blank',grades:[grade('unanswered')]},
+  {id:'review',grades:[grade('review')]}
+ ].map((q,i)=>({number:String(i+1),revision:1,text:'Question',figures:[],uncertain:[],...q}));
+ const {dom,w,root,requests}=await mount('english','paper1',questions);
+ const filter=root.querySelector('[data-only-wrong]'),card=root.querySelector('[data-q="partial"]'),before=requests.length;
+ assert.equal(filter.checked,false);
+ assert.equal(root.querySelectorAll('.paper-question:not([hidden])').length,7);
+ filter.checked=true;filter.dispatchEvent(new w.Event('change',{bubbles:true}));
+ assert.deepEqual([...root.querySelectorAll('.paper-question:not([hidden])')].map(q=>q.dataset.q),['partial','incorrect','manual']);
+ assert.equal(root.querySelector('[data-wrong-empty]').hidden,true);
+ filter.checked=false;filter.dispatchEvent(new w.Event('change',{bubbles:true}));
+ assert.equal(root.querySelectorAll('.paper-question:not([hidden])').length,7);
+ assert.equal(root.querySelector('[data-q="partial"]'),card);
+ assert.equal(requests.length,before);
+ dom.window.close();
+});
+
+test('active filter refreshes after grading, shows an empty state and survives reopening the paper',async()=>{
+ const questions=[{id:'q1',number:'1',revision:1,text:'Question',figures:[],uncertain:[],grades:[{revision:1,result:{verdict:'partial'}}]}];
+ const {dom,w,root,refreshPaper}=await mount('english','paper1',questions);
+ const filter=root.querySelector('[data-only-wrong]');filter.checked=true;filter.dispatchEvent(new w.Event('change',{bubbles:true}));
+ questions[0].grades.push({revision:1,result:{verdict:'correct'}});
+ refreshPaper({id:'paper1',questions});
+ assert.equal(root.querySelector('[data-q="q1"]').hidden,true);
+ assert.equal(root.querySelector('[data-wrong-empty]').hidden,false);
+ root.querySelector('[data-confirm]').click();await tick();
+ assert.equal(root.querySelector('[data-only-wrong]').checked,true);
+ assert.equal(root.querySelector('[data-wrong-empty]').hidden,false);
+ dom.window.close();
+});
 test('English mount filters the real list request and imports with English subject',async()=>{
  const {dom,w,root,requests}=await mount('english');
  assert.match(requests[0].path,/subject=english/);
@@ -40,7 +87,7 @@ test('English mount filters the real list request and imports with English subje
  root.querySelector('[data-new]').click();
  const input=root.querySelector('[data-album]');Object.defineProperty(input,'files',{value:[{}]});input.dispatchEvent(new w.Event('change',{bubbles:true}));await tick();
  root.querySelector('[data-import]').click();await tick();
- assert.equal(requests.find(r=>r.path==='/question-bank/import').body.subject,'english');dom.window.close();
+ assert.equal(requests.find(r=>r.path==='/question-bank/import-jobs').body.subject,'english');dom.window.close();
 });
 test('missing English source preserves other questions and refuses incomplete printing',async()=>{
  const questions=[{id:'q1',number:'1',text:'Look at the picture',figures:[{page:1,x:0,y:0,width:1,height:1}],uncertain:[]},{id:'q2',number:'2',text:'Read this',figures:[],uncertain:[]}];

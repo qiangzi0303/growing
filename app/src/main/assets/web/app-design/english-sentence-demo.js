@@ -88,7 +88,7 @@
       document.getElementById('exercise-title').textContent=phase==='word'?words[wordIndex].gloss:current().zh;
       root.querySelector('.guide-hint').innerHTML=!preview&&!solved&&round.index===0&&wordIndex===0&&phase==='word'?`在键盘上输入 <strong lang="en">${esc(expected())}</strong>`:'';
       const input=document.getElementById('typing-answer');
-      input.value=draft;input.readOnly=solved;input.className='typing-input '+(preview?'empty':D.typingState(expected(),draft));
+      input.value=draft;input.readOnly=solved&&!touchTyping;input.className='typing-input '+(preview?'empty':D.typingState(expected(),draft));
       input.setAttribute('aria-label',phase==='sentence'?'输入完整的英文句子':'输入对应的英文单词');
       if(message&&!solved)input.setAttribute('aria-invalid','true');else input.removeAttribute('aria-invalid');
       root.querySelector('.typing-mirror').innerHTML=preview?'':mirrorMarkup();
@@ -152,14 +152,28 @@
     if(action==='reveal')reveal();if(action==='redo')redo();if(action==='speak')speak();
   });
   root.addEventListener('compositionstart',event=>{if(event.target.id==='typing-answer')composing=true;});
-  root.addEventListener('compositionend',event=>{if(event.target.id==='typing-answer'){composing=false;draft=event.target.value;updateTyping();}});
+  root.addEventListener('compositionend',event=>{if(event.target.id==='typing-answer'){composing=false;if(phaseDone){event.target.value=draft;return;}draft=event.target.value;updateTyping();}});
   function updateTyping(){
     const input=document.getElementById('typing-answer');if(!input)return;
     input.className='typing-input '+D.typingState(expected(),draft);input.removeAttribute('aria-invalid');
     root.querySelector('.typing-mirror').innerHTML=mirrorMarkup();root.querySelector('.feedback').textContent='';message='';
   }
+  function confirmsNext(event){
+    const inserted=event.data??(event.target.value.startsWith(draft)?event.target.value.slice(draft.length):'');
+    return event.inputType==='insertLineBreak'||event.inputType==='insertParagraph'||/^[ \r\n]+$/.test(inserted);
+  }
+  // Soft keyboards may send input events without a usable keydown.
+  root.addEventListener('beforeinput',event=>{
+    if(event.target.id!=='typing-answer'||!phaseDone||composing||event.isComposing||!event.cancelable)return;
+    if(confirmsNext(event)){event.preventDefault();advance();}
+  });
   root.addEventListener('input',event=>{
-    if(event.target.id!=='typing-answer'||phaseDone)return;draft=event.target.value;
+    if(event.target.id!=='typing-answer')return;
+    if(phaseDone){
+      const next=!composing&&!event.isComposing&&confirmsNext(event);
+      event.target.value=draft;if(next)advance();return;
+    }
+    draft=event.target.value;
     if(composing||event.isComposing)return;updateTyping();
     // Some mobile keyboards insert a space without sending keydown.
     if(/\s$/.test(draft)&&(phase==='word'||D.typingState(expected(),draft)==='correct'))submit();

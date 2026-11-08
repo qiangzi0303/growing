@@ -4,6 +4,7 @@ import { validateAnswerAnnotations } from './photo-assessment';
 
 export interface VisionEnv {
   HANDWRITING_VISION_MODELS?: string;
+  PAPER_RECOGNITION_MODELS?: string;
   AI_LIMITER: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
 type Model = { name: string; model: string; endpoint: string; apiKey: string; customHeaders?: Record<string,string>; additionalConfig?: string };
@@ -78,11 +79,13 @@ export async function recognize(data: Record<string,unknown>, env: VisionEnv, us
 }
 
 export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upstream: typeof fetch, system: string,
-  context: unknown, pages: string[], validate: (value: any) => object | null, paper = false, grading = false): Promise<Response> {
+  context: unknown, pages: string[], validate: (value: any) => object | null, paper = false, grading = false, options: {maxTokens?:number;paperRecognition?:boolean} = {}): Promise<Response> {
   const deadline=Date.now()+100000;
   let models: Model[];
   try {
-    models = JSON.parse(env.HANDWRITING_VISION_MODELS || '[]');
+    // Keep grading and figure generation on their existing models.
+    const config=options.paperRecognition&&!grading?(env.PAPER_RECOGNITION_MODELS??env.HANDWRITING_VISION_MODELS):env.HANDWRITING_VISION_MODELS;
+    models = JSON.parse(config || '[]');
     if (!Array.isArray(models) || !models.length || models.length > 4 || models.some(m => !m.model || !m.apiKey || !m.endpoint || new URL(m.endpoint).protocol !== 'https:')) throw Error();
   } catch { return fail(503,paper?'试卷识别尚未配置，请联系管理员配置视觉模型。':grading?'手写原稿批改尚未配置视觉模型，请联系管理员；原稿已保留。':'手写图片识别尚未配置，请联系管理员；原稿已保留。'); }
   for (const model of models) {
@@ -96,7 +99,7 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
       const response = await upstream(model.endpoint.replace(/\/+$/,'')+'/chat/completions', {
         method:'POST', redirect:'manual', signal:controller.signal,
         headers:{...model.customHeaders,'Content-Type':'application/json',Authorization:'Bearer '+model.apiKey},
-        body:JSON.stringify({...additional,model:model.model,stream:false,temperature:0.1,max_tokens:paper?12000:grading?8192:4096,thinking:{type:'disabled'},response_format:{type:'json_object'},messages:[
+        body:JSON.stringify({...additional,model:model.model,stream:false,temperature:0.1,max_tokens:options.maxTokens??(paper?12000:grading?8192:4096),thinking:{type:'disabled'},response_format:{type:'json_object'},messages:[
           {role:'system',content:system},
           {role:'user',content:[{type:'text',text:JSON.stringify(context)},...pages.flatMap((url,i)=>[{type:'text',text:'第'+(i+1)+'页'},{type:'image_url',image_url:{url}}])]}
         ]})
@@ -106,7 +109,7 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
       const reader=response.body.getReader(); let size=0,raw='';const decoder=new TextDecoder();
       while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>256000){await reader.cancel();throw Error();}raw+=decoder.decode(value,{stream:true});}
       const result=JSON.parse(raw+decoder.decode()),choice=result.choices?.[0],content=choice?.message?.content;
-      if(result.error || !['stop','end_turn'].includes(choice?.finish_reason) || typeof content!=='string'){console.warn('Handwriting vision invalid completion',model.name);continue;}
+      if(result.error || !['stop','end_turn'].includes(choice?.finish_reason) || typeof content!=='string'){console.warn('Handwriting vision invalid completion',model.name,String(choice?.finish_reason||'missing').slice(0,40));continue;}
       const recognition=JSON.parse(content.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,''));
       const output=validate(recognition);
       if(!output){console.warn('Handwriting vision invalid result',model.name);continue;}

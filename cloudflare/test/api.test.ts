@@ -344,6 +344,21 @@ test('legacy math conversion cannot overwrite a concurrent correction or outlive
   }finally{aiMode='ok';formatHook=undefined;}
 });
 
+test('dedicated paper OCR routes legacy transcription to Qwen and keeps original grading on DeepSeek',async()=>{
+  const student=await register(),previous=env.PAPER_RECOGNITION_MODELS;
+  try{
+    env.PAPER_RECOGNITION_MODELS=JSON.stringify([{name:'qwen-ocr',model:'qwen3.5-ocr',endpoint:'https://qwen.test/v1',apiKey:'qwen-test-secret'}]);
+    aiMode='paper';
+    assert.equal((await call('/api/question-bank/import','POST',{studentId:student.user.id,requestId:crypto.randomUUID(),pages:photoPages},student.token)).status,200);
+    assert.equal(aiRequests.at(-1)?.url,'https://qwen.test/v1/chat/completions');
+    assert.equal(aiRequests.at(-1)?.data.model,'qwen3.5-ocr');
+    aiMode='original-review';
+    assert.equal((await call('/api/handwriting/ai','POST',{kind:'review-original',questionNumber:'1',prompt:'计算1+1',pages:['data:image/png;base64,iVBORw0KGgoAAA==']},student.token)).status,200);
+    assert.equal(aiRequests.at(-1)?.url,'https://vision.test/v1/chat/completions');
+    assert.equal(aiRequests.at(-1)?.data.model,'test-vision');
+  }finally{env.PAPER_RECOGNITION_MODELS=previous;aiMode='ok';}
+});
+
 test('incomplete photo recognition, missing configuration and provider failures leave the bank empty',async()=>{
   const s=await register(),input={studentId:s.user.id,requestId:crypto.randomUUID(),pages:photoPages},path='/api/question-bank/import',original=structuredClone(paperOutput),config=env.HANDWRITING_VISION_MODELS;
   try{

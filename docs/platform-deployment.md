@@ -127,6 +127,16 @@ D1 原子 `batch` 与学生级版本校验保证学习存档并发更新，失�
 
 本地使用 Git 忽略的 cloudflare/.dev.vars；JSON 数组使用 dotenv 单引号包裹。不要将密钥写入源码、前端、学习存档、命令参数或 Git。正式发布需单独设置同名 Worker Secret，本地配置不会自动上传。
 
+### 试卷 OCR 与批改分开配置
+
+试卷专用 Secret `PAPER_RECOGNITION_MODELS` 沿用上述 JSON 数组格式。本项目试卷题号清点和题面转录使用 `qwen3.5-ocr`，endpoint 为 `https://llm-7gl9swt6oecm845o.cn-beijing.maas.aliyuncs.com/compatible-mode/v1`。仅在服务端配置用户提供的密钥；不要将它放入 wrangler.jsonc 或 APK。纯转录旧接口也使用此配置；旧版包含评分的整卷接口仍使用原有视觉配置。
+
+`HANDWRITING_VISION_MODELS` 保留原 `deepseek-flash`，用于视觉批改、原卷批改、追问和题图生成。已有文字解答及文字评分连接不变。配置了专用 OCR 后，失败只重试专用数组内的模型，不降级到批改模型；未设置这个新绑定的旧部署仍沿用原行为，显式空值或无效配置则报错。
+
+专用 OCR 只生成题号清单，不采用其估算的题目框；逐题转录使用完整原页，图形仍需人工核对或补框。照片、草稿、逐题审核与权限校验保持原有流程。
+
+本地 `.dev.vars` 的新绑定与 Worker Secret 需要分别配置。上线时通过 Wrangler 的标准输入设置 `PAPER_RECOGNITION_MODELS`，再部署包含分流逻辑的 Worker；不得覆盖 `HANDWRITING_VISION_MODELS`。服务端改动不需要重打 APK。
+
 2026-10-24 核查用户指定的 glm-4.6v-flashx,deepseek-flash：NumaAI 未保存前一个名称；已提取后者的实际配置与密钥，真实 PNG 调用可识别手写数字。未擅自替换为其他 GLM 型号；grsai-banana2 为生成图片配置，本流程不调用。
 
 接口限制为最多 8 页 PNG、每页 1,000,000 字符、总请求 8,100,000 字节，每账号每分钟最多 6 次（Cloudflare 各位置分别计数）。其他学习存档接口保持原大小限制。原稿、确认、知识点评估及同步权限沿用既有逻辑。

@@ -72,6 +72,8 @@ test('three subject upload, duplicate, list, manual confirmation and reopen shar
   const path='/question-bank/papers/'+result.paperId,query='?studentId='+u.user.id;
   assert.equal((await call(path+query,'GET',undefined,other.token)).status,404);
   const autoConfirmation={examType:result.classification.examType,unitIds:result.classification.unitIds,termName:result.classification.termName};
+  assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'核对自动分类',classification:autoConfirmation},u.token)).status,409);
+  assert.equal((await call(questionPath,'PUT',{studentId:u.user.id,revision:item.revision,figureVersion:item.figureVersion,reviewed:true},u.token)).status,200);
   assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'核对自动分类',classification:autoConfirmation},u.token)).status,200);
   const confirmedAI=await (await call(path+query,'GET',undefined,u.token)).json() as any;
   assert.equal(confirmedAI.classification.source,'ai');assert.equal(confirmedAI.classification.confirmed,true);assert.equal(confirmedAI.classification.evidence,result.classification.evidence);assert.equal(confirmedAI.classification.confidence,.95);

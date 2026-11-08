@@ -10,7 +10,8 @@ export function normalizeClassification(v:any,subject:string,title:string):Paper
  if(v==null)return defaultClassification();
  const result:PaperClassification={examType:types.includes(v.examType)?v.examType:'unknown',unitIds:[],termName:bounded(v.termName,80),confidence:score(v.confidence),unitConfidence:score(v.unitConfidence),evidence:bounded(v.evidence,1200),warnings:[],confirmed:false,source:'ai'};
  if(result.termName&&!units.some(u=>u.subject===subject&&u.termName===result.termName)){result.termName='';result.warnings.push('册次与当前课程目录不符，请核对。');}
- const titleType=/期末|final\s+exam/i.test(title)?'final':/期中|midterm/i.test(title)?'midterm':/单元测试|单元检测|单元测验|unit\s+test/i.test(title)?'unit':null;
+ const reviewTitle=/(?:期中|期末).{0,8}(?:复习|练习)|(?:复习|练习).{0,8}(?:期中|期末)|(?:midterm|final).{0,12}(?:review|practice)/i.test(title);
+ const titleType=reviewTitle?'other':/期末|final\s+exam/i.test(title)?'final':/期中|midterm/i.test(title)?'midterm':/单元测试|单元检测|单元测验|unit\s+test/i.test(title)?'unit':null;
  const conflicting=v.conflict===true||v.detectedSubject&&v.detectedSubject!=='unknown'&&v.detectedSubject!==subject||titleType&&titleType!==result.examType;
  if(conflicting){result.examType='unknown';result.warnings.push('卷头、内容或所选学科存在冲突，请核对。');}
  if(result.confidence<.8||!result.evidence){result.examType='unknown';result.warnings.push('考试类型证据不足，请核对。');}

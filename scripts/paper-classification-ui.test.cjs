@@ -10,7 +10,7 @@ async function fixture(classification,fail=false,subject='physics'){
  w.GrowingQuestionFigures={photo:async()=> 'prepared-image'};
  w.eval(source('my-papers.js'));
  const paper={id:'p1',title:'测试卷',subject,mode:'paper',createdAt:'2026-11-07',questionCount:0,warnings:[],questions:[],pages:[],classification,units:[{id:'u1',title:'光现象',subject,termName:'上册'},{id:'u2',title:'声现象',subject,termName:'上册'},{id:'u3',title:'下册内容',subject,termName:'下册'}]};
- const api=async(url,options)=>{requests.push({url,body:options&&JSON.parse(options.body)});if(options){if(fail)throw Error('保存失败');Object.assign(paper,{classification:{...JSON.parse(options.body).classification,confirmed:true,source:'manual'}});}return url.includes('/papers/')?paper:[paper];};
+ const api=async(url,options)=>{requests.push({url,body:options&&JSON.parse(options.body)});if(url.includes('/import-jobs'))return options?{id:'j1',subject,status:'complete',paperId:'p1',pageCount:1,plannedPages:1,recognizedQuestions:0,totalQuestions:0}:[];if(options){if(fail)throw Error('保存失败');Object.assign(paper,{classification:{...JSON.parse(options.body).classification,confirmed:true,source:'manual'}});}return url.includes('/papers/')?paper:[paper];};
  const root=w.document.querySelector('main');await w.GrowingPapers.mount(root,api,String,()=>true,{role:'Student',id:'s1'},{subject,paperId:'p1'});
  return {dom,w,root,requests};
 }
@@ -58,7 +58,7 @@ test('physics list displays classification and upload uses physics context',asyn
  root.querySelector('[data-new]').click();
  const album=root.querySelector('[data-album]');Object.defineProperty(album,'files',{value:[{}]});album.dispatchEvent(new w.Event('change',{bubbles:true}));await tick();
  root.querySelector('[data-import]').click();await tick();
- assert.equal(requests.find(r=>r.url==='/question-bank/import').body.subject,'physics');dom.window.close();
+ assert.equal(requests.find(r=>r.url==='/question-bank/import-jobs').body.subject,'physics');dom.window.close();
 });
 test('physics review displays real attached illustration and never offers SVG generation',async()=>{
  const dom=new JSDOM('<main></main>',{url:'https://test.invalid',runScripts:'outside-only'}),w=dom.window;

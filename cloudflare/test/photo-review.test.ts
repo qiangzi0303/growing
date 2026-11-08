@@ -162,6 +162,8 @@ test('whole paper lifecycle persists handwriting crops, blank unreadable answers
   const retry=await (await call('/question-bank/import','POST',input,u.token)).json() as any;assert.equal(retry.paperId,data.paperId);assert.equal(retry.duplicate,true);
   assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'我的期中试卷'},other.token)).status,404);
   assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'  '},u.token)).status,400);
+  assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'我的期中试卷'},u.token)).status,409);
+  for(const item of data.questions)assert.equal((await call('/question-bank/questions/'+item.id,'PUT',{studentId:u.user.id,revision:item.revision,figureVersion:item.figureVersion,reviewed:true},u.token)).status,200);
   assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'我的期中试卷'},u.token)).status,200);
   rows=await (await call('/question-bank/papers'+query,'GET',undefined,u.token)).json() as any[];assert.equal(rows[0].mode,'paper');assert.equal(rows[0].title,'我的期中试卷');
   const mark='/question-bank/questions/'+q.id+'/paper-mark',body={studentId:u.user.id,revision:1,markedWrong:false};
@@ -192,6 +194,7 @@ test('a linked parent imports a paper directly into the child library without ex
   const opened=await call(path+query,'GET',undefined,child.token);assert.equal(opened.status,200);
   const saved=await opened.json() as any;
   assert.deepEqual(saved.pages.map((p:any)=>p.image),pages);assert.deepEqual(saved.questions,data.questions);
+  for(const item of saved.questions)assert.equal((await call('/question-bank/questions/'+item.id,'PUT',{studentId:child.user.id,revision:item.revision,figureVersion:item.figureVersion,reviewed:true},parent.token)).status,200);
   assert.equal((await call(path+'/confirm','POST',{studentId:child.user.id,title:'家长拍照的试卷'},parent.token)).status,200);
   const confirmed=await (await call(path+query,'GET',undefined,child.token)).json() as any;
   assert.equal(confirmed.title,'家长拍照的试卷');assert.equal(confirmed.mode,'paper');

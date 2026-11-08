@@ -15,7 +15,7 @@ export class QuestionAttempts {
     this.kind(kind);
     if(typeof id!=='string'||(kind==='math'?!mathQuestions.some(q=>q.id===id):!uuid.test(id)))fail(404,'未找到题目。');
     if(kind==='photo'&&!(await this.db.query(`SELECT q."Id" FROM "GrowingPhotoQuestions" q JOIN "GrowingQuestionPapers" p
-      ON p."Id"=q."PaperId" WHERE q."Id"=?1 AND p."StudentId"=?2`,[id,student])).length)fail(404,'未找到题目。');
+      ON p."Id"=q."PaperId" WHERE q."Id"=?1 AND p."StudentId"=?2 AND p."Mode"<>'paper-draft'`,[id,student])).length)fail(404,'未找到题目。');
   }
   async stats(student:string,kind:unknown){
     this.kind(kind);
@@ -35,7 +35,7 @@ export class QuestionAttempts {
       q."UnitId" AS unitId,q."Number" AS number,substr(q."Text",1,200) AS title
       FROM "GrowingQuestionAttempts" a LEFT JOIN "GrowingPhotoQuestions" q ON a."Kind"='photo' AND q."Id"=a."QuestionId"
       LEFT JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId"
-      WHERE a."StudentId"=?1 AND (a."Kind"='math' OR p."StudentId"=?1)
+      WHERE a."StudentId"=?1 AND (a."Kind"='math' OR (p."StudentId"=?1 AND p."Mode"<>'paper-draft'))
       GROUP BY a."Kind",a."QuestionId" HAVING sum(1-a."Correct")>=2
       ORDER BY wrongCount DESC,lastAt DESC,a."QuestionId"`,[student]);
     const known=rows.filter(r=>r.kind==='photo'||mathQuestions.some(q=>q.id===r.questionId));

@@ -50,7 +50,28 @@
     }
     throw Error('题图无法压缩，请补传裁好的本题图形后再批改。');
   }
-  window.GrowingQuestionFigures={photo,englishFigureImage,create(api,esc,alive,studentId,onChange){
+  async function boundedCanvas(canvas){
+    for(let attempt=0;attempt<7;attempt++){
+      for(const quality of [.94,.85,.75,.65]){const data=canvas.toDataURL('image/jpeg',quality);if(data.length<=500000)return data;}
+      const smaller=document.createElement('canvas');smaller.width=Math.max(1,Math.round(canvas.width*.8));smaller.height=Math.max(1,Math.round(canvas.height*.8));smaller.getContext('2d').drawImage(canvas,0,0,smaller.width,smaller.height);canvas=smaller;
+    }
+    throw Error('照片无法压缩，请裁剪后重试。');
+  }
+  async function rotatePhoto(src){
+    const image=new Image();image.src=src;await image.decode();const canvas=document.createElement('canvas');canvas.width=image.naturalHeight;canvas.height=image.naturalWidth;const ctx=canvas.getContext('2d');ctx.translate(canvas.width,0);ctx.rotate(Math.PI/2);ctx.drawImage(image,0,0);return boundedCanvas(canvas);
+  }
+  async function importFragments(next,pages){
+    const fragments=[];
+    for(const region of next.regions||[]){
+      if(!next.pages.includes(region.page)||![region.x,region.y,region.width,region.height].every(Number.isFinite)||region.x<0||region.y<0||region.width<=0||region.height<=0||region.x+region.width>1.000001||region.y+region.height>1.000001)throw Error('题目来源区域无效，请重新规划。');
+      const page=pages.find(p=>p.page===region.page);if(!page)throw Error('题目来源原稿缺失。');
+      const image=new Image();image.src=await crop(page.image,region);await image.decode();const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;canvas.getContext('2d').drawImage(image,0,0);
+      fragments.push({page:region.page,image:await boundedCanvas(canvas),region:{...region}});
+    }
+    // Unlocated pages remain in sourcePages; never invent a crop for a different question.
+    return fragments;
+  }
+  window.GrowingQuestionFigures={photo,rotatePhoto,importFragments,englishFigureImage,create(api,esc,alive,studentId,onChange){
     const papers=new Map();let disposed=false,dialog=null;
     const valid=()=>!disposed&&alive();
     async function paper(id){

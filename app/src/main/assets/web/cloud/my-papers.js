@@ -16,12 +16,42 @@
     }
     function renderUnitChoices(selected=[]){const term=$('[data-paper-term]').value,unitTest=$('[data-exam-type]').value==='unit',host=$('[data-paper-units]');host.hidden=!unitTest;host.innerHTML='<legend>对应单元（可多选，同一册次）</legend>'+(unitTest&&term?(paper.units||[]).filter(u=>u.subject===paper.subject&&u.termName===term).map(u=>`<label><input type="checkbox" data-paper-unit="${esc(u.id)}" ${selected.includes(u.id)?'checked':''}> ${esc(u.title)}</label>`).join(''):'<p>请先核对册次。</p>');}
     let studentId='',paper=null,photos=[],requestId=crypto.randomUUID(),busy=false,sequence=0,disposed=false,studentPage=1,studentQuery='';
-    let paperReview=null,paperFigures=null;
+    let paperReview=null,paperFigures=null,jobGeneration=0,runningJob=false,onlyWrong=false;
     const closeReview=()=>{paperReview?.dispose();paperReview=null;paperFigures?.dispose();paperFigures=null;};
     const dialogs=new Set(),valid=()=>!disposed&&alive()&&root.isConnected;
     root.className='my-photo-papers';
     root.innerHTML=`<button id="question-bank-home">← 返回上一级</button><header class="papers-heading"><div><p class="muted">数学 · 我的试卷</p><h1>我的试卷</h1></div><button data-new>＋ 拍照试卷</button></header><div data-students></div><p data-status role="status" aria-live="polite"></p><div data-list></div><section data-upload hidden><h2>拍照试卷</h2><p>按顺序添加，最多 4 页。</p><div class="actions"><label class="bank-upload"><span>拍照</span><input data-camera type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label><label class="bank-upload"><span>相册 / 多页</span><input data-album type="file" accept="image/jpeg,image/png,image/webp" multiple></label></div><ol class="bank-photos" data-photos></ol><button data-import disabled>整理无答案试卷</button></section><section data-paper hidden></section>`;
     const $=s=>root.querySelector(s),message=s=>{$('[data-status]').textContent=s;};
+    const jobsHost=document.createElement('section');jobsHost.className='papers-import-jobs';$('[data-list]').before(jobsHost);
+    const pause=document.createElement('button');pause.dataset.pauseImport='';pause.textContent='暂存并退出整理';pause.hidden=true;$('[data-status]').after(pause);
+    function stopImport(){jobGeneration++;runningJob=false;pause.hidden=true;lock(false);message('进度已保存，可继续整理。');}
+    pause.onclick=stopImport;
+    function jobCard(job){return `<article class="papers-import-job"><strong>${esc(subjectName(job.subject))} · ${job.status==='failed'?'整理中断':'待继续整理'}</strong><p>已规划 ${job.plannedPages}/${job.pageCount} 页 · 已整理 ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题</p>${job.error?`<p class="warning">${esc(job.error)}</p>`:''}<button data-resume="${esc(job.id)}">${job.status==='failed'?'重试整理':'继续整理'}</button></article>`;}
+    async function runJob(initial){
+      const student=studentId,selectedSubject=subject,generation=++jobGeneration;
+      const current=()=>valid()&&generation===jobGeneration&&student===studentId&&selectedSubject===subject;
+      runningJob=true;lock(true);pause.hidden=false;pause.disabled=false;
+      // A selection change cancels local progression; a server step already in flight may finish safely.
+      root.querySelectorAll('[data-student],[data-subject]').forEach(e=>{e.disabled=false;});
+      let job=initial;
+      try{
+        while(current()){
+          if(job.status==='complete'){runningJob=false;pause.hidden=true;await open(job.paperId);return;}
+          message(`正在整理：已规划 ${job.plannedPages}/${job.pageCount} 页，已整理 ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题。`);
+          const detail=await api('/question-bank/import-jobs/'+job.id+'?'+new URLSearchParams({studentId:student}));if(!current())return;job=detail;
+          if(job.status==='complete')continue;
+          const fragments=job.next?.kind==='question'?await GrowingQuestionFigures.importFragments(job.next,detail.sourcePages):undefined;if(!current())return;
+          try{job=await api('/question-bank/import-jobs/'+job.id+'/step',{method:'POST',body:JSON.stringify({studentId:student,revision:job.revision,...(fragments?{fragments}:{})})});}
+          catch(error){
+            if(!current())return;
+            if(error.status===429||error.statusCode===429){message('识别服务繁忙，等待后自动继续；也可暂存退出。');await new Promise(resolve=>setTimeout(resolve,Math.min(60000,Math.max(1000,Number(error.retryAfter||5)*1000))));continue;}
+            throw error;
+          }
+          if(current()&&job.status==='failed')throw Error(job.error||'整理失败，请重试。');
+        }
+      }catch(error){if(current()){jobsHost.innerHTML=jobCard(job);message(error.message+' 进度已保存，可继续整理。');}}
+      finally{if(current()){runningJob=false;pause.hidden=true;lock(false);}}
+    }
     const heading=root.querySelector('.papers-heading .muted');
     const updateSubject=()=>{heading.textContent=subjectName(subject)+' · 我的试卷';};
     updateSubject();
@@ -38,17 +68,27 @@
     observer.observe(document.body,{childList:true,subtree:true});
     const sourceResult=q=>q.grades?.filter(g=>g.revision===q.revision).at(-1)?.result;
     const wrong=q=>{if(q.paperWrong!==null&&q.paperWrong!==undefined)return !!q.paperWrong;const r=sourceResult(q);return !!r&&(r.markedWrong||['incorrect','partial'].includes(r.verdict));};
+    const filterWrong=q=>{const r=sourceResult(q);return r&&['correct','incorrect','partial'].includes(r.verdict)?['incorrect','partial'].includes(r.verdict):wrong(q);};
+    function applyWrongFilter(){
+      let count=0;
+      for(const q of paper.questions){const card=$('[data-q="'+q.id+'"]');if(!card)continue;card.hidden=onlyWrong&&!filterWrong(q);if(!card.hidden)count++;}
+      $('[data-wrong-empty]').hidden=!onlyWrong||count>0;
+      const workbench=$('[data-workbench]'),anchor=workbench?.dataset.anchorQuestion;
+      if(anchor&&$('[data-q="'+anchor+'"]')?.hidden)paperReview?.close();
+    }
     const readable=r=>r&&['correct','incorrect','partial'].includes(r.verdict)&&r.studentAnswer?.trim();
     const prose=s=>GrowingMathFormat.html(s||'');
     function previews(){
-      $('[data-photos]').innerHTML=photos.map((src,i)=>`<li><img src="${src}" alt="第 ${i+1} 页"><button data-remove="${i}">移除第 ${i+1} 页</button></li>`).join('');
+      $('[data-photos]').innerHTML=photos.map((src,i)=>`<li><img src="${src}" alt="第 ${i+1} 页"><div class="actions"><button data-rotate="${i}">顺时针旋转第 ${i+1} 页</button><button data-remove="${i}">移除第 ${i+1} 页</button></div></li>`).join('');
       $('[data-import]').disabled=busy||!photos.length;
     }
     async function list(){
       const id=studentId,selectedSubject=subject,seq=++sequence;message('正在读取试卷…');
       const query=new URLSearchParams({studentId:id});if(selectedSubject)query.set('subject',selectedSubject);
-      const rows=await api('/question-bank/papers?'+query);if(!valid()||id!==studentId||selectedSubject!==subject||seq!==sequence)return;
+      const [rows,jobs]=await Promise.all([api('/question-bank/papers?'+query),api('/question-bank/import-jobs?'+query)]);if(!valid()||id!==studentId||selectedSubject!==subject||seq!==sequence)return;
+      jobsHost.innerHTML=jobs.filter(job=>job.status!=='complete').map(jobCard).join('');
       updateSubject();
+      jobsHost.hidden=false;
       $('[data-list]').innerHTML=rows.length?`<div class="papers-list">${rows.map(p=>`<button class="papers-card" data-open="${esc(p.id)}"><strong>${esc(p.title)}</strong><span>${p.questionCount} 道题 · ${esc(p.createdAt.slice(0,10))}${p.mode==='paper-draft'?' · 待核对':''}</span><span>${esc(subjectName(p.subject||'math'))} · ${esc(classificationSummary(p))}</span><span>打开试卷 →</span></button>`).join('')}</div>`:'<p class="muted">拍下试卷，整理后保存在这里。</p>';message('');
     }
     async function students(){
@@ -88,11 +128,19 @@
         return `<p class="warning" data-figure-missing>题图未完成：${esc(error.message)}，请核对并补回题图后打印。</p>`;
       })));
       if(!valid()||student!==studentId||seq!==sequence)return;
-      paper=loaded;heading.textContent=subjectName(actualSubject)+' · 我的试卷';$('[data-list]').hidden=true;$('[data-upload]').hidden=true;$('[data-paper]').hidden=false;
+      paper=loaded;jobsHost.hidden=true;heading.textContent=subjectName(actualSubject)+' · 我的试卷';$('[data-list]').hidden=true;$('[data-upload]').hidden=true;$('[data-paper]').hidden=false;
       const draft=paper.mode==='paper-draft';
-      $('[data-paper]').innerHTML=`<div class="papers-toolbar actions"><button data-library>← 试卷列表</button><button data-original>查看原卷</button><label><input type="checkbox" data-clean> 无答案净卷</label><button data-print>打印无答案试卷</button></div><div class="papers-confirm"><label>试卷标题<input data-title maxlength="160" value="${esc(paper.title)}"></label>${classificationEditor()}<p>对照原卷核对题干、图形及分类；有误可修改。</p><button data-confirm>${draft?'核对完成，保存试卷':'保存分类修改'}</button></div><h2 data-paper-title>${esc(paper.title)}</h2>${paper.warnings.length?`<p class="warning">${paper.warnings.map(esc).join('；')}</p>`:''}<div data-sheet>${paper.questions.map((q,i)=>`<article class="paper-question ${wrong(q)?'paper-wrong':''}" data-q="${esc(q.id)}"><div class="paper-question-body"><div class="math-prose" ${paper.subject==="english"?"style=white-space:pre-wrap":""}><strong>${esc(q.number)}.</strong> ${paper.subject==='english'?esc(q.text).replace(/\n/g,'<br>'):GrowingMathFormat.questionHtml(q.text)}</div><div class="paper-diagrams">${diagrams[i]}</div></div><div class="paper-question-tools"><details><summary>核对 / 修改</summary><button data-edit="${esc(q.id)}">修改题面</button><button data-mark="${esc(q.id)}">${wrong(q)?'取消错题标记':'标记为错题'}</button>${['english','physics'].includes(paper.subject)&&(q.figures?.length||q.hasFigureImage||q.hasDrawing)?`<button data-edit-figure="${esc(q.id)}">核对 / 补充题图</button>`:(q.figures?.length||q.hasDrawing)&&!diagrams[i]?`<button data-draw="${esc(q.id)}">补绘题图</button>`:''}</details></div>${q.uncertain?.length?`<p class="paper-uncertain">${q.uncertain.map(esc).join('；')}</p>`:''}</article>`).join('')}</div>`;
+      $('[data-paper]').innerHTML=`<div class="papers-toolbar actions"><button data-library>← 试卷列表</button><button data-original>查看原卷</button><label><input type="checkbox" data-clean> 无答案净卷</label><button data-print>打印无答案试卷</button></div><div class="papers-confirm"><label>试卷标题<input data-title maxlength="160" value="${esc(paper.title)}"></label>${classificationEditor()}<p>对照原卷逐题核对题号、公式、选项、题图及单元；AI 转录可能误读，核对完成后再保存。</p><button data-confirm ${draft&&paper.questions.some(q=>!q.reviewed)?'disabled':''}>${draft?'核对完成，保存试卷':'保存分类修改'}</button></div><h2 data-paper-title>${esc(paper.title)}</h2>${paper.warnings.length?`<p class="warning">${paper.warnings.map(esc).join('；')}</p>`:''}<div data-sheet>${paper.questions.map((q,i)=>`<article class="paper-question ${wrong(q)?'paper-wrong':''}" data-q="${esc(q.id)}"><div class="paper-question-body"><div class="math-prose" ${paper.subject==="english"?"style=white-space:pre-wrap":""}><strong>${esc(q.number)}.</strong> ${paper.subject==='english'?esc(q.text).replace(/\n/g,'<br>'):GrowingMathFormat.questionHtml(q.text)}</div><div class="paper-diagrams">${diagrams[i]}</div></div><div class="paper-question-tools"><details><summary>核对 / 修改</summary>${draft?`<button data-review="${esc(q.id)}" ${q.reviewed?'disabled':''}>${q.reviewed?'本题已核对':'对照原卷，本题已核对'}</button>`:''}<button data-edit="${esc(q.id)}">修改题面</button><button data-mark="${esc(q.id)}">${wrong(q)?'取消错题标记':'标记为错题'}</button><button data-edit-figure="${esc(q.id)}">核对 / 补充题图</button>${paper.subject==='math'&&(q.figures?.length||q.hasDrawing)&&!diagrams[i]?`<button data-draw="${esc(q.id)}">补绘题图</button>`:''}</details></div>${q.uncertain?.length?`<p class="paper-uncertain">${q.uncertain.map(esc).join('；')}</p>`:''}</article>`).join('')}</div>`;
+      const filter=document.createElement('label');filter.innerHTML='<input type="checkbox" data-only-wrong> 只显示错题（含部分正确）';filter.querySelector('input').checked=onlyWrong;$('[data-print]').before(filter);
+      const empty=document.createElement('p');empty.dataset.wrongEmpty='';empty.className='muted';empty.setAttribute('role','status');empty.hidden=true;empty.textContent='暂无错题或部分正确的题目。';$('[data-sheet]').before(empty);
       renderUnitChoices(classification(paper).unitIds);
-      paperReview=GrowingPaperReview.mount($('[data-sheet]'),api,esc,valid,studentId,paper,q=>$('[data-q="'+q.id+'"]'),saved=>{paper=saved;for(const q of saved.questions){const button=$('[data-mark="'+q.id+'"]');if(button)button.textContent=wrong(q)?'取消错题标记':'标记为错题';}});
+      paperReview=GrowingPaperReview.mount($('[data-sheet]'),api,esc,valid,studentId,paper,q=>$('[data-q="'+q.id+'"]'),saved=>{paper=saved;for(const q of saved.questions){const button=$('[data-mark="'+q.id+'"]');if(button)button.textContent=wrong(q)?'取消错题标记':'标记为错题';}applyWrongFilter();});
+      applyWrongFilter();
+      if(context.paperId===paper.id&&context.questionId){
+        const target=[...root.querySelectorAll('[data-q]')].find(card=>card.dataset.q===context.questionId);
+        if(target){onlyWrong=false;$('[data-only-wrong]').checked=false;applyWrongFilter();target.tabIndex=-1;target.focus({preventScroll:true});target.scrollIntoView?.({block:'start'});}
+        delete context.questionId;
+      }
       message('');
     }
     async function print(){
@@ -108,18 +156,19 @@
     }
     async function edit(q){
       const d=modal('核对第 '+q.number+' 题'),body=d.querySelector('[data-body]');
-      body.innerHTML=`<form><label>题号<input name="number" maxlength="40" value="${esc(q.number)}" required></label><label>题干与选项<textarea name="text" maxlength="6000" rows="10" required>${esc(q.text)}</textarea></label><p class="muted">修改题面后旧批改失效，避免将旧错因用于新题。</p><button>保存题面</button><p role="status"></p></form>`;
+      body.innerHTML=`<form><label>题号<input name="number" maxlength="40" value="${esc(q.number)}" required></label><label>题干与选项<textarea name="text" maxlength="6000" rows="10" required>${esc(q.text)}</textarea></label><label>对应单元<select name="unitId"><option value="">待核对</option>${(paper.units||[]).filter(u=>u.subject===paper.subject).map(u=>`<option value="${esc(u.id)}" ${u.id===q.unitId?'selected':''}>${esc(u.termName+' · '+u.title)}</option>`).join('')}</select></label><p class="muted">修改题面后旧批改失效，避免将旧错因用于新题。</p><button>保存题面</button><p role="status"></p></form>`;
       body.querySelector('form').onsubmit=async e=>{e.preventDefault();const b=body.querySelector('button');b.disabled=true;try{
-        const form=new FormData(e.target);await api('/question-bank/questions/'+q.id,{method:'PUT',body:JSON.stringify({studentId,number:form.get('number'),text:form.get('text'),answer:'',unitId:q.unitId,revision:q.revision})});
+        const form=new FormData(e.target);await api('/question-bank/questions/'+q.id,{method:'PUT',body:JSON.stringify({studentId,number:form.get('number'),text:form.get('text'),answer:'',unitId:form.get('unitId'),revision:q.revision})});
         if(!valid())return;d.querySelector('[data-close]').click();await open(paper.id);
       }catch(error){body.querySelector('[role=status]').textContent=error.message;}finally{b.disabled=false;}};
     }
     root.addEventListener('change',async e=>{
       try{
-        if(e.target.matches('[data-subject]')&&!busy){closeReview();lock(true);subject=e.target.value;paper=null;photos=[];requestId=crypto.randomUUID();previews();$('[data-paper]').hidden=true;$('[data-upload]').hidden=true;$('[data-list]').hidden=false;await list();return;}
-        if(e.target.matches('[data-student]')&&!busy){closeReview();lock(true);studentId=e.target.value;paper=null;photos=[];previews();$('[data-paper]').hidden=true;$('[data-list]').hidden=false;await list();return;}
+        if(e.target.matches('[data-subject]')&&(!busy||runningJob)){stopImport();closeReview();lock(true);subject=e.target.value;paper=null;photos=[];requestId=crypto.randomUUID();previews();$('[data-paper]').hidden=true;$('[data-upload]').hidden=true;$('[data-list]').hidden=false;await list();return;}
+        if(e.target.matches('[data-student]')&&(!busy||runningJob)){stopImport();closeReview();lock(true);studentId=e.target.value;paper=null;photos=[];requestId=crypto.randomUUID();previews();$('[data-paper]').hidden=true;$('[data-upload]').hidden=true;$('[data-list]').hidden=false;await list();return;}
         if(e.target.matches('[data-exam-type],[data-paper-term]')){renderUnitChoices();return;}
         if(e.target.matches('[data-clean]')){if(e.target.checked)paperReview?.close();$('[data-sheet]').classList.toggle('paper-clean',e.target.checked);return;}
+        if(e.target.matches('[data-only-wrong]')){onlyWrong=e.target.checked;applyWrongFilter();return;}
         if(!e.target.matches('[data-camera],[data-album]')||busy)return;
         const files=[...e.target.files];e.target.value='';if(!files.length)return;
         if(files.length+photos.length>4)throw Error('最多添加 4 页，请移除多余页面。');
@@ -129,25 +178,29 @@
     });
     root.addEventListener('click',async e=>{
       const b=e.target.closest('button');if(!b||busy||!valid()||b.id==='question-bank-home')return;
+      const actionStudent=studentId;
       try{
         if(b.hasAttribute('data-student-prev')||b.hasAttribute('data-student-next')){lock(true);studentPage+=b.hasAttribute('data-student-prev')?-1:1;await students();return;}
         if(b.hasAttribute('data-new')){if(!subject)throw Error('请先选择学科，再拍照整理试卷。');closeReview();$('[data-upload]').hidden=false;$('[data-list]').hidden=false;$('[data-paper]').hidden=true;return;}
         if(b.hasAttribute('data-remove')){photos.splice(Number(b.dataset.remove),1);requestId=crypto.randomUUID();previews();return;}
+        if(b.hasAttribute('data-rotate')){lock(true);const student=studentId,index=Number(b.dataset.rotate),src=photos[index],rotated=await GrowingQuestionFigures.rotatePhoto(src);if(!valid()||student!==studentId||photos[index]!==src)return;photos[index]=rotated;requestId=crypto.randomUUID();previews();return;}
         if(b.hasAttribute('data-library')){closeReview();$('[data-paper]').hidden=true;$('[data-list]').hidden=false;await list();return;}
         lock(true);
+        if(b.dataset.resume){const student=studentId,generation=jobGeneration;const job=await api('/question-bank/import-jobs/'+b.dataset.resume+'?'+new URLSearchParams({studentId:student}));if(!valid()||student!==studentId||generation!==jobGeneration)return;await runJob(job);return;}
         if(b.dataset.open)await open(b.dataset.open);
-        if(b.hasAttribute('data-import')&&photos.length){message('正在识别题目、整理净卷与手写原稿…');
-          const data=await api('/question-bank/import',{method:'POST',body:JSON.stringify({studentId,requestId,pages:photos,mode:'paper',subject:subject||'math'})});
-          if(!valid())return;photos=[];previews();requestId=crypto.randomUUID();await open(data.paperId);
+        if(b.hasAttribute('data-import')&&photos.length){message('正在保存照片与整理进度…');const student=studentId,generation=jobGeneration;
+          const data=await api('/question-bank/import-jobs',{method:'POST',body:JSON.stringify({studentId:student,requestId,pages:photos,subject:subject||'math'})});
+          if(!valid()||student!==studentId||generation!==jobGeneration)return;photos=[];previews();requestId=crypto.randomUUID();jobsHost.innerHTML=jobCard(data);$('[data-upload]').hidden=true;await runJob(data);
         }
         if(b.hasAttribute('data-confirm')){await api('/question-bank/papers/'+paper.id+'/confirm',{method:'POST',body:JSON.stringify({studentId,title:$('[data-title]').value,classification:{examType:$('[data-exam-type]').value,termName:$('[data-paper-term]').value,unitIds:[...root.querySelectorAll('[data-paper-unit]:checked')].map(e=>e.dataset.paperUnit)}})});await open(paper.id);message('试卷已保存。');}
         if(b.hasAttribute('data-original')){const d=modal('原始试卷','papers-original');paper.pages.forEach(p=>{const img=new Image();img.src=p.image;img.alt='第 '+p.page+' 页原卷';d.querySelector('[data-body]').append(img);});}
+        if(b.dataset.review){const q=paper.questions.find(q=>q.id===b.dataset.review);await api('/question-bank/questions/'+q.id,{method:'PUT',body:JSON.stringify({studentId,revision:q.revision,figureVersion:q.figureVersion,reviewed:true})});await open(paper.id);}
         if(b.dataset.edit)await edit(paper.questions.find(q=>q.id===b.dataset.edit));
         if(b.dataset.editFigure){const q=paper.questions.find(q=>q.id===b.dataset.editFigure);paperFigures?.dispose();paperFigures=GrowingQuestionFigures.create(api,esc,valid,studentId,()=>open(paper.id));await paperFigures.edit(q);}
         if(b.dataset.mark){const q=paper.questions.find(q=>q.id===b.dataset.mark);await api('/question-bank/questions/'+q.id+'/paper-mark',{method:'POST',body:JSON.stringify({studentId,revision:q.revision,markedWrong:!wrong(q)})});await open(paper.id);}
         if(b.dataset.draw){const q=paper.questions.find(q=>q.id===b.dataset.draw);message('正在补绘题图…');await api('/question-bank/questions/'+q.id+'/drawing',{method:'POST',body:JSON.stringify({studentId,revision:q.revision,figureVersion:q.figureVersion})});await open(paper.id);}
         if(b.hasAttribute('data-print'))await print();
-      }catch(error){if(valid())message(error.message);}finally{if(valid())lock(false);}
+      }catch(error){if(valid()&&actionStudent===studentId)message(error.message);}finally{if(valid()&&actionStudent===studentId&&!runningJob)lock(false);}
     });
     root.addEventListener('submit',async e=>{
       if(!e.target.matches('[data-student-search]'))return;e.preventDefault();if(busy)return;

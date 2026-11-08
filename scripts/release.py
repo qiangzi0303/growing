@@ -188,7 +188,9 @@ class Release:
         console = REPO / 'console-web'
         self.run('Console TypeScript check', [self.node, 'node_modules/vue-tsc/bin/vue-tsc.js',
                                              '--noEmit', '--skipLibCheck'], console)
-        self.run('Console behavior tests', [self.node, 'node_modules/vitest/vitest.mjs', 'run'], console)
+        # Bound UI-test contention and allow rendering time on busy release machines.
+        self.run('Console behavior tests', [self.node, 'node_modules/vitest/vitest.mjs', 'run',
+                                            '--maxWorkers=2', '--testTimeout=15000'], console)
         for script in ('sync-platform.py', 'build-worker-assets.py', 'verify-assets.py'):
             self.run(script, [sys.executable, REPO / 'scripts' / script])
         tests = ['test-platform', 'realtime.test', 'handwriting.test', 'unit-summary.test', 'rewards.test', 'year8.test', 'math-lab.test', 'math-format.test', 'fraction-grading.test', 'panorama.test',
