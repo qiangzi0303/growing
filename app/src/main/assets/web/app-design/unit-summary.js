@@ -4,8 +4,7 @@
   const subject=params.get('subject')||'math',unitId=params.get('unit'),course=Object.hasOwn(C,subject)?C[subject]:null;
   const entry=course&&Object.entries(course.terms).flatMap(([term,book])=>book.units.map(unit=>({term,book,unit}))).find(x=>x.unit.id===unitId);
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const link=(s,u)=>'unit-summary.html?'+new URLSearchParams({subject:s,unit:u});
-  const fail=message=>{root.innerHTML=`<nav class="summary-nav"><a href="index.html" target="_top">← 选择课程</a></nav><header><h1>暂时无法显示总结</h1><p>${esc(message)}</p><a href="${course?'units.html?subject='+subject:'index.html'}" target="_top">返回目录 →</a></header>`;};
+  const fail=message=>{root.innerHTML=`<nav class="summary-nav"><a href="index.html" target="_top">选择课程</a></nav><header><h1>暂时无法显示总结</h1><p>${esc(message)}</p><a href="${course?'units.html?subject='+subject:'index.html'}" target="_top">返回目录</a></header>`;};
   if(!entry||!entry.book.verified||!entry.unit.entry){fail('本单元尚未开放，请选择已核对教材的单元。');return;}
   const {unit,term,book}=entry;
   let summary;
@@ -25,21 +24,18 @@
     }catch{fail('本机学习记录暂时无法读取，原记录未改动。请检查存储权限或修复存档后刷新。');}
   }
   function render(){
-    const counts=Object.fromEntries(Object.keys(E.labels).map(s=>[s,summary.rows.filter(r=>r.status===s).length]));
+    const groups=[['passed','已掌握知识点'],['weak','薄弱点'],['untested','未测点'],['shaky','待巩固'],['pending','待复测'],['screened','初筛通过'],['unknown','记录不可用']];
+    const status=row=>row.status==='passed'&&row.screened?'screened':row.status;
     document.title=`${unit.title} · 单元总结 · 逆流`;
-    root.innerHTML=`<nav class="summary-nav"><a href="units.html?subject=${subject}&term=${term}" target="_top">← ${course.name}目录</a><a class="brand" href="index.html" target="_top"><img class="brand-logo" src="brand-logo.webp" alt="" width="32" height="32">逆流</a></nav>
-      <header><p class="eyebrow">${course.name} · ${book.name} · ${subject==='english'?'Unit':'第'} ${unit.number}${subject==='english'?'':' 章'}</p><h1>${esc(unit.title)} · 单元总结</h1><p class="summary-overview">${summary.rows.length}个学习节点，已通过 <strong>${counts.passed}</strong> 个。先补薄弱，再巩固不稳，最后检查未测。</p></header>
-      <div class="summary-pickers"><label>科目<select id="summary-subject">${Object.entries(C).map(([s,c])=>`<option value="${s}" ${s===subject?'selected':''}>${c.name}</option>`).join('')}</select></label><label>学期<select id="summary-term">${Object.entries(course.terms).filter(([,b])=>b.verified&&b.units.some(u=>u.entry)).map(([t,b])=>`<option value="${t}" ${t===term?'selected':''}>${b.name}</option>`).join('')}</select></label><label>单元<select id="summary-unit">${book.units.filter(u=>u.entry).map(u=>`<option value="${u.id}" ${u.id===unit.id?'selected':''}>${subject==='english'?'Unit':'第'} ${u.number}${subject==='english'?'':' 章'} · ${esc(u.title)}</option>`).join('')}</select></label></div>
-      ${subject!=='english'?`<div class="summary-actions"><a href="${subject==='physics'?'physics-knowledge.html':'knowledge.html'}?chapter=${unit.id}&mode=diagnosis" target="_top">开始 / 继续诊断 →</a></div>`:''}
-      <div class="summary-stats" role="group" aria-label="学习状态统计">${['weak','shaky','untested','pending','passed'].map(s=>`<div class="summary-stat ${s}"><strong>${counts[s]}</strong><span>${E.labels[s]}</span></div>`).join('')}</div>
-      ${summary.warnings.map(w=>`<p class="summary-warning" role="status">${esc(w)}</p>`).join('')}${counts.unknown?`<p class="summary-warning">${counts.unknown}个节点的记录不可用，未计为未测或已通过。</p>`:''}
-      `;
+    root.innerHTML=`<nav class="summary-nav"><a href="units.html?subject=${subject}&term=${term}" target="_top">返回${course.name}目录</a><a class="brand" href="index.html" target="_top"><img class="brand-logo" src="brand-logo.webp" alt="" width="32" height="32">逆流</a></nav>
+      <header><p class="eyebrow">${course.name} · ${book.name} · ${subject==='english'?'Unit':'第'} ${unit.number}${subject==='english'?'':' 章'}</p><h1>${esc(unit.title)} · 单元总结</h1></header>
+      <div class="summary-groups">${groups.map(([key,label],i)=>{
+        const rows=summary.rows.filter(row=>status(row)===key);
+        if(i>2&&!rows.length)return '';
+        return `<section class="summary-group ${key}" aria-labelledby="summary-${key}"><h2 id="summary-${key}">${label}<span>${rows.length}</span></h2>${rows.length?`<ul>${rows.map(row=>`<li data-summary-node="${esc(row.id)}">${esc(row.title)}</li>`).join('')}</ul>`:'<p class="summary-empty">暂无</p>'}</section>`;
+      }).join('')}</div>
+      ${summary.warnings.some(w=>/无法|不可用/.test(w))?'<p class="summary-warning" role="status">部分学习记录暂不可用。</p>':''}`;
   }
-  root.addEventListener('change',e=>{
-    if(e.target.id==='summary-subject'){const s=e.target.value,b=Object.values(C[s].terms).find(b=>b.verified&&b.units.some(u=>u.entry));location.href=link(s,b.units.find(u=>u.entry).id);}
-    if(e.target.id==='summary-term')location.href=link(subject,course.terms[e.target.value].units.find(u=>u.entry).id);
-    if(e.target.id==='summary-unit')location.href=link(subject,e.target.value);
-  });
   (async()=>{
     try{
       const files=subject==='english'?unit.number===3?['english-engine.js','unit-summary-legacy.js']:['english-engine.js','english-vocabulary.js','english-lessons.js']:subject==='physics'?['physics-builder.js','physics-sound.js','physics-light.js','physics-lenses.js','physics-thermal.js','physics-motion.js','physics-data.js','diagnosis-engine.js']:['knowledge-data.js','math-builder.js','math-upper.js','math-lower.js','math-data.js','diagnosis-engine.js'];

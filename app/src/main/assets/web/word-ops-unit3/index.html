@@ -1488,9 +1488,12 @@ window.ChapterRewards=(()=>{
   function restore(raw){return raw&&typeof raw==='object'?JSON.parse(JSON.stringify(raw)):{config:{enabled:true,hours:2,yuan:200},award:null};}
   function progress(state){return {words:D.words.filter(w=>state.mastered[w.id]).length,tests:[...D.groups,...D.lessons].filter(l=>Number.isFinite(Number(state.best[l.id]))&&Number(state.best[l.id])>=80&&Number(state.best[l.id])<=100).length,totalWords:D.words.length,totalTests:D.groups.length+D.lessons.length};}
   function update(state){
-    window.UnitRewards.register(id,{title:'To be a good learner',legacy:()=>state.rewards,rule:'单词七次默写通过计1项，每个考核达到80%计1项；浏览和练习次数不计掌握。',progress:()=>{const p=progress(state);return {done:p.words+p.tests,total:p.totalWords+p.totalTests};}});
+    const marks=()=>window.GrowingEnglishScore.summary(D.words,state.mastered,window.SentenceDemo.units[id].topics.flatMap(t=>t.sentences),JSON.parse(localStorage.getItem('growing-english-sentences-v1:'+id)||'null'),true);
+    window.UnitRewards.register(id,{title:'To be a good learner',legacy:()=>state.rewards,rule:window.GrowingEnglishScore.formula+'，满分100分。其他学习活动不计分，历史默写与已获得奖励保留。',progress:()=>({done:marks().points,total:10000}),mastery:()=>marks().score});
     window.UnitRewards.update(id);
   }
+  window.addEventListener('storage',e=>{if(e.key===null||e.key==='growing-english-sentences-v1:'+id)window.UnitRewards.update(id);});
+  window.addEventListener('pageshow',()=>window.UnitRewards.update(id));
   return {restore,progress,update,redeem:()=>false,home:()=>window.UnitRewards.placeholder(id),settings:()=>window.UnitRewards.placeholder(id)};
 })();
   </script>
@@ -1697,6 +1700,13 @@ window.ChapterRewards=(()=>{
   <link rel="stylesheet" href="../app-design/word-mastery.css?v=unit-count-1">
   <script src="../app-design/word-mastery-rules.js?v=1"></script>
   <script src="../app-design/word-mastery.js?v=wrong-answer-1"></script>
+  <script src="../app-design/english-sentence-units-13.js?v=english-score-50"></script>
+  <script src="../app-design/english-sentence-units-2.js?v=english-score-50"></script>
+  <script src="../app-design/english-sentence-units-45.js?v=english-score-50"></script>
+  <script src="../app-design/english-sentence-units-678.js?v=english-score-50"></script>
+  <script src="../app-design/english-sentence-data.js?v=english-score-50"></script>
+  <script src="../app-design/english-sentence-progress.js?v=english-score-50"></script>
+  <script src="../app-design/english-score.js?v=english-score-50"></script>
   <script data-source="app.js">
 /* 分关学习、考核、错题与费曼复述；无需构建，直接打开 index.html。 */
 (() => {

@@ -28,7 +28,7 @@ test("legacy fraction and Unit 3 mastery stay visible", () => {
     doc("fraction-minute-v1", { topics: { [id]: { exams: [{}] } }, learning: { mastery: { [id]: null } }, activity: { days: { "2026-10-22": 60000 } } }),
     doc("wordops_8A_unit3", { seen: [word.id], mastered: { [word.id]: { protocol: "seven-recalls", answers: Array(7).fill(word.word) } }, best: { [rules.__legacy.tests[0]]: 80 }, learningTime: { days: { "2026-10-22": 120000 } } }),
   ]);
-  assert.equal(r.subjects[0].mastered, 1); assert.equal(r.subjects[1].mastered, 2); assert.equal(r.subjects[1].activeMinutes, 2);
+  assert.equal(r.subjects[0].mastered, 1); assert.equal(r.subjects[1].mastered, 1); assert.equal(r.subjects[1].activeMinutes, 2);
 });
 
 test('today uses Shanghai midnight and cumulative time includes all valid historical dates',()=>{

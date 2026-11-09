@@ -2,6 +2,7 @@ const assert=require('node:assert/strict');
 global.window={};
 require('../app/src/main/assets/web/app-design/curriculum.js');require('../app/src/main/assets/web/app-design/english-vocabulary.js');require('../app/src/main/assets/web/app-design/english-lessons.js');
 const E=require('../app/src/main/assets/web/app-design/english-engine.js'),R=require('../app/src/main/assets/web/app-design/reward-engine.js');
+const sentences=require('../app/src/main/assets/web/app-design/english-sentence-data.js');
 let checks=0;
 const check=(name,fn)=>{fn();checks++;};
 const vocab=window.GrowingEnglishVocabulary,lessons=window.GrowingEnglishLessons;
@@ -22,7 +23,7 @@ for(const [number,words] of Object.entries(vocab)){
     check('correct answers pass '+number+'/'+l.id,()=>assert(E.lessonPassed(l,state.lessons[l.id])));
     check('incorrect answer does not pass '+number+'/'+l.id,()=>assert.equal(E.lessonPassed(l,{protocol:'three-correct',answers:[l.questions[0].options[1],...answers.slice(1)]}),false));
   }
-  check('complete unit capped at full budget '+number,()=>{const p=E.progress(words,ls,E.restore(JSON.parse(JSON.stringify(state))));assert.equal(p.done,p.total);const a=R.amounts(R.accrue(R.restore(null),p.done,p.total));assert.equal(a.game,120);assert.equal(a.cash,20000);});
+  check('words and lessons reach only half; sentence completion supplies the other half '+number,()=>{const items=sentences.units[unit.id].topics.flatMap(t=>t.sentences),saved={version:1,sentences:Object.fromEntries(items.map(s=>[s.id,{protocol:'sentence-typing-v1',answer:s.en,wrong:0,hints:0,revealed:false,at:1}]))};const half=E.progress(words,ls,state,items);assert.equal(half.done,5000);const p=E.progress(words,ls,E.restore(JSON.parse(JSON.stringify(state))),items,saved);assert.equal(p.done,p.total);const a=R.amounts(R.accrue(R.restore(null),p.done,p.total));assert.equal(a.game,120);assert.equal(a.cash,20000);});
   check('truthy flags cannot create mastery '+number,()=>{const fake=E.restore(null);for(const w of words)fake.words[w.id]=true;for(const l of ls)fake.lessons[l.id]={score:100};assert.equal(E.progress(words,ls,fake).done,0);});
 }
 check('original unit 3 route is preserved',()=>assert.equal(window.GrowingCurriculum.english.terms.upper.units[2].entry,'../word-ops-unit3/index.html'));

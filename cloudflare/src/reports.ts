@@ -1,21 +1,16 @@
 import rulesData from "./english-rules.json";
 import type { Document } from "./database";
 import practice from '../../app/src/main/assets/web/app-design/practice-progress.js';
-import wordMastery from '../../app/src/main/assets/web/app-design/word-mastery-rules.js';
+import mathFeedback from '../../app/src/main/assets/web/app-design/math-feedback.js';
+import sentenceProgress from '../../app/src/main/assets/web/app-design/english-sentence-progress.js';
+import sentenceRules from './english-sentence-rules.json';
+import englishScore from '../../app/src/main/assets/web/app-design/english-score.js';
 
 type ObjectData = Record<string, any>;
 const obj = (v: unknown): ObjectData => v !== null && typeof v === "object" && !Array.isArray(v) ? v : {};
 const arr = (v: unknown): any[] => Array.isArray(v) ? v : [];
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : 0; };
 const rules = rulesData as ObjectData;
-const normalize = (v: unknown) => String(v ?? "").trim().toLowerCase().replace(/[’‘]/g, "'")
-  .replace(/…/g, "...").replace(/\s*\.\.\.\s*/g, " ... ").replace(/\s*-\s*/g, "-").replace(/\s+/g, " ").trim();
-function wordPassed(word: any, record: any) {
-  if (record?.protocol === 'word-mastery-v2') return wordMastery.passed(word, record);
-  const variants: Record<string, string[]> = { humour: ["humour", "humor"], programme: ["programme", "program"], "sec.": ["sec.", "sec"] };
-  return record?.protocol === "seven-recalls" && Array.isArray(record.answers) && record.answers.length === 7 &&
-    record.answers.every((answer: unknown) => (variants[word.word] ?? [word.word]).some(v => normalize(v) === normalize(answer)));
-}
 export function shanghaiDay(now = new Date()) { return new Date(now.getTime() + 8 * 3600000).toISOString().slice(0, 10); }
 export function validStudyDay(day: string, today: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(day) && day >= '2000-01-01' && day <= today &&
@@ -38,7 +33,7 @@ export function buildReport(docs: Document[], now = new Date()) {
         const report = doc.key.includes("physics") ? physics : math;
         for (const topic of Object.values(obj(data.topics))) {
           if (topic?.seen === true) report.read++;
-          if (arr(topic?.attempts).some(a => Number.isInteger(a?.score) && a.score >= 8 && a.score <= 10 && typeof a.feedback === "string" && Array.isArray(a.criticalErrors) && a.criticalErrors.length === 0) && practice.result(topic).passed) report.mastered++;
+          if (arr(topic?.attempts).some(a => mathFeedback.validGrade(a) && a.score >= 8 && a.criticalErrors.length === 0) && practice.result(topic).passed) report.mastered++;
         }
         for (const [date, rows] of Object.entries(obj(data.tools?.days))) {
           if(!validStudyDay(date,today))continue;
@@ -53,18 +48,13 @@ export function buildReport(docs: Document[], now = new Date()) {
         english.read += Object.keys(obj(data.words)).length;
         english.practice += Object.keys(obj(data.lessons)).length;
         const unit = rules[doc.key.slice("growing-english-course-v1:".length)];
-        for (const word of arr(unit?.words)) if (wordPassed(word, data.words?.[word.id])) english.mastered++;
-        for (const lesson of arr(unit?.lessons)) {
-          const record = data.lessons?.[lesson.id];
-          if (record?.protocol === "three-correct" && Array.isArray(record.answers) && record.answers.length === lesson.answers.length &&
-              record.answers.every((answer: unknown, i: number) => String(answer) === String(lesson.answers[i]))) english.mastered++;
-        }
+        for (const word of arr(unit?.words)) if (englishScore.wordPassed(word, data.words?.[word.id])) english.mastered++;
       }
       if (doc.key === "fraction-minute-v1") {
         for (const id of rules.__legacy.fractionTopics) {
           const topic = data.topics?.[id], mastery = Object.hasOwn(obj(data.learning?.mastery), id);
           if (String(topic?.draft ?? "").length || arr(topic?.attempts).length || arr(topic?.exams).length || mastery) math.read++;
-          if (mastery || arr(topic?.attempts).some(a => a?.valid === true && typeof a.score === "number" && a.score >= 8 && a.score <= 10 && (!Array.isArray(a.criticalErrors) || a.criticalErrors.length === 0))) math.mastered++;
+          if ((mastery || arr(topic?.attempts).some(a => a?.valid === true && typeof a.score === "number" && a.score >= 8 && a.score <= 10 && (!Array.isArray(a.criticalErrors) || a.criticalErrors.length === 0))) && (topic?.practicePhoto===undefined || practice.result(topic).passed)) math.mastered++;
           math.practice += arr(topic?.exams).length;
         }
         addDays(math, data.activity?.days);
@@ -72,16 +62,14 @@ export function buildReport(docs: Document[], now = new Date()) {
       if (doc.key === "wordops_8A_unit3") {
         const legacy = rules.__legacy, seen = new Set(legacy.seenIds);
         english.read += new Set(arr(data.seen).filter(v => seen.has(v))).size;
-        const oldNormalize = (v: unknown) => String(v ?? "").normalize("NFKC").trim().replace(/[’‘]/g, "'").replace(/\s+/g, " ");
         for (const word of legacy.words) {
           const record = data.mastered?.[word.id];
-          if (record?.protocol === 'word-mastery-v2' ? wordMastery.passed(word, record) : record?.protocol === "seven-recalls" && Array.isArray(record.answers) && record.answers.length === 7 && record.answers.every((answer: unknown) =>
-            word.id === "w34" ? oldNormalize(answer) === oldNormalize(word.word) : oldNormalize(answer).toLowerCase() === oldNormalize(word.word).toLowerCase())) english.mastered++;
+          if (englishScore.wordPassed(word, record, true)) english.mastered++;
         }
-        for (const id of legacy.tests) if (num(data.best?.[id]) >= 80 && num(data.best?.[id]) <= 100) english.mastered++;
         english.practice += arr(data.records).length;
         addDays(english, data.learningTime?.days);
       }
+      if (doc.key.startsWith('growing-english-sentences-v1:')) english.mastered += sentenceProgress.summary((sentenceRules as ObjectData)[doc.key.slice('growing-english-sentences-v1:'.length)] ?? [], data).completed;
     } catch { warnings.push("一份学习记录无法汇总，原存档保留。"); }
   }
   const measured: Record<string, Record<string, number>> = {};
@@ -107,7 +95,7 @@ export function buildReport(docs: Document[], now = new Date()) {
   return {
     subjects, today, timezone: 'Asia/Shanghai', lastSyncedAt: docs.length ? docs.map(d => d.updatedAt).sort().at(-1)! : null,
     timeNote: '今日按北京时间 00:00 起算；累计为全部已记录日期之和。课程已有计时与各设备前台活跃计时按科目、按日取较大值，不重复相加；前台活跃计时在切后台或超过60秒无操作时暂停。',
-    note: "掌握沿用各课堂规则：数学/物理普通微课需解释和练习均达标，原分式按有效AI评分达8分，英语单词需连续7次正确。每日时长取课程已有计时与新增前台活跃计时的较大值，避免重复累计。练习记录口径随课堂存档而异，非统一考试次数。",
+    note: "英语仅按单词默写50%＋句子闯关50%评分，满分100分；达标项仅统计必会词与有效整句通关，其他学习活动不计分。数学/物理普通微课需解释和练习均达标，原分式按有效AI评分达8分。每日时长取课程已有计时与新增前台活跃计时的较大值，避免重复累计。练习次数是历史活动统计，不等于成绩。",
     warnings,
   };
 }

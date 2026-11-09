@@ -24,7 +24,6 @@ export interface Env extends ReleaseEnv, VisionEnv, RealtimeEnv {
 const nativeOrigin = "https://appassets.androidplatform.net";
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 export const allowedKey = (key: string) => ["growing-math-lessons-v1", "growing-physics-lessons-v1", "fraction-minute-v1", "wordops_8A_unit3"].includes(key) ||
-  ['growing-assessment-v1', 'growing-original-quadrant-v1'].includes(key) ||
   /^growing-english-(?:doubts|sentences)-v1:english-8a-0[1-8]$/.test(key) ||
   /^growing-diagnosis-(?:year8|physics)-v1:(?:math-8a-0[1-5]|math-8b-(?:0[6-9]|1[01])|physics-8a-0[1-5])$/.test(key) ||
   /^growing-diagnosis-v1:(math-8a-0[1-5]|math-8b-(?:0[6-9]|1[01])|physics-8a-0[1-5])$/.test(key) ||
@@ -165,7 +164,7 @@ export function createHandler(database: (env: Env) => Database = env => {
           const student=await bank.authorize(url.searchParams.get('studentId'));
           return decorate(json(await new PaperImportJobs(db,current).list(student,url.searchParams.get('subject')||undefined)),request);
         }
-        if(/^\/api\/question-bank\/import-jobs\/[a-f0-9-]{36}(?:\/step)?$/.test(path)){
+        if(/^\/api\/question-bank\/import-jobs\/[a-f0-9-]{36}(?:\/(?:step|progress))?$/.test(path)){
           const jobs=new PaperImportJobs(db,current),id=path.split('/')[4];
           if(path.endsWith('/step')&&request.method==='POST'){
             const data=await body(request,2_100_000),student=await bank.authorize(data.studentId);
@@ -173,7 +172,7 @@ export function createHandler(database: (env: Env) => Database = env => {
           }
           if(!path.endsWith('/step')&&request.method==='GET'){
             const student=await bank.authorize(url.searchParams.get('studentId'));
-            return decorate(json(await jobs.get(student,id)),request);
+            return decorate(json(path.endsWith('/progress')?await jobs.progress(student,id):await jobs.get(student,id)),request);
           }
         }
         if(/^\/api\/question-bank\/papers\/[a-f0-9-]{36}\/confirm$/.test(path)&&request.method==='POST'){
@@ -336,7 +335,7 @@ export function createHandler(database: (env: Env) => Database = env => {
         url.pathname = path;
         result = await env.ASSETS.fetch(new Request(url, request));
         if (request.method !== "HEAD" && result.ok && result.headers.get("Content-Type")?.includes("text/html")) {
-          const html = (await result.text()).replace(/<head\b[^>]*>/i, '$&<script src="/cloud-storage.js"></script>');
+          const html = (await result.text()).replace(/<head\b[^>]*>/i, '$&<script src="/cloud-storage.js?v=cloud-authoritative-1"></script>');
           const headers = new Headers(result.headers); headers.delete("Content-Length"); headers.delete("ETag"); headers.delete("Content-Encoding");
           result = new Response(html, { status: result.status, headers });
         }

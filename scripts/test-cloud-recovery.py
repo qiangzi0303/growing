@@ -82,23 +82,23 @@ try:
         ctx, page = open_page(browser, 'stall', cached=False)
         page.locator('#auth').wait_for(timeout=2000)
         check('Unlinked native account immediately sees login/role guidance without requesting cloud', not state['calls'])
-        check('Legacy guidance explains login then role selection', '登录后选择学生或家长' in page.locator('#app').inner_text())
+        check('Unlinked accounts can use the login form', page.locator('#auth [name=username]').count() == 1)
         ctx.close()
 
         for mode in ['stall', 'body-stall', 'disconnect']:
             started = time.monotonic()
             ctx, page = open_page(browser, mode)
-            page.locator('#retry-startup').wait_for(timeout=16000)
+            page.locator('#auth').wait_for(timeout=16000)
             elapsed = time.monotonic() - started
             check(mode + ' returns an actionable error within the deadline', elapsed < 16)
-            check(mode + ' never unlocks a pending role', page.locator('#start-course').count() == 0)
+            check(mode + ' returns to login without a reconnect page or unlocking a pending role', page.locator('#retry-startup,#course').count() == 0)
             check(mode + ' keeps cached session for retry', page.evaluate('!!localStorage.getItem("growing-cloud-session-v1")'))
             if mode == 'stall' and options.output:
                 options.output.mkdir(parents=True, exist_ok=True)
                 page.screenshot(path=str(options.output / 'timeout-mobile.png'), full_page=True)
             state['mode'] = 'ok'
             state['release'].set()
-            page.locator('#retry-startup').click()
+            page.reload()
             page.locator('#choose-role').wait_for()
             check(mode + ' reconnects and requires explicit role selection', page.locator('#choose-role select').input_value() == '')
             check(mode + ' has no mobile horizontal overflow', page.evaluate('document.documentElement.scrollWidth<=innerWidth'))

@@ -11,6 +11,7 @@ import rankingRules from '../src/ranking-rules.json';
 import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
 import diagnosisRules from '../src/diagnosis-rules.json';
 import sentenceRules from '../src/english-sentence-rules.json';
+import englishRules from '../src/english-rules.json';
 
 const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: 'export default {fetch(){return new Response("ok")}}', compatibilityDate: '2026-10-22', d1Databases: ['DB'] }));
 let db: Database;
@@ -1076,7 +1077,7 @@ test('rankings use real D1 scoring, ties, privacy, pagination and bound-parent a
     assert.equal(response.status,200,await response.clone().text());
   };
   const save=async(s:any,quiz:number,revision=0)=>{
-    const topics=Object.fromEntries(rule.topics!.map(id=>[id,{seen:true,bestQuiz:quiz,attempts:[{score:8,feedback:'解释准确',criticalErrors:[]}]}]));
+    const topics=Object.fromEntries(rule.topics!.map(id=>[id,{seen:true,bestQuiz:quiz,attempts:[{score:10,feedback:'解释准确',criticalErrors:[]}]}]));
     const response=await call('/api/student/state/growing-physics-lessons-v1','PUT',{revision,value:JSON.stringify({topics})},s.token);
     assert.equal(response.status,200,await response.clone().text());
   };
@@ -1095,7 +1096,7 @@ test('rankings use real D1 scoring, ties, privacy, pagination and bound-parent a
   const overview=await (await call('/api/student/rankings','GET',undefined,a.token)).json() as any;
   assert.deepEqual(overview.boards.map((r:any)=>r.id).sort(),[rule.id,'physics:upper'].sort());
   assert.equal(overview.boards.find((r:any)=>r.id===rule.id).score,100);
-  assert.equal(overview.formula,'费曼学习 × 30% + 应用练习 × 70%');
+  assert.equal(overview.formula,'英语：单词默写 × 50% + 句子闯关 × 50%；数学/物理：费曼学习 × 30% + 应用练习 × 70%');
   assert.equal((await call('/api/student/rankings?board=math:upper','GET',undefined,a.token)).status,404);
   assert.equal((await call(path+'&page=0','GET',undefined,a.token)).status,400);
   assert.equal((await call(path)).status,401);
@@ -1125,6 +1126,28 @@ test('rankings use real D1 scoring, ties, privacy, pagination and bound-parent a
   assert.equal((await (await call(path,'GET',undefined,c.token)).json() as any).self.score,0);
   await call('/api/student/state/growing-diagnosis-v1:'+rule.id,'PUT',{revision:1,value:null},c.token);
   assert.equal((await call(path,'GET',undefined,c.token)).status,404);
+});
+
+test('English rankings rebuild old cache counts and enroll historical sentence-only learners with 50/50 scoring',async()=>{
+  const a=await register(),b=await register(),unit='english-8a-01',key='growing-english-course-v1:'+unit;
+  const words=Object.fromEntries(englishRules[unit].words.map(w=>[w.id,{protocol:'seven-recalls',answers:Array(7).fill(w.word)}]));
+  const sentenceKey='growing-english-sentences-v1:'+unit,value=JSON.stringify({version:1,sentences:Object.fromEntries(sentenceRules[unit].map(s=>[s.id,{protocol:'sentence-typing-v1',answer:s.en,wrong:0,hints:0,revealed:false,at:1}]))});
+  assert.equal((await call('/api/student/state/'+key,'PUT',{revision:0,value:JSON.stringify({words,lessons:{},feynman:{}})},a.token)).status,200);
+  // Existing rows hold the previous lesson/combined-test denominators.
+  await db.query('UPDATE "GrowingRankings" SET "ConceptDone"=4,"ConceptTotal"=4,"TestDone"=1,"TestTotal"=99,"Score"=9999 WHERE "StudentId"=?1',[a.user.id]);
+  // The old engine never enrolled learners who had only sentence completions.
+  await db.query(`INSERT INTO "GrowingDocuments" ("StudentId","Key","Value","Revision","UpdatedAt") VALUES (?1,?2,?3,1,${nowSql})`,[b.user.id,sentenceKey,value]);
+  const path='/api/student/rankings?board='+unit;
+  const response=await call(path,'GET',undefined,a.token);assert.equal(response.status,200,await response.clone().text());
+  let data=await response.json() as any;
+  assert.equal(data.self.score,50);assert.equal(data.self.conceptPercent,100);assert.equal(data.self.testPercent,0);
+  assert.deepEqual(data.rows.map((r:any)=>r.score),[50,50]);assert.deepEqual(data.rows.map((r:any)=>r.rank),[1,1]);
+  data=await (await call(path,'GET',undefined,b.token)).json() as any;
+  assert.equal(data.self.score,50);assert.equal(data.self.conceptPercent,0);assert.equal(data.self.testPercent,100);
+  assert.equal((await call('/api/student/state/'+sentenceKey,'PUT',{revision:0,value},a.token)).status,200);
+  data=await (await call(path,'GET',undefined,a.token)).json() as any;assert.equal(data.self.score,100);assert.equal(data.self.rank,1);
+  // Source archives remain unchanged by reads and derived-index rebuilding.
+  assert.equal((await db.query<any>('SELECT "Value" AS value FROM "GrowingDocuments" WHERE "StudentId"=?1 AND "Key"=?2',[b.user.id,sentenceKey]))[0].value,value);
 });
 
 test('historical rank rebuild is idempotent, admin-only and guarded against concurrent newer sync',async()=>{
@@ -1181,7 +1204,7 @@ test('parents add multiple children by verified student credentials without stud
 // Unit reports use exactly the same family and administrator boundaries as child state.
 test('cloud learning archives follow the student across device sessions including unfinished work',async()=>{
   const student=await register(),other=await register(),parent=await register('Parent');
-  const keys=['growing-diagnosis-year8-v1:math-8a-01','growing-diagnosis-physics-v1:physics-8a-01','growing-assessment-v1','growing-original-quadrant-v1','growing-english-doubts-v1:english-8a-01'];
+  const keys=['growing-diagnosis-year8-v1:math-8a-01','growing-diagnosis-physics-v1:physics-8a-01','growing-english-doubts-v1:english-8a-01'];
   for(const key of keys){
     const response=await call('/api/student/state/'+key,'PUT',{revision:0,value:JSON.stringify({version:1,draft:'未完成的记录',records:[]})},student.token);
     assert.equal(response.status,200,await response.clone().text());
@@ -1199,6 +1222,7 @@ test('cloud learning archives follow the student across device sessions includin
   assert.equal((await call(route,'PUT',{value:row.value,revision:0},next.token)).status,409);
   assert.equal((await call(route,'PUT',{value:'{}',revision:row.revision},other.token)).status,409);
   assert.equal((await call('/api/student/state/growing-course-ai-v1','PUT',{value:'{}',revision:0},next.token)).status,400);
+  for(const key of ['growing-assessment-v1','growing-original-quadrant-v1'])assert.equal((await call('/api/student/state/'+key,'PUT',{value:'{}',revision:0},next.token)).status,400);
 });
 
 test('synced English completions are stored in D1 and visible to bound parents and administrators only',async()=>{

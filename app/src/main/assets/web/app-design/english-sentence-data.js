@@ -1,4 +1,4 @@
-/* Original unit practice; typing points never count as course mastery. */
+/* Completed sentences count toward English mastery; game points remain separate. */
 (function(root,factory){
   const content=typeof module==='object'&&module.exports?Object.assign({},require('./english-sentence-units-13.js'),require('./english-sentence-units-2.js'),require('./english-sentence-units-45.js'),require('./english-sentence-units-678.js')):root.SentenceUnitContent;
   const api=factory(content);if(typeof module==='object'&&module.exports)module.exports=api;else root.SentenceDemo=api;

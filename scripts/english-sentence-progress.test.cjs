@@ -16,7 +16,7 @@ test('sentence completion persists once, retains earlier items and uses the exis
   assert.equal(P.summary(D.units['english-8a-02'].topics[0].sentences,repeated).completed,0);
   const key=P.key(unit.id),value=JSON.stringify(repeated);
   assert.equal(sync.allowed(key),true);
-  assert.equal(sync.plan({[key]:value},{},{}).find(a=>a.key===key).type,'push');
+  assert.equal(sync.plan({[key]:value},{},{[key]:{value:null,revision:0}}).find(a=>a.key===key).type,'push');
   assert.equal(sync.allowed('growing-english-sentences-v1:english-8b-01'),false);
 });
 

@@ -9,6 +9,11 @@
     if(!button.isConnected)identity.after(button);return button;
   }
   const button=entry('open-api-settings','DeepSeek 密钥设置'),voiceButton=entry('open-voice-settings','语音 Key 设置');
+  if(window.GrowingNative?.configureAi){
+    const deviceButton=entry('open-device-settings','设备设置');
+    deviceButton.removeAttribute('aria-controls');
+    deviceButton.addEventListener('click',()=>{menu.open=false;window.GrowingNative.configureAi();});
+  }
   const dialog=document.createElement('dialog');dialog.id='api-settings-dialog';dialog.setAttribute('aria-labelledby','api-settings-title');
   dialog.innerHTML='<div class="actions api-settings-heading"><h2 id="api-settings-title">AI 密钥设置</h2><button type="button" id="close-api-settings" autofocus>关闭</button></div><nav class="actions api-settings-tabs" aria-label="选择密钥设置"><button type="button" data-api-tab="deepseek">DeepSeek 密钥</button><button type="button" data-api-tab="voice">语音 Key</button></nav><div id="api-settings-content"></div>';
   document.body.append(dialog);

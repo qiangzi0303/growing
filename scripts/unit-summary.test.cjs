@@ -15,6 +15,7 @@ test('diagnosis outcomes distinguish weak, shaky, untested and partial evidence'
   while(D.inspect(g,s).next){const {question,attempt}=D.inspect(g,s).next;const i=ids.indexOf(question.topic),correct=i===2||i===1&&attempt===2;s=D.answer(g,s,question.id,correct?question.answer:(question.answer+1)%4);}
   const key='growing-diagnosis-year8-v1:'+chapter.id,rows=summarize(chapter,M,{[key]:s}).rows;
   assert.equal(rows.find(n=>n.id===ids[0]).status,'weak');assert.equal(rows.find(n=>n.id===ids[1]).status,'shaky');assert.equal(rows.find(n=>n.id===ids[2]).status,'passed');assert.equal(rows.at(-1).status,'untested');
+  assert.equal(rows.find(n=>n.id===ids[2]).screened,true);assert.equal(rows.find(n=>n.id===ids[0]).screened,false);
   let partial=D.createAssessment(g,[ids[0]]);partial=D.answer(g,partial,D.inspect(g,partial).next.question.id,0);assert.equal(summarize(chapter,M,{[key]:partial}).rows[0].status,'pending');
 });
 test('latest failed diagnosis overrides historical best and past course mastery',()=>{

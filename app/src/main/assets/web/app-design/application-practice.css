@@ -1,5 +1,20 @@
-.practice-level{display:inline-block;padding:3px 8px;margin-right:5px;border:1px solid var(--line);border-radius:4px;color:var(--muted);font-size:.8em;font-weight:600;white-space:nowrap}
-.question legend,.question details p{white-space:pre-line;overflow-wrap:anywhere}
-.practice-photo-link{display:inline-flex;align-items:center;min-height:44px;margin:8px 0;padding:10px 16px;border:1px solid var(--line);border-radius:10px;font-weight:600}
-.practice-photo-link:focus-visible{outline:3px solid currentColor;outline-offset:3px}
-.practice-answer-state{font-size:.9em}
+.question legend{white-space:pre-line;overflow-wrap:anywhere}
+.practice-options{list-style:none;padding:0;margin:12px 0;display:grid;gap:8px}
+.practice-photo-link{display:inline-flex;align-items:center;min-height:44px;padding:10px 16px;border:1px solid var(--line);border-radius:9px;cursor:pointer}
+.practice-photo-link:focus-within{outline:3px solid #8b641d;outline-offset:3px}
+.practice-photo-link input{max-width:200px;margin-left:10px;font:inherit}
+.practice-upload{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0}
+.practice-original{flex-basis:100%;max-width:100%;order:3}
+.practice-original img{display:block;width:min(100%,400px);height:auto;margin-top:12px;border:1px solid var(--line)}
+.practice-photo-status{font-size:13px;overflow-wrap:anywhere}
+.practice-photo-status:empty{display:none}
+.practice-grade{border-top:1px solid var(--line);padding:16px 0;overflow-wrap:anywhere}
+.practice-grade strong{color:#44653d}
+.practice-grade p,.practice-grade li{white-space:pre-line;line-height:1.8}
+.practice-grade small{color:var(--muted)}
+.chapter-score{display:flex;gap:8px 16px;align-items:center;flex-wrap:wrap;margin:0 0 22px;padding:16px;border:1px solid var(--line);border-radius:12px}
+.chapter-score strong{font-size:23px}.chapter-score span,.chapter-score small{font-size:13px;color:var(--muted)}
+.chapter-score progress{flex:1;min-width:100px;height:8px;accent-color:#557b3c}.chapter-score small{flex-basis:100%}
+.math-legacy #fraction-score{margin:20px auto;max-width:1160px;background:var(--surface,#fffdf7)}
+.math-legacy fieldset.question{min-width:0;margin:20px 0;padding:18px;border:1px solid var(--line,#cdd9c0);border-radius:10px;font-size:16px}
+@media(max-width:520px){.practice-photo-link{display:flex;flex-wrap:wrap;gap:8px;width:100%}.practice-photo-link input{margin:0;max-width:100%;width:100%}}

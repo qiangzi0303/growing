@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(tools&&tabs)tabs.after(tools);
 });
 document.addEventListener('click',event=>{
-  if(event.target.closest('[data-legacy-photo]'))window.GrowingCourseNavigation.openPhotoBank();
   const action=event.target.closest('.legacy-more button');
   if(action)action.closest('details').open=false;
 });

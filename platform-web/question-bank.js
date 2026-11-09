@@ -20,7 +20,7 @@
     context={...context};
     const math=window.GrowingMathFormat,formatTried=new Set(),formatErrors=new Map();
     const newId=()=>GrowingPhotoReview.uuid();
-    const valid=()=>root.isConnected&&alive();let units=[],studentId='',photos=[],requestId=newId(),busy=false,rows=[],page=1,unit='',serial=0,studentPage=1,studentQuery='',review=null,figures=null;
+    const valid=()=>root.isConnected&&alive();let units=[],studentId='',photos=[],requestId=newId(),busy=false,rows=[],page=1,unit='',serial=0,studentPage=1,studentQuery='',review=null,figures=null,gradingJob=null;
     const message=(text,error=false)=>{if(valid()){const el=root.querySelector('[data-bank-status]');el.textContent=text;el.classList.toggle('warning',error);}};
     root.classList.add('question-bank-minimal');
     root.innerHTML=`<div class="actions"><button id="question-bank-home">‹ 返回${user.role==='Student'?'学习中心':'看板'}</button></div><h1>拍照题库</h1><section class="panel" data-students></section><div data-bank-work hidden><section class="panel bank-upload-panel" aria-label="拍照批改"><div class="actions"><label class="button bank-upload">拍照<input type="file" accept="image/jpeg" capture="environment" data-camera></label><label class="button bank-upload">从相册选择<input type="file" accept="image/jpeg,image/png,image/webp" multiple data-album></label><button class="primary" data-import disabled>整页逐题批改</button></div><ol class="bank-photos" data-photos></ol></section><p data-bank-status role="status" aria-live="polite"></p><section class="bank-unit-questions" aria-label="本单元题目"><div data-questions></div><div class="actions bank-pagination" data-pagination hidden><button data-prev>上一页</button><span data-page></span><button data-next>下一页</button></div></section></div>`;
@@ -31,7 +31,7 @@
       root.querySelector('.bank-upload-panel').hidden=true;
     }
     root.querySelector('[data-bank-status]').insertAdjacentHTML('afterend','<section class="panel photo-workbench" data-workbench hidden></section>');
-    function setBusy(value){busy=value;root.querySelectorAll('[data-import],[data-camera],[data-album],[data-student],[data-student-search] input,[data-student-search] button,[data-student-prev],[data-student-next],[data-remove]').forEach(e=>{e.disabled=value;});root.querySelector('[data-import]').disabled=value||!photos.length;root.querySelector('[data-import]').textContent=value?'正在批改…':'整页逐题批改';}
+    function setBusy(value){busy=value;root.querySelectorAll('[data-import],[data-camera],[data-album],[data-student],[data-student-search] input,[data-student-search] button,[data-student-prev],[data-student-next],[data-remove]').forEach(e=>{e.disabled=value;});root.querySelector('[data-import]').disabled=value||!photos.length;root.querySelector('[data-import]').textContent=value?'正在批改…':gradingJob?'继续批改':'整页逐题批改';}
     function previews(){root.querySelector('[data-photos]').innerHTML=photos.map((p,i)=>`<li><img src="${esc(p)}" alt="第 ${i+1} 页试卷预览"><span>第 ${i+1} 页</span><button data-remove="${i}" aria-label="移除第 ${i+1} 页">移除</button></li>`).join('');setBusy(false);}
     async function load(){
       if(!studentId)return;const n=++serial,id=studentId;
@@ -73,7 +73,7 @@
       if(units.some(u=>u.id===requested)||context.wrongOnly&&requested==='all')unit=requested;
       if(unit&&id)try{localStorage.setItem('growing-photo-unit-v1:'+id,unit);}catch{}
       if(id){const active=()=>valid()&&studentId===id;figures=GrowingQuestionFigures.create(api,esc,active,id,async()=>{await load();await review.refresh();});review=GrowingPhotoReview.create(root,api,esc,active,id,()=>load(),figures);}
-      page=1;photos=[];requestId=newId();previews();message('');work.hidden=!id;if(id)await load();
+      page=1;photos=[];gradingJob=null;requestId=newId();previews();message('');work.hidden=!id;if(id)await load();
     }
     async function students(){
       const host=root.querySelector('[data-students]');
@@ -98,22 +98,23 @@
       const files=[...e.target.files];e.target.value='';if(!files.length)return;
       if(files.length+photos.length>4){message('每批最多 4 页，请先录入当前照片或移除多余页面。',true);return;}
       setBusy(true);message('正在准备照片…');const id=studentId;
-      try{const added=[];for(const file of files)added.push(await photo(file));if(!valid()||id!==studentId)return;photos.push(...added);requestId=newId();previews();message('');}
+      try{const added=[];for(const file of files)added.push(await photo(file));if(!valid()||id!==studentId)return;photos.push(...added);gradingJob=null;requestId=newId();previews();message('');}
       catch(error){message(error.message,true);}finally{if(valid())setBusy(false);}
     });
     root.addEventListener('click',async e=>{
       const b=e.target.closest('button');if(!b||!valid())return;
       try{
-        if(b.hasAttribute('data-remove')&&!busy){photos.splice(Number(b.dataset.remove),1);requestId=newId();previews();}
+        if(b.hasAttribute('data-remove')&&!busy){photos.splice(Number(b.dataset.remove),1);gradingJob=null;requestId=newId();previews();}
         if(b.dataset.paperOpen){const q=rows.find(q=>q.id===b.dataset.paperOpen);if(q)await window.GrowingCloud.openPapers({studentId,paperId:q.paperId});return;}
         if(b.dataset.reviewOpen){const host=root.querySelector('[data-workbench]');if(!host.hidden&&host.dataset.anchorQuestion===b.dataset.reviewOpen){review.close();return;}const q=rows.find(q=>q.id===b.dataset.reviewOpen);if(q)await review.open(q);return;}
         if(b.hasAttribute('data-prev')||b.hasAttribute('data-next')){page+=b.hasAttribute('data-prev')?-1:1;await load();}
         if(b.hasAttribute('data-student-prev')||b.hasAttribute('data-student-next')){studentPage+=b.hasAttribute('data-student-prev')?-1:1;await students();}
         if(b.dataset.format){const q=rows.find(q=>q.id===b.dataset.format);if(q){formatTried.delete(studentId+':'+q.id+':'+q.revision);await load();}}
         if(b.hasAttribute('data-import')&&!busy&&photos.length){setBusy(true);message('正在批改…');
-          try{const result=await api('/question-bank/import',{method:'POST',body:JSON.stringify({studentId,requestId,pages:photos,mode:'grade'})});if(!valid())return;
-            photos=[];requestId=newId();previews();page=1;await load();
-            message(result.duplicate?'已录入，请勿重复提交。':'批改完成。');
+          try{const result=await GrowingGradingProgress.run({api,studentId,job:gradingJob,alive:valid,onJob:job=>{gradingJob=job;},create:()=>api('/question-bank/import-jobs',{method:'POST',body:JSON.stringify({studentId,requestId,pages:photos,subject:context.subject||unit.split('-')[0]||'math',mode:'grade'})})});if(!valid())return;
+            if(!result){message('进度已保存，可继续批改，也可在“我的试卷”中恢复。');return;}
+            photos=[];gradingJob=null;requestId=newId();previews();page=1;await load();
+            message('批改完成。');
             await window.GrowingCloud.openPapers({studentId,paperId:result.paperId});
           }catch(error){message(error.message+' 照片仍保留，可重试。',true);}finally{if(valid())setBusy(false);}
         }

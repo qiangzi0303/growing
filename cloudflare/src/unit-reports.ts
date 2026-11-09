@@ -67,7 +67,7 @@ export function buildUnitReports(docs: Document[]) {
           const exams = arr(r.exams).filter(e => e?.real === false && Number.isInteger(e.total) && e.total > 0 && Number.isInteger(e.correct) && e.correct >= 0 && e.correct <= e.total);
           exams.forEach(e => remember(e.at));
           const concept = Object.hasOwn(obj(s.learning?.mastery), id) || list.some(a => a.score >= 8 && !arr(a.criticalErrors).length);
-          if (concept && exams.some(e => e.correct === e.total)) mastered++;
+          if (concept && practice.result(r).passed) mastered++;
         } else if (list.some(pass) && practice.result(r).passed) mastered++;
       }
       if (old) {
@@ -102,6 +102,8 @@ export function buildUnitReports(docs: Document[]) {
       const rules = (sentenceRules as Record<string, { id: string; en: string }[]>)[unit.id] ?? [];
       const saved = states.get(sentenceProgress.key(unit.id));
       sentences = sentenceProgress.summary(rules, saved);
+      mastered = (board?.conceptDone ?? 0) + sentences.completed;
+      total = (unit.kind === 'legacy-english' ? legacy.words.length : unit.rules.words.length) + sentences.total;
       if (sentences.completed) {
         started = true;
         rules.filter(s => saved?.version === 1 && sentenceProgress.valid(s, saved.sentences?.[s.id])).forEach(s => remember(saved!.sentences[s.id].at));
@@ -123,7 +125,7 @@ export function buildUnitReports(docs: Document[]) {
       }
     }
     const written: any[] = [];
-    for (const [key, s] of states) if (handwriting.KEY.test(key) && s.unitId === unit.id && handwriting.validate(s) && s.pages.some((p: any[]) => p.length)) {
+    for (const [key, s] of states) if (handwriting.KEY.test(key) && s.unitId === unit.id && handwriting.validate(s) && s.pages.some((p: any[], i: number) => p.length || s.photos?.[i])) {
       started = true; remember(s.updatedAt);
       const g = s.grades.filter((g: any) => g.revision === s.revision).at(-1);
       if (g) written.push({ score: g.score, needsReview: g.needsReview, at: g.at });
@@ -135,13 +137,13 @@ export function buildUnitReports(docs: Document[]) {
     written.sort((a, b) => a.at.localeCompare(b.at));
     return [{ id: unit.id, title: unit.title, subject: unit.subject, subjectName: unit.subjectName, term: unit.term, termName: unit.termName,
       activeMinutes: hasTime ? minutes : null, firstStudyDay: ordered[0] ?? null, lastStudyDay: ordered.at(-1) ?? null, studyDays: ordered.length,
-      mastered, total, masteryPercent: Math.round(100 * mastered / total), words, sentences,
-      concept: { passed: board?.conceptDone ?? 0, total: board?.conceptTotal ?? unit.topics?.length ?? unit.rules?.lessons.length, retainedAttempts: grades.length,
+      mastered, total, masteryPercent: board ? board.score / 100 : 0, words, sentences,
+      concept: { passed: board?.conceptDone ?? 0, total: board?.conceptTotal ?? (sentences ? total - sentences.total : unit.topics?.length ?? unit.rules?.lessons.length), retainedAttempts: grades.length,
         best: grades.length ? Math.max(...grades.map(g => g.score)) : null, latest: timedGrades.at(-1)?.score ?? null },
-      practice: { done: board?.testDone ?? 0, total: board?.testTotal ?? total }, diagnostic,
+      practice: { done: board?.testDone ?? 0, total: board?.testTotal ?? sentences?.total ?? total }, diagnostic,
       handwriting: { graded: written.length, latest: written.at(-1) ?? null },
     }];
   });
   return { units, lastSyncedAt: docs.map(d => d.updatedAt).sort().at(-1) ?? null, warnings: [...new Set(warnings)],
-    note: '仅显示已有学习记录的已开放单元。时长为课程实际保存的有效学习计时，缺失时不补算；学习日期来自留存活动与评测，不代表完整历史。课程达标沿用各课堂标准：数学/物理须概念与应用均通过，英语按必会词汇和阅读语法检测（Unit 3含知识关卡）。单词总数含选学词；句子互动按完成整句挑战计数，同一句重复练习只计一次，独立于课程达标和奖励。图谱初筛单独展示，不计作课程达标。' };
+    note: '仅显示已有学习记录的已开放单元。时长为课程实际保存的有效学习计时，缺失时不补算；学习日期来自留存活动与评测，不代表完整历史。英语满分100分，仅按单词默写50%＋句子闯关50%评分；未完成记0，其他学习活动不计分。单词展示总数含选学词，计分只含必会词；同一句重复通关只计一次。数学/物理须概念与应用均通过；图谱初筛单独展示，不计作课程达标。' };
 }

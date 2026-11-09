@@ -1,4 +1,4 @@
-/* Completion is counted per sentence, independently of course mastery and rewards. */
+/* Valid sentence completion supplies the sentence half of the English score. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.EnglishSentenceProgress=api;})(globalThis,()=>{
   'use strict';
   const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);

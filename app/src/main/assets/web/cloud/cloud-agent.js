@@ -1,15 +1,30 @@
-/* Course writes queue an automatic server save. Restore happens before opening native lessons. */
+/* Native lessons reconcile in the background; cloud changes never require a version picker. */
 (()=>{
   'use strict';
   if(!window.GrowingNative)return;
   if(window.top!==window){for(const name of ['pointerdown','keydown','touchstart'])document.addEventListener(name,()=>window.top.GrowingCloudActivity?.(location.href),{passive:true});window.addEventListener('growing-storage-change',event=>window.top.dispatchEvent(new window.top.CustomEvent('growing-storage-change',{detail:event.detail})));return;}
   if(location.pathname.includes('/cloud/'))return;
-  const raw=window.localStorage,base=String(GrowingNative.cloudApiUrl?.()||'').replace(/\/$/,'');
+  const call=(method,...args)=>{const result=JSON.parse(GrowingNative[method](...args));if(!result.ok)throw Error(result.error||'存储未完成');return result.value;};
+  // Internal reads and restores bypass course observers and do not queue another upload.
+  const raw={getItem:key=>call('get',key),setItem:(key,value)=>call('put',key,value),removeItem:key=>call('remove',key),key:i=>call('keys')[i],get length(){return call('keys').length;}};
+  const cache=window.GrowingCloudStorageState,base=String(GrowingNative.cloudApiUrl?.()||'').replace(/\/$/,'');
   if(!base)return;
   let session;try{session=JSON.parse(raw.getItem('growing-cloud-session-v1')||'null');}catch{return;}
   if(!session?.token||session.user?.role!=='Student'||raw.getItem('growing-cloud-binding-v1')!==session.user.id)return;
   const id=session.user.id,metaKey='growing-cloud-meta-v1:'+id;
-  let busy=false,again=false,saveTimer,lastAction=Date.now(),lastTick=Date.now(),subject='';
+  let busy=false,again=false,saveTimer,lastAction=Date.now(),lastTick=Date.now(),subject='',refreshing=false;
+  function valid(){const current=JSON.parse(raw.getItem('growing-cloud-session-v1')||'null');return current?.token===session.token&&current?.user?.id===id&&raw.getItem('growing-cloud-binding-v1')===id;}
+  function restore(key,server){
+    const previous=raw.getItem(key);
+    if(GrowingSync.clean(key,previous)!==server.value)for(const view of cache?.views||[])if(view.keys.has(key))view.stale=true;
+    const value=GrowingSync.restore(key,server.value,previous);
+    if(value===null)raw.removeItem(key);else raw.setItem(key,value);
+  }
+  function refresh(){
+    if(!cache||refreshing)return;
+    for(const view of cache.views){if(view.window.document!==view.document||view.window!==window&&!view.window.frameElement?.isConnected)cache.views.delete(view);}
+    if([...cache.views].some(view=>view.stale)){refreshing=true;location.reload();}
+  }
   function activity(url){lastAction=Date.now();subject=/english|word-ops/.test(url)?'英语':/physics/.test(url)?'物理':/math-course|fraction-ops/.test(url)?'数学':'';}
   window.GrowingCloudActivity=activity;activity(location.href);
   for(const name of ['pointerdown','keydown','touchstart'])document.addEventListener(name,()=>activity(location.href),{passive:true});
@@ -18,34 +33,42 @@
     if(document.hidden||now-lastAction>60000||!subject)return;
     let device=raw.getItem('growing-cloud-device:'+id);if(!device){device=crypto.randomUUID();raw.setItem('growing-cloud-device:'+id,device);}
     const key='growing-activity-v1:'+device,data=JSON.parse(raw.getItem(key)||'{"days":{}}'),date=new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'});
-    data.days[date]??={};data.days[date][subject]=(data.days[date][subject]||0)+seconds;raw.setItem(key,JSON.stringify(data));
+    data.days[date]??={};data.days[date][subject]=(data.days[date][subject]||0)+seconds;
+    const meta=JSON.parse(raw.getItem(metaKey)||'{}');if(!meta[key]&&cache?.ready){meta[key]={value:null,revision:0};raw.setItem(metaKey,JSON.stringify(meta));}
+    raw.setItem(key,JSON.stringify(data));queue();
   }
   async function api(path,options={}){
     const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
     try{const response=await fetch(base+'/api'+path,{...options,signal:controller.signal,keepalive:!options.body||new TextEncoder().encode(options.body).length<60000,credentials:'omit',headers:{'Content-Type':'application/json','X-Growing-Client':'1',Authorization:'Bearer '+session.token}});
-    if(!response.ok)throw Error(response.status===409?'记录冲突，请到云同步中心选择版本':response.status===401?'云登录已失效，请重新登录':'暂未同步（'+response.status+'）');
-    return await response.json();}finally{clearTimeout(timeout);}
+    const result=await response.json();
+    if(!response.ok){const error=Error(response.status===401?'云登录已失效，请重新登录':'请求未完成（'+response.status+'）');error.status=response.status;error.current=result?.current;throw error;}
+    return result;}finally{clearTimeout(timeout);}
   }
   function queue(){if(busy)again=true;clearTimeout(saveTimer);saveTimer=setTimeout(sync,400);}
   async function sync(){
-    if(busy){again=true;return false;}busy=true;
+    if(refreshing)return false;if(busy){again=true;return false;}busy=true;
     try{
-      const current=JSON.parse(raw.getItem('growing-cloud-session-v1')||'null');
-      if(current?.token!==session.token||current?.user?.id!==id||raw.getItem('growing-cloud-binding-v1')!==id)throw Error('登录已切换，请重新进入课堂');
+      if(!valid())return false;
       const remote=Object.fromEntries((await api('/student/state')).map(r=>[r.key,r])),local={};
+      if(!valid())return false;
       for(let i=0;i<raw.length;i++){const k=raw.key(i);if(GrowingSync.allowed(k))local[k]=GrowingSync.clean(k,raw.getItem(k));}
-      const meta=JSON.parse(raw.getItem(metaKey)||'{}');let pending=false;
+      const meta=JSON.parse(raw.getItem(metaKey)||'{}');
       for(const a of GrowingSync.plan(local,remote,meta)){
-        if(a.type==='push'){const saved=await api('/student/state/'+encodeURIComponent(a.key),{method:'PUT',body:JSON.stringify({value:a.value,revision:a.server.revision})});meta[a.key]={value:saved.value,revision:saved.revision};}
+        if(!valid())return false;
+        if(a.type==='push'){
+          try{const saved=await api('/student/state/'+encodeURIComponent(a.key),{method:'PUT',body:JSON.stringify({value:a.value,revision:a.server.revision})});if(!valid())return false;meta[a.key]={value:saved.value,revision:saved.revision};}
+          catch(error){if(error.status!==409)throw error;if(!valid())return false;const current=error.current||{value:null,revision:0};restore(a.key,current);meta[a.key]={value:current.value,revision:current.revision};}
+        }
         else if(a.type==='same')meta[a.key]={value:a.server.value,revision:a.server.revision};
-        else pending=true;
+        else{restore(a.key,a.server);meta[a.key]={value:a.server.value,revision:a.server.revision};}
       }
-      raw.setItem(metaKey,JSON.stringify(meta));return !pending;
-    }catch(e){console.warn('Background save incomplete:',e.name);return false;}finally{busy=false;if(again){again=false;clearTimeout(saveTimer);saveTimer=setTimeout(sync,400);}}
+      if(!valid())return false;
+      raw.setItem(metaKey,JSON.stringify({...JSON.parse(raw.getItem(metaKey)||'{}'),...meta}));if(cache)cache.ready=true;return true;
+    }catch(e){if(e.status===401&&valid()){raw.removeItem('growing-cloud-session-v1');location.replace('/assets/web/cloud/index.html');}console.warn('Background save incomplete:',e.name);return false;}finally{busy=false;if(valid()){refresh();if(again&&!refreshing){again=false;clearTimeout(saveTimer);saveTimer=setTimeout(sync,400);}}}
   }
   window.GrowingCloudFlush=sync;
   window.addEventListener('growing-storage-change',event=>{if(event.detail?.key===null||GrowingSync.allowed(event.detail?.key||''))queue();});
-  window.addEventListener('pagehide',()=>{tick();sync();});
-  document.addEventListener('visibilitychange',()=>{tick();sync();});
+  window.addEventListener('pagehide',()=>{if(!refreshing){tick();sync();}});
+  document.addEventListener('visibilitychange',()=>{if(!refreshing){tick();sync();}});
   setInterval(()=>{try{tick();}catch(e){console.warn('Activity save incomplete:',e.name);}},10000);setInterval(sync,15000);window.addEventListener('online',sync);sync();
 })();

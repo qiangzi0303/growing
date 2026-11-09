@@ -26,7 +26,7 @@
     const pause=document.createElement('button');pause.dataset.pauseImport='';pause.textContent='暂存并退出整理';pause.hidden=true;$('[data-status]').after(pause);
     function stopImport(){jobGeneration++;runningJob=false;pause.hidden=true;jobsHost.hidden=false;lock(false);message('进度已保存，可继续整理。');}
     pause.onclick=stopImport;
-    function jobCard(job){return `<article class="papers-import-job"><strong>${esc(subjectName(job.subject))} · ${job.status==='failed'?'整理中断':'待继续整理'}</strong><p>已规划 ${job.plannedPages}/${job.pageCount} 页 · 已整理 ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题</p>${job.error?`<p class="warning">${esc(job.error)}</p>`:''}<button data-resume="${esc(job.id)}">${job.status==='failed'?'重试整理':'继续整理'}</button></article>`;}
+    function jobCard(job){const action=job.mode==='grade'?'批改':'整理';return `<article class="papers-import-job"><strong>${esc(subjectName(job.subject))} · ${job.status==='failed'?action+'中断':'待继续'+action}</strong><p>已规划 ${job.plannedPages}/${job.pageCount} 页 · 已${action} ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题</p>${job.error?`<p class="warning">${esc(job.error)}</p>`:''}<button data-resume="${esc(job.id)}">${job.status==='failed'?'重试'+action:'继续'+action}</button></article>`;}
     async function runJob(initial){
       const student=studentId,selectedSubject=subject,generation=++jobGeneration;
       const current=()=>valid()&&generation===jobGeneration&&student===studentId&&selectedSubject===subject;
@@ -34,6 +34,12 @@
       // A selection change cancels local progression; a server step already in flight may finish safely.
       root.querySelectorAll('[data-student],[data-subject]').forEach(e=>{e.disabled=false;});
       let job=initial;
+      if(job.mode==='grade'){
+        pause.hidden=true;
+        try{const result=await GrowingGradingProgress.run({api,studentId:student,job,alive:current});if(!current())return;if(result)await open(result.paperId);else{message('批改进度已保存。');await list();}}
+        finally{if(current()){runningJob=false;lock(false);jobsHost.hidden=!$('[data-paper]').hidden;}}
+        return;
+      }
       try{
         while(current()){
           if(job.status==='complete'){runningJob=false;pause.hidden=true;await open(job.paperId);return;}

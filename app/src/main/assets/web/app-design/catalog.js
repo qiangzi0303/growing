@@ -36,15 +36,22 @@
         <div class="list-heading"><h2 id="unit-list-title">${book.name}<span> / ${course.label}目录</span></h2><p>${book.units.length?book.units.length+' '+(book.verified?(hasGraph?'章':'个单元'):'个预留单元'):'目录待补充'}${available?`<span class="available-count"> · ${available} ${hasGraph?'章':'个'}可学习</span>`:''}</p></div>
         <ol class="unit-list">${book.units.map(unit=>`<li><div class="unit-row ${unit.entry?'is-ready':''}" data-unit="${unit.id}">
           <span class="unit-number" aria-hidden="true">${String(unit.number).padStart(2,'0')}</span>
-          <div class="unit-copy"><span class="unit-label">${label(unit)}</span><div class="unit-title"><h3><a class="unit-course-link" href="${studyLink(unit)}">${escape(unit.title)}</a></h3></div><p>${escape(unit.summary)}</p><div class="unit-actions">${book.verified&&unit.entry?`<a class="unit-reward-trigger" href="unit-summary.html?subject=${subject}&unit=${unit.id}">单元总结 →</a>`:''}${window.UnitRewards.placeholder(unit.id)}</div></div>
-          <span class="unit-state">${state(unit)}</span><span class="unit-arrow" aria-hidden="true">↗</span>
+          <div class="unit-copy"><span class="unit-label">${label(unit)}</span><div class="unit-title"><h3><a class="unit-course-link" href="${studyLink(unit)}">${escape(unit.title)}</a></h3></div><p>${escape(unit.summary)}</p>${book.verified&&unit.entry?`<div class="unit-actions"><a class="unit-reward-trigger" href="unit-summary.html?subject=${subject}&unit=${unit.id}">单元总结</a></div>${window.UnitRewards.placeholder(unit.id)}`:''}</div>
+          <span class="unit-state">${state(unit)}</span>
         </div></li>`).join('')}</ol>
       </section>
       <p class="catalog-footnote">${hasGraph?(book.verified?'各章均可进入学习，并查看本章图谱与薄弱点诊断。':(subject==='physics'?'下册暂不开放，当前先学习上册。':'下册内容待提供教材核对后开放。')):book.verified?'上册8个单元均可学习：单词、闭卷默写、阅读与语法练习、独立奖励进度。':'下册内容待教材核对后开放。'}</p>`;
     for(const u of book.units){
       // Catalogs display the latest saved course counts; they do not infer mastery from browsing.
-      window.UnitRewards.register(u.id,{title:u.title,readOnly:true,entry:studyLink(u),rule:u.entry?'此处展示最近保存的掌握记录；进入课堂学习后同步。':'课程内容筹备中，有正式达标记录后开始累计。'});
+      window.UnitRewards.register(u.id,{title:u.title,readOnly:true,mastery:()=>{
+        if(subject==='english'&&u.entry){const legacy=u.number===3,raw=JSON.parse(localStorage.getItem(legacy?'wordops_8A_unit3':'growing-english-course-v1:'+u.id)||'null'),sentences=window.SentenceDemo.units[u.id].topics.flatMap(t=>t.sentences);return window.GrowingEnglishScore.summary(legacy?window.GrowingSummaryLegacy.words:window.GrowingEnglishVocabulary[u.number],legacy?raw?.mastered:raw?.words,sentences,JSON.parse(localStorage.getItem('growing-english-sentences-v1:'+u.id)||'null'),legacy).score;}
+        const ids=Object.keys(window.GrowingHandwriting.knowledgeUnits[u.id]||{});if(!hasGraph||!ids.length)return null;
+        const fraction=u.id==='math-8b-10',raw=localStorage.getItem(fraction?'fraction-minute-v1':'growing-'+subject+'-lessons-v1'),saved=raw?JSON.parse(raw):null;
+        if(saved&&(!fraction&&saved.version!==1||!saved.topics||typeof saved.topics!=='object'))throw Error('课程记录不可用');
+        return Math.round(ids.reduce((sum,id)=>{const legacyId=fraction?({meaning:'domain',extraneous:'extra'})[id]||id:id;return sum+(fraction?window.GrowingPracticeProgress.fraction(saved?.topics[legacyId],Object.hasOwn(saved?.learning?.mastery||{},legacyId)):window.GrowingPracticeProgress.mastery(saved?.topics[id])).score;},0)/ids.length*10)/10;
+      },entry:studyLink(u),rule:u.entry?'此处展示最近保存的掌握记录；进入课堂学习后同步。':'课程内容筹备中，有正式达标记录后开始累计。'});
     }
+    window.addEventListener('storage',e=>{if(subject==='english'&&(e.key===null||e.key?.startsWith('growing-english-')||e.key==='wordops_8A_unit3'))for(const u of book.units)window.UnitRewards.update(u.id);});
     return;
   }
   const unit=book.units.find(item=>item.id===params.get('unit'));
@@ -64,7 +71,7 @@
   }
   target.innerHTML=`${toolbar}<main class="pending-shell">
     <div class="pending-emblem" aria-hidden="true">${hasGraph?'∠':'Aa'}</div>
-    <p class="eyebrow">${book.name} · ${label(unit)}</p><div class="unit-title"><h1>${escape(unit.title)}</h1>${window.UnitRewards.placeholder(unit.id)}</div>
+    <p class="eyebrow">${book.name} · ${label(unit)}</p><div class="unit-title"><h1>${escape(unit.title)}</h1></div>
     <p class="pending-state">${state(unit)}</p>
     <p class="pending-description">${book.verified?'这一课还在准备中，完整学习内容将陆续开放。':'本单元暂为目录占位，待核对下册教材后补充准确名称与内容。'}</p>
     ${unit.outline.length?`<section class="outline"><h2>本${course.label}内容</h2><ol>${unit.outline.map((topic,i)=>`<li><span>${hasGraph?unit.number+'.'+(i+1):String(i+1).padStart(2,'0')}</span>${escape(topic)}</li>`).join('')}</ol></section>`:''}

@@ -39,10 +39,22 @@
     if(!providers.has(id))return;
     try{const d=current(id);if(!providers.get(id).readOnly)persist(id,d);for(const el of document.querySelectorAll('[data-unit-reward]'))if(el.dataset.unitReward===id)refresh(el,id,d);}
     catch(e){for(const el of document.querySelectorAll('[data-unit-reward]'))if(el.dataset.unitReward===id){const status=el.querySelector('.unit-reward-status');if(status)status.textContent='奖励未保存：'+e.message;}}
+    refreshProgress(id);
   }
-  function scan(){for(const el of document.querySelectorAll('[data-unit-reward]'))render(el,el.dataset.unitReward);}
+  function refreshProgress(id){
+    if(!providers.has(id))return;
+    for(const el of document.querySelectorAll('[data-unit-progress]'))if(el.dataset.unitProgress===id){
+      try{
+        const d=current(id);
+        if(!Number.isInteger(d.done)||!Number.isInteger(d.total)||d.done<0||d.total<0||d.done>d.total)throw Error('进度记录无效');
+        const weighted=providers.get(id).mastery?.(),ratio=weighted??(d.total?percent(d.done/d.total):0),label=weighted===null||weighted===undefined?(d.total?`已掌握 ${d.done} / ${d.total}`:'暂无达标记录'):`章节掌握度 ${weighted} / 100`;
+        el.innerHTML=`<div class="unit-progress-label"><span>单元总进度</span><strong>${ratio}%</strong></div><progress max="${weighted===null||weighted===undefined?(d.total||1):100}" value="${weighted===null||weighted===undefined?d.done:weighted}" aria-label="${esc(providers.get(id).title)}单元总进度" aria-valuetext="${label}">${ratio}%</progress><span class="unit-progress-count">${label}</span>`;
+      }catch{el.innerHTML='<span class="unit-progress-count" role="status">进度暂不可用</span>';}
+    }
+  }
+  function scan(){for(const el of document.querySelectorAll('[data-unit-reward]'))render(el,el.dataset.unitReward);for(const id of providers.keys())refreshProgress(id);}
   function register(id,p){providers.set(id,p);scan();update(id);}
-  const placeholder=id=>`<button type="button" class="unit-reward-trigger" data-reward-open="${esc(id)}" aria-haspopup="dialog" aria-label="查看${esc(providers.get(id)?.title||'本单元')}掌握程度">查看掌握程度</button>`;
+  const placeholder=id=>`<div class="unit-progress" data-unit-progress="${esc(id)}"></div>`;
   function showCalendar(){
     const host=dialog.querySelector('[data-unit-calendar]');
     dialog.querySelector('[data-unit-reward]').hidden=true;host.hidden=false;
@@ -76,8 +88,6 @@
     if(calendar)showCalendar();
   }
   document.addEventListener('click',e=>{
-    const trigger=e.target.closest('[data-reward-open]');
-    if(trigger){e.preventDefault();open(trigger.dataset.rewardOpen,trigger);return;}
     const calendarTrigger=e.target.closest('[data-reward-calendar]');
     if(calendarTrigger){e.preventDefault();open(calendarTrigger.dataset.rewardCalendar,calendarTrigger,true);return;}
     if(e.target.closest('[data-reward-close]')){dialog?.close();return;}
@@ -101,8 +111,9 @@
       status.textContent=b.dataset.rewardAction==='save'?'本单元奖励总额已保存。':'本次核销已保存，只扣除当前可领额度。';
     }catch(error){status.textContent='未完成：'+error.message;}
   });
-  window.addEventListener('storage',e=>{if(e.key?.startsWith(prefix)){const id=e.key.slice(prefix.length);if(providers.has(id)){try{const d=load(id);for(const el of document.querySelectorAll('[data-unit-reward]'))if(el.dataset.unitReward===id)refresh(el,id,d);}catch{}}}});
+  window.addEventListener('storage',e=>{if(e.key===null||e.key?.startsWith(prefix)){for(const id of providers.keys())if(e.key===null||e.key===prefix+id){try{const d=load(id);for(const el of document.querySelectorAll('[data-unit-reward]'))if(el.dataset.unitReward===id)refresh(el,id,d);}catch{}refreshProgress(id);}}});
+  window.addEventListener('pageshow',()=>{for(const id of providers.keys())refreshProgress(id);});
   // Observe course re-renders, not our own numeric/text updates.
-  new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('[data-unit-reward]:not([data-reward-mounted])')||n.querySelector?.('[data-unit-reward]:not([data-reward-mounted])')))))scan();}).observe(document.documentElement,{childList:true,subtree:true});
+  new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('[data-unit-progress],[data-unit-reward]:not([data-reward-mounted])')||n.querySelector?.('[data-unit-progress],[data-unit-reward]:not([data-reward-mounted])')))))scan();}).observe(document.documentElement,{childList:true,subtree:true});
   window.UnitRewards={register,placeholder,update,openCalendar(id){open(id,document.activeElement,true);}};
 })();

@@ -12,7 +12,7 @@
   }
   function course(r){
     const c=concept(r),quiz=practice.result(r);
-    if(c.passed&&quiz.passed)return result('passed',`课程达标 · AI解释与${quiz.legacy?'旧版3':'10'}题应用均通过`);
+    if(c.passed&&quiz.passed)return result('passed',`课程达标 · AI解释与${quiz.total===100?'照片作答':quiz.legacy?'旧版3题':'10题'}应用均通过`);
     if(c.passed||quiz.score>0)return result('shaky',`尚需巩固 · ${c.passed?'AI解释通过':'AI解释未通过'}，${quiz.legacy?'旧版':''}应用${quiz.score}/${quiz.total}`);
     if(c.attempts.length)return result('weak','AI解释尚未达标，需回看讲解');
     return result();
@@ -35,7 +35,8 @@
         const legacyId=({meaning:'domain',extraneous:'extra'})[n.id]||n.id;
         const r=raw?.topics?.[legacyId],c=concept(r,true),exams=(Array.isArray(r?.exams)?r.exams:[]).filter(e=>e&&!e.real&&Number.isInteger(e.total)&&e.total>0&&Number.isInteger(e.correct)&&e.correct>=0&&e.correct<=e.total);
         const conceptPassed=c.passed||raw?.learning?.version===1&&Object.hasOwn(raw.learning.mastery||{},legacyId);
-        evidence=conceptPassed&&exams.some(e=>e.correct===e.total)?result('passed','课程达标 · 概念与应用验证通过'):conceptPassed||exams.some(e=>e.correct>0)?result('shaky','概念解释或应用验证仍需补齐'):c.attempts.length||exams.length?result('weak','概念解释或应用验证尚未通过'):result();
+        const quiz=practice.result(r);
+        evidence=conceptPassed&&quiz.passed?result('passed','课程达标 · 概念与应用验证通过'):conceptPassed||quiz.score>0?result('shaky','概念解释或应用验证仍需补齐'):c.attempts.length||exams.length||r?.practicePhoto?result('weak','概念解释或应用验证尚未通过'):result();
       }
       return {id:n.id,title:n.title,section:n.section,...evidence};
     });
@@ -50,7 +51,7 @@
     }
     const saved=get((subject==='physics'?'growing-diagnosis-physics-v1:':'growing-diagnosis-year8-v1:')+chapter.id);
     if(saved){try{const s=diagnosis.inspect(g,saved);for(const [id,state] of Object.entries(s.states))states[id]={state,historical:false};if(s.canContinue)warnings.push('最近一轮诊断尚未完成；仅展示已作答证据，单题结果列为待复测。');}catch{warnings.push('最近一轮诊断记录暂不可用，未据此判定掌握。');}}
-    for(const row of rows){const s=states[row.id];if(!s)continue;const mapped={weak:'weak',shaky:'shaky',pending:'pending',screened:'passed'}[s.state];if(mapped)Object.assign(row,result(mapped,(s.historical?'历史诊断 · ':'最近诊断 · ')+({weak:'两题均未通过',shaky:'两题通过一题',pending:'证据未齐，请完成复测',screened:'初筛通过，不等于课程达标'}[s.state])));}
+    for(const row of rows){const s=states[row.id];if(!s)continue;const mapped={weak:'weak',shaky:'shaky',pending:'pending',screened:'passed'}[s.state];if(mapped)Object.assign(row,result(mapped,(s.historical?'历史诊断 · ':'最近诊断 · ')+({weak:'两题均未通过',shaky:'两题通过一题',pending:'证据未齐，请完成复测',screened:'初筛通过，不等于课程达标'}[s.state])),{screened:s.state==='screened'});}
     return withHandwriting({rows,warnings:[...new Set(warnings)]},handwriting);
   }
   function english({words,lessons,raw,engine}){

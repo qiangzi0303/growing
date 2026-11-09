@@ -63,8 +63,6 @@ public final class MainActivity extends Activity {
     private LinearLayout root;
     private WebView web;
     private SpeechBridge speech;
-    private Button back;
-    private TextView screenTitle;
     private volatile String currentId;
     private volatile long epoch=0;
     private boolean registering=false;
@@ -169,10 +167,6 @@ public final class MainActivity extends Activity {
         }
         destroyWeb();
         LinearLayout outer=column();attachRoot(outer);
-        LinearLayout toolbar=new LinearLayout(this);toolbar.setGravity(Gravity.CENTER_VERTICAL);toolbar.setPadding(dp(8),0,dp(8),0);
-        back=button("‹ 返回登录");back.setOnClickListener(v->navigateBack());toolbar.addView(back);
-        screenTitle=text("",14,Color.rgb(80,110,70));screenTitle.setGravity(Gravity.CENTER);toolbar.addView(screenTitle,new LinearLayout.LayoutParams(0,dp(48),1));
-        Button account=button("账号");account.setOnClickListener(v->showAccount());toolbar.addView(account);outer.addView(toolbar,new LinearLayout.LayoutParams(-1,dp(48)));
         web=new WebView(this);outer.addView(web,new LinearLayout.LayoutParams(-1,0,1));
         web.setBackgroundColor(Color.rgb(247,248,243));
         web.getSettings().setJavaScriptEnabled(true);web.getSettings().setDomStorageEnabled(true);
@@ -225,7 +219,7 @@ public final class MainActivity extends Activity {
         }catch(Exception e){new AlertDialog.Builder(this).setMessage("学习环境未能初始化，请重新安装同签名的安装包。").setPositiveButton("关闭",(d,w)->finish()).show();return;}
         WebViewAssetLoader loader=new WebViewAssetLoader.Builder().addPathHandler("/assets/",new WebViewAssetLoader.AssetsPathHandler(this)).build();
         web.setWebViewClient(new WebViewClient(){
-            @Override public void onPageStarted(WebView view,String url,android.graphics.Bitmap icon){cancelMicrophone();if(speech!=null)speech.cancel();updateNavigation(url);}
+            @Override public void onPageStarted(WebView view,String url,android.graphics.Bitmap icon){cancelMicrophone();if(speech!=null)speech.cancel();}
             @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){return loader.shouldInterceptRequest(request.getUrl());}
             @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
                 Uri url=request.getUrl();
@@ -236,7 +230,6 @@ public final class MainActivity extends Activity {
                 if(request.isForMainFrame()&&"https".equals(url.getScheme())){try{startActivity(new Intent(Intent.ACTION_VIEW,url));}catch(Exception ignored){}}
                 return true;
             }
-            @Override public void onPageFinished(WebView view,String url){updateNavigation(url);}
         });
         loadHome();
     }
@@ -246,13 +239,6 @@ public final class MainActivity extends Activity {
         NativeIdentity identity=accounts.identity(id);
         if(identity==null||identity.role.equals("Parent"))throw new SecurityException("请先确认学生身份。");
         runOnUiThread(()->{if(isSession(id,value)&&web!=null){learningReady=true;web.loadUrl(HOME);}});
-    }
-    private void updateNavigation(String url){
-        boolean home=HOME.equals(url),cloud=CLOUD.equals(url);
-        NativeIdentity identity=accounts.identity(currentId);
-        back.setVisibility(home?View.INVISIBLE:View.VISIBLE);
-        back.setText(cloud?(identity!=null&&identity.role.equals("Student")?"‹ 返回主页":"‹ 返回登录"):"‹ 返回选科");
-        screenTitle.setText(cloud?"云账号与身份":home?"":url.contains("word-ops")?"英语 · Unit 3":url.contains("fraction-ops")?"数学 · 分式":url.contains("subject=english")||url.contains("english-course")?"英语":url.contains("subject=physics")||url.contains("physics-")?"物理":url.contains("math-course")||url.contains("knowledge")||url.contains("subject=math")?"数学":"逆流课堂");
     }
     private void navigateBack(){
         if(web==null)return;
@@ -272,14 +258,13 @@ public final class MainActivity extends Activity {
         String selected=accounts.confirmCloudSession(id,session);
         boolean switched=!id.equals(selected);
         runOnUiThread(()->{if(isSession(id,value)&&web!=null){
-            if(switched){currentId=selected;epoch++;showLearning();}else updateNavigation(web.getUrl());
+            if(switched){currentId=selected;epoch++;showLearning();}
         }});
         return switched;
     }
     void confirmIdentity(String id,long value,String profile) throws Exception {
         if(!isSession(id,value))throw new SecurityException("登录已失效。");
         accounts.confirmIdentity(id,profile);
-        runOnUiThread(()->{if(isSession(id,value)&&web!=null)updateNavigation(web.getUrl());});
     }
     public boolean isSession(String id,long value){return id!=null&&id.equals(currentId)&&value==epoch;}
     public void showAccount(){

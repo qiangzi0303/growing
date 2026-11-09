@@ -22,8 +22,9 @@
     if(key&&C.KEY.test(key))params.set('id',key.slice(C.PREFIX.length));
     return 'handwriting.html?'+params;
   }
-  function results(storage,subject,unit){
-    const byPrompt=new Map(tasks(subject,unit).map(t=>[t.prompt,t])),found={};
+  const prompt=q=>q.prompt+(q.type==='choice'?'\n'+q.options.map((o,i)=>'ABCD'[i]+' · '+o).join('\n'):'');
+  function results(storage,subject,unit,qs){
+    const byPrompt=new Map((qs?qs.map(q=>({id:q.id,prompt:prompt(q),nodes:[q.topic]})):tasks(subject,unit)).map(t=>[t.prompt,t])),found={},history={};
     for(let i=0;i<storage.length;i++){
       const key=storage.key(i);if(!C.KEY.test(key||''))continue;
       const raw=storage.getItem(key);
@@ -31,12 +32,14 @@
         const doc=JSON.parse(raw);
         if(doc.subject!==subject||doc.unitId!==unit)continue;
         const task=byPrompt.get(doc.prompt);if(!task||!C.validate(doc))continue;
+        (history[task.id]||= []).push(...doc.grades.filter(g=>g.source==='handwriting'&&(g.needsReview||C.matchesKnowledge(g,task))).map(grade=>({grade,key})));
         if(found[task.id]&&found[task.id].updatedAt>=doc.updatedAt)continue;
         const grade=doc.grades.filter(g=>g.revision===doc.revision&&g.source==='handwriting').at(-1);
-        const evaluated=grade&&!grade.needsReview&&C.matchesKnowledge(grade,task)&&doc.pages.some((p,i)=>doc.photos?.[i]||p.some(s=>s.tool==='pen'));
-        found[task.id]={key,updatedAt:doc.updatedAt,status:evaluated?'graded':'pending',passed:!!(evaluated&&grade.score>=80&&grade.knowledge.every(k=>k.score!==null&&k.score>=80)),feedback:grade?.feedback||''};
+        const evaluated=grade&&!grade.needsReview&&C.matchesKnowledge(grade,task)&&grade.knowledge.every(k=>k.score!==null)&&doc.pages.some((p,i)=>doc.photos?.[i]||p.some(s=>s.tool==='pen'));
+        found[task.id]={key,doc,grade,updatedAt:doc.updatedAt,status:evaluated?'graded':'pending',passed:!!(evaluated&&grade.score>=80&&grade.knowledge.every(k=>k.score!==null&&k.score>=80)),feedback:grade?.feedback||''};
       }catch{/* An unrelated unreadable draft must not hide the current question. */}
     }
+    for(const [id,r] of Object.entries(found))r.history=(history[id]||[]).sort((a,b)=>a.grade.at.localeCompare(b.grade.at));
     return found;
   }
   function score(qs,choices,solutions){
@@ -45,5 +48,6 @@
     for(const q of qs)if(q.type==='choice')score+=Number(choices[q.id]===q.answer);else {const r=solutions[q.id];if(r?.status!=='graded')pending++;else score+=Number(r.passed);}
     return {score,total:qs.length,pending};
   }
-  return {labels,questions,tasks,link,results,score};
+  function snapshot(qs,results){return {...(qs.length===10?{version:1}:{version:2,total:qs.length}),items:qs.map(q=>{const r=results[q.id];return {id:q.id,key:r?.key||null,revision:r?.doc.revision??0,at:r?.grade?.at||null,score:r?.status==='graded'?r.grade.score:null,passed:r?.passed===true};})};}
+  return {labels,questions,tasks,link,results,score,prompt,snapshot};
 });

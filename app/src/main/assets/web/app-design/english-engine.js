@@ -15,6 +15,6 @@
   const rules=typeof module==='object'&&module.exports?require('./word-mastery-rules.js'):globalThis.WordMasteryRules;
   const wordPassed=(word,record)=>!word.optional&&(record?.protocol==='word-mastery-v2'?rules?.passed(word,record):record?.protocol==='seven-recalls'&&Array.isArray(record.answers)&&record.answers.length===7&&record.answers.every(a=>typeof a==='string'&&matches(word.word,a)));
   const lessonPassed=(lesson,record)=>record?.protocol==='three-correct'&&Array.isArray(record.answers)&&record.answers.length===lesson.questions.length&&record.answers.every((a,i)=>a===lesson.questions[i].answer);
-  function progress(words,lessons,state){return {done:words.filter(w=>wordPassed(w,state.words[w.id])).length+lessons.filter(l=>lessonPassed(l,state.lessons[l.id])).length,total:words.filter(w=>!w.optional).length+lessons.length};}
+  function progress(words,lessons,state,items=[],saved=null){const scoring=typeof module==='object'&&module.exports?require('./english-score.js'):globalThis.GrowingEnglishScore;return {done:scoring.summary(words,state.words,items,saved).points,total:10000};}
   return {normalize,matches,restore,wordPassed,lessonPassed,progress};
 });

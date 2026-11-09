@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {planPage,transcribeQuestion} from '../src/paper-import-recognition';
+import {planPage,transcribeQuestion,gradeQuestion} from '../src/paper-import-recognition';
 const image='data:image/jpeg;base64,/9j/AA==';
 const env={HANDWRITING_VISION_MODELS:JSON.stringify([{name:'test',model:'test',endpoint:'https://vision.test',apiKey:'private-test'}]),AI_LIMITER:{limit:async()=>({success:true})}};
 const signal=()=>new AbortController().signal;
@@ -52,6 +52,24 @@ test('English and physics retain their formats and real figures without SVG or g
  for(const subject of ['english','physics']){
   const result=await transcribeQuestion(env,signal(),upstream(rawQuestion(subject)),subject,task,source,[]);
   assert.ok(result.question.text);assert.equal(result.question.drawing,null);assert.equal(result.question.answer,'');assert.equal(result.question.figures.length,1);
+ }
+});
+
+test('per-question grading requires validated assessment and uses the vision model rather than dedicated OCR',async()=>{
+ const configured={...env,PAPER_RECOGNITION_MODELS:JSON.stringify([{name:'ocr',model:'ocr',endpoint:'https://ocr.test',apiKey:'ocr-test'}])};
+ for(const subject of ['math','english','physics']){
+  const value=rawQuestion(subject);
+  const assessment={verdict:'partial',score:50,studentAnswer:'1',feedback:'请核对计算',corrections:[{location:'第一行',issue:'计算有误',correction:'重新计算'}],knowledge:[],models:[]};
+  const graded={...value,questions:[{...value.questions[0],assessment}]};
+  const result=await gradeQuestion(configured,signal(),(async(url:any,options:any)=>{
+   assert.ok(url.startsWith('https://vision.test/'));
+   const body=JSON.parse(options.body),context=JSON.parse(body.messages[1].content[0].text);
+   assert.equal(body.messages[1].content.find((p:any)=>p.type==='image_url').image_url.url,image);
+   assert.ok(context.knowledgePoints.length);assert.equal(context.number,'1');
+   return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(graded)}}]});
+  }) as typeof fetch,subject,task,source);
+  assert.equal(result.assessment?.score,50);assert.equal(result.question.answer,'');assert.equal(result.question.figures.length,1);
+  await assert.rejects(gradeQuestion(configured,signal(),upstream(value),subject,task,source));
  }
 });
 

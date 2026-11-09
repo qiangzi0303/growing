@@ -98,7 +98,7 @@ export class Store {
       if (!users.length) throw new HttpError(404, '未找到学生。');
       const state = documents(rows as Document[]), current = state.find(d => d.key === key);
       if ((current?.revision ?? 0) !== revision)
-        throw new HttpError(409, "另一台设备已更新此记录，请选择保留版本。", { current: current ?? null });
+        throw new HttpError(409, "记录已更新，请采用云端记录。", { current: current ?? null });
       if (!current && state.length >= 256) throw new HttpError(413, "本账号的云存档份数已达上限，请联系管理员。");
       const bytes = (v: string | null) => v === null ? 0 : new TextEncoder().encode(v).byteLength;
       if (bytes(value) > 1_900_000) throw new HttpError(413, '单份云存档不能超过 1.9 MB。');
@@ -120,7 +120,7 @@ export class Store {
       } catch (e) { if (!String(e).includes('growing_sync_cas')) throw e; }
     }
     const current = (await this.state(student)).find(d => d.key === key) ?? null;
-    throw new HttpError(409, '同步冲突，请重试或选择记录版本。', { current });
+    throw new HttpError(409, '记录已更新，请采用云端记录。', { current });
   }
   async invite(student: string, hash: string, expires: string) {
     const [, rows] = await this.db.batch([

@@ -43,3 +43,21 @@ test('explicit empty fragments permits safe full-page fallback',async()=>{const 
 test('missing source rows never silently shrink the original page count',async()=>{const j=jobs(),v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages});await db.query('DELETE FROM "GrowingPaperImportJobPages" WHERE "JobId"=?1 AND "Page"=1',[v.id]);await assert.rejects(j.get(student.id,v.id),rejected(409));await assert.rejects(step(j,v),rejected(409));});
 test('capacity reached after planning never marks a task complete or inserts partial paper rows',async()=>{const j=jobs();let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'physics',pages:[pages[0]]});v=await step(j,v);const [{total}]=await db.query<any>('SELECT count(*) AS total FROM "GrowingQuestionPapers" WHERE "StudentId"=?1',[student.id]);const ids=Array.from({length:100-total},()=>crypto.randomUUID());await db.batch(ids.map(id=>({sql:'INSERT INTO "GrowingQuestionPapers" ("Id","StudentId","RequestId","Fingerprint","Title","Warnings","CreatedAt") VALUES (?1,?2,?1,?1,\'capacity\',\'[]\',\'2026\')',params:[id,student.id]})));await assert.rejects(step(j,v),rejected(409));const state=await j.get(student.id,v.id);assert.equal(state.paperId,null);assert.equal(state.recognizedQuestions,0);assert.equal((await db.query<any>('SELECT count(*) AS total FROM "GrowingQuestionPapers" WHERE "StudentId"=?1',[student.id]))[0].total,100);await assert.rejects(j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages:[pages[0]]}),rejected(413));await db.batch(ids.map(id=>({sql:'DELETE FROM "GrowingQuestionPapers" WHERE "Id"=?1',params:[id]})));});
 test('linked parent shares progress and unlink revokes future reads and steps',async()=>{const j=jobs(),v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'english',pages:[pages[0]]});const p=new PaperImportJobs(db,parent,recognition);assert.equal((await p.get(student.id,v.id)).id,v.id);await db.query('DELETE FROM "GrowingFamilyLinks" WHERE "StudentId"=?1',[student.id]);await assert.rejects(p.get(student.id,v.id),rejected(404));await assert.rejects(step(p,v),rejected(404));});
+
+test('grading progress reports the active lease and blocks concurrent calls; cancellation never advances completion',async()=>{
+ let release!:()=>void,entered!:()=>void,calls=0;
+ const waiting=new Promise<void>(r=>release=r),started=new Promise<void>(r=>entered=r);
+ const grade:any=async(...args:any[])=>{calls++;entered();await waiting;return {...await recognition.transcribeQuestion(...args),assessment:{verdict:'correct',score:100,studentAnswer:'2',feedback:'正确',corrections:[],knowledge:[],models:[]}};};
+ const j=new PaperImportJobs(db,student,recognition,grade);
+ let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'physics',pages:[pages[0]],mode:'grade'});
+ v=await step(j,v);assert.equal(v.progressPercent,0);
+ const controller=new AbortController();
+ const pending=j.step(student.id,v.id,{revision:v.revision},env,controller.signal,fetch);
+ await started;
+ const progress=await j.progress(student.id,v.id);assert.equal(progress.processing,true);assert.equal(progress.completedQuestions,0);assert.equal(progress.progressPercent,0);
+ assert.ok(!JSON.stringify(progress).includes('/9j/'));
+ await assert.rejects(step(j,v),rejected(409));assert.equal(calls,1);
+ controller.abort();release();await assert.rejects(pending,rejected(499));
+ const cancelled=await j.progress(student.id,v.id);assert.equal(cancelled.processing,false);assert.equal(cancelled.completedQuestions,0);assert.equal(cancelled.paperId,null);
+ v=await step(j,cancelled);assert.equal(v.progressPercent,100);assert.equal(calls,2);
+});

@@ -20,7 +20,8 @@
   function cancelDoubt(){doubtRequest?.abort();doubtRequest=null;}
   function saveDoubt(next){if(doubtBlocked)return false;try{localStorage.setItem(doubtKey,JSON.stringify(next));doubt=next;return true;}catch{return false;}}
   document.title=`Unit ${unit.number} ${unit.title} · 英语课堂`;
-  const progress=()=>E.progress(words,lessons,state);
+  const sentenceKey='growing-english-sentences-v1:'+id,sentences=window.SentenceDemo.units[id].topics.flatMap(t=>t.sentences);
+  const progress=()=>E.progress(words,lessons,state,sentences,JSON.parse(localStorage.getItem(sentenceKey)||'null'));
   const status=message=>{notice=message;const el=document.getElementById('course-status');if(el)el.textContent=message;};
   function save(kind,item,record,cursor){
     try{const latest=read();latest[kind][item.id]=record;if(cursor)latest.wordCursor=cursor;localStorage.setItem(key,JSON.stringify(latest));state=latest;window.UnitRewards.update(id);return true;}
@@ -112,7 +113,7 @@
       if(!save('feynman',activeLesson,record))state.feynman[activeLesson.id]=record;
     }catch(error){state.feynman[activeLesson.id]={...state.feynman[activeLesson.id],draft:e.target.value};status('草稿暂未保存：'+error.message+'。请保持页面打开并恢复存储。');}
   }});
-  function paint(){root.innerHTML=header()+`<p id="course-status" role="status" aria-live="polite">${esc(notice)}</p>`+(view==='words'?wordView():view==='word'?wordDetailView():view==='lessons'?lessonList():view==='lesson'?lessonView():view==='recall'?recallView():view==='quiz'?quizView():view==='feynman'?feynmanMarkup():view==='doubts'?doubtsMarkup():view==='settings'?`<section class="panel"><h2>学习设置</h2>${window.GrowingCourseAI.settingsMarkup()}</section>`:window.UnitRewards.placeholder(id));
+  function paint(){root.innerHTML=header()+window.UnitRewards.placeholder(id)+`<p id="course-status" role="status" aria-live="polite">${esc(notice)}</p>`+(view==='words'?wordView():view==='word'?wordDetailView():view==='lessons'?lessonList():view==='lesson'?lessonView():view==='recall'?recallView():view==='quiz'?quizView():view==='feynman'?feynmanMarkup():view==='doubts'?doubtsMarkup():view==='settings'?`<section class="panel"><h2>学习设置</h2>${window.GrowingCourseAI.settingsMarkup()}</section>`:window.UnitRewards.placeholder(id));
     if(view==='words')document.getElementById('word-filter').value=filter;
     const duckExam=['quiz','recall','feynman'].includes(view);
     const duckWord=['words','word'].includes(view);
@@ -160,10 +161,10 @@
       attempt.result={answers,correct,saved};paint();window.scrollTo(0,0);
     }
   });
-  window.addEventListener('storage',e=>{if(e.key!==key)return;try{state=read();if(view!=='quiz'&&view!=='recall')paint();window.UnitRewards.update(id);}catch(error){status('外部存档暂无法读取：'+error.message);}});
+  window.addEventListener('storage',e=>{if(e.key!==null&&e.key!==key&&e.key!==sentenceKey)return;try{state=read();if(view!=='quiz'&&view!=='recall')paint();window.UnitRewards.update(id);}catch(error){status('外部存档暂无法读取：'+error.message);}});
   window.addEventListener('pagehide',()=>{wordFlow?.destroy();stopSpeech();cancelDoubt();cancelFeynman();});
-  window.addEventListener('pageshow',event=>{if(event.persisted)paint();});
-  window.UnitRewards.register(id,{title:`Unit ${unit.number} ${unit.title}`,rule:'必会词完成7次默写、适用的复数默写及词义词类AI口述验证计1项；历史七次默写记录保留。每节原创检测3/3正确计1项，标星词不计分母。',progress});
+  window.addEventListener('pageshow',event=>{if(event.persisted){paint();window.UnitRewards.update(id);}});
+  window.UnitRewards.register(id,{title:`Unit ${unit.number} ${unit.title}`,rule:window.GrowingEnglishScore.formula+'，满分100分。只计必会词达标和整句通关，未完成记0；其他学习活动不计分，历史默写记录保留。',progress,mastery:()=>progress().done/100});
   const requestedNode=new URLSearchParams(location.search).get('node');
   if(requestedNode?.startsWith('word:')){const target=words.find(w=>w.id===requestedNode.slice(5));if(target){selected=target;view='word';}}
   if(requestedNode?.startsWith('lesson:')){const target=lessons.find(l=>l.id===requestedNode.slice(7));if(target){activeLesson=target;view='lesson';}}

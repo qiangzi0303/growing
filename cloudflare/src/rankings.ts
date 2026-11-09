@@ -1,18 +1,16 @@
 import catalogData from './ranking-rules.json';
 import mathFeedback from '../../app/src/main/assets/web/app-design/math-feedback.js';
-import wordMastery from '../../app/src/main/assets/web/app-design/word-mastery-rules.js';
 import diagnosisData from './diagnosis-rules.json';
 import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
 import practice from '../../app/src/main/assets/web/app-design/practice-progress.js';
+import englishScore from '../../app/src/main/assets/web/app-design/english-score.js';
+import englishData from './english-rules.json';
+import sentenceData from './english-sentence-rules.json';
 import { HttpError, type Database, type Document, type Statement } from './database';
 
 type Data = Record<string, any>;
 const object = (v: unknown): Data => v && typeof v === 'object' && !Array.isArray(v) ? v as Data : {};
 const array = (v: unknown): any[] => Array.isArray(v) ? v : [];
-const ratio = (v: unknown, max: number) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= max ? v / max : 0;
-const grade = (v: any) => mathFeedback.validGrade(v) && v.score >= 8 && v.criticalErrors.length === 0;
-const normalize = (v: unknown) => typeof v === 'string' ? v.trim().toLowerCase().replace(/[’‘]/g,"'").replace(/…/g,'...')
-  .replace(/\s*\.\.\.\s*/g,' ... ').replace(/\s*-\s*/g,'-').replace(/\s+/g,' ').trim() : '';
 const catalog = catalogData as Data[];
 const diagnosisGraphs = Object.fromEntries(Object.entries(diagnosisData).map(([subject,data])=>[subject,diagnosis.graph(data)]));
 export interface Mastery {
@@ -21,7 +19,7 @@ export interface Mastery {
   diagnosisDone: number; diagnosisTotal: number; score: number;
 }
 const weights = {concept:3000,practice:7000};
-const score = (r: Omit<Mastery,'score'>): Mastery => ({...r,score:Math.round(weights.concept*r.conceptDone/r.conceptTotal+weights.practice*r.testDone/r.testTotal)});
+const score = (r: Omit<Mastery,'score'>): Mastery => ({...r,score:Math.round((r.conceptTotal?(r.subject==='english'?5000:weights.concept)*r.conceptDone/r.conceptTotal:0)+(r.testTotal?(r.subject==='english'?5000:weights.practice)*r.testDone/r.testTotal:0))});
 export function masteryBoards(docs: Document[]): Mastery[] {
   const states = new Map<string,Data>();
   for (const doc of docs) if (doc.value !== null) {
@@ -29,7 +27,7 @@ export function masteryBoards(docs: Document[]): Mastery[] {
   }
   const units: (Mastery & {started: boolean})[] = catalog.map(unit => {
     let conceptDone=0,testDone=0,conceptTotal=unit.topics?.length??unit.rules?.lessons.length??0;
-    const testTotal=unit.kind==='english'?unit.rules.words.length+unit.rules.lessons.length:unit.tests?.length??conceptTotal;
+    let testTotal=unit.kind==='english'?unit.rules.words.length+unit.rules.lessons.length:unit.tests?.length??conceptTotal;
     let started=false;
     let diagnosisDone=0;
     const diagnosisTopics:string[]=unit.diagnosisTopics??[],diagnosisTotal=diagnosisTopics.length||conceptTotal;
@@ -50,36 +48,21 @@ export function masteryBoards(docs: Document[]): Mastery[] {
           array(record.exams).length>0 || practice.result(record).score>0 || unit.kind==='fraction'&&Object.hasOwn(object(state.learning?.mastery),id);
         if (unit.kind==='fraction') {
           // Old fraction AI results carry a validated flag; historical mastery is retained.
-          conceptDone += Object.hasOwn(object(state.learning?.mastery),id)||array(record.attempts).some(a=>a?.valid===true&&ratio(a.score,10)>=.8&&
-            (!Object.hasOwn(a,'criticalErrors')||Array.isArray(a.criticalErrors)&&a.criticalErrors.length===0)) ? 1 : 0;
-          testDone += Math.max(0,...array(record.exams).filter(e=>e?.real===false&&Number.isInteger(e.total)&&e.total>0&&Number.isInteger(e.correct)).map(e=>ratio(e.correct,e.total)));
+          const marks=practice.fraction(record,Object.hasOwn(object(state.learning?.mastery),id));
+          conceptDone += marks.feynman/100;
+          testDone += marks.application/100;
         } else {
-          conceptDone += array(record.attempts).some(grade)?1:0;
+          conceptDone += practice.mastery({...record,attempts:array(record.attempts).filter(mathFeedback.validGrade)}).feynman/100;
           const quiz=practice.result(record);testDone += quiz.score/quiz.total;
         }
       }
-    } else if (unit.kind==='english') {
-      const state=states.get('growing-english-course-v1:'+unit.id)??{},words=object(state.words),lessons=object(state.lessons),feynman=object(state.feynman);
-      started=unit.rules.words.some((w:any)=>Object.hasOwn(words,w.id))||unit.rules.lessons.some((l:any)=>Object.hasOwn(lessons,l.id)||Object.hasOwn(feynman,l.id));
-      for (const word of unit.rules.words) {
-        const record=words[word.id],variants:Data={humour:['humour','humor'],programme:['programme','program'],'sec.':['sec.','sec']};
-        if (wordMastery.passed(word,record)||record?.protocol==='seven-recalls'&&array(record.answers).length===7&&record.answers.every((a:unknown)=>typeof a==='string'&&(variants[word.word]??[word.word]).some((v:string)=>normalize(v)===normalize(a))))testDone++;
-      }
-      for (const lesson of unit.rules.lessons) {
-        if (array(feynman[lesson.id]?.attempts).some(grade))conceptDone++;
-        const record=lessons[lesson.id];
-        if (record?.protocol==='three-correct'&&array(record.answers).length===lesson.answers.length)
-          testDone += record.answers.filter((a:unknown,i:number)=>typeof a==='string'&&a===lesson.answers[i]).length/lesson.answers.length;
-      }
     } else {
-      const state=states.get('wordops_8A_unit3')??{},best=object(state.best);
-      started=array(state.seen).length>0||Object.keys(object(state.mastered)).length>0||Object.keys(object(state.drafts)).length>0||array(state.records).length>0||unit.tests.some((id:string)=>Object.hasOwn(best,id));
-      for (const id of unit.topics) {
-        const records=Object.values(object(state.studyHistory?.days)).map((d:any)=>object(d?.feynman)[id]);
-        if (records.some(r=>Number.isInteger(r?.best)&&r.best>=80&&r.best<=100&&Number.isInteger(r.attempts)&&r.attempts>0))conceptDone++;
-        started ||= records.some(r=>r?.attempts>0);
-      }
-      for (const id of unit.tests)testDone+=ratio(best[id],100);
+      const legacy=unit.kind==='legacy-english',state=states.get(legacy?'wordops_8A_unit3':'growing-english-course-v1:'+unit.id)??{};
+      const vocabulary=legacy?englishData.__legacy.words:unit.rules.words,records=legacy?object(state.mastered):object(state.words);
+      const saved=states.get('growing-english-sentences-v1:'+unit.id),sentences=(sentenceData as Data)[unit.id]??[];
+      const marks=englishScore.summary(vocabulary,records,sentences,saved,legacy);
+      conceptDone=marks.words.completed;conceptTotal=marks.words.total;testDone=marks.sentences.completed;testTotal=marks.sentences.total;
+      started=!!marks.sentences.completed||Object.keys(records).length>0||Object.keys(object(state.lessons)).length>0||Object.keys(object(state.feynman)).length>0||array(state.seen).length>0||Object.keys(object(state.best)).length>0;
     }
     return {...score({id:unit.id,title:unit.title,subject:unit.subject,subjectName:unit.subjectName,term:unit.term,termName:unit.termName,kind:'unit',conceptDone,conceptTotal,testDone,testTotal,diagnosisDone,diagnosisTotal}),started};
   });
@@ -113,20 +96,37 @@ export function rankingStatements(student:string,docs:Document[],revision?:numbe
 const eligible=`FROM "GrowingRankings" r JOIN "GrowingUsers" u ON u."Id"=r."StudentId" WHERE u."Role"='Student'
   AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=u."Id")`;
 // Derive totals on reads so older cached scores use the current weights immediately.
-const currentPoints=`CAST(ROUND(${weights.concept}.0*r."ConceptDone"/r."ConceptTotal"+${weights.practice}.0*r."TestDone"/r."TestTotal") AS INTEGER)`;
+const currentPoints=`CAST(ROUND((CASE WHEN r."Subject"='english' THEN 5000.0 ELSE ${weights.concept}.0 END)*r."ConceptDone"/r."ConceptTotal"+(CASE WHEN r."Subject"='english' THEN 5000.0 ELSE ${weights.practice}.0 END)*r."TestDone"/r."TestTotal") AS INTEGER)`;
 const fields=`r."BoardId" AS id,r."Kind" AS kind,r."Subject" AS subject,r."Term" AS term,r."Title" AS title,
   r."ConceptDone" AS conceptDone,r."ConceptTotal" AS conceptTotal,r."TestDone" AS testDone,r."TestTotal" AS testTotal,
   r."DiagnosisDone" AS diagnosisDone,r."DiagnosisTotal" AS diagnosisTotal,${currentPoints} AS points,r."UpdatedAt" AS updatedAt`;
 export class Rankings {
   constructor(private db:Database){}
+  private async refreshEnglish(){
+    // Old English rows contain Feynman/quiz counts, so changing weights alone is insufficient.
+    const expected=catalog.filter(u=>u.subject==='english').map(u=>({id:u.id,term:u.term,conceptTotal:u.kind==='legacy-english'?englishData.__legacy.words.length:u.rules.words.length,testTotal:((sentenceData as Data)[u.id]??[]).length}));
+    const totals=new Map(expected.map(r=>[r.id,r]));
+    for(const term of new Set(expected.map(r=>r.term))){const group=expected.filter(r=>r.term===term);totals.set('english:'+term,{id:'english:'+term,term,conceptTotal:group.reduce((n,r)=>n+r.conceptTotal,0),testTotal:group.reduce((n,r)=>n+r.testTotal,0)});}
+    const rows=await this.db.query<Data>('SELECT "StudentId" AS student,"BoardId" AS id,"ConceptTotal" AS words,"TestTotal" AS sentences FROM "GrowingRankings" WHERE "Subject"=\'english\'');
+    const students=new Set(rows.filter(r=>r.words!==totals.get(r.id)?.conceptTotal||r.sentences!==totals.get(r.id)?.testTotal).map(r=>String(r.student)));
+    const prefix='growing-english-sentences-v1:';
+    const missing=await this.db.query<Data>(`SELECT d."StudentId" AS student,d."Key" AS key,d."Value" AS value FROM "GrowingDocuments" d WHERE d."Key" LIKE '${prefix}%' AND d."Value" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "GrowingRankings" r WHERE r."StudentId"=d."StudentId" AND r."BoardId"=substr(d."Key",${prefix.length+1}))`);
+    for(const r of missing){try{if(englishScore.summary([],{},(sentenceData as Data)[r.key.slice(prefix.length)]??[],JSON.parse(r.value)).sentences.completed)students.add(String(r.student));}catch{/* Invalid source archives earn no points. */}}
+    for(const student of students){
+      const [users,docs]=await this.db.batch([{sql:'SELECT "SyncRevision" AS revision FROM "GrowingUsers" WHERE "Id"=?1',params:[student]},{sql:'SELECT "Key" AS key,"Value" AS value,"Revision" AS revision,"UpdatedAt" AS updatedAt FROM "GrowingDocuments" WHERE "StudentId"=?1',params:[student]}]);
+      if(users.length)await this.db.batch(rankingStatements(student,docs as Document[],users[0].revision));
+    }
+  }
   async list(student:string){
+    await this.refreshEnglish();
     const rows=await this.db.query<Data>(`SELECT ${fields},(SELECT COUNT(*) FROM "GrowingRankings" peer JOIN "GrowingUsers" pu ON pu."Id"=peer."StudentId"
       WHERE peer."BoardId"=r."BoardId" AND pu."Role"='Student' AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=pu."Id")) AS participants
       ${eligible} AND r."StudentId"=?1 ORDER BY r."Subject",r."Term",r."Kind",r."BoardId"`,[student]);
-    return {boards:rows.map(r=>this.percentages(r)),formula:'费曼学习 × 30% + 应用练习 × 70%',note:'按最近云同步记录排名；学期按教材上册/下册划分。科目榜分母为本学期全部已开放单元，未掌握部分记0。同分并列。'};
+    return {boards:rows.map(r=>this.percentages(r)),formula:'英语：'+englishScore.formula+'；数学/物理：费曼学习 × 30% + 应用练习 × 70%',note:'按最近云同步记录排名；学期按教材上册/下册划分。科目榜两项分别按本学期全部已开放单元的总题量计算，未完成记0，同分并列。英语其他学习活动不计分。'};
   }
   percentages(row:Data){const {points,...rest}=row;return {...rest,score:points/100,conceptPercent:100*row.conceptDone/row.conceptTotal,testPercent:100*row.testDone/row.testTotal,diagnosisPercent:100*row.diagnosisDone/row.diagnosisTotal};}
   async board(student:string,id:string,page:number){
+    await this.refreshEnglish();
     const own=await this.db.query<Data>(`SELECT ${fields} ${eligible} AND r."StudentId"=?1 AND r."BoardId"=?2`,[student,id]);
     if(!own.length)throw new HttpError(404,'该学生尚未开始学习此课程，暂无对应排行榜。');
     const ranked=`WITH ranked AS (SELECT ${fields},r."StudentId" AS studentId,u."DisplayName" AS displayName,

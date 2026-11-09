@@ -3,6 +3,20 @@
   'use strict';
   if (!window.GrowingNative) throw new Error('Android learning bridge unavailable');
   const native=window.GrowingNative;
+  // Cloud pages own their menu; standalone native courses still need device settings.
+  if(window===window.top&&!location.pathname.includes('/companion-duck/')&&!location.pathname.includes('/web/cloud/')){
+    document.addEventListener('DOMContentLoaded',()=>{
+      const style=document.createElement('style');
+      style.textContent='.native-settings-bar{display:flex;align-items:center;min-height:52px;padding:4px 16px;background:var(--paper,#f7f8f3);color:var(--ink,inherit)}.native-settings-button{display:grid;place-items:center;flex:none;width:44px;height:44px;margin:0;padding:0;border:0;border-radius:9px;background:transparent;color:inherit;cursor:pointer}.native-settings-button:focus-visible{outline:2px solid currentColor;outline-offset:2px}.native-settings-button:hover{background:#70807018}';
+      document.head.append(style);
+      const bar=document.createElement('header');bar.className='native-settings-bar';
+      const button=document.createElement('button');button.type='button';button.className='native-settings-button';
+      button.setAttribute('aria-label','设置');button.setAttribute('aria-haspopup','dialog');button.title='设置';
+      button.innerHTML='<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+      button.addEventListener('click',()=>native.configureAi());
+      bar.append(button);document.body.prepend(bar);
+    },{once:true});
+  }
   // Every native learning page gets the companion, including home and catalogs.
   if(window===window.top&&!location.pathname.includes('/companion-duck/')&&!location.pathname.includes('/web/cloud/')){
     document.addEventListener('DOMContentLoaded',()=>{
@@ -15,11 +29,24 @@
   }};
   const call=(method,...args)=>{const result=JSON.parse(native[method](...args));if(!result.ok)throw new Error(result.error||'存储未完成');return result.value;};
   const changed=key=>{if(typeof window.dispatchEvent==='function')window.dispatchEvent(new CustomEvent('growing-storage-change',{detail:{key}}));};
+  const owner=window.top||window,cache=owner.GrowingCloudStorageState||(owner.GrowingCloudStorageState={views:new Set(),ready:false});
+  const view={window,document:window.document,keys:new Set(),stale:false};cache.views.add(view);
+  function write(key,value){
+    if(window.GrowingSync?.allowed(key)){
+      if(view.stale)return;
+      const session=JSON.parse(call('get','growing-cloud-session-v1')||'null');
+      if(session?.user?.role==='Student'&&call('get','growing-cloud-binding-v1')===session.user.id&&(cache.ready||call('get',key)===null)){
+        const metaKey='growing-cloud-meta-v1:'+session.user.id,meta=JSON.parse(call('get',metaKey)||'{}');
+        if(!meta[key]){meta[key]={value:null,revision:0};call('put',metaKey,JSON.stringify(meta));}
+      }
+    }
+    if(value===null)call('remove',key);else call('put',key,value);changed(key);
+  }
   const methods={
-    getItem:key=>call('get',String(key)),
-    setItem:(key,value)=>{key=String(key);call('put',key,String(value));changed(key);},
-    removeItem:key=>{key=String(key);call('remove',key);changed(key);},
-    clear:()=>{call('clear');changed(null);},
+    getItem:key=>{key=String(key);view.keys.add(key);return call('get',key);},
+    setItem:(key,value)=>write(String(key),String(value)),
+    removeItem:key=>write(String(key),null),
+    clear:()=>{if(view.stale)return;call('clear');changed(null);},
     key:index=>call('keys')[Number(index)]??null,
   };
   const storage=new Proxy({}, {
@@ -56,7 +83,7 @@
   window.GrowingStudentKnowledge={
     async studentKnowledge(unit='',query='',topic=''){
       const result=await knowledgeApi('/student/knowledge?'+new URLSearchParams({unit,q:query.slice(0,150),topic:topic.slice(0,150)}));
-      return {...result,syncPending:true}; // Local course drafts may still await the portal's normal sync.
+      return result;
     },
     saveKnowledgeNote:(unitId,text)=>knowledgeApi('/student/knowledge/notes',{method:'POST',body:JSON.stringify({unitId,text})}),
   };

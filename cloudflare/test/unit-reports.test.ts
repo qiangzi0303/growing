@@ -21,16 +21,16 @@ test('math/physics time is scoped to real curriculum nodes, mastery requires bot
   assert.equal(report.units.find(u=>u.id==='math-8a-02')!.activeMinutes,1);
   assert.equal(report.units.find(u=>u.id==='physics-8a-01')!.mastered,1);
 });
-test('English mandatory recalls and complete lesson answers determine mastery; saved unit time is supported',()=>{
+test('English mandatory recalls count but lesson answers do not; saved unit time is supported',()=>{
   const lesson=english['english-8a-01'].lessons[0];
   const [r]=buildUnitReports([doc('growing-english-course-v1:english-8a-01',{words:{friendship:{protocol:'seven-recalls',answers:Array(7).fill('friendship'),at:Date.now()},honest:{protocol:'seven-recalls',answers:Array(6).fill('honest')},unknown:{protocol:'seven-recalls',answers:Array(7).fill('unknown')}},lessons:{[lesson.id]:{protocol:'three-correct',answers:lesson.answers}},learningTime:{version:1,days:{'2026-10-24':90000}}})]).units;
-  assert.equal(r.mastered,2);assert.equal(r.total,english['english-8a-01'].words.length+english['english-8a-01'].lessons.length);assert.equal(r.activeMinutes,1.5);assert.equal(r.diagnostic.total,0);
+  assert.equal(r.mastered,1);assert.equal(r.total,english['english-8a-01'].words.length+sentences['english-8a-01'].length);assert.equal(r.activeMinutes,1.5);assert.equal(r.diagnostic.total,0);
 });
 test('legacy fraction retains historical concepts but needs application verification for course mastery',()=>{
   const [r]=buildUnitReports([doc('fraction-minute-v1',{topics:{definition:{exams:[{real:false,correct:3,total:3,at:Date.now()}]},domain:{draft:'解释草稿'}},learning:{mastery:{definition:null}},activity:{days:{'2026-10-23':60000}}})]).units;
   assert.equal(r.mastered,1);assert.equal(r.total,11);assert.equal(r.activeMinutes,1);
   const [u]=buildUnitReports([doc('wordops_8A_unit3',{seen:['w1'],best:{[english.__legacy.tests[0]]:80},learningTime:{days:{'2026-10-23':120000}}})]).units;
-  assert.equal(u.mastered,1);assert.equal(u.activeMinutes,2);
+  assert.equal(u.mastered,0);assert.equal(u.activeMinutes,2);
 });
 test('valid complete graph assessments stay separate from course mastery; incomplete evidence earns nothing',()=>{
   const g=diagnosis.graph(graphs.math);let s=diagnosis.createAssessment(g,['tri-lines']);
@@ -45,13 +45,13 @@ test('invalid document is reported without exposing source text',()=>{
   assert.equal(r.units.length,0);assert.equal(r.warnings.length,1);assert.ok(!JSON.stringify(r).includes('private data'));
 });
 
-test('word counts include the full unit vocabulary and sentence-only learning appears without awarding mastery',()=>{
+test('word counts include optional vocabulary and valid sentence-only learning awards its 50% share',()=>{
   const unit='english-8a-01',sentence=sentences[unit][0];
   const completed={protocol:'sentence-typing-v1',answer:sentence.en,wrong:1,hints:0,revealed:false,at:Date.UTC(2026,10,6)};
   const docs=[doc('growing-english-sentences-v1:'+unit,{version:1,sentences:{[sentence.id]:completed,unknown:completed,[sentences[unit][1].id]:{...completed,answer:'unfinished'}}})];
   const [r]=buildUnitReports(docs).units;
   assert.equal(r.id,unit);assert.deepEqual(r.words,{mastered:0,total:english[unit].wordCount});
-  assert.deepEqual(r.sentences,{completed:1,total:sentences[unit].length});assert.equal(r.mastered,0);assert.equal(r.activeMinutes,null);
+  assert.deepEqual(r.sentences,{completed:1,total:sentences[unit].length});assert.equal(r.mastered,1);assert.equal(r.masteryPercent,Math.round(5000/sentences[unit].length)/100);assert.equal(r.activeMinutes,null);
   assert.equal(r.firstStudyDay,'2026-11-06');
   const [legacy]=buildUnitReports([doc('wordops_8A_unit3',{mastered:{w1:{protocol:'seven-recalls',answers:Array(7).fill('learner')}}})]).units;
   assert.deepEqual(legacy.words,{mastered:1,total:english.__legacy.words.length});

@@ -52,5 +52,5 @@ test('grades require actual numeric rubric parts, correct sum and review cases e
 test('cloud sync accepts only precise original keys and never the vision configuration',()=>{
   const key=C.PREFIX+'12345678-1234-1234-1234-123456789abc';assert.ok(S.allowed(key));assert.equal(S.allowed('growing-vision-ai-v1'),false);
   assert.equal(S.allowed(C.PREFIX+'bad'),false);const v=JSON.stringify(make());assert.deepEqual(S.plan({[key]:v,'growing-vision-ai-v1':'secret'},{},{}).map(x=>x.key),[key]);
-  assert.equal(S.plan({[key]:v},{[key]:{value:'other',revision:2}},{[key]:{value:'old',revision:1}})[0].type,'conflict');
+  assert.equal(S.plan({[key]:v},{[key]:{value:'other',revision:2}},{[key]:{value:'old',revision:1}})[0].type,'pull');
 });

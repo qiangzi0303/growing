@@ -13,7 +13,7 @@ function setup(){
 }
 test('native archive reads the confirmed student through authenticated cloud API, with no client-selected student id',async()=>{
   const s=setup();s.login();const p=await s.window.GrowingStudentKnowledge.studentKnowledge('math-8b-10','减号','add');
-  assert.equal(p.student.id,s.user.id);assert.equal(p.syncPending,true);
+  assert.equal(p.student.id,s.user.id);assert.equal(p.syncPending,undefined);
   const [url,options]=s.calls[0];assert.equal(new URL(url).pathname,'/api/student/knowledge');assert.equal(new URL(url).searchParams.get('topic'),'add');
   assert.equal(new URL(url).searchParams.has('studentId'),false);assert.equal(options.credentials,'omit');assert.equal(options.headers.Authorization,'Bearer test-device-session');
   s.setFetch(async()=>Response.json({saved:true}));

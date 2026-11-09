@@ -74,7 +74,7 @@ function mistakeEvidence(states: Map<string, Data>, wrong: Data[], topics: Knowl
       cause: null, causeSource: 'unrecorded', at: iso(q.lastAt), questionNumber: text(String(q.number ?? ''), 40), paperTitle: text(q.paperTitle, 160)}];
   });
   for (const [key, work] of states) {
-    if (!handwriting.KEY.test(key) || !handwriting.validate(work) || !work.pages.some((p: Data[]) => p.some(s => s.tool === 'pen'))) continue;
+    if (!handwriting.KEY.test(key) || !handwriting.validate(work) || !work.pages.some((p: Data[], i: number) => work.photos?.[i] || p.some(s => s.tool === 'pen'))) continue;
     const grades = arr(work.grades).filter(g => g.source === 'handwriting').sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
     const ids = new Set<string>(grades.filter(g => !g.needsReview).flatMap(g => arr(g.knowledge).filter(k => k.score !== null && k.score < 80).map(k => k.nodeId)));
     for (const id of ids) {
@@ -113,7 +113,7 @@ export function buildKnowledge(docs: Document[], wrongQuestions: Data[] = [], no
       else if (item.type === 'legacyWord') mastered = wordPassed(item, r, true);
       else if (item.type === 'legacyTest') mastered = typeof state.best?.[id] === 'number' && state.best[id] >= 80 && state.best[id] <= 100;
       else if (item.type === 'lesson') mastered = r.protocol === 'three-correct' && Array.isArray(r.answers) && r.answers.length === item.answers.length && r.answers.every((a: any, i: number) => typeof a === 'string' && a === item.answers[i]);
-      else if (old) mastered = (concept || Object.hasOwn(obj(state.learning?.mastery), id)) && arr(r.exams).some(e => e?.real === false && Number.isInteger(e.total) && e.total > 0 && e.correct === e.total);
+      else if (old) mastered = (concept || Object.hasOwn(obj(state.learning?.mastery), id)) && practice.result(r).passed;
       else mastered = concept && practice.result(r).passed;
       const evidence: string[] = [];
       if (mastered) evidence.push('按该课堂现有达标规则已通过；不是对所有能力的保证。');
@@ -123,7 +123,7 @@ export function buildKnowledge(docs: Document[], wrongQuestions: Data[] = [], no
         if (latest.score < 8) evidence.push(text(latest.feedback));
       }
       const quiz=practice.result(r);
-      if (quiz.score > 0 && !quiz.passed) evidence.push((quiz.legacy?'旧版':'')+'应用练习留存最好结果：' + quiz.score + '/'+quiz.total);
+      if (quiz.score > 0 && !quiz.passed) evidence.push((quiz.legacy?'旧版':'')+'应用练习有效评分：' + quiz.score + '/'+quiz.total);
       if (r.oral && (r.oral.meaningPassed === false || r.oral.posPassed === false)) evidence.push('词义或词类口述尚未通过：' + text(r.oral.feedback));
       let diagnostic: string | null = null;
       const archive = states.get('growing-diagnosis-v1:' + unit.id), session = archive?.records?.[id];
