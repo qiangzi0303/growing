@@ -44,17 +44,23 @@
   function refreshProgress(id){
     if(!providers.has(id))return;
     for(const el of document.querySelectorAll('[data-unit-progress]'))if(el.dataset.unitProgress===id){
+      const row=el.closest('.unit-row');
       try{
         const d=current(id);
         if(!Number.isInteger(d.done)||!Number.isInteger(d.total)||d.done<0||d.total<0||d.done>d.total)throw Error('进度记录无效');
         const weighted=providers.get(id).mastery?.(),ratio=weighted??(d.total?percent(d.done/d.total):0),label=weighted===null||weighted===undefined?(d.total?`已掌握 ${d.done} / ${d.total}`:'暂无达标记录'):`章节掌握度 ${weighted} / 100`;
+        if(!Number.isFinite(ratio)||ratio<0||ratio>100)throw Error('掌握度记录无效');
+        const level=ratio>=90?'mastered':ratio>=60?'growing':ratio>=30?'developing':ratio>0?'started':'none';
+        el.hidden=ratio===0;
+        el.dataset.masteryLevel=level;
+        if(row)row.dataset.masteryLevel=level;
         el.innerHTML=`<div class="unit-progress-label"><span>单元总进度</span><strong>${ratio}%</strong></div><progress max="${weighted===null||weighted===undefined?(d.total||1):100}" value="${weighted===null||weighted===undefined?d.done:weighted}" aria-label="${esc(providers.get(id).title)}单元总进度" aria-valuetext="${label}">${ratio}%</progress><span class="unit-progress-count">${label}</span>`;
-      }catch{el.innerHTML='<span class="unit-progress-count" role="status">进度暂不可用</span>';}
+      }catch{el.hidden=false;delete el.dataset.masteryLevel;if(row)delete row.dataset.masteryLevel;el.innerHTML='<span class="unit-progress-count" role="status">进度暂不可用</span>';}
     }
   }
   function scan(){for(const el of document.querySelectorAll('[data-unit-reward]'))render(el,el.dataset.unitReward);for(const id of providers.keys())refreshProgress(id);}
   function register(id,p){providers.set(id,p);scan();update(id);}
-  const placeholder=id=>`<div class="unit-progress" data-unit-progress="${esc(id)}"></div>`;
+  const placeholder=id=>`<div class="unit-progress" data-unit-progress="${esc(id)}" hidden></div>`;
   function showCalendar(){
     const host=dialog.querySelector('[data-unit-calendar]');
     dialog.querySelector('[data-unit-reward]').hidden=true;host.hidden=false;

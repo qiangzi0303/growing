@@ -44,7 +44,8 @@
     const doubt=learning.doubts[id];
     const active=ms>0||r.seen||r.draft.trim()||r.self.length||r.attempts.length||practiced||rows.some(row=>row.reads||row.grades||row.special)||doubt?.draft.trim()||doubt?.messages.length;
     const state=concept(r)&&quiz.passed?'mastered':completed?'completed':active?'learning':'pending';
-    return {ms,state,label:state==='mastered'&&quiz.legacy?'历史已掌握':{pending:'待学习',learning:'学习中',completed:'已完成',mastered:'已掌握'}[state]};
+    const score=P.mastery(r).score,level=score>=90?'mastered':score>=60?'growing':score>=30?'developing':active?'started':'none';
+    return {ms,state,level,label:state==='mastered'&&quiz.legacy?'历史已掌握':{pending:'待学习',learning:'学习中',completed:'已完成',mastered:'已掌握'}[state]};
   }
   function studyMarkup(id){const s=studyInfo(id);return `<span class="lesson-study-meta" data-study="${id}"><small class="lesson-time">累计学习 ${T.format(s.ms)}</small><small class="lesson-state" data-state="${s.state}" title="已完成：已读、取得有效AI评分并提交过应用练习；已掌握：AI解释≥8分且无核心错误，本版练习10/10；旧版达标单独保留。">${s.label}</small></span>`;}
   function lessonOption(n){const s=studyInfo(n.id);return `${sectionLabel(n)} · ${n.title} · ${s.label} · 累计学习 ${T.format(s.ms)}`;}
@@ -53,6 +54,8 @@
       const s=studyInfo(el.dataset.study),time=el.querySelector('.lesson-time'),state=el.querySelector('.lesson-state'),text='累计学习 '+T.format(s.ms);
       if(time.textContent!==text)time.textContent=text;
       if(state.dataset.state!==s.state){state.dataset.state=s.state;state.textContent=s.label;}
+      const card=el.closest('[data-lesson],.mobile-lesson-select');
+      if(card&&card.dataset.masteryLevel!==s.level)card.dataset.masteryLevel=s.level;
     });
     root.querySelectorAll('#lesson-select option').forEach(el=>{const text=lessonOption(chapter.nodes.find(n=>n.id===el.value));if(el.textContent!==text)el.textContent=text;});
   }
@@ -61,10 +64,9 @@
     document.title=`${n.title} · ${chapter.title} · 逆流`;
     try{const route=new URLSearchParams({chapter:chapter.id,node:selected});if(params.has('v'))route.set('v',params.get('v'));if(tab==='practice')route.set('practice','1');history.replaceState(null,'',courseFile+'?'+route);}catch(error){}
     root.innerHTML=`<main class="course-shell"><header class="course-heading"><div><p class="eyebrow">${physics?(chapter.term==='upper'?'苏科版2025年第4版':'苏科版2012年第3版（2015年印刷）'):'苏科版'} · 八年级${chapter.term==='upper'?'上':'下'}册 · 第${chapter.number}章</p><div class="unit-title"><h1>${esc(chapter.title)}课堂</h1></div></div><div class="progress-ring" aria-label="已读微课 ${read}/${chapter.nodes.length}"><strong>${read}/${chapter.nodes.length}</strong></div></header>
-      <section class="chapter-score" aria-label="章节掌握度"><strong>${chapterScore()} / 100</strong><span>章节掌握度</span><progress max="100" value="${chapterScore()}" aria-label="费曼技巧30%与应用练习70%的章节加权评分"></progress><small>费曼技巧 30% · 应用练习 70%</small></section>
       <nav class="course-tools-nav" aria-label="课堂功能">${!physics?'<button type="button" data-course-wrong>本单元错题</button>':''}${!physics||chapter.term==='upper'?'<button type="button" data-course-view="interactive">交互</button>':''}</nav>
       ${storageError?`<p class="storage-warning" role="status">${esc(storageError)}</p>`:''}
-      <div class="course-layout"><div class="mobile-lesson-select"><label for="lesson-select">切换本章知识点</label><select id="lesson-select">${chapter.nodes.map(x=>`<option value="${x.id}" ${x.id===selected?'selected':''}>${esc(lessonOption(x))}</option>`).join('')}</select>${studyMarkup(selected)}</div><nav class="lesson-list" aria-label="本章微课"><h2>按知识点学习</h2>${chapter.nodes.map(x=>`<button data-lesson="${x.id}" ${x.id===selected?'aria-current="page"':''}><span class="lesson-name"><span class="section-label">${esc(sectionLabel(x))}</span>${esc(x.title)}</span>${studyMarkup(x.id)}</button>`).join('')}</nav>
+      <div class="course-layout"><div class="mobile-lesson-select" data-mastery-level="${studyInfo(selected).level}"><label for="lesson-select">切换本章知识点</label><select id="lesson-select">${chapter.nodes.map(x=>`<option value="${x.id}" ${x.id===selected?'selected':''}>${esc(lessonOption(x))}</option>`).join('')}</select>${studyMarkup(selected)}</div><nav class="lesson-list" aria-label="本章微课"><h2>按知识点学习</h2>${chapter.nodes.map(x=>`<button data-lesson="${x.id}" data-mastery-level="${studyInfo(x.id).level}" ${x.id===selected?'aria-current="page"':''}><span class="lesson-name"><span class="section-label">${esc(sectionLabel(x))}</span>${esc(x.title)}</span>${studyMarkup(x.id)}</button>`).join('')}</nav>
       <section class="lesson-panel" aria-labelledby="lesson-title"><p class="eyebrow">${esc(sectionLabel(n))}</p><h2 id="lesson-title" tabindex="-1">${esc(n.title)}</h2><nav class="lesson-tabs" aria-label="学习步骤">${[['learn','图文讲解'],['recall','闭卷复述'],['practice','应用练习']].map(([id,label])=>`<button data-tab="${id}" ${tab===id?'aria-current="page"':''}>${label}</button>`).join('')}</nav>
         ${tab==='learn'?learn(n,r):tab==='recall'?recall(n,r):practice(n,r)}
         <div class="study-next"><button id="prev" ${chapter.nodes[0].id===selected?'disabled':''}>← 上一知识点</button><button id="next" ${chapter.nodes.at(-1).id===selected?'disabled':''}>下一知识点 →</button></div>
@@ -135,7 +137,6 @@
     }catch(error){storageError='批改成绩尚未保存：'+error.message;}
     if(paint)render();
   }
-  function chapterScore(){const rows=chapter.nodes.map(n=>P.mastery(record(n.id)));return Math.round(rows.reduce((sum,r)=>sum+r.score,0)/rows.length*10)/10;}
   function practice(n,r){
     try{
       const qs=A.questions(n,subject),results=A.results(localStorage,subject,chapter.id,qs);

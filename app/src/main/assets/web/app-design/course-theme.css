@@ -34,6 +34,16 @@ input,textarea,select{color-scheme:light;accent-color:var(--course-green)}
 .lesson-study-meta [data-state="learning"]{color:#936014}
 .lesson-study-meta [data-state="completed"]{color:#2e689b}
 .lesson-study-meta [data-state="mastered"]{color:#49733c}
+.lesson-list [data-mastery-level=started],.mobile-lesson-select[data-mastery-level=started]{--lesson-color:#9b5424;--lesson-soft:#f4e4d5;--lesson-tint:#fdf8f2}
+.lesson-list [data-mastery-level=developing],.mobile-lesson-select[data-mastery-level=developing]{--lesson-color:#806319;--lesson-soft:#efe7c8;--lesson-tint:#fcfaf0}
+.lesson-list [data-mastery-level=growing],.mobile-lesson-select[data-mastery-level=growing]{--lesson-color:#52753f;--lesson-soft:#e0ebd7;--lesson-tint:#f4f8ef}
+.lesson-list [data-mastery-level=mastered],.mobile-lesson-select[data-mastery-level=mastered]{--lesson-color:#185c37;--lesson-soft:#cfe5d5;--lesson-tint:#edf6ef}
+.lesson-list button[data-mastery-level]:not([data-mastery-level=none]){background:var(--lesson-tint);border-color:var(--lesson-soft);color:var(--lesson-color)}
+.lesson-list button[data-mastery-level]:not([data-mastery-level=none]):hover{background:var(--lesson-soft);border-color:var(--lesson-color)}
+.lesson-list button[data-mastery-level][aria-current]{border-color:var(--lesson-color,#597448);box-shadow:inset 4px 0 0 var(--lesson-color,#597448)}
+.lesson-list button[data-mastery-level]:focus-visible{outline:3px solid #986a43;outline-offset:3px}
+.lesson-list button[data-mastery-level]:not([data-mastery-level=none]) .section-label,.lesson-list button[data-mastery-level]:not([data-mastery-level=none]) .lesson-state,.mobile-lesson-select[data-mastery-level]:not([data-mastery-level=none]) .lesson-state{color:var(--lesson-color)}
+.mobile-lesson-select[data-mastery-level]:not([data-mastery-level=none]) select{background:var(--lesson-tint);border-color:var(--lesson-color);color:var(--lesson-color)}
 .lesson-panel,.course-tool-panel{background:var(--course-paper);border-color:var(--course-border)}
 .lesson-tabs button{color:var(--course-muted)}
 .primary,.lesson-tabs button[aria-current],.course-tools-nav button[aria-current],.course-account-nav button[aria-current],.tabs button[aria-current=page]{background:var(--course-green);border-color:var(--course-green);color:#fffdf9}

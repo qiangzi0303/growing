@@ -5,8 +5,16 @@
 .unit-progress{width:260px;max-width:100%;color:#35542e;text-align:left;font:12px/1.5 "Microsoft YaHei","Segoe UI",sans-serif}
 .unit-progress-label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
 .unit-progress-label strong{font-size:13px;font-variant-numeric:tabular-nums}
-.unit-progress progress{display:block;width:100%;height:7px;border:0;border-radius:8px;overflow:hidden;background:#dfe8d5;accent-color:#557b3c}
+.unit-progress[hidden]{display:none!important}
+.unit-progress[data-mastery-level=started],.unit-row[data-mastery-level=started]{--mastery-color:#9b5424;--mastery-soft:#f4e4d5;--mastery-tint:#fdf8f2}
+.unit-progress[data-mastery-level=developing],.unit-row[data-mastery-level=developing]{--mastery-color:#806319;--mastery-soft:#efe7c8;--mastery-tint:#fcfaf0}
+.unit-progress[data-mastery-level=growing],.unit-row[data-mastery-level=growing]{--mastery-color:#52753f;--mastery-soft:#e0ebd7;--mastery-tint:#f4f8ef}
+.unit-progress[data-mastery-level=mastered],.unit-row[data-mastery-level=mastered]{--mastery-color:#185c37;--mastery-soft:#cfe5d5;--mastery-tint:#edf6ef}
+.unit-row[data-mastery-level]:not([data-mastery-level=none]){--accent:var(--mastery-color);--soft:var(--mastery-soft);--tint:var(--mastery-tint);background:var(--mastery-tint)}
+.unit-row[data-mastery-level]:not([data-mastery-level=none]) .unit-number,.unit-row[data-mastery-level]:not([data-mastery-level=none]) .unit-state{color:var(--mastery-color);background:var(--mastery-soft)}
+.unit-row[data-mastery-level]:not([data-mastery-level=none]) h3,.unit-progress[data-mastery-level]{color:var(--mastery-color)}
+.unit-progress progress{display:block;width:100%;height:7px;border:0;border-radius:8px;overflow:hidden;background:#dfe8d5;accent-color:var(--mastery-color,#557b3c)}
 .unit-progress progress::-webkit-progress-bar{background:#dfe8d5}
-.unit-progress progress::-webkit-progress-value{background:#557b3c;border-radius:8px}
-.unit-progress progress::-moz-progress-bar{background:#557b3c;border-radius:8px}
+.unit-progress progress::-webkit-progress-value{background:var(--mastery-color,#557b3c);border-radius:8px}
+.unit-progress progress::-moz-progress-bar{background:var(--mastery-color,#557b3c);border-radius:8px}
 .unit-progress-count{display:block;margin-top:5px;font-size:11px;color:#53684d}
