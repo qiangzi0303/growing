@@ -13,11 +13,16 @@ const region=(page:number)=>({page,x:.1,y:.1,width:.8,height:.8});
 let planCalls=0,questionCalls=0,failure=false,block:Promise<void>|null=null;
 const recognition:any={
  planPage:async(_e:any,_s:any,_u:any,_sub:any,_image:any,page:number)=>{planCalls++;if(block)await block;if(failure)throw new HttpError(502,'upstream');return {title:'期中测试',classification:null,warnings:[],questions:page===1?[{number:'1',regions:[region(1)]}]:[{number:'2',regions:[region(2)]}],continuesPrevious:page===2,continuationRegions:page===2?[region(2)]:[]};},
- transcribeQuestion:async(_e:any,_s:any,_u:any,_sub:any,task:any)=>{questionCalls++;return {warnings:[],question:{...task,text:'完整题面',answer:'',unitId:'',reason:'',uncertain:[],figures:[],drawing:null}};}
+ transcribeQuestion:async(_e:any,_s:any,_u:any,_sub:any,task:any)=>{questionCalls++;return {warnings:[],question:{...task,text:'完整题面',answer:'',unitId:'',reason:'',uncertain:[],figures:[],drawing:null}};},
+ locateQuestionRegions:async(_e:any,_s:any,_u:any,_sub:any,task:any)=>({regions:task.pages.map(region),warnings:[]}),
+ reviewQuestion:async(_e:any,_s:any,_u:any,_sub:any,task:any)=>({warnings:[],hasFigures:false,question:{...task,text:'完整题面',answer:'',unitId:'',reason:'',uncertain:[],figures:[],drawing:null}}),
+ redrawQuestion:async()=>{throw Error('unexpected drawing');},verifyQuestionDrawing:async()=>{throw Error('unexpected verification');}
 };
 const env:any={AI_LIMITER:{limit:async()=>({success:true})}};
 const jobs=()=>new PaperImportJobs(db,student,recognition);
-const step=(j:any,v:any,e=env)=>j.step(student.id,v.id,{revision:v.revision},e,new AbortController().signal,fetch);
+const attachments=(v:any)=>v.next?.kind==='question'&&['transcribe','review','draw','grade'].includes(v.next.stage)?{fragments:v.next.regions.map((region:any)=>({page:region.page,region,image:pages[region.page-1]}))}:{};
+const singleStep=(j:any,v:any,e=env)=>j.step(student.id,v.id,{revision:v.revision,workflow:'visual-v1',...attachments(v)},e,new AbortController().signal,fetch);
+const step=async(j:any,v:any,e=env)=>{const before=v;for(let i=0;i<8;i++){v=await singleStep(j,v,e);if(before.plannedPages!==v.plannedPages||v.status==='failed'||v.status==='complete'||v.recognizedQuestions!==before.recognizedQuestions)return v;}throw Error('workflow did not advance');};
 const rejected=(status:number)=>(e:any)=>e instanceof HttpError&&e.status===status;
 before(async()=>{db=connect(await mf.getD1Database('DB') as any);for(const f of (await readdir(new URL('../migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort()){const sql=await readFile(new URL('../migrations/'+f,import.meta.url),'utf8');await db.batch(sql.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));}for(const u of [student,parent])await db.query('INSERT INTO "GrowingUsers" ("Id","Username","NormalizedName","DisplayName","Role","PasswordHash","CreatedAt","RoleConfirmed") VALUES (?1,?2,?2,?2,?3,\'test\',\'2026\',1)',[u.id,u.username,u.role]);await db.query('INSERT INTO "GrowingFamilyLinks" ("StudentId","ParentId","CreatedAt") VALUES (?1,?2,\'2026\')',[student.id,parent.id]);});
 after(async()=>mf.dispose());
@@ -27,9 +32,9 @@ test('CAS prevents concurrent model calls; expired lease recovers; 429 preserves
 test('unreliable page planning cannot complete a paper or discard its source page',async()=>{const broken={...recognition,planPage:async()=>({title:'空卷',classification:null,warnings:[],questions:[],continuesPrevious:false,continuationRegions:[]})};const j=new PaperImportJobs(db,student,broken);let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages:[pages[0]]});v=await step(j,v);assert.equal(v.status,'failed');assert.equal(v.plannedPages,0);assert.equal(v.paperId,null);assert.equal((await j.get(student.id,v.id)).sourcePages.length,1);});
 test('figure failure preserves completed questions and retry saves the real figure with the draft',async()=>{
  let rejectFigure=true;
- const service={...recognition,transcribeQuestion:async(...args:any[])=>{
+ const service={...recognition,reviewQuestion:async(...args:any[])=>{
   if(args[4].number==='2'&&rejectFigure)throw new HttpError(502,'本题题图识别失败，已保存进度，请重试。');
-  const result=await recognition.transcribeQuestion(...args);result.question.figures=[region(args[4].pages[0])];return result;
+  const result=await recognition.reviewQuestion(...args);result.question.figures=[region(args[4].pages[0])];return result;
  }};
  const j=new PaperImportJobs(db,student,service);let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages});
  v=await step(j,v);v=await step(j,v);v=await step(j,v);assert.equal(v.recognizedQuestions,1);
@@ -39,20 +44,49 @@ test('figure failure preserves completed questions and retry saves the real figu
  assert.deepEqual(JSON.parse(question.Figures),[region(2)]);
 });
 
-test('explicit empty fragments permits safe full-page fallback',async()=>{const j=jobs();let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages:[pages[0]]});v=await step(j,v);v=await j.step(student.id,v.id,{revision:v.revision,fragments:[]},env,new AbortController().signal,fetch);assert.equal(v.status,'complete');});
+test('localized workflow requires all advisory crops before OCR without discarding persisted originals',async()=>{const j=jobs();let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages:[pages[0]]});v=await step(j,v);v=await singleStep(j,v);await assert.rejects(j.step(student.id,v.id,{revision:v.revision,workflow:'visual-v1',fragments:[]},env,new AbortController().signal,fetch),rejected(400));assert.equal((await j.get(student.id,v.id)).sourcePages[0].image,pages[0]);v=await step(j,v);assert.equal(v.status,'complete');});
 test('missing source rows never silently shrink the original page count',async()=>{const j=jobs(),v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages});await db.query('DELETE FROM "GrowingPaperImportJobPages" WHERE "JobId"=?1 AND "Page"=1',[v.id]);await assert.rejects(j.get(student.id,v.id),rejected(409));await assert.rejects(step(j,v),rejected(409));});
+test('OCR failure, blind review and rendered diagram repair each resume from the persisted stage',async()=>{
+ let ocrCalls=0,reviewCalls=0,drawCalls=0,verifyCalls=0,reviewFails=true;
+ const vector={version:'question-svg-v1',warnings:[],figures:[{width:200,height:200,title:'题图',elements:[{tag:'line',x1:20,y1:20,x2:150,y2:150}]}]};
+ const service={...recognition,
+  transcribeQuestion:async()=>{ocrCalls++;throw new HttpError(502,'OCR格式错误');},
+  reviewQuestion:async(...args:any[])=>{reviewCalls++;if(reviewFails)throw new HttpError(502,'原图复核失败');return {...await recognition.reviewQuestion(...args),hasFigures:true,question:{...(await recognition.reviewQuestion(...args)).question,figures:[{page:1,x:.2,y:0,width:.2,height:.1}]}};},
+  redrawQuestion:async(...args:any[])=>{drawCalls++;assert.equal(args[4].regions[0].y,0);assert.equal(args[6][0].region.y,0);if(drawCalls===2)assert.match(args[8][0],/点名/);return {drawing:vector,warnings:[]};},
+  verifyQuestionDrawing:async()=>{verifyCalls++;return {matches:verifyCalls>1,issues:verifyCalls>1?[]:['点名被切到']};}
+ };
+ let j=new PaperImportJobs(db,student,service),v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages:[pages[0]]});
+ v=await singleStep(j,v);v=await singleStep(j,v);v=await singleStep(j,v);
+ assert.equal((v.next as any).stage,'review');assert.equal(ocrCalls,1);
+ v=await singleStep(j,v);assert.equal(v.status,'failed');assert.equal(v.completedQuestions,0);
+ reviewFails=false;j=new PaperImportJobs(db,student,service);v=await singleStep(j,v);
+ assert.equal((v.next as any).stage,'draw');assert.equal((v.next as any).regions[0].y,0);assert.equal(ocrCalls,1);assert.equal(reviewCalls,2);
+ v=await singleStep(j,v);assert.equal((v.next as any).stage,'verify');
+ await assert.rejects(j.step(student.id,v.id,{revision:v.revision,workflow:'visual-v1',diagramImages:[pages[0]],drawingHash:'obsolete'},env,new AbortController().signal,fetch),rejected(400));assert.equal(verifyCalls,0);
+ await assert.rejects(j.step(student.id,v.id,{revision:v.revision,workflow:'visual-v1',fragments:(v.next as any).regions.map((region:any)=>({page:region.page,region,image:'data:image/jpeg;base64,/9j/'+'A'.repeat(100000)})),diagramImages:[pages[0]],drawingHash:(v.next as any).drawingHash},env,new AbortController().signal,fetch),rejected(400));assert.equal(verifyCalls,0);
+ const verify=()=>j.step(student.id,v.id,{revision:v.revision,workflow:'visual-v1',fragments:(v.next as any).regions.map((region:any)=>({page:region.page,region,image:pages[0]})),diagramImages:[pages[0]],drawingHash:(v.next as any).drawingHash},env,new AbortController().signal,fetch);
+ v=await verify();assert.equal(v.status,'failed');assert.equal((v.next as any).stage,'draw');assert.equal(v.completedQuestions,0);
+ v=await singleStep(j,v);assert.equal(drawCalls,2);v=await verify();assert.equal(v.status,'complete');
+ assert.equal(ocrCalls,1);assert.equal(reviewCalls,2);
+ const [q]=await db.query<any>('SELECT "FigureDrawing","DrawingRevision","DrawingReviewed","Reviewed","Answer" FROM "GrowingPhotoQuestions" WHERE "PaperId"=?1',[v.paperId]);
+ assert.equal(JSON.parse(q.FigureDrawing).version,'question-svg-v1');assert.equal(q.DrawingRevision,1);assert.equal(q.DrawingReviewed,0);assert.equal(q.Reviewed,0);assert.equal(q.Answer,'');
+ const [row]=await db.query<any>('SELECT "State" FROM "GrowingPaperImportJobs" WHERE "Id"=?1',[v.id]);assert.ok(!row.State.includes('/9j/'));assert.equal(JSON.parse(row.State).pending,undefined);
+});
+
 test('capacity reached after planning never marks a task complete or inserts partial paper rows',async()=>{const j=jobs();let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'physics',pages:[pages[0]]});v=await step(j,v);const [{total}]=await db.query<any>('SELECT count(*) AS total FROM "GrowingQuestionPapers" WHERE "StudentId"=?1',[student.id]);const ids=Array.from({length:100-total},()=>crypto.randomUUID());await db.batch(ids.map(id=>({sql:'INSERT INTO "GrowingQuestionPapers" ("Id","StudentId","RequestId","Fingerprint","Title","Warnings","CreatedAt") VALUES (?1,?2,?1,?1,\'capacity\',\'[]\',\'2026\')',params:[id,student.id]})));await assert.rejects(step(j,v),rejected(409));const state=await j.get(student.id,v.id);assert.equal(state.paperId,null);assert.equal(state.recognizedQuestions,0);assert.equal((await db.query<any>('SELECT count(*) AS total FROM "GrowingQuestionPapers" WHERE "StudentId"=?1',[student.id]))[0].total,100);await assert.rejects(j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages:[pages[0]]}),rejected(413));await db.batch(ids.map(id=>({sql:'DELETE FROM "GrowingQuestionPapers" WHERE "Id"=?1',params:[id]})));});
 test('linked parent shares progress and unlink revokes future reads and steps',async()=>{const j=jobs(),v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'english',pages:[pages[0]]});const p=new PaperImportJobs(db,parent,recognition);assert.equal((await p.get(student.id,v.id)).id,v.id);await db.query('DELETE FROM "GrowingFamilyLinks" WHERE "StudentId"=?1',[student.id]);await assert.rejects(p.get(student.id,v.id),rejected(404));await assert.rejects(step(p,v),rejected(404));});
 
 test('grading progress reports the active lease and blocks concurrent calls; cancellation never advances completion',async()=>{
  let release!:()=>void,entered!:()=>void,calls=0;
  const waiting=new Promise<void>(r=>release=r),started=new Promise<void>(r=>entered=r);
- const grade:any=async(...args:any[])=>{calls++;entered();await waiting;return {...await recognition.transcribeQuestion(...args),assessment:{verdict:'correct',score:100,studentAnswer:'2',feedback:'正确',corrections:[],knowledge:[],models:[]}};};
+ const grade:any=async(...args:any[])=>{calls++;entered();await waiting;return {verdict:'correct',score:100,studentAnswer:'2',feedback:'正确',corrections:[],knowledge:[],models:[]};};
  const j=new PaperImportJobs(db,student,recognition,grade);
  let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'physics',pages:[pages[0]],mode:'grade'});
  v=await step(j,v);assert.equal(v.progressPercent,0);
+ for(let i=0;i<3;i++)v=await singleStep(j,v);
+ assert.equal((v.next as any).stage,'grade');
  const controller=new AbortController();
- const pending=j.step(student.id,v.id,{revision:v.revision},env,controller.signal,fetch);
+ const pending=j.step(student.id,v.id,{revision:v.revision,workflow:'visual-v1',...attachments(v)},env,controller.signal,fetch);
  await started;
  const progress=await j.progress(student.id,v.id);assert.equal(progress.processing,true);assert.equal(progress.completedQuestions,0);assert.equal(progress.progressPercent,0);
  assert.ok(!JSON.stringify(progress).includes('/9j/'));

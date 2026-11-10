@@ -50,9 +50,9 @@
     }
     throw Error('题图无法压缩，请补传裁好的本题图形后再批改。');
   }
-  async function boundedCanvas(canvas){
+  async function boundedCanvas(canvas,limit=500000){
     for(let attempt=0;attempt<7;attempt++){
-      for(const quality of [.94,.85,.75,.65]){const data=canvas.toDataURL('image/jpeg',quality);if(data.length<=500000)return data;}
+      for(const quality of [.94,.85,.75,.65]){const data=canvas.toDataURL('image/jpeg',quality);if(data.length<=limit)return data;}
       const smaller=document.createElement('canvas');smaller.width=Math.max(1,Math.round(canvas.width*.8));smaller.height=Math.max(1,Math.round(canvas.height*.8));smaller.getContext('2d').drawImage(canvas,0,0,smaller.width,smaller.height);canvas=smaller;
     }
     throw Error('照片无法压缩，请裁剪后重试。');
@@ -60,18 +60,40 @@
   async function rotatePhoto(src){
     const image=new Image();image.src=src;await image.decode();const canvas=document.createElement('canvas');canvas.width=image.naturalHeight;canvas.height=image.naturalWidth;const ctx=canvas.getContext('2d');ctx.translate(canvas.width,0);ctx.rotate(Math.PI/2);ctx.drawImage(image,0,0);return boundedCanvas(canvas);
   }
-  async function importFragments(next,pages){
+  async function importFragments(next,pages,limit=500000){
     const fragments=[];
     for(const region of next.regions||[]){
       if(!next.pages.includes(region.page)||![region.x,region.y,region.width,region.height].every(Number.isFinite)||region.x<0||region.y<0||region.width<=0||region.height<=0||region.x+region.width>1.000001||region.y+region.height>1.000001)throw Error('题目来源区域无效，请重新规划。');
       const page=pages.find(p=>p.page===region.page);if(!page)throw Error('题目来源原稿缺失。');
       const image=new Image();image.src=await crop(page.image,region);await image.decode();const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;canvas.getContext('2d').drawImage(image,0,0);
-      fragments.push({page:region.page,image:await boundedCanvas(canvas),region:{...region}});
+      fragments.push({page:region.page,image:await boundedCanvas(canvas,limit),region:{...region}});
     }
     // Unlocated pages remain in sourcePages; never invent a crop for a different question.
     return fragments;
   }
-  window.GrowingQuestionFigures={photo,rotatePhoto,importFragments,englishFigureImage,create(api,esc,alive,studentId,onChange){
+  async function prepareImportStep(next,pages){
+    if(!next||next.kind!=='question'||!next.stage||next.stage==='locate')return {};
+    if(next.stage!=='verify')return {fragments:await importFragments(next,pages)};
+    const vector=window.GrowingQuestionDrawing?.normalize(next.drawing);
+    if(!vector||typeof next.drawingHash!=='string')throw Error('本题重绘数据缺失，请刷新后继续。');
+    const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(vector))))).map(n=>n.toString(16).padStart(2,'0')).join('');
+    if(digest!==next.drawingHash)throw Error('本题重绘版本已变化，请刷新后重试。');
+    const diagramImages=[];
+    for(const markup of GrowingQuestionDrawing.render(vector)){
+      const bounds=markup.match(/viewBox="([^"]+)"/)[1].split(' ').map(Number);
+      const svg=markup.replace('<svg ',`<svg width="${bounds[2]}" height="${bounds[3]}" `);
+      const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'})),image=new Image();
+      try{
+        image.src=url;await image.decode();const scale=Math.min(2,1200/Math.max(image.naturalWidth,image.naturalHeight));
+        const canvas=document.createElement('canvas');canvas.width=Math.ceil(image.naturalWidth*scale);canvas.height=Math.ceil(image.naturalHeight*scale);
+        const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
+        diagramImages.push(await boundedCanvas(canvas,180000));
+      }finally{URL.revokeObjectURL(url);}
+    }
+    return {diagramImages,drawingHash:next.drawingHash,fragments:await importFragments(next,pages,100000)};
+  }
+  const importStage=next=>({locate:'定位原题',transcribe:'转录题面',review:'核对题面',draw:'整理题图',verify:'核对题图',grade:'批改作答'}[next?.stage]||'整理题目');
+  window.GrowingQuestionFigures={photo,rotatePhoto,importFragments,prepareImportStep,importStage,englishFigureImage,create(api,esc,alive,studentId,onChange){
     const papers=new Map();let disposed=false,dialog=null;
     const valid=()=>!disposed&&alive();
     async function paper(id){

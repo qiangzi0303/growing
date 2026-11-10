@@ -15,14 +15,15 @@ const number=(v:unknown):v is string=>typeof v==='string'&&v.trim()===v&&!!v&&v.
 const notices=(v:unknown):v is string[]=>Array.isArray(v)&&v.length<=20&&v.every(s=>typeof s==='string'&&s.length<=400);
 const catalog=(subject:string)=>questionUnits.filter(u=>u.subject===subject).map(({id,title,termName})=>({id,title,termName}));
 const subjectOk=(s:string)=>['math','english','physics'].includes(s);
-const sameRegion=(a:PhotoRegion,b:PhotoRegion)=>['page','x','y','width','height'].every(k=>a[k as keyof PhotoRegion]===b[k as keyof PhotoRegion]);
+export const sameRegion=(a:PhotoRegion,b:PhotoRegion)=>a.page===b.page&&['x','y','width','height'].every(k=>Math.abs(a[k as keyof PhotoRegion]-b[k as keyof PhotoRegion])<.000001);
 
 // One union box per source page makes crop coordinates unambiguous, including
 // questions whose stems and handwritten work occupy several nearby regions.
 export function mergePageRegions(regions:PhotoRegion[]):PhotoRegion[]{
  return [...new Set(regions.map(r=>r.page))].map(page=>{
   const items=regions.filter(r=>r.page===page),x=Math.min(...items.map(r=>r.x)),y=Math.min(...items.map(r=>r.y));
-  return {page,x,y,width:Math.max(...items.map(r=>r.x+r.width))-x,height:Math.max(...items.map(r=>r.y+r.height))-y};
+  const round=(v:number)=>Number(Math.max(0,Math.min(1,v)).toFixed(6));
+  return {page,x:round(x),y:round(y),width:Number((round(Math.max(...items.map(r=>r.x+r.width)))-round(x)).toFixed(6)),height:Number((round(Math.max(...items.map(r=>r.y+r.height)))-round(y)).toFixed(6))};
  });
 }
 
@@ -47,7 +48,7 @@ export async function planPage(env:VisionEnv,signal:AbortSignal,upstream:typeof 
    const continuationRegions=validateRegions(inventoryOnly?[]:v.continuationRegions??[],[page]);
    if(!continuationRegions||!v.continuesPrevious&&continuationRegions.length)return null;
    return {title:v.title||'拍照试卷',classification:normalizeClassification(v.classification,subject,v.title),warnings:[...v.warnings,...(inventoryOnly?['题号清单使用整页转录，请对照原卷核对题目完整性和题图。']:[])],questions,continuesPrevious:v.continuesPrevious,continuationRegions:mergePageRegions(continuationRegions)};
-  },true,false,{maxTokens:4000,paperRecognition:true});
+  },true,false,{maxTokens:4000,paperReview:true,imageLabels:[`图1（实际来源第${page}页，完整原页，保持原始方向）`]});
  return await response.json() as PagePlan;
 }
 
@@ -75,7 +76,7 @@ async function locateQuestionFigures(env:VisionEnv,signal:AbortSignal,upstream:t
  return await response.json() as {figures:PhotoRegion[];warnings:string[]};
 }
 
-export async function transcribeQuestion(env:VisionEnv,signal:AbortSignal,upstream:typeof fetch,subject:string,task:ImportTask,sourcePages:SourcePage[],fragments:ImportFragment[]=[],grading=false):Promise<{question:ImportedQuestion;warnings:string[];assessment?:PhotoAssessment}>{
+export async function transcribeQuestion(env:VisionEnv,signal:AbortSignal,upstream:typeof fetch,subject:string,task:ImportTask,sourcePages:SourcePage[],fragments:ImportFragment[]=[],grading=false,textOnly=false):Promise<{question:ImportedQuestion;warnings:string[];assessment?:PhotoAssessment}>{
  if(!subjectOk(subject)||!number(task.number)||!task.pages.length||task.pages.length>4||new Set(task.pages).size!==task.pages.length||!validateRegions(task.regions,task.pages)||!Array.isArray(fragments))throw new HttpError(400,'题目来源信息无效。');
  const boxes=mergePageRegions(task.regions);
  if(fragments.length>task.pages.length||new Set(fragments.map(f=>f.page)).size!==fragments.length||fragments.some(f=>!jpeg(f.image)||f.page!==f.region?.page||!boxes.some(r=>sameRegion(r,f.region))))throw new HttpError(400,'题目裁剪与原卷区域不符。');
@@ -115,9 +116,9 @@ export async function transcribeQuestion(env:VisionEnv,signal:AbortSignal,upstre
    if(grading&&(!assessment||assessment.answerRegions&&!validateRegions(assessment.answerRegions,task.pages)))return null;
    if(frames.some(f=>!f.crop))question.uncertain=[...question.uncertain.slice(0,9),'部分来源未可靠裁剪，使用整页识别，请核对题干与原卷对应。'];
    return {question,warnings:value.warnings,...(assessment?{assessment}:{})};
-  },true,grading,{maxTokens:grading?8192:4000,paperRecognition:!grading});
+  },true,grading,{maxTokens:grading?8192:4000,paperRecognition:!grading,imageLabels:frames.flatMap(f=>[`实际来源第${f.page}页，完整原页`,...(f.fragment?[`实际来源第${f.page}页，同页辅助裁剪，不是新来源页`]:[])])});
  const result=await response.json() as {question:ImportedQuestion;warnings:string[];assessment?:PhotoAssessment};
- if(separateFigures){
+ if(separateFigures&&!textOnly){
   const located=await locateQuestionFigures(env,signal,upstream,subject,task,result.question.text,sourcePages);
   result.question.figures=located.figures;
   result.warnings=[...new Set([...result.warnings,...located.warnings])].slice(0,20);

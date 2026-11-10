@@ -16,8 +16,8 @@ function upstream(model:string,result:object){
  }) as typeof fetch;
 }
 
-test('page planning and individual transcription use the dedicated OCR configuration',async()=>{
- const planned=await planPage(env,signal(),upstream('qwen',{title:'复习卷',complete:true,warnings:[],questions:[{number:'1',regions:[]}],continuesPrevious:false,continuationRegions:[]}),'math',image,1,1,'');
+test('visual page planning and dedicated OCR transcription use separate configurations',async()=>{
+ const planned=await planPage(env,signal(),upstream('deepseek',{title:'复习卷',complete:true,warnings:[],questions:[{number:'1',regions:[]}],continuesPrevious:false,continuationRegions:[]}),'math',image,1,1,'');
  assert.equal(planned.questions[0].number,'1');
  const transcribe=upstream('qwen',{format:'math-text-v1',complete:true,warnings:[],questions:[{number:'1',text:String.raw`计算\(1+1\)。`,answer:'',unitId:'',confidence:0,reason:'',uncertain:[],pages:[1],figures:[],drawing:null}]});
  const locate=upstream('figure',{number:'1',complete:true,hasFigures:false,figures:[],warnings:[]});
@@ -34,12 +34,12 @@ test('original-paper grading stays on DeepSeek when Qwen OCR is configured',asyn
  assert.equal((await response.json() as any).verdict,'correct');
 });
 
-test('OCR inventories preserve duplicate printed numbers with location labels and never use estimated boxes',async()=>{
- const result=await planPage(env,signal(),upstream('qwen',{title:'复习卷',complete:true,warnings:[],questions:[{number:'11（左栏）',regions:[{page:1,x:0,y:2,width:1,height:1}]},{number:'11（右栏）',regions:[]}],continuesPrevious:false,continuationRegions:[]}),'math',image,1,1,'');
+test('visual inventories preserve duplicate printed numbers with location labels and never use estimated boxes',async()=>{
+ const result=await planPage(env,signal(),upstream('deepseek',{title:'复习卷',complete:true,warnings:[],questions:[{number:'11（左栏）',regions:[{page:1,x:0,y:2,width:1,height:1}]},{number:'11（右栏）',regions:[]}],continuesPrevious:false,continuationRegions:[]}),'math',image,1,1,'');
  assert.deepEqual(result.questions.map(q=>q.number),['11（左栏）','11（右栏）']);
  assert.ok(result.questions.every(q=>q.regions.length===0));
  assert.ok(result.warnings.length>0);
- const continued=await planPage(env,signal(),upstream('qwen',{title:'',complete:true,warnings:[],questions:[],continuesPrevious:true,continuationRegions:[]}),'math',image,2,2,'11（右栏）');
+ const continued=await planPage(env,signal(),upstream('deepseek',{title:'',complete:true,warnings:[],questions:[],continuesPrevious:true,continuationRegions:[]}),'math',image,2,2,'11（右栏）');
  assert.equal(continued.continuesPrevious,true);
  assert.deepEqual(continued.continuationRegions,[]);
 });
@@ -90,4 +90,11 @@ test('OCR delimiter recovery cannot accept truncated JSON, arbitrary escapes or 
 test('grading retains strict JSON parsing when an OCR binding is present',async()=>{
  await assert.rejects(()=>visionCompletion(env,signal(),(async()=>Response.json({choices:[{finish_reason:'stop',message:{content:String.raw`{"text":"\(x\)"}`}}]})) as typeof fetch,
   'system',{},[],value=>value,true,true,{paperRecognition:true}),{status:502});
+});
+
+test('reviewed paper grading keeps strict JSON parsing while ordinary grading retains its provider',async()=>{
+ await assert.rejects(()=>visionCompletion({...env,PAPER_FIGURE_MODELS:config('visual')},signal(),(async(_url,options)=>{
+  assert.equal(JSON.parse(String(options?.body)).model,'visual');
+  return Response.json({choices:[{finish_reason:'stop',message:{content:String.raw`{"text":"\(x\)"}`}}]});
+ }) as typeof fetch,'system',{},[],value=>value,true,true,{paperReview:true}),{status:502});
 });

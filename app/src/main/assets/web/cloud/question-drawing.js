@@ -106,7 +106,11 @@
     return elements;
   }
   function renderFigure(f){
-    const shapes=layoutAngles(f).map(s=>{
+    const elements=layoutAngles(f),boxes=elements.filter(s=>s.tag==='text').map(labelBox);
+    // Expand the viewport for edge labels without moving any geometric points or labels.
+    const left=Math.min(0,...boxes.map(b=>b.left-4)),top=Math.min(0,...boxes.map(b=>b.top-4));
+    const width=Math.max(f.width,...boxes.map(b=>b.right+4))-left,height=Math.max(f.height,...boxes.map(b=>b.bottom+4))-top;
+    const shapes=elements.map(s=>{
       const isText=s.tag==='text';
       let attrs=` fill="${escape(s.fill??(isText?ink:'none'))}" stroke="${escape(s.stroke??(isText?'none':ink))}"`;
       if(isText)attrs+=` font-family="Arial,Microsoft YaHei,sans-serif" font-size="${s.fontSize??16}" text-anchor="${s.anchor??'middle'}"`;
@@ -114,7 +118,7 @@
       for(const k of fields[s.tag])if(k!=='text')attrs+=` ${k}="${escape(k==='points'?s.points.join(' '):s[k])}"`;
       return isText?`<text${attrs}>${escape(s.text)}</text>`:`<${s.tag}${attrs}/>`;
     }).join('');
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f.width} ${f.height}" role="img" aria-label="${escape(f.title)}"><title>${escape(f.title)}</title>${shapes}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${left} ${top} ${width} ${height}" role="img" aria-label="${escape(f.title)}"><title>${escape(f.title)}</title>${shapes}</svg>`;
   }
   function render(value){const v=normalize(value);if(!v)throw Error('SVG 题图数据无效');return v.figures.map(renderFigure);}
   return {version,normalize,render};

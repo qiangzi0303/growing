@@ -81,12 +81,12 @@ export async function recognize(data: Record<string,unknown>, env: VisionEnv, us
 }
 
 export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upstream: typeof fetch, system: string,
-  context: unknown, pages: string[], validate: (value: any) => object | null, paper = false, grading = false, options: {maxTokens?:number;paperRecognition?:boolean;paperFigures?:boolean} = {}): Promise<Response> {
+  context: unknown, pages: string[], validate: (value: any) => object | null, paper = false, grading = false, options: {maxTokens?:number;paperRecognition?:boolean;paperFigures?:boolean;paperReview?:boolean;imageLabels?:string[]} = {}): Promise<Response> {
   const deadline=Date.now()+100000;
   let models: Model[];
   try {
-    // Keep grading and figure generation on their existing models.
-    const config=options.paperFigures&&!grading?env.PAPER_FIGURE_MODELS:options.paperRecognition&&!grading?(env.PAPER_RECOGNITION_MODELS??env.HANDWRITING_VISION_MODELS):env.HANDWRITING_VISION_MODELS;
+    // Reviewed paper stages use the visual provider; other grading keeps its existing model.
+    const config=options.paperReview?(env.PAPER_FIGURE_MODELS??env.HANDWRITING_VISION_MODELS):options.paperFigures&&!grading?env.PAPER_FIGURE_MODELS:options.paperRecognition&&!grading?(env.PAPER_RECOGNITION_MODELS??env.HANDWRITING_VISION_MODELS):env.HANDWRITING_VISION_MODELS;
     models = JSON.parse(config || '[]');
     if (!Array.isArray(models) || !models.length || models.length > 4 || models.some(m => !m.model || !m.apiKey || !m.endpoint || new URL(m.endpoint).protocol !== 'https:')) throw Error();
   } catch { return fail(503,options.paperFigures?'题图识别尚未配置，请联系管理员；原卷与整理进度已保留。':paper?'试卷识别尚未配置，请联系管理员配置视觉模型。':grading?'手写原稿批改尚未配置视觉模型，请联系管理员；原稿已保留。':'手写图片识别尚未配置，请联系管理员；原稿已保留。'); }
@@ -95,15 +95,15 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
     if (signal.aborted) return fail(499,'请求已取消，原稿已保留。');
     const controller = new AbortController(), abort = () => controller.abort();
     signal.addEventListener('abort',abort,{once:true});
-    const timer = setTimeout(abort,Math.min(45000,deadline-Date.now()));
+    const timer = setTimeout(abort,Math.min(options.paperReview?90000:45000,deadline-Date.now()));
     try {
       const additional = JSON.parse(model.additionalConfig || '{}');
       const response = await upstream(model.endpoint.replace(/\/+$/,'')+'/chat/completions', {
         method:'POST', redirect:'manual', signal:controller.signal,
         headers:{...model.customHeaders,'Content-Type':'application/json',Authorization:'Bearer '+model.apiKey},
-        body:JSON.stringify({...additional,model:model.model,stream:false,temperature:0.1,max_tokens:options.maxTokens??(paper?12000:grading?8192:4096),thinking:{type:'disabled'},response_format:{type:'json_object'},messages:[
+        body:JSON.stringify({...additional,model:model.model,stream:false,temperature:0.1,max_tokens:options.maxTokens??(paper?12000:grading?8192:4096),...(!options.paperReview?{thinking:{type:'disabled'}}:{}),response_format:{type:'json_object'},messages:[
           {role:'system',content:system},
-          {role:'user',content:[{type:'text',text:JSON.stringify(context)},...pages.flatMap((url,i)=>[{type:'text',text:'第'+(i+1)+'页'},{type:'image_url',image_url:{url}}])]}
+          {role:'user',content:[{type:'text',text:JSON.stringify(context)},...pages.flatMap((url,i)=>[{type:'text',text:options.imageLabels?.[i]??'第'+(i+1)+'页'},{type:'image_url',image_url:{url}}])]}
         ]})
       });
       if (!response.ok) {
@@ -119,7 +119,7 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
       let recognition;
       try{recognition=JSON.parse(text);}
       catch(cause){
-        if(!options.paperRecognition||grading)throw cause;
+        if((!options.paperRecognition&&!options.paperReview)||grading)throw cause;
         // OCR may escape LaTeX commands correctly but leave formula delimiters unescaped.
         // Consume existing backslash pairs first; preserve all other JSON syntax and escapes.
         recognition=JSON.parse(text.replace(/\\\\|\\[()[\]]/g,escape=>escape[1]==='\\'?escape:'\\'+escape));
@@ -135,5 +135,5 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
     }
     finally { clearTimeout(timer);signal.removeEventListener('abort',abort); }
   }
-  return fail(502,options.paperFigures?'本题题图识别失败、超时或结果不完整，已保存进度，请重试。':paper?'试卷识别失败或结果不完整，未录入题库。照片仍保留在当前页面，可重试或分批上传。':grading?'手写原稿批改失败、超时或结果不完整，本次不计分。原稿已保留，请稍后重试。':'手写图片识别失败或超时，原稿已保留。请稍后重试；仍失败请联系管理员检查视觉模型。');
+  return fail(502,options.paperReview?'本题视觉复核失败、超时或结果不完整，已保存当前阶段，请重试。':options.paperFigures?'本题题图识别失败、超时或结果不完整，已保存进度，请重试。':paper?'试卷识别失败或结果不完整，未录入题库。照片仍保留在当前页面，可重试或分批上传。':grading?'手写原稿批改失败、超时或结果不完整，本次不计分。原稿已保留，请稍后重试。':'手写图片识别失败或超时，原稿已保留，请稍后重试；仍失败请联系管理员检查视觉模型。');
 }

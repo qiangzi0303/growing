@@ -2,8 +2,16 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const D=require('../platform-web/question-drawing.js');
 const sample=()=>({version:'question-svg-v1',figures:[{width:380,height:280,title:'三角形题设图',elements:[{tag:'path',d:'M80 230 L180 30 L280 230 Z'},{tag:'text',x:180,y:22,text:'A'}]}],warnings:[]});
 test('vector figures render as standalone SVG, with escaped titles and labels',()=>{
+  assert.match(D.render(sample())[0],/viewBox="0 0 380 280"/);
   const value=sample();value.figures[0].title='<img onerror=alert(1)>';value.figures[0].elements[1].text='</text><script>alert(1)</script>';
-  const svg=D.render(value)[0];assert.match(svg,/<svg /);assert.match(svg,/viewBox="0 0 380 280"/);assert.match(svg,/&lt;script&gt;/);assert.doesNotMatch(svg,/<script|<img|<image|foreignObject/);
+  const svg=D.render(value)[0];assert.match(svg,/<svg /);assert.match(svg,/&lt;script&gt;/);assert.doesNotMatch(svg,/<script|<img|<image|foreignObject/);
+});
+
+test('edge label viewport expansion preserves geometry and keeps glyphs inside the rendered image',()=>{
+ const value=sample();value.figures[0]={width:250,height:160,title:'备用图',elements:[{tag:'path',d:'M40 130 L140 30 L240 130 Z'},{tag:'text',x:245,y:125,text:'C',anchor:'start'},{tag:'text',x:0,y:0,text:'A',anchor:'end'}]};
+ const saved=structuredClone(value),svg=D.render(value)[0],box=svg.match(/viewBox="([^"]+)"/)[1].split(' ').map(Number);
+ assert.ok(box[0]<0&&box[1]<0);assert.ok(box[0]+box[2]>255&&box[1]+box[3]>=160);
+ assert.match(svg,/d="M40 130 L140 30 L240 130 Z"/);assert.match(svg,/x="245" y="125">C/);assert.deepEqual(value,saved);
 });
 test('model output cannot introduce executable or external SVG content',()=>{
   for(const element of [{tag:'image',href:'https://evil.test'},{tag:'script',text:'alert(1)'},{tag:'constructor'}, {tag:'__proto__'}, {tag:'path',d:'M0 0',onclick:'alert(1)'},{tag:'path',d:'M0 0',stroke:'url(https://evil.test)'},{tag:'text',x:1,y:2,text:'A',style:'display:none'}]){

@@ -44,11 +44,11 @@
         while(current()){
           if(job.status==='complete'){runningJob=false;pause.hidden=true;await open(job.paperId);return;}
           jobsHost.innerHTML=jobCard(job);
-          message(`正在整理：已规划 ${job.plannedPages}/${job.pageCount} 页，已整理 ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题。`);
+          message(`正在整理：已规划 ${job.plannedPages}/${job.pageCount} 页，已整理 ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题。${job.next?.number?' 第 '+job.next.number+' 题 · '+GrowingQuestionFigures.importStage(job.next):''}`);
           const detail=await api('/question-bank/import-jobs/'+job.id+'?'+new URLSearchParams({studentId:student}));if(!current())return;job=detail;
           if(job.status==='complete')continue;
-          const fragments=job.next?.kind==='question'?await GrowingQuestionFigures.importFragments(job.next,detail.sourcePages):undefined;if(!current())return;
-          try{job=await api('/question-bank/import-jobs/'+job.id+'/step',{method:'POST',body:JSON.stringify({studentId:student,revision:job.revision,...(fragments?{fragments}:{})})});}
+          const attachments=await GrowingQuestionFigures.prepareImportStep(job.next,detail.sourcePages);if(!current())return;
+          try{job=await api('/question-bank/import-jobs/'+job.id+'/step',{method:'POST',body:JSON.stringify({studentId:student,revision:job.revision,workflow:'visual-v1',...attachments})});}
           catch(error){
             if(!current())return;
             if(error.status===429||error.statusCode===429){message('识别服务繁忙，等待后自动继续；也可暂存退出。');await new Promise(resolve=>setTimeout(resolve,Math.min(60000,Math.max(1000,Number(error.retryAfter||5)*1000))));continue;}

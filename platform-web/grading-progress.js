@@ -20,7 +20,7 @@
         const done=value.status==='complete',known=Number.isFinite(value.progressPercent);
         if(known)bar.value=value.progressPercent;else bar.removeAttribute('value');
         $('[data-percent]').textContent=known?value.progressPercent+'%':'';
-        $('[data-stage]').textContent=done?'批改完成':value.status==='planning'?'正在清点试卷题目…':'正在批改第 '+(value.next?.number||'?')+' 题…';
+        $('[data-stage]').textContent=done?'批改完成':value.status==='planning'?'正在清点试卷题目…':'第 '+(value.next?.number||'?')+' 题 · '+(window.GrowingQuestionFigures?.importStage(value.next)||'批改作答');
         $('[data-count]').textContent=!known?'已清点 '+value.plannedPages+' / '+value.pageCount+' 页':'已完成 '+value.completedQuestions+' / '+value.totalQuestions+' 题';
         if(done){$('[data-close]').textContent='查看批改';$('[data-retry]').hidden=true;}
       }
@@ -44,10 +44,12 @@
             if(!current()||job.status==='complete')break;
             // Another tab may own this step. Do not start duplicate AI requests.
             if(job.processing){await new Promise(r=>setTimeout(r,1500));continue;}
+            const detail=await api(path()+query);if(!current())return;
+            const attachments=await GrowingQuestionFigures.prepareImportStep(detail.next,detail.sourcePages);if(!current())return;
             const controller=new AbortController();stepController=controller;
             stepTimer=setTimeout(()=>controller.abort(),190000);
             let next;
-            try{next=await api(path()+'/step',{method:'POST',signal:controller.signal,body:JSON.stringify({studentId,revision:job.revision})});}
+            try{next=await api(path()+'/step',{method:'POST',signal:controller.signal,body:JSON.stringify({studentId,revision:detail.revision,workflow:'visual-v1',...attachments})});}
             catch(error){if(error.status===409||error.statusCode===409)continue;throw error;}
             finally{clearTimeout(stepTimer);stepController=null;}
             if(!current())break;render(next);

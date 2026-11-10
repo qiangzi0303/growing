@@ -16,6 +16,9 @@ const handler=createHandler(()=>db,(async(_url:any,options:any)=>{
  const body=JSON.parse(options.body),context=JSON.parse(body.messages[1].content[0].text);
  const grading=!!context.knowledgePoints;
  if(grading&&context.number===failGradeNumber)return Response.json({error:'test failure'},{status:503});
+ if(context.stage==='locate')return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({number:context.number,complete:true,regions:[{page:1,x:.1,y:.1,width:.8,height:.8}],warnings:[]})}}]});
+ if(context.stage==='grade')return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({verdict:'correct',score:100,studentAnswer:'2',feedback:'正确',corrections:[],knowledge:[],models:[]})}}]});
+ if(context.stage==='review')return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({number:context.number,complete:true,hasFigures:false,checks:{stem:true,options:true,subquestions:true,formula:true,figures:true},warnings:[],question:{number:context.number,text:'计算 1+1。',questionType:'written',answer:'',unitId:'math-8a-01',confidence:.9,reason:'题设',uncertain:[],pages:[1],figures:[],drawing:null}})}}]});
  const result=context.number?{format:'math-text-v1',complete:true,warnings:[],questions:[{number:context.number,text:'计算 1+1。',questionType:'written',answer:'',unitId:'math-8a-01',confidence:.9,reason:'题设',uncertain:[],pages:[1],figures:[],drawing:null,...(grading?{assessment:{verdict:'correct',score:100,studentAnswer:'2',feedback:'正确',corrections:[],knowledge:[],models:[]}}:{})}]}:
  {title:'数学期中考试',complete:true,classification:{examType:'midterm',confidence:.95,evidence:'卷头数学期中考试',unitIds:[],termName:''},warnings:[],questions:[{number:'1',regions:[]},{number:'2',regions:[]}],continuesPrevious:false,continuationRegions:[]};
  return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(result)}}]});
@@ -30,6 +33,8 @@ async function register(name:string){
  assert.equal(r.status,200,await r.clone().text());return await r.json() as any;
 }
 async function ok(r:Response){assert.equal(r.status,200,await r.clone().text());return await r.json() as any;}
+async function advance(v:any,submit:(v:any)=>Promise<Response>){const before=v;for(let i=0;i<8;i++){v=await ok(await submit(v));if(v.status==='failed'||v.status==='complete'||v.plannedPages!==before.plannedPages||v.completedQuestions!==before.completedQuestions)return v;}throw Error('workflow did not advance');}
+const attachments=(v:any)=>['transcribe','review','grade','draw'].includes(v.next?.stage)?{fragments:v.next.regions.map((region:any)=>({page:region.page,region,image}))}:{};
 before(async()=>{
  db=connect(await mf.getD1Database('DB') as any);
  for(const f of (await readdir(new URL('../migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort()){
@@ -44,7 +49,7 @@ test('HTTP grading progress counts persisted questions, survives failure and sav
  let v=await ok(await call(base,'POST',input,a.token));
  const detail=base+'/'+v.id,query='?studentId='+a.user.id;
  const progress=()=>call(detail+'/progress'+query,'GET',undefined,a.token);
- const step=()=>call(detail+'/step','POST',{studentId:a.user.id,revision:v.revision},a.token);
+ const step=async()=>Response.json(await advance(v,current=>call(detail+'/step','POST',{studentId:a.user.id,revision:current.revision,workflow:'visual-v1',...attachments(current)},a.token)));
  assert.equal(v.mode,'grade');assert.equal(v.progressPercent,null);assert.equal(v.totalQuestions,0);
  assert.equal((await call(detail+'/progress'+query)).status,401);
  assert.equal((await call(detail+'/progress'+query,'GET',undefined,b.token)).status,404);
@@ -66,6 +71,18 @@ test('HTTP grading progress counts persisted questions, survives failure and sav
  assert.deepEqual(await db.query('PRAGMA foreign_key_check'),[]);
 });
 after(async()=>mf.dispose());
+test('older clients finish existing jobs; upgrading a partial job preserves finished questions and requires the new capability',async()=>{
+ const a=await register('import_legacy'),input={studentId:a.user.id,requestId:crypto.randomUUID(),subject:'math',pages:[image]};
+ let v=await ok(await call(base,'POST',input,a.token));const path=base+'/'+v.id+'/step';
+ const submit=(extra={})=>call(path,'POST',{studentId:a.user.id,revision:v.revision,...extra},a.token);
+ v=await ok(await submit());v=await ok(await submit());assert.equal(v.completedQuestions,1);
+ v=await ok(await submit({workflow:'visual-v1'}));assert.equal(v.next.stage,'transcribe');assert.equal(v.completedQuestions,1);
+ const stale=await submit();assert.equal(stale.status,426);assert.match(await stale.text(),/更新应用|刷新网页/);
+ v=await advance(v,current=>call(path,'POST',{studentId:a.user.id,revision:current.revision,workflow:'visual-v1',...attachments(current)},a.token));assert.equal(v.status,'complete');assert.equal(v.completedQuestions,2);
+ let old=await ok(await call(base,'POST',{...input,requestId:crypto.randomUUID()},a.token));
+ for(let i=0;i<3;i++)old=await ok(await call(base+'/'+old.id+'/step','POST',{studentId:a.user.id,revision:old.revision},a.token));
+ assert.equal(old.status,'complete');assert.equal(old.completedQuestions,2);
+});
 test('HTTP job lifecycle persists an ungraded classified draft; auth and repeat completion remain safe',async()=>{
  calls=0;
  const a=await register('import_owner'),b=await register('import_other');
@@ -87,11 +104,11 @@ test('HTTP job lifecycle persists an ungraded classified draft; auth and repeat 
  assert.equal(list.length,1);assert.equal(list[0].id,v.id);assert.ok(!JSON.stringify(list).includes('/9j/'));
  const restored=await ok(await call(detail+query,'GET',undefined,a.token));
  assert.equal(restored.sourcePages[0].image,image);
- const step=()=>call(detail+'/step','POST',{studentId:a.user.id,revision:v.revision,...(v.next?.kind==='question'?{fragments:[]}:{})},a.token);
+ const step=async()=>Response.json(await advance(v,current=>call(detail+'/step','POST',{studentId:a.user.id,revision:current.revision,workflow:'visual-v1',...attachments(current)},a.token)));
  v=await ok(await step());assert.equal(v.status,'recognizing');assert.equal(v.totalQuestions,2);
  v=await ok(await step());assert.equal(v.recognizedQuestions,1);
  v=await ok(await step());assert.equal(v.status,'complete');assert.ok(v.paperId);
- const again=await ok(await step());assert.equal(again.paperId,v.paperId);assert.equal(calls,3);
+ const again=await ok(await step());assert.equal(again.paperId,v.paperId);assert.equal(calls,7);
  const paper=await ok(await call('/api/question-bank/papers/'+v.paperId+query,'GET',undefined,a.token));
  assert.equal(paper.mode,'paper-draft');assert.equal(paper.subject,'math');assert.equal(paper.classification.examType,'midterm');
  assert.equal(paper.questions.length,2);assert.ok(paper.questions.every((q:any)=>q.answer===''));
