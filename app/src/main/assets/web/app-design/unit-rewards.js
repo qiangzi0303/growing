@@ -54,7 +54,7 @@
         el.hidden=ratio===0;
         el.dataset.masteryLevel=level;
         if(row)row.dataset.masteryLevel=level;
-        el.innerHTML=`<div class="unit-progress-label"><span>单元总进度</span><strong>${ratio}%</strong></div><progress max="${weighted===null||weighted===undefined?(d.total||1):100}" value="${weighted===null||weighted===undefined?d.done:weighted}" aria-label="${esc(providers.get(id).title)}单元总进度" aria-valuetext="${label}">${ratio}%</progress><span class="unit-progress-count">${label}</span>`;
+        el.innerHTML=`<div class="unit-progress-label"><strong>${ratio}%</strong></div><progress max="${weighted===null||weighted===undefined?(d.total||1):100}" value="${weighted===null||weighted===undefined?d.done:weighted}" aria-label="${esc(providers.get(id).title)}单元总进度" aria-valuetext="${label}">${ratio}%</progress><span class="unit-progress-count">${label}</span>`;
       }catch{el.hidden=false;delete el.dataset.masteryLevel;if(row)delete row.dataset.masteryLevel;el.innerHTML='<span class="unit-progress-count" role="status">进度暂不可用</span>';}
     }
   }

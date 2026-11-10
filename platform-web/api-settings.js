@@ -2,6 +2,7 @@
 (()=>{
   'use strict';
   const menu=document.querySelector('#account-menu'),identity=document.querySelector('#account-identity');
+  const resources=new URL('./',document.currentScript.src);
   function entry(id,label){
     const button=document.getElementById(id)||document.createElement('button');
     button.id=id;button.type='button';button.textContent=label;
@@ -9,24 +10,23 @@
     if(!button.isConnected)identity.after(button);return button;
   }
   const button=entry('open-api-settings','DeepSeek 密钥设置'),voiceButton=entry('open-voice-settings','语音 Key 设置');
-  if(window.GrowingNative?.configureAi){
+  if(window.GrowingNative?.configureDevice){
     const deviceButton=entry('open-device-settings','设备设置');
     deviceButton.removeAttribute('aria-controls');
-    deviceButton.addEventListener('click',()=>{menu.open=false;window.GrowingNative.configureAi();});
+    deviceButton.addEventListener('click',()=>{menu.open=false;window.GrowingNative.configureDevice();});
   }
   const dialog=document.createElement('dialog');dialog.id='api-settings-dialog';dialog.setAttribute('aria-labelledby','api-settings-title');
   dialog.innerHTML='<div class="actions api-settings-heading"><h2 id="api-settings-title">AI 密钥设置</h2><button type="button" id="close-api-settings" autofocus>关闭</button></div><nav class="actions api-settings-tabs" aria-label="选择密钥设置"><button type="button" data-api-tab="deepseek">DeepSeek 密钥</button><button type="button" data-api-tab="voice">语音 Key</button></nav><div id="api-settings-content"></div>';
   document.body.append(dialog);
   const content=dialog.querySelector('#api-settings-content');let loading,version=0;
   function load(){
+    if(!document.querySelector('[data-api-settings-style]')){
+      const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('course-ai.css',resources).href;style.dataset.apiSettingsStyle='';document.head.append(style);
+    }
     if(window.GrowingCourseAI)return Promise.resolve();
     if(loading)return loading;
-    const path='./';
-    if(!document.querySelector('[data-api-settings-style]')){
-      const style=document.createElement('link');style.rel='stylesheet';style.href=path+'course-ai.css';style.dataset.apiSettingsStyle='';document.head.append(style);
-    }
     loading=new Promise((resolve,reject)=>{
-      const script=document.createElement('script');script.src=path+'course-ai.js';
+      const script=document.createElement('script');script.src=new URL('course-ai.js?v=unified-account-1',resources).href;
       script.onload=()=>window.GrowingCourseAI?resolve():reject(Error('连接设置未能加载，请重试。'));
       script.onerror=()=>{script.remove();reject(Error('连接设置加载失败，请检查网络后重新打开。'));};document.head.append(script);
     }).catch(error=>{loading=null;throw error;});return loading;
@@ -47,13 +47,13 @@
   async function open(kind='deepseek'){
     if(menu.hidden||dialog.open)return;
     // Capture the same account-bound storage proxy used by the active classroom.
-    const storage=window.GrowingCloud.storage();window.GrowingCourseAIStorage=()=>storage;
+    const storage=window.GrowingNative?localStorage:window.GrowingCloud.storage();window.GrowingCourseAIStorage=()=>storage;
     const current=++version;menu.open=false;content.innerHTML='<p role="status">正在加载连接设置…</p>';dialog.showModal();
     try{
       await load();if(!dialog.open||current!==version)return;
       content.innerHTML=window.GrowingCourseAI.settingsMarkup();
       window.GrowingRealtime?.hydrate(content.querySelector('.realtime-settings'));
-      if(window.GrowingNative){
+      if(window.GrowingNative&&!window.GrowingNative.saveAiKey){
         const test=document.createElement('button');test.type='button';test.dataset.courseAiTest='';test.textContent='测试已保存的连接';
         content.querySelector('.course-ai-status').before(test);
       }

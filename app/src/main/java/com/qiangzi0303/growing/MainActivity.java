@@ -5,7 +5,6 @@ import android.app.AlertDialog;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -40,9 +39,6 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.Spinner;
-import android.widget.ArrayAdapter;
-import android.widget.AdapterView;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
@@ -267,55 +263,20 @@ public final class MainActivity extends Activity {
         accounts.confirmIdentity(id,profile);
     }
     public boolean isSession(String id,long value){return id!=null&&id.equals(currentId)&&value==epoch;}
-    public void showAccount(){
+    public void openAiSettings(){
+        if(currentId!=null&&web!=null)web.evaluateJavascript("window.GrowingApiSettings&&window.GrowingApiSettings.open('deepseek')",null);
+    }
+    public void showDeviceSettings(){
         if(currentId==null)return;
-        final String settingsAccount=currentId;final long settingsEpoch=epoch;
-        SharedPreferences settings=getSharedPreferences("settings-v1-"+currentId,MODE_PRIVATE);
         LinearLayout form=column();form.setPadding(dp(24),dp(8),dp(24),0);
-        NativeIdentity identity=accounts.identity(currentId);
-        TextView note=text("本机账号："+accounts.currentName()+"\n身份："+(identity==null?"待确认":identity.role.equals("Student")?"学生":identity.role.equals("Parent")?"家长":"管理员")+"\n版本："+BuildConfig.VERSION_NAME+"\n\n学生课程、内置音频和练习可离线使用。单词朗读使用手机语音引擎，离线使用需先安装英语语音数据。AI 评分和答疑需要联网并配置自己的 DeepSeek API Key。密钥只保存在此账号的本机设置中。",14,Color.rgb(80,100,75));form.addView(note);
+        form.addView(text("版本："+BuildConfig.VERSION_NAME+"\n课程和内置练习支持离线使用，英语朗读需安装系统语音数据。",14,Color.rgb(80,100,75)));
         Button voice=button("朗读设置 / 英语试读");voice.setOnClickListener(v->showSpeechSettings());form.addView(voice);
         Button updates=button("检查更新");updates.setOnClickListener(v->updater.check(true));form.addView(updates);
-        Button cloud=button(identity!=null&&identity.role.equals("Parent")?"我的孩子":"云同步");form.addView(cloud);
-        EditText key=input(settings.getString("ai.key","").isEmpty()?"填写 DeepSeek API Key":"已配置，留空保持现有密钥",true);form.addView(key);
-        form.addView(text("小鸭实时语音 · qwen3.8-omni-flash-realtime",16,Color.rgb(45,68,52)));
-        EditText realtimeKey=input(settings.getString("realtime.key","").isEmpty()?"填写 Qwen API Key":"Qwen 已配置，留空沿用",true);realtimeKey.setContentDescription("Qwen API Key");form.addView(realtimeKey);
-        form.addView(text("音色",14,Color.rgb(80,100,75)));
-        String[] voiceOptions=Arrays.copyOf(RealtimeSettings.VOICES,RealtimeSettings.VOICES.length+1);voiceOptions[voiceOptions.length-1]="其他音色（填写 ID）";
-        Spinner realtimeVoice=new Spinner(this);realtimeVoice.setContentDescription("Qwen 音色");
-        ArrayAdapter<String> voiceAdapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_item,voiceOptions);voiceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);realtimeVoice.setAdapter(voiceAdapter);form.addView(realtimeVoice);
-        String savedVoice=settings.getString("realtime.voice","Tina");int selectedVoice=Arrays.asList(RealtimeSettings.VOICES).indexOf(savedVoice);realtimeVoice.setSelection(selectedVoice<0?voiceOptions.length-1:selectedVoice);
-        EditText customVoice=input("服务商支持的音色 ID",false);customVoice.setText(selectedVoice<0?savedVoice:"");customVoice.setContentDescription("Qwen 自定义音色 ID");form.addView(customVoice);
-        customVoice.setVisibility(selectedVoice<0?View.VISIBLE:View.GONE);
-        realtimeVoice.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
-            public void onItemSelected(AdapterView<?> parent,View view,int position,long id){customVoice.setVisibility(position==voiceOptions.length-1?View.VISIBLE:View.GONE);}
-            public void onNothingSelected(AdapterView<?> parent){}
-        });
-        EditText realtimeBase=input("百炼服务地址",false);realtimeBase.setText(settings.getString("realtime.base",RealtimeSettings.DEFAULT_BASE));realtimeBase.setContentDescription("百炼服务地址");form.addView(realtimeBase);
-        form.addView(text("业务空间密钥需填写对应的百炼接口地址。实时语音密钥按本机账号保存，连接时经语音代理转发，不随学习记录同步。开启语音时才申请麦克风。",12,Color.rgb(80,100,75)));
-        TextView settingsError=text("",14,Color.rgb(160,90,60));form.addView(settingsError);
-        Button clearRealtime=button("清除实时语音密钥");clearRealtime.setOnClickListener(v->{
-            if(!isSession(settingsAccount,settingsEpoch))return;
-            if(settings.edit().remove("realtime.key").commit()){realtimeKey.setText("");realtimeKey.setHint("填写 Qwen API Key");stopRealtime();settingsError.setText("已清除当前账号的实时语音密钥。");}
-            else settingsError.setText("密钥未清除，请检查存储空间。");
-        });form.addView(clearRealtime);
-        AlertDialog accountDialog=new AlertDialog.Builder(this).setTitle("账号与 AI 设置").setView(scrollable(form))
-            .setPositiveButton("保存",null)
-            .setNeutralButton("退出账号",(d,w)->new AlertDialog.Builder(this).setTitle("退出当前账号？").setMessage("本机学习记录会保留，重新登录此账号可以继续。").setPositiveButton("退出",(x,y)->{try{accounts.logout();currentId=null;epoch++;showLogin();}catch(Exception e){new AlertDialog.Builder(this).setMessage(e.getMessage()).setPositiveButton("好",null).show();}}).setNegativeButton("取消",null).show())
-            .setNegativeButton("取消",null).show();
-        accountDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
-            if(!isSession(settingsAccount,settingsEpoch)){accountDialog.dismiss();return;}
-            try{
-                String voiceId=realtimeVoice.getSelectedItemPosition()==voiceOptions.length-1?customVoice.getText().toString():String.valueOf(realtimeVoice.getSelectedItem());
-                String qwenKey=realtimeKey.getText().toString().trim();if(qwenKey.isEmpty())qwenKey=settings.getString("realtime.key","");
-                JSONObject c=RealtimeSettings.validate(new JSONObject().put("apiKey",qwenKey).put("voice",voiceId).put("base",realtimeBase.getText().toString()).toString());
-                SharedPreferences.Editor edit=settings.edit().putString("realtime.key",c.getString("apiKey")).putString("realtime.voice",c.getString("voice")).putString("realtime.base",c.getString("base"));
-                String value=key.getText().toString().trim();if(!value.isEmpty())edit.putString("ai.key",value);
-                if(!edit.commit())throw new IllegalStateException("设置未保存，请检查存储空间。");
-                stopRealtime();accountDialog.dismiss();
-            }catch(Exception e){settingsError.setText(e instanceof IllegalArgumentException?e.getMessage():"设置未保存，请检查配置或存储空间。");}
-        });
-        cloud.setOnClickListener(v->{accountDialog.dismiss();if(web!=null)web.loadUrl(ORIGIN+"/assets/web/cloud/index.html");});
+        new AlertDialog.Builder(this).setTitle("设备设置").setView(scrollable(form)).setPositiveButton("关闭",null).show();
+    }
+    public void logoutAccount(){
+        try{accounts.logout();currentId=null;pendingRegistration=null;epoch++;showLogin();}
+        catch(Exception e){new AlertDialog.Builder(this).setMessage("未能退出账号，请重试。").setPositiveButton("好",null).show();}
     }
     private void openSpeechSettings(boolean install){
         try{startActivity(new Intent(install?TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA:"com.android.settings.TTS_SETTINGS"));}

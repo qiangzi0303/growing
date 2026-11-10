@@ -1,0 +1,19 @@
+.native-account-bar{display:flex;align-items:center;gap:16px;padding:12px 20px;background:#fff;border-bottom:1px solid #d7e0d4;color:#263f35;font:16px/1.5 system-ui,"Microsoft YaHei",sans-serif}
+.native-account-brand{display:flex;align-items:center;gap:10px;font-size:25px;font-weight:700;color:inherit;text-decoration:none}.native-account-brand img{object-fit:contain}
+.native-account-bar #account-menu{position:relative;flex-shrink:0;margin:0}
+.native-account-bar #account-menu>summary{display:grid;place-items:center;box-sizing:border-box;width:44px;height:44px;list-style:none;border:0;border-radius:9px;background:#edf3e9;cursor:pointer}
+.native-account-bar #account-menu>summary::-webkit-details-marker{display:none}
+.native-account-bar .account-menu-panel{position:absolute;left:0;top:calc(100% + 8px);z-index:200;width:260px;max-width:calc(100vw - 40px);max-height:calc(100dvh - 100px);overflow:auto;box-sizing:border-box;display:grid;gap:9px;padding:14px;border:1px solid #d7e0d4;border-radius:12px;background:#fffdf9;box-shadow:0 10px 30px #263f3520}
+.native-account-bar .account-menu-panel p{margin:0 0 4px;font-size:13px;overflow-wrap:anywhere}.native-account-bar .account-menu-panel p:empty{display:none}
+.native-account-bar .account-menu-panel button{min-height:44px;margin:0;padding:10px 15px;border:1px solid #d7e0d4;border-radius:10px;background:#edf3e9;color:#263f35;text-align:left;font:inherit;cursor:pointer}
+.native-account-bar [hidden]{display:none!important}.native-account-bar #logout{color:#9c4435}
+.native-account-bar :focus-visible,.native-account-dialog :focus-visible,#api-settings-dialog :focus-visible{outline:3px solid #986a43;outline-offset:3px}
+.native-account-dialog,#api-settings-dialog{box-sizing:border-box;width:min(1000px,calc(100vw - 24px));max-width:none;max-height:90vh;overflow:auto;margin:auto;padding:22px;border:1px solid #d7e0d4;border-radius:16px;background:#f5f7f1;color:#263f35;font:15px/1.6 system-ui,"Microsoft YaHei",sans-serif}
+#api-settings-dialog{width:min(640px,calc(100vw - 24px))}.native-account-dialog::backdrop,#api-settings-dialog::backdrop{background:#182a2399}
+.native-dialog-heading,#api-settings-dialog .actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.native-dialog-heading,#api-settings-dialog .api-settings-heading{justify-content:space-between}.native-dialog-heading h2,#api-settings-dialog h2{margin:0;font-size:22px}
+.native-account-dialog button,#api-settings-dialog button{min-height:44px;padding:9px 14px;border:1px solid #b9c6a9;border-radius:9px;background:#edf3e9;color:#263f35;cursor:pointer;font:inherit}
+.native-account-dialog .actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.native-account-dialog label,#api-settings-dialog label{display:block}.native-account-dialog select{display:block;max-width:100%;min-height:44px;background:#fffdf9;color:#263f35;border:1px solid #b9c6a9;border-radius:8px;padding:8px;font:inherit}
+.native-account-dialog table{width:100%;border-collapse:collapse;white-space:nowrap}.native-account-dialog th,.native-account-dialog td{padding:10px;text-align:left;border-bottom:1px solid #d7e0d4}
+.native-account-dialog .table-scroll{overflow-x:auto}.native-account-dialog .metric{font-size:28px}
+#api-settings-dialog .course-ai-settings{border:0;margin:0;padding:0}#api-settings-dialog .api-settings-tabs{margin:16px 0}
+@media(max-width:600px){.native-account-bar{padding:10px 16px}.native-account-bar .account-menu-panel{max-width:calc(100vw - 32px)}.native-account-dialog,#api-settings-dialog{padding:16px}}

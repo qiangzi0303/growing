@@ -41,6 +41,13 @@ public final class LearningBridge {
         catch(Exception e) { return error(e); }
     }
     @JavascriptInterface public String aiKey() { try{authorize();return settings.getString("ai.key","");}catch(Exception e){return "";} }
+    @JavascriptInterface public String saveAiKey(String value) {
+        try{authorize();String key=value.trim();
+            if(!key.isEmpty()&&(key.length()<8||key.length()>512||key.chars().anyMatch(Character::isWhitespace)))throw new IllegalArgumentException();
+            SharedPreferences.Editor edit=settings.edit();if(key.isEmpty())edit.remove("ai.key");else edit.putString("ai.key",key);
+            if(!edit.commit())throw new IllegalStateException();return "{\"ok\":true}";
+        }catch(Exception e){return "{\"ok\":false,\"error\":\"密钥未保存，请检查格式和当前账号。\"}";}
+    }
     @JavascriptInterface public String realtimeSettings() {
         try{authorize();return new JSONObject().put("ok",true).put("value",RealtimeSettings.read(settings)).toString();}
         catch(Exception e){return error(e);}
@@ -64,7 +71,9 @@ public final class LearningBridge {
         try{authorize();activity.confirmIdentity(accountId,session,profile);return "{\"ok\":true}";}
         catch(Exception e){return identityError(e);}
     }
-    @JavascriptInterface public void configureAi() { try{authorize();activity.runOnUiThread(activity::showAccount);}catch(Exception ignored){} }
+    @JavascriptInterface public void configureAi() { try{authorize();activity.runOnUiThread(()->{if(activity.isSession(accountId,session))activity.openAiSettings();});}catch(Exception ignored){} }
+    @JavascriptInterface public void configureDevice() { try{authorize();activity.runOnUiThread(()->{if(activity.isSession(accountId,session))activity.showDeviceSettings();});}catch(Exception ignored){} }
+    @JavascriptInterface public void logout() { try{authorize();activity.runOnUiThread(()->{if(activity.isSession(accountId,session))activity.logoutAccount();});}catch(Exception ignored){} }
     @JavascriptInterface public void home() { try{authorize();activity.runOnUiThread(activity::loadHome);}catch(Exception ignored){} }
     @JavascriptInterface public String openLearning() {
         try{authorize();activity.openLearning(accountId,session);return "{\"ok\":true}";}

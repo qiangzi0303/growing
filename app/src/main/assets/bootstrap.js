@@ -3,18 +3,10 @@
   'use strict';
   if (!window.GrowingNative) throw new Error('Android learning bridge unavailable');
   const native=window.GrowingNative;
-  // Cloud pages own their menu; standalone native courses still need device settings.
+  // Standalone Android lessons use the same account menu as the cloud shell.
   if(window===window.top&&!location.pathname.includes('/companion-duck/')&&!location.pathname.includes('/web/cloud/')){
     document.addEventListener('DOMContentLoaded',()=>{
-      const style=document.createElement('style');
-      style.textContent='.native-settings-bar{display:flex;align-items:center;min-height:52px;padding:4px 16px;background:var(--paper,#f7f8f3);color:var(--ink,inherit)}.native-settings-button{display:grid;place-items:center;flex:none;width:44px;height:44px;margin:0;padding:0;border:0;border-radius:9px;background:transparent;color:inherit;cursor:pointer}.native-settings-button:focus-visible{outline:2px solid currentColor;outline-offset:2px}.native-settings-button:hover{background:#70807018}';
-      document.head.append(style);
-      const bar=document.createElement('header');bar.className='native-settings-bar';
-      const button=document.createElement('button');button.type='button';button.className='native-settings-button';
-      button.setAttribute('aria-label','设置');button.setAttribute('aria-haspopup','dialog');button.title='设置';
-      button.innerHTML='<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-      button.addEventListener('click',()=>native.configureAi());
-      bar.append(button);document.body.prepend(bar);
+      const script=document.createElement('script');script.src='/assets/web/cloud/native-menu.js?v=unified-account-1';document.head.append(script);
     },{once:true});
   }
   // Every native learning page gets the companion, including home and catalogs.

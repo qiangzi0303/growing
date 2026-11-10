@@ -33,6 +33,29 @@ test('Android uses its current account key without storing a browser key',async(
   const t=setup({aiKey:()=> 'fake-native-key',configureAi(){}});assert.equal(t.api.info().native,true);await t.api.request({task:'问题'});assert.equal(t.calls[0].options.headers.Authorization,'Bearer fake-native-key');assert.equal(t.data.size,0);assert(t.api.settingsMarkup().includes('打开账号AI设置'));
 });
 
+test('Android menu saves, retains and clears its account key without touching learning storage',()=>{
+  let key='',fail=false,legacyOpened=0;
+  const t=setup({aiKey:()=>key,configureAi:()=>legacyOpened++,saveAiKey:value=>{
+    if(fail)return JSON.stringify({ok:false,error:'native save failed'});
+    key=value;return JSON.stringify({ok:true});
+  }});
+  t.data.set('growing-physics-lessons-v1','learning');
+  assert(t.api.settingsMarkup().includes('id="course-ai-config"'));
+  assert(!t.api.settingsMarkup().includes('data-course-ai-native'));
+  assert.throws(()=>t.api.save({apiKey:''}),/API Key/);
+  assert.throws(()=>t.api.save({apiKey:'bad key'}),/格式/);
+  t.api.save({apiKey:'fake-new-native-key'});
+  assert.equal(t.api.info().configured,true);
+  t.api.save({apiKey:''});assert.equal(key,'fake-new-native-key');
+  fail=true;
+  assert.throws(()=>t.api.save({apiKey:'fake-replacement'}),/native save failed/);
+  assert.throws(()=>t.api.clear(),/native save failed/);
+  assert.equal(key,'fake-new-native-key');
+  fail=false;t.api.clear();assert.equal(t.api.info().configured,false);
+  assert.equal(legacyOpened,0);
+  assert.deepEqual([...t.data],[['growing-physics-lessons-v1','learning']]);
+});
+
 test('shell settings use the classroom account storage and never fall back to another account',async()=>{
   const t=setup(),accounts=new Map();let account='student-a';
   t.window.GrowingCourseAIStorage=()=>({getItem:k=>accounts.get(account+':'+k)||null,setItem:(k,v)=>accounts.set(account+':'+k,v),removeItem:k=>accounts.delete(account+':'+k)});

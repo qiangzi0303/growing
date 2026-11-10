@@ -344,6 +344,7 @@
   }
   async function showRankings(){
     if(user?.role!=='Student'||needsRole(user))return;
+    $('#account-menu').open=false;
     const dialog=$('#rankings-dialog'),version=generation,rankingRoot=document.createElement('section');
     rankingRoot.id='student-rankings';$('#rankings-content').replaceChildren(rankingRoot);dialog.showModal();
     await GrowingRankings.mount(rankingRoot,api,esc,()=>version===generation&&dialog.open,'/student/rankings','我的排行榜',sync);
@@ -394,7 +395,7 @@
     if(b.id==='add-child')parentSettings();
     if(b.id==='parent-home'){if(user?.role==='Admin')await adminView('parent');else if(user?.role==='Parent')await enter(user,'management');}
     if(b.dataset.childPage&&user?.role==='Admin')await parent($('#student-search [name=q]').value,Number(b.dataset.childPage));
-    if(b.id==='logout'){if(user?.role==='Student'&&!await sync())throw Error('暂时无法退出，请检查网络后重试。');await api('/auth/logout',{method:'POST'});generation++;clearInterval(timer);clearTimeout(saveTimer);user=null;token='';raw.removeItem(sessionKey);auth();hint('已退出云账号。');}
+    if(b.id==='logout'){if(user?.role==='Student'&&!await sync())throw Error('暂时无法退出，请检查网络后重试。');await api('/auth/logout',{method:'POST'});generation++;clearInterval(timer);clearTimeout(saveTimer);user=null;token='';raw.removeItem(sessionKey);if(native?.logout){native.logout();return;}auth();hint('已退出云账号。');}
     if(b.dataset.child)await report(b.dataset.child);
     if(b.id==='close-course')courseBack();
   }catch(e){hint(e.message);}});

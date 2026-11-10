@@ -18,15 +18,16 @@
   }
   function info(){try{const c=read();return {model:c.model,configured:!!c.apiKey,native:!!native};}catch(error){return {model:defaultModel,configured:false,native:!!native,error:error.message};}}
   function save({model,apiKey}){
-    if(native){native.configureAi();return;}
+    if(native&&!native.saveAiKey){native.configureAi();return;}
     model=String(model||defaultModel).trim();apiKey=String(apiKey||'').trim();
     if(!apiKey){try{apiKey=read().apiKey;}catch{}}
     if(!apiKey)throw Error('请填写 DeepSeek API Key');
     if(/\s/.test(apiKey)||apiKey.length<8)throw Error('密钥格式不正确，请完整粘贴 API Key');
     if(!model||model.length>100||/\s/.test(model))throw Error('请填写有效的模型名称');
+    if(native){const result=JSON.parse(native.saveAiKey(apiKey));if(!result.ok)throw Error(result.error||'密钥未保存，请重试');return;}
     try{connectionStorage().setItem(KEY,JSON.stringify({version:1,model,apiKey}));}catch{throw Error('连接配置保存失败，请检查浏览器存储权限后重试');}
   }
-  function clear(){if(native){native.configureAi();return;}try{connectionStorage().removeItem(KEY);}catch{throw Error('连接配置清除失败，请检查存储权限');}}
+  function clear(){if(native){if(!native.saveAiKey){native.configureAi();return;}const result=JSON.parse(native.saveAiKey(''));if(!result.ok)throw Error(result.error||'密钥未清除，请重试');return;}try{connectionStorage().removeItem(KEY);}catch{throw Error('连接配置清除失败，请检查存储权限');}}
   async function request({task,format='text',signal}){
     const config=read();
     if(!config.apiKey)throw Error(native?'请在账号设置中填写 DeepSeek API Key':'请先到“左上角设置 → DeepSeek 密钥设置”填写并保存 DeepSeek API Key');
@@ -44,7 +45,7 @@
   }
   function settingsMarkup(){
     const c=info();
-    return `<section class="course-ai-settings"><h3>AI连接 · 三科共用</h3><p>数学、物理和英语共用此连接，学习记录分别保存。接口：DeepSeek。</p><p class="course-ai-state">${esc(c.error||(c.configured?'已配置密钥':'尚未配置密钥'))}</p>${native?'<p>安卓使用当前账号中的密钥。</p><button type="button" data-course-ai-native>打开账号AI设置</button>':`<form id="course-ai-config" autocomplete="off"><label>模型名称<input name="model" maxlength="100" value="${esc(c.model)}" required></label><label>DeepSeek API Key<input name="apiKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="${c.configured?'已保存；留空沿用，填写可更换':'粘贴你的 API Key'}"></label><p>密钥仅保存在当前浏览器；三科在同一浏览器、同一站点中共用。更换浏览器或设备需重新填写。</p><div class="course-ai-actions"><button type="submit">保存连接</button><button type="button" data-course-ai-test>测试已保存的连接</button><button type="button" data-course-ai-clear>清除已保存密钥</button></div></form>`}<p class="course-ai-status" role="status" aria-live="polite"></p></section>`;
+    return `<section class="course-ai-settings"><h3>AI连接 · 三科共用</h3><p>数学、物理和英语共用此连接，学习记录分别保存。接口：DeepSeek。</p><p class="course-ai-state">${esc(c.error||(c.configured?'已配置密钥':'尚未配置密钥'))}</p>${native&&!native.saveAiKey?'<p>安卓使用当前账号中的密钥。</p><button type="button" data-course-ai-native>打开账号AI设置</button>':`<form id="course-ai-config" autocomplete="off"><label>模型名称<input name="model" maxlength="100" value="${esc(c.model)}" ${native?'readonly':''} required></label><label>DeepSeek API Key<input name="apiKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="${c.configured?'已保存；留空沿用，填写可更换':'粘贴你的 API Key'}"></label><p>${native?'密钥仅保存在当前账号的本机设置中，不随学习记录同步。':'密钥仅保存在当前浏览器；三科在同一浏览器、同一站点中共用。更换浏览器或设备需重新填写。'}</p><div class="course-ai-actions"><button type="submit">保存连接</button><button type="button" data-course-ai-test>测试已保存的连接</button><button type="button" data-course-ai-clear>清除已保存密钥</button></div></form>`}<p class="course-ai-status" role="status" aria-live="polite"></p></section>`;
   }
   window.GrowingCourseAI={request,info,save,clear,settingsMarkup,cancelTest(panel){tests.get(panel)?.abort();}};
   const status=(panel,text)=>{const el=panel.querySelector('.course-ai-status');if(el)el.textContent=text;};

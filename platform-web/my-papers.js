@@ -26,7 +26,7 @@
     const pause=document.createElement('button');pause.dataset.pauseImport='';pause.textContent='暂存并退出整理';pause.hidden=true;$('[data-status]').after(pause);
     function stopImport(){jobGeneration++;runningJob=false;pause.hidden=true;jobsHost.hidden=false;lock(false);message('进度已保存，可继续整理。');}
     pause.onclick=stopImport;
-    function jobCard(job){const action=job.mode==='grade'?'批改':'整理';return `<article class="papers-import-job"><strong>${esc(subjectName(job.subject))} · ${job.status==='failed'?action+'中断':'待继续'+action}</strong><p>已规划 ${job.plannedPages}/${job.pageCount} 页 · 已${action} ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题</p>${job.error?`<p class="warning">${esc(job.error)}</p>`:''}<button data-resume="${esc(job.id)}">${job.status==='failed'?'重试'+action:'继续'+action}</button></article>`;}
+    function jobCard(job){const action=job.mode==='grade'?'批改':'整理';return `<article class="papers-import-job"><strong>${esc(subjectName(job.subject))} · ${job.status==='failed'?action+'中断':'待继续'+action}</strong><p>已规划 ${job.plannedPages}/${job.pageCount} 页 · 已${action} ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题</p>${job.error?`<details class="papers-import-error"><summary>查看原因</summary><p>${esc(job.error)}</p></details>`:''}<button data-resume="${esc(job.id)}">${job.status==='failed'?'重试'+action:'继续'+action}</button></article>`;}
     async function runJob(initial){
       const student=studentId,selectedSubject=subject,generation=++jobGeneration;
       const current=()=>valid()&&generation===jobGeneration&&student===studentId&&selectedSubject===subject;
@@ -56,7 +56,7 @@
           }
           if(current()&&job.status==='failed')throw Error(job.error||'整理失败，请重试。');
         }
-      }catch(error){if(current()){jobsHost.innerHTML=jobCard(job);message(error.message+' 进度已保存，可继续整理。');}}
+      }catch(error){if(current()){jobsHost.innerHTML=jobCard({...job,error:error.message||job.error});message('');}}
       finally{if(current()){runningJob=false;pause.hidden=true;lock(false);if(job.status!=='complete')jobsHost.hidden=false;}}
     }
     const heading=root.querySelector('.papers-heading .muted');

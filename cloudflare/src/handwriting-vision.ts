@@ -115,7 +115,15 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
       while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>256000){await reader.cancel();throw Error();}raw+=decoder.decode(value,{stream:true});}
       const result=JSON.parse(raw+decoder.decode()),choice=result.choices?.[0],content=choice?.message?.content;
       if(result.error || !['stop','end_turn'].includes(choice?.finish_reason) || typeof content!=='string'){console.warn('Handwriting vision invalid completion',model.name,String(choice?.finish_reason||'missing').slice(0,40));continue;}
-      const recognition=JSON.parse(content.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,''));
+      const text=content.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+      let recognition;
+      try{recognition=JSON.parse(text);}
+      catch(cause){
+        if(!options.paperRecognition||grading)throw cause;
+        // OCR may escape LaTeX commands correctly but leave formula delimiters unescaped.
+        // Consume existing backslash pairs first; preserve all other JSON syntax and escapes.
+        recognition=JSON.parse(text.replace(/\\\\|\\[()[\]]/g,escape=>escape[1]==='\\'?escape:'\\'+escape));
+      }
       const output=validate(recognition);
       if(!output){console.warn('Handwriting vision invalid result',model.name);continue;}
       if(signal.aborted || controller.signal.aborted)throw Error();

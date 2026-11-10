@@ -37,7 +37,7 @@
         <ol class="unit-list">${book.units.map(unit=>`<li><div class="unit-row ${unit.entry?'is-ready':''}" data-unit="${unit.id}">
           <span class="unit-number" aria-hidden="true">${String(unit.number).padStart(2,'0')}</span>
           <div class="unit-copy"><span class="unit-label">${label(unit)}</span><div class="unit-title"><h3><a class="unit-course-link" href="${studyLink(unit)}">${escape(unit.title)}</a></h3></div><p>${escape(unit.summary)}</p>${book.verified&&unit.entry?`<div class="unit-actions"><a class="unit-reward-trigger" href="unit-summary.html?subject=${subject}&unit=${unit.id}">单元总结</a></div>${window.UnitRewards.placeholder(unit.id)}`:''}</div>
-          <span class="unit-state">${state(unit)}</span>
+          ${!book.verified||!unit.entry?`<span class="unit-state">${state(unit)}</span>`:''}
         </div></li>`).join('')}</ol>
       </section>
       <p class="catalog-footnote">${hasGraph?(book.verified?'各章均可进入学习，并查看本章图谱与薄弱点诊断。':(subject==='physics'?'下册暂不开放，当前先学习上册。':'下册内容待提供教材核对后开放。')):book.verified?'上册8个单元均可学习：单词、闭卷默写、阅读与语法练习、独立奖励进度。':'下册内容待教材核对后开放。'}</p>`;

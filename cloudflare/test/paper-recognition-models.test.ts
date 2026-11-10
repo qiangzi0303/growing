@@ -19,9 +19,14 @@ function upstream(model:string,result:object){
 test('page planning and individual transcription use the dedicated OCR configuration',async()=>{
  const planned=await planPage(env,signal(),upstream('qwen',{title:'复习卷',complete:true,warnings:[],questions:[{number:'1',regions:[]}],continuesPrevious:false,continuationRegions:[]}),'math',image,1,1,'');
  assert.equal(planned.questions[0].number,'1');
- const result=await transcribeQuestion(env,signal(),upstream('qwen',{format:'math-text-v1',complete:true,warnings:[],questions:[{number:'1',text:String.raw`计算\(1+1\)。`,answer:'',unitId:'',confidence:0,reason:'',uncertain:[],pages:[1],figures:[],drawing:null}]}),'math',{number:'1',pages:[1],regions:[]},[{page:1,image}]);
+ const transcribe=upstream('qwen',{format:'math-text-v1',complete:true,warnings:[],questions:[{number:'1',text:String.raw`计算\(1+1\)。`,answer:'',unitId:'',confidence:0,reason:'',uncertain:[],pages:[1],figures:[],drawing:null}]});
+ const locate=upstream('figure',{number:'1',complete:true,hasFigures:false,figures:[],warnings:[]});
+ const calls:string[]=[];
+ const provider=(async(url,options)=>{calls.push(String(url));return String(url).startsWith('https://figure.test/')?locate(url,options):transcribe(url,options);}) as typeof fetch;
+ const result=await transcribeQuestion({...env,PAPER_FIGURE_MODELS:config('figure')},signal(),provider,'math',{number:'1',pages:[1],regions:[]},[{page:1,image}]);
  assert.equal(result.question.number,'1');
  assert.equal(result.question.answer,'');
+ assert.deepEqual(calls,['https://qwen.test/v1/chat/completions','https://figure.test/v1/chat/completions']);
 });
 
 test('original-paper grading stays on DeepSeek when Qwen OCR is configured',async()=>{
@@ -57,4 +62,32 @@ test('an invalid OCR configuration fails closed without sending photos to the gr
 test('deployments without the new binding retain their previous configuration',async()=>{
  const response=await visionCompletion({...env,PAPER_RECOGNITION_MODELS:undefined},signal(),upstream('deepseek',{ok:true}),'system',{},[],v=>v,true,false,{paperRecognition:true});
  assert.deepEqual(await response.json(),{ok:true});
+});
+
+test('OCR formula delimiter escapes are recovered without changing commands, newlines or valid JSON',async()=>{
+ const expected={text:String.raw`若\(\frac{a}{b}\)，并有\[x=1\]。`+'\n下一行'};
+ const valid=JSON.stringify(expected);
+ const malformed=valid.replace(/\\\\([()[\]])/g,(_match,delimiter)=>'\\'+delimiter);
+ assert.throws(()=>JSON.parse(malformed));
+ for(const content of [valid,malformed]){
+  const response=await visionCompletion(env,signal(),(async()=>Response.json({choices:[{finish_reason:'stop',message:{content}}]})) as typeof fetch,
+   'system',{},[],value=>typeof value?.text==='string'?value:null,true,false,{paperRecognition:true});
+  assert.deepEqual(await response.json(),expected);
+ }
+});
+
+test('OCR delimiter recovery cannot accept truncated JSON, arbitrary escapes or invalid result schemas',async()=>{
+ for(const [content,validate] of [
+  [String.raw`{"text":"\(x\)"`,(value:any)=>value],
+  [String.raw`{"text":"\(x\)\q"}`,(value:any)=>value],
+  [String.raw`{"text":"\(x\)","complete":false}`,(value:any)=>value.complete===true?value:null]
+ ] as const){
+  await assert.rejects(()=>visionCompletion(env,signal(),(async()=>Response.json({choices:[{finish_reason:'stop',message:{content}}]})) as typeof fetch,
+   'system',{},[],validate,true,false,{paperRecognition:true}),{status:502});
+ }
+});
+
+test('grading retains strict JSON parsing when an OCR binding is present',async()=>{
+ await assert.rejects(()=>visionCompletion(env,signal(),(async()=>Response.json({choices:[{finish_reason:'stop',message:{content:String.raw`{"text":"\(x\)"}`}}]})) as typeof fetch,
+  'system',{},[],value=>value,true,true,{paperRecognition:true}),{status:502});
 });
