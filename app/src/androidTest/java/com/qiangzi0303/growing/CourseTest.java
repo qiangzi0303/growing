@@ -22,7 +22,7 @@ public class CourseTest {
         s.onActivity(a->{WebView w=web(a.getWindow().getDecorView());assertNotNull(w);w.evaluateJavascript(source,v->{result.set(v);latch.countDown();});});
         assertTrue(latch.await(15,TimeUnit.SECONDS));return result.get();
     }
-    private void ready(ActivityScenario<MainActivity> s,String expression) throws Exception {for(int i=0;i<100;i++){if("true".equals(js(s,expression)))return;Thread.sleep(200);}fail("Course check timed out: "+expression+"; page="+js(s,"location.href"));}
+    private void ready(ActivityScenario<MainActivity> s,String expression) throws Exception {for(int i=0;i<100;i++){if("true".equals(js(s,expression)))return;Thread.sleep(200);}fail("Course check timed out: "+expression+"; page="+js(s,"location.href")+"; diagnostics="+js(s,"JSON.stringify({fallback:document.querySelector('[data-student-fallback]')?.textContent,vue:document.querySelector('[data-student-vue]')?.outerHTML.slice(0,500),text:document.body.innerText.slice(-1500)})"));}
     @Test public void offlineCourseAndRewards() throws Exception {
         AccountStore accounts=new AccountStore(ApplicationProvider.getApplicationContext());accounts.logout();accounts.authenticate("course_check","Course-Test-Password-2026".toCharArray(),true);
         IdentityFixtures.student(accounts);
