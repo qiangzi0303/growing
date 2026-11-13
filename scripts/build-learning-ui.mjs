@@ -51,7 +51,10 @@ for(const target of targets){
 for(const target of ['platform-web','app/src/main/assets/web/cloud','cloudflare/public']){
   mkdirSync(join(repo,target),{recursive:true});copyFileSync(join(course,'vant-home.js'),join(repo,target,'vant-home.js'));
 }
-for(const name of ['fraction-ops/分式作战_一分钟学习版.html','word-ops-unit3/index.html'])copyFileSync(join(repo,'app/src/main/assets/web',name),join(repo,'cloudflare/public/learn',name));
+for(const name of ['fraction-ops/分式作战_一分钟学习版.html','word-ops-unit3/index.html']){
+ const destination=join(repo,'cloudflare/public/learn',name);mkdirSync(dirname(destination),{recursive:true});
+ copyFileSync(join(repo,'app/src/main/assets/web',name),destination);
+}
 for(const target of ['app/src/main/assets/web/cloud','cloudflare/public']){
   for(const name of ['student-platform.js','student-photo-review.js','student-paper-pages.js','photo-review.js','my-papers.js','question-bank.js','app.js','index.html','cloud-storage.js'])copyFileSync(join(repo,'platform-web',name),join(repo,target,name));
 }
