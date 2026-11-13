@@ -1,6 +1,7 @@
 .gradle/
 **/build/
 !console-web/build/
+!app/src/main/assets/web/app-design/companion-duck/vendor/girl/build/
 local.properties
 *.jks
 *.keystore
