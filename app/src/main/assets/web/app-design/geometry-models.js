@@ -1,4 +1,5 @@
 (() => {
+ const startLegacy=()=>{
   'use strict';
   const data=window.GrowingGeometryModels.models,graph=window.GrowingMath;
   const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -79,4 +80,6 @@
   window.addEventListener('beforeprint',()=>{stop();progress=3;draw();});
   if(!graph)throw Error('数学课程数据加载失败');
   const initial=Number(location.hash.replace('#model-',''));filter();if(data.some(m=>m.id===initial))select(initial,false);
+ };
+ if(!window.GrowingStudentPages?.registerLegacy(startLegacy))startLegacy();
 })();

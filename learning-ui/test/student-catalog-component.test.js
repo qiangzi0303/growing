@@ -1,0 +1,25 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+import {build} from 'vite';
+import vue from '@vitejs/plugin-vue';
+import {JSDOM} from 'jsdom';
+test('compiled Vant catalogue keeps navigation as real anchors and never opens pending summaries',async()=>{
+ const component=fileURLToPath(new URL('../src/StudentCatalog.vue',import.meta.url));
+ const result=await build({configFile:false,logLevel:'silent',plugins:[vue(),{name:'catalog-test-entry',enforce:'pre',resolveId:id=>id.endsWith('catalog-test-entry')?'\0catalog-test-entry':null,load:id=>id==='\0catalog-test-entry'?`import {createApp} from 'vue';import Component from ${JSON.stringify(component)};export function mount(el,model){return createApp(Component,{model}).mount(el);}`:null}],build:{write:false,lib:{entry:'catalog-test-entry',name:'CatalogTest',formats:['iife']},minify:false},define:{'process.env.NODE_ENV':JSON.stringify('production')}});
+ const output=(Array.isArray(result)?result:[result]).flatMap(item=>item.output);
+ const code=output.find(file=>file.type==='chunk').code;
+ const dom=new JSDOM('<div id="root"></div>',{runScripts:'dangerously',pretendToBeVisual:true,url:'https://example.test'}),w=dom.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.eval(code);
+ w.CatalogTest.mount(w.document.querySelector('#root'),{kind:'catalog',title:'数学单元目录',subject:'math',subjectName:'数学',edition:'苏科版',term:'upper',termName:'上册',verified:true,subjects:[{id:'math',name:'数学',href:'units.html?subject=math'}],terms:[{key:'upper',name:'上册',href:'units.html?term=upper'},{key:'lower',name:'下册',href:'units.html?term=lower'}],resources:{label:'试卷和推导',href:'math-resources.html'},units:[{id:'m1',number:1,label:'第 1 章',title:'三角形',summary:'角与线段',href:'study.html?unit=m1',summaryHref:'unit-summary.html?unit=m1',available:true,mastery:70},{id:'m2',number:2,label:'第 2 章',title:'待开放',summary:'等待核对',href:'study.html?unit=m2',available:false,state:'目录待核对'}]});
+ await new Promise(r=>setTimeout(r,30));assert.equal(w.document.querySelector('.student-unit .van-cell')?.tagName,'A');assert.ok(w.document.querySelector('a[href="unit-summary.html?unit=m1"]'));assert.equal(w.document.querySelectorAll('a[href*="unit-summary"]').length,1);assert.match(w.document.body.textContent,/70%/);assert.ok(w.document.querySelector('a[href="units.html?term=lower"]'));
+ const progress=w.document.createElement('div');w.document.body.append(progress);
+ const stages=[[0,'none'],[.5,'started'],[29.9,'started'],[30,'developing'],[59.9,'developing'],[60,'growing'],[89.9,'growing'],[90,'mastered'],[100,'mastered']];
+ const units=stages.map(([mastery],i)=>({id:'stage-'+i,number:i+1,label:'第'+(i+1)+'章',title:'进度'+mastery,summary:'进度展示',href:'study.html?unit='+i,available:true,mastery}));
+ units.push({id:'broken',number:10,title:'读取失败',available:true,mastery:null,masteryError:'进度暂不可用，原记录未改动。'},{id:'pending',number:11,title:'待核对',available:false,mastery:null});
+ w.CatalogTest.mount(progress,{kind:'catalog',subject:'math',subjectName:'数学',edition:'苏科版',term:'upper',termName:'上册',terms:[],resources:{label:'试卷',href:'math-resources.html'},units});
+ await new Promise(r=>setTimeout(r,30));assert.equal(progress.querySelectorAll('[role=progressbar]').length,stages.filter(([score])=>score>0).length);
+ for(const [i,[score,level]] of stages.entries()){const row=progress.querySelector('[data-unit="stage-'+i+'"] .unit-row'),bar=row.querySelector('[role=progressbar]');assert.equal(row.dataset.masteryLevel,level);if(score===0){assert.equal(bar,null);assert.doesNotMatch(row.textContent,/0%/);continue;}assert.equal(bar.getAttribute('aria-valuenow'),String(score));assert.equal(bar.textContent,score+'%');assert.equal(bar.querySelector('.van-progress').style.height,'7px');assert.equal(bar.querySelector('.van-progress__portion').style.width,score+'%');}
+ assert.equal(progress.querySelector('[data-unit=broken] [role=progressbar]'),null);assert.match(progress.querySelector('[data-unit=broken]').textContent,/进度暂不可用/);assert.equal(progress.querySelector('[data-unit=pending] [role=progressbar]'),null);
+ const pending=w.document.createElement('div');w.document.body.append(pending);w.CatalogTest.mount(pending,{kind:'pending',title:'<img src=x onerror=bad()>',subjectName:'英语',termName:'下册',label:'Unit 1',state:'目录待核对',description:'内容尚未核对',outline:['主题待补充'],backHref:'units.html?subject=english&term=lower'});await new Promise(r=>setTimeout(r,20));assert.equal(pending.querySelector('img'),null);assert.match(pending.textContent,/内容尚未核对/);assert.ok(pending.querySelector('a[href="units.html?subject=english&term=lower"]'));assert.equal(pending.querySelector('a[href*="unit-summary"]'),null);
+ const error=w.document.createElement('div');w.document.body.append(error);w.CatalogTest.mount(error,{kind:'error',title:'没有找到这个学习目录',description:'请重新选择。',backHref:'index.html'});await new Promise(r=>setTimeout(r,20));assert.ok(error.querySelector('a[href="index.html"]'));dom.window.close();
+});

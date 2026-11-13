@@ -1,4 +1,5 @@
 (() => {
+  const renderLegacy=()=>{
   'use strict';
   const root=document.getElementById('english-course'),E=window.GrowingEnglishEngine;
   const units=window.GrowingCurriculum.english.terms.upper.units;
@@ -169,4 +170,7 @@
   if(requestedNode?.startsWith('word:')){const target=words.find(w=>w.id===requestedNode.slice(5));if(target){selected=target;view='word';}}
   if(requestedNode?.startsWith('lesson:')){const target=lessons.find(l=>l.id===requestedNode.slice(7));if(target){activeLesson=target;view='lesson';}}
   paint();window.UnitRewards.update(id);
+  };
+  if(window.GrowingStudentPages?.registerLegacy(renderLegacy))return;
+  renderLegacy();
 })();

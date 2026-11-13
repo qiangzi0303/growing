@@ -1,5 +1,6 @@
 (()=>{
   'use strict';
+  const renderLegacy=()=>{
   const C=window.GrowingCurriculum,E=window.GrowingUnitSummary,root=document.getElementById('summary'),params=new URLSearchParams(location.search);
   const subject=params.get('subject')||'math',unitId=params.get('unit'),course=Object.hasOwn(C,subject)?C[subject]:null;
   const entry=course&&Object.entries(course.terms).flatMap(([term,book])=>book.units.map(unit=>({term,book,unit}))).find(x=>x.unit.id===unitId);
@@ -45,4 +46,6 @@
       window.addEventListener('pageshow',refresh);window.addEventListener('storage',refresh);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
     }catch(e){fail(e.message);}
   })();
+  };
+  if(!window.GrowingStudentPages?.registerLegacy(renderLegacy))renderLegacy();
 })();

@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  const renderLegacy=()=>{
   const D=window.GrowingKnowledge,E=window.GrowingDiagnosis,g=E.graph(D);
   const physics=document.body.dataset.subject==='physics',subject=physics?'physics':'math',subjectName=physics?'物理':'数学',graphFile=physics?'physics-knowledge.html':'knowledge.html';
   const screen=document.getElementById('screen'),note=document.getElementById('storage-note');
@@ -207,4 +208,6 @@
   addEventListener('pagehide',()=>panorama.destroy());
   addEventListener('pageshow',()=>render());addEventListener('storage',()=>render());
   render();
+  };
+  if(!window.GrowingStudentPages?.registerLegacy(renderLegacy))renderLegacy();
 })();

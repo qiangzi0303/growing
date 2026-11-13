@@ -44,6 +44,20 @@ export class PaperImportJobs{
  }
  async list(student:string,filter?:string|null){await this.bank().authorize(student);if(filter!=null&&!subject(filter))fail(400,'学科无效。');return (await this.db.query<Row>('SELECT * FROM "GrowingPaperImportJobs" WHERE "StudentId"=?1 AND (?2 IS NULL OR "Subject"=?2) ORDER BY "CreatedAt" DESC LIMIT 100',[student,filter??null])).map(r=>this.view(r));}
  async get(student:string,id:string){const r=await this.row(student,id),s:State=JSON.parse(r.State);return {...this.view(r),sourcePages:s.pages.map((image,i)=>({page:i+1,image}))};}
+ async remove(student:string,id:string,revision:unknown){
+  await this.bank().authorize(student);
+  if(!Number.isSafeInteger(revision)||Number(revision)<0)fail(400,'任务版本无效，请刷新后再删除。');
+  const [r]=await this.db.query<Row>('SELECT * FROM "GrowingPaperImportJobs" WHERE "StudentId"=?1 AND "Id"=?2',[student,id]);
+  if(!r)fail(404,'未找到录入任务。');
+  if(JSON.parse(r.State).paperId)fail(409,'任务已生成试卷，不能从待整理列表删除。');
+  const guard='"Id"=?1 AND "StudentId"=?2 AND "Revision"=?3 AND "LeaseUntil"<=?4 AND json_extract("State",\'$.paperId\') IS NULL',params=[id,student,revision,Date.now()];
+  const [,removed]=await this.db.batch([
+   {sql:`DELETE FROM "GrowingPaperImportJobPages" WHERE "JobId"=?1 AND EXISTS (SELECT 1 FROM "GrowingPaperImportJobs" WHERE ${guard})`,params},
+   {sql:`DELETE FROM "GrowingPaperImportJobs" WHERE ${guard} RETURNING "Id"`,params}
+  ]);
+  if(!removed.length)fail(409,'任务正在识别或进度已更新，请稍后刷新再删除。');
+  return {deleted:true};
+ }
  async progress(student:string,id:string){
   await this.bank().authorize(student);
   const [r]=await this.db.query<Row>('SELECT * FROM "GrowingPaperImportJobs" WHERE "StudentId"=?1 AND "Id"=?2',[student,id]);

@@ -1,4 +1,5 @@
 (() => {
+ const startLegacy=()=>{
   'use strict';
   const physics=document.body.dataset.subject==='physics',subject=physics?'physics':'math',subjectName=physics?'物理':'数学';
   const courseFile=physics?'physics-course.html':'math-course.html',graphFile=physics?'physics-knowledge.html':'knowledge.html';
@@ -198,4 +199,6 @@
   addEventListener('storage',event=>{if(event.key===null||CLOUD_PHOTO_KEY(event.key)){for(const n of chapter.nodes)syncPhoto(n.id,false);render();}});
   function CLOUD_PHOTO_KEY(key){return window.GrowingHandwriting.KEY.test(key);}
   render();
+ };
+ if(!window.GrowingStudentPages?.registerLegacy(startLegacy))startLegacy();
 })();

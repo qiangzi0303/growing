@@ -5,7 +5,7 @@
     return new Promise(resolve=>{
       const previous=document.activeElement,d=document.createElement('dialog'),id='grading-'+crypto.randomUUID();
       d.className='grading-progress';d.setAttribute('aria-labelledby',id);
-      d.innerHTML=`<h2 id="${id}">正在批改试卷</h2><p data-stage role="status" aria-live="polite">正在保存照片…</p><div class="grading-progress-meter"><progress max="100" aria-label="试卷批改完成比例"></progress><strong data-percent></strong></div><p data-count></p><p data-error role="alert" hidden></p><div class="actions"><button type="button" data-retry hidden>重试</button><button type="button" data-close>暂存并关闭</button></div>`;
+      d.innerHTML=`<h2 id="${id}">正在批改试卷</h2><p data-stage role="status" aria-live="polite">正在保存照片…</p><div class="grading-progress-meter"><progress max="100" aria-label="试卷批改完成比例"></progress><strong data-percent></strong></div><p data-count></p><p data-error role="alert" hidden></p><div class="actions"><button type="button" data-retry hidden>重试</button><button type="button" data-close aria-label="暂存并关闭" title="暂存并关闭" style="width:44px;height:44px;padding:0;font-size:28px;line-height:1;flex:0 0 44px">×</button></div>`;
       const $=s=>d.querySelector(s),bar=$('progress');
       let closed=false,running=false,pollTimer=null,pollController=null,stepController=null,stepTimer=null;
       const current=()=>!closed&&alive();
@@ -22,7 +22,7 @@
         $('[data-percent]').textContent=known?value.progressPercent+'%':'';
         $('[data-stage]').textContent=done?'批改完成':value.status==='planning'?'正在清点试卷题目…':'第 '+(value.next?.number||'?')+' 题 · '+(window.GrowingQuestionFigures?.importStage(value.next)||'批改作答');
         $('[data-count]').textContent=!known?'已清点 '+value.plannedPages+' / '+value.pageCount+' 页':'已完成 '+value.completedQuestions+' / '+value.totalQuestions+' 题';
-        if(done){$('[data-close]').textContent='查看批改';$('[data-retry]').hidden=true;}
+        if(done){$('[data-close]').setAttribute('aria-label','查看批改');$('[data-close]').title='查看批改';$('[data-retry]').hidden=true;}
       }
       const path=()=>'/question-bank/import-jobs/'+job.id;
       const query='?'+new URLSearchParams({studentId});

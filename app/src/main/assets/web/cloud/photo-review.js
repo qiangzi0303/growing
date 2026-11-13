@@ -162,3 +162,22 @@
     return {open,close,sync,dispose,addPhotos,async refresh(){papers.clear();if(current&&!host.hidden)await open(current);}};
   }};
 })();
+
+/* Callers migrating to Vue opt into this adapter; the existing renderer remains an explicit fallback. */
+(()=>{
+ 'use strict';
+ const review=window.GrowingPhotoReview;
+ review.createLegacy=review.create;
+ review.createVue=function(root,api,esc,alive,studentId,onChange=async()=>{},figures={dispose(){}}){
+  if(!window.GrowingStudentPhotoReview||!window.GrowingVantHome?.mountStudent)throw Error('新版逐题批改资源尚未加载，请重新打开页面');
+  const host=root.querySelector('[data-workbench]')||root.appendChild(window.document.createElement('section'));
+  host.dataset.workbench='';host.id||='photo-review-vue-'+review.uuid();let disposed=false;
+  const active=()=>{if(disposed||!root.isConnected||!alive())throw Error('学习账号或页面已变更，请重新打开题目');};
+  const trigger=q=>q&&[...root.querySelectorAll('[data-review-open]')].find(button=>button.dataset.reviewOpen===q.id);
+  const controller=window.GrowingStudentPhotoReview.create({api,studentId,active,onChange,inline:q=>!!trigger(q)});
+  const app=window.GrowingVantHome.mountStudent(host,'photo-review',{controller});
+  function sync(){if(disposed)return;const m=controller.snapshot();host.hidden=!m.visible;host.dataset.anchorQuestion=m.question?.id||'';for(const button of root.querySelectorAll('[data-review-open]')){const expanded=m.visible&&button.dataset.reviewOpen===m.question?.id;button.textContent=expanded?'×':button.dataset.reviewLabel||'此题批改';button.setAttribute('aria-expanded',String(expanded));button.setAttribute('aria-controls',host.id);button.setAttribute('aria-label',expanded?'关闭本题批改':button.dataset.reviewLabel||'此题批改');button.disabled=m.busy||m.importing;}for(const input of root.querySelectorAll('[data-review-camera]'))input.disabled=m.busy||m.importing;}
+  const unsubscribe=controller.subscribe(sync);sync();
+  return {controller,async open(q){active();const card=trigger(q)?.closest('.bank-question,.question');if(card)card.after(host);await controller.open(q);sync();},close(){controller.close();sync();},sync,addPhotos:(id,files)=>controller.addPhotos(id,files),refresh:()=>controller.refresh(),beforeLeave:()=>controller.beforeLeave(),dispose(){if(disposed)return;controller.beforeLeave();controller.dispose();unsubscribe();app.destroy();figures.dispose?.();host.replaceChildren();host.hidden=true;disposed=true;}};
+ };
+})();

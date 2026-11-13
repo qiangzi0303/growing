@@ -1,0 +1,215 @@
+/* Shared learning workspace. Diagram, canvas and assessment colours stay local. */
+:root {
+  color-scheme: light;
+  --ui-ground: #f5f7f5;
+  --ui-surface: #ffffff;
+  --ui-soft: #eef2ef;
+  --ui-ink: #25332c;
+  --ui-muted: #5e6b63;
+  --ui-line: #e0e6e1;
+  --ui-control: #b8c5bc;
+  --ui-accent: #38694f;
+  --course-bg: var(--ui-ground);
+  --course-paper: var(--ui-surface);
+  --course-soft: var(--ui-soft);
+  --course-ink: var(--ui-ink);
+  --course-green: var(--ui-accent);
+  --course-border: var(--ui-line);
+  --course-muted: var(--ui-muted);
+  --ink: var(--ui-ink); --muted: var(--ui-muted); --line: var(--ui-line);
+  --green: var(--ui-accent); --accent: var(--ui-accent);
+  --paper: var(--ui-surface); --bg: var(--ui-ground);
+  --soft: var(--ui-soft); --tint: #f7f9f7;
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  font-synthesis: none;
+  font-variant-numeric: tabular-nums;
+  background: var(--ui-ground);
+  color: var(--ui-ink);
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  background: var(--ui-ground);
+  color: var(--ui-ink);
+  font-family: inherit;
+  line-height: 1.7;
+}
+:is(button, input, select, textarea) { font-family: inherit; }
+:is(h1, h2, h3) { letter-spacing: 0; text-wrap: pretty; }
+h1 { font-size: 26px; line-height: 1.4; font-weight: 600; }
+h2 { font-size: 20px; line-height: 1.5; font-weight: 600; }
+:is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--ui-accent); outline-offset: 3px;
+}
+:is(button, .btn, .button) { border-radius: 8px; box-shadow: none; touch-action: manipulation; }
+button:disabled { cursor: default; }
+:is(input, textarea, select):not([type=range]):not([type=checkbox]):not([type=radio]) {
+  border-color: var(--ui-control); border-radius: 8px;
+}
+:is(.eyebrow, .subject-en, .unit-label) { letter-spacing: .04em; font-size: 12px; color: var(--ui-muted); }
+:is(.muted, .source-note, .catalog-footnote, .pending-description) { color: var(--ui-muted); }
+.back-link { color: var(--ui-muted); }
+.lesson-list .section-label, .lesson-list small, .progress-ring span, .source-note { font-size: 12px; }
+.lesson-list .section-label, .lesson-list small { color: var(--ui-muted); }
+.list-title > span, .quiz-heading > span, .scene-meta, #word-list button span { font-size: 12px; }
+.scene-meta { color: var(--ui-muted); letter-spacing: 0; }
+:is(.metric, .stat strong, .overview-number, .progress-ring strong, .unit-progress, td) { font-variant-numeric: tabular-nums; }
+:is(.panel, .lesson-panel, .course-tool-panel, .word-card, .lesson-tile, .unit-list,
+    .paper-entry, .outline, .knowledge-entry, .textbook-card, .papers-card) {
+  background: var(--ui-surface); border-color: var(--ui-line); border-radius: 12px; box-shadow: none;
+}
+:is(.topbar, .study-toolbar, .study-tools, .app-header) {
+  background: var(--ui-ground); border-color: var(--ui-line); box-shadow: none;
+}
+:is(.brand, .mini-brand, .home-link) { letter-spacing: 0; }
+:is(.catalog-shell, .shell, .workspace) { min-width: 0; }
+.catalog-shell { width: min(100%, 1160px); padding: 28px 30px 48px; }
+.catalog-heading { margin: 28px 0 24px; }
+.catalog-heading h1 { font-size: 26px; letter-spacing: 0; }
+.catalog-heading h1 span { color: var(--ui-muted); letter-spacing: 0; }
+.subject-stamp { background: none; transform: none; border-radius: 0; font-size: 36px; width: 56px; height: 56px; }
+.term-switch { background: var(--ui-soft); border-color: var(--ui-line); border-radius: 10px; padding: 4px; }
+.term-switch a { color: var(--ui-muted); border-radius: 7px; }
+.term-switch a[aria-current] { background: #fff; color: var(--ui-ink); box-shadow: none; }
+:is(.resources-link, .paper-entry a, .english-animation-button, .study-tools a) {
+  background: #fff; color: var(--ui-ink); border-color: var(--ui-control); border-radius: 8px;
+}
+.unit-list li + li { border-color: var(--ui-line); }
+.unit-row { min-height: 92px; padding: 20px 24px; gap: 20px; }
+.unit-number, .is-ready .unit-number { background: none; color: var(--ui-muted); border-radius: 0; font-size: 23px; font-weight: 400; font-family: inherit; }
+.is-ready { background: #fff; }
+.unit-copy h3 { color: var(--ui-ink); font-size: 17px; }
+:is(.unit-copy p, .paper-entry p, .list-heading p, .list-heading h2 span, .unit-state) { color: var(--ui-muted); }
+.unit-copy p, .paper-entry p { font-size: 13px; }
+.unit-state { background: var(--ui-soft); font-size: 12px; }
+.knowledge-entry { background: var(--ui-soft); }
+.knowledge-entry p { color: var(--ui-muted); font-size: 13px; }
+.knowledge-actions a, .knowledge-link { font-size: 14px; }
+.home { max-width: 1160px; padding: 64px 30px; justify-content: center; }
+.home > .welcome { text-align: left; display: grid; grid-template-columns: 64px 1fr; column-gap: 18px; margin: 0 0 40px; align-items: center; }
+.brand-mark { width: 64px; height: 64px; margin: 0; grid-row: 1 / 3; }
+.home > .welcome h1 { margin: 0; padding: 0; font-size: 26px; letter-spacing: 0; }
+.home > .welcome p { margin: 0; font-size: 14px; letter-spacing: 0; color: var(--ui-muted); }
+.subjects { gap: 20px; }
+.subject-card, .subject-card.english, .subject-card.physics {
+  background: #fff; color: var(--ui-ink); border: 1px solid var(--ui-line);
+  border-radius: 12px; min-height: 244px; padding: 28px; box-shadow: none;
+  transition: border-color .15s, background-color .15s;
+}
+.subject-card:hover { transform: none; background: #fafcfb; border-color: var(--ui-accent); box-shadow: none; }
+.subject-card:active { transform: none; }
+.subject-icon { background: none; border-radius: 0; color: var(--ui-accent); width: 44px; height: 44px; margin-bottom: 24px; }
+.subject-icon svg { width: 40px; height: 40px; }
+.subject-icon.letters { font-size: 32px; }
+.subject-copy h2 { font-size: 24px; letter-spacing: 0; margin: 4px 0 8px; color: var(--ui-ink); }
+.subject-copy p, .math .subject-copy p { color: var(--ui-muted); font-size: 14px; }
+.subject-en { opacity: 1; }
+.enter { border-color: var(--ui-line); font-size: 14px; }
+.course-heading h1, .unit-header h1, .intro h1 { font-size: 26px; }
+.hero { background: none; border-color: var(--ui-line); }
+.hero h1 { font-size: 28px; letter-spacing: 0; }
+.hero-mark { background: var(--ui-soft); border-radius: 12px; }
+.lesson-list button { border-radius: 8px; }
+.lesson-list button[aria-current] { box-shadow: none; }
+.lesson-tabs button[aria-current], .course-tools-nav button[aria-current], .course-account-nav button[aria-current] {
+  background: var(--ui-ink); color: #fff; border-color: var(--ui-ink);
+}
+.physics-lab-entry { background: var(--ui-soft); color: var(--ui-ink); border-color: var(--ui-line); }
+.physics-lab-entry span { color: var(--ui-muted); }
+.lesson-count { color: var(--ui-ink); font-size: 32px; }
+.topics button { font-family: inherit; }
+.topics button { color: var(--ui-muted); }
+.word-heading h2, .sentence #sentence, #quiz-answers button { font-family: inherit; }
+#word-list button[aria-current] { background: #fff; box-shadow: none; }
+.scene-card { background: #f1f5f1; border-color: var(--ui-line); border-radius: 12px; box-shadow: none; }
+.word-heading #meaning, .notice p, .notice h3, .quiz-link small { color: var(--ui-muted); font-size: 13px; }
+.quiz-link b { color: var(--ui-accent); }
+.sentence #translation, .word-navigation span, .motion-tools { font-size: 13px; }
+.word-heading h2 { letter-spacing: 0; }
+.list-title > span, .shell > footer { color: var(--ui-muted); }
+.shell > footer span { font-size: 12px; }
+.shell :is(button, select) { background-color: #fff; }
+.sheet { box-shadow: none; border-radius: 12px; border-color: var(--ui-line); }
+.paper { box-shadow: none; }
+.progress-ring { border-radius: 12px; }
+/* The companion keeps its model stage; only its conversation and settings change. */
+#course-duck-host { top: auto; padding: 0; margin: 0; width: max-content; height: max-content; max-height: none; overflow: visible; border: 0; border-radius: 0; background: transparent; }
+#course-duck-host .course-duck-launch { background: transparent; border: 0; box-shadow: none; padding: 0; }
+.companion-mode .conversation, .companion-mode #settings-dialog {
+  background: #fff; border: 1px solid var(--ui-line); border-radius: 12px; box-shadow: none;
+}
+.companion-mode .intro h1 { font-size: 26px; }
+.companion-mode .brand-mark { width: auto; height: auto; }
+.companion-mode .brand-sub { letter-spacing: .04em; font-size: 11px; }
+.companion-mode .message { font-size: 14px; line-height: 1.8; }
+.companion-mode :is(.conversation-foot, .voice-notice, .interim, .conversation-heading .eyebrow) { color: var(--ui-muted); font-size: 12px; }
+.companion-mode :is(button, select) { min-height: 44px; }
+/* Experiment stages retain their semantic colours and geometry. The surrounding UI is neutral. */
+html[data-ui-kind=lab] {
+  color-scheme: dark; --ui-ground: #141716; --ui-surface: #1e2320;
+  --ui-soft: #292f2b; --ui-ink: #eef2ef; --ui-muted: #b4c0b8;
+  --ui-line: #3a443d; --ui-control: #617267; --ui-accent: #a5d2b6;
+  --panel: var(--ui-surface);
+}
+[data-ui-kind=lab] :is(.top, .sidebar, .card, .side-note, .goals, .source, .wave-card, .stat, .conclusion) {
+  background: var(--ui-surface); border-color: var(--ui-line); color: var(--ui-ink); border-radius: 10px; box-shadow: none;
+}
+[data-ui-kind=lab] .top { background: var(--ui-ground); border-radius: 0; }
+[data-ui-kind=lab] button, [data-ui-kind=lab] select { background: var(--ui-soft); color: var(--ui-ink); border-color: var(--ui-control); }
+[data-ui-kind=lab] button:hover { background: #354139; }
+[data-ui-kind=lab] :is(.topics, .chapter-nav, .sidebar nav) button[aria-current] { background: #354139; border-color: #809c8a; color: #eef2ef; }
+[data-ui-kind=lab] :is(.topics small, .sidebar nav small, .topics b, .chapter-nav button span:first-child) { font-size: 12px; color: var(--ui-muted); }
+[data-ui-kind=lab] :is(.stat strong, .stat b) { color: var(--ui-ink); font-weight: 500; }
+[data-ui-kind=lab] :is(.scene-card, .stage) { border-radius: 12px; box-shadow: none; }
+[data-ui-kind=lab] .scene-card { background: #102b35; }
+[data-ui-kind=lab] .stage { background: #102b35; }
+[data-ui-kind=lab] .scene-head { font-size: 12px; letter-spacing: 0; color: var(--ui-muted); }
+[data-ui-kind=lab] .stat span { font-size: 12px; }
+[data-ui-kind=lab] .glass { background: #1e2320; backdrop-filter: none; box-shadow: none; border-color: var(--ui-line); }
+[data-ui-kind=lab] #app > nav,
+[data-ui-kind=lab] #app > div.panel-slide.bottom-0 { background: var(--ui-surface); }
+@media (max-width: 1100px) {
+  .catalog-shell { padding-inline: 24px; }
+}
+@media (max-width: 600px) {
+  h1, .course-heading h1, .intro h1, .catalog-heading h1, .hero h1 { font-size: 23px; }
+  .home { padding: 28px 18px 40px; }
+  .home > .welcome { grid-template-columns: 52px 1fr; column-gap: 14px; margin-bottom: 28px; }
+  .brand-mark { width: 52px; height: 52px; }
+  .home > .welcome h1 { font-size: 24px; }
+  .home > .welcome p { font-size: 13px; }
+  .subjects { grid-template-columns: 1fr; gap: 14px; }
+  .subject-card, .subject-card.english, .subject-card.physics {
+    min-height: 148px; grid-template-columns: 44px minmax(0, 1fr); gap: 14px 18px; padding: 20px;
+  }
+  .subject-icon { width: 44px; height: 44px; margin: 0; }
+  .subject-copy h2 { font-size: 22px; }
+  .subject-copy p, .math .subject-copy p { font-size: 13px; }
+  .subject-en { font-size: 11px; }
+  .catalog-shell { padding: 16px 18px 32px; }
+  .course-shell { padding: 18px; }
+  .course-return-nav { padding-inline: 18px; }
+  .hero:has(.hero-mark) { align-items: flex-start; }
+  .hero:has(.hero-mark) > div:first-child { min-width: 0; }
+  .hero-mark { display: none; }
+  .sidebar nav .center-lab-link { flex: 0 0 150px; max-width: 180px; min-height: 80px; }
+  .sidebar nav button { min-height: 80px; }
+  [data-ui-kind=lab] .layout { padding-inline: 18px; }
+  .catalog-heading { margin: 24px 0 20px; }
+  .unit-row { padding: 18px 14px; gap: 10px; }
+  .unit-number { flex-basis: 32px; }
+  .unit-copy h3 { font-size: 16px; }
+  .unit-copy p { font-size: 13px; }
+  .unit-label, .unit-state { font-size: 12px; }
+  .list-heading { flex-wrap: wrap; gap: 6px; }
+  .catalog-heading h1 span { display: block; margin: 6px 0 0; }
+  :is(button, .btn, .button, select) { min-height: 44px; }
+  .unit-row .unit-actions .unit-reward-trigger { min-height: 44px; font-size: 12px; padding: 8px; }
+  .lesson-tabs { overflow-x: auto; max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .subject-card, .unit-row { transition: none; }
+}
+@media print {
+  :root, body { background: #fff; color: #17212b; }
+  .paper { box-shadow: none; }
+}

@@ -1,0 +1,22 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+import {createRequire} from 'node:module';
+import {build} from 'vite';
+import vue from '@vitejs/plugin-vue';
+import {JSDOM} from 'jsdom';
+const require=createRequire(import.meta.url),base=new URL('../../app/src/main/assets/web/',import.meta.url),wait=()=>new Promise(r=>setTimeout(r,35));
+test('compiled Unit3 uses Vant and hides English and previous answers during all seven independent recalls',async()=>{
+ const component=fileURLToPath(new URL('../src/StudentUnit3Course.vue',import.meta.url));
+ const result=await build({configFile:false,logLevel:'silent',plugins:[vue(),{name:'unit3-test-entry',enforce:'pre',resolveId:id=>id.endsWith('unit3-test-entry')?'\0unit3-test-entry':null,load:id=>id==='\0unit3-test-entry'?`import {createApp} from 'vue';import Component from ${JSON.stringify(component)};export function mount(el,controller){const app=createApp(Component,{controller});app.mount(el);return app;}`:null}],build:{write:false,lib:{entry:'unit3-test-entry',name:'Unit3Test',fileName:'unit3-test',cssFileName:'unit3-test',formats:['iife']},minify:false},define:{'process.env.NODE_ENV':JSON.stringify('production')}});
+ const code=(Array.isArray(result)?result:[result]).flatMap(r=>r.output).find(r=>r.type==='chunk').code,dom=new JSDOM('<div id="root"></div>',{url:'https://learn.test/word-ops-unit3/index.html',runScripts:'dangerously',pretendToBeVisual:true}),w=dom.window;
+ w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
+ const html=await readFile(new URL('word-ops-unit3/index.html',base),'utf8'),scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];for(const i of [0,2,3,4,5,6,7])w.eval(scripts[i][1]);
+ for(const [name,file] of Object.entries({WordMasteryRules:'word-mastery-rules.js',GrowingRewards:'reward-engine.js',GrowingEnglishScore:'english-score.js'}))w[name]=require('../../app/src/main/assets/web/app-design/'+file);
+ w.UnitRewards={register(){},update(){}};w.GrowingCourseSpeech={create:()=>({play(){},stop(){}})};w.GrowingCourseAI={request:async()=>JSON.stringify({meaningPassed:true,posPassed:true,feedback:'准确',errors:[]}),info:()=>({configured:false})};w.SentenceDemo={units:{'english-8a-03':{topics:[]}}};
+ w.eval(await readFile(new URL('app-design/student-unit3-course.js',base),'utf8'));w.eval(code);const c=w.GrowingStudentUnit3Course.create({storage:w.localStorage}),app=w.Unit3Test.mount(w.document.querySelector('#root'),c);
+ try{await wait();assert.ok(w.document.querySelector('.word-tools .van-field'));assert.ok(w.document.querySelector('.word-tools .van-cell--clickable'));assert.equal(w.document.querySelectorAll('select').length,0);c.actions.word('w1');await wait();const start=[...w.document.querySelectorAll('button')].find(b=>b.textContent==='开始记忆');assert.ok(start);start.click();await wait();assert.match(w.document.querySelector('[data-word-phase=memorize]').textContent,/learner/);c.actions.finishMemory();await wait();for(let i=0;i<7;i++){const section=w.document.querySelector('[data-word-phase=recall]');assert.ok(section);assert.doesNotMatch(section.textContent,/learner/);const input=section.querySelector('input');assert.equal(input.value,'');input.value='learner';input.dispatchEvent(new w.Event('input',{bubbles:true}));section.querySelector('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await wait();}assert.ok(w.document.querySelector('[data-stage=plural]'));const plural=w.document.querySelector('[data-stage=plural] input');plural.value='learners';plural.dispatchEvent(new w.Event('input',{bubbles:true}));w.document.querySelector('[data-stage=plural] form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await wait();assert.ok(w.document.querySelector('[data-stage=oral] textarea'));assert.doesNotMatch(w.document.querySelector('[data-stage=oral]').textContent,/学习者/);
+  c.actions.open('study');await wait();assert.ok(w.document.querySelector('.van-calendar'));const close=w.document.querySelector('[aria-label="关闭学习日历"]');assert.ok(close.querySelector('.van-icon-cross'));assert.equal(close.textContent,'');close.click();await wait();assert.equal(c.snapshot().view,'library');c.actions.startQuiz('word','w1');await wait();assert.ok(w.document.querySelector('.van-radio-group')||w.document.querySelector('.van-field'));assert.match(w.document.body.textContent,/5题/);
+ }finally{app.unmount();w.close();}
+});

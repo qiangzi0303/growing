@@ -1,0 +1,26 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+import {build} from 'vite';
+import vue from '@vitejs/plugin-vue';
+import {JSDOM} from 'jsdom';
+test('compiled mathematics classroom uses Vant tabs, fields and uploader with controller events',async()=>{
+ const component=fileURLToPath(new URL('../src/StudentMathCourse.vue',import.meta.url));
+ const result=await build({configFile:false,logLevel:'silent',plugins:[vue(),{name:'math-class-test-entry',enforce:'pre',resolveId:id=>id.endsWith('math-class-test-entry')?'\0math-class-test-entry':null,load:id=>id==='\0math-class-test-entry'?`import {createApp} from 'vue';import Component from ${JSON.stringify(component)};export function mount(el,controller){return createApp(Component,{controller});}`:null}],build:{write:false,lib:{entry:'math-class-test-entry',name:'MathClassTest',formats:['iife']},minify:false},define:{'process.env.NODE_ENV':JSON.stringify('production')}});
+ const code=(Array.isArray(result)?result:[result]).flatMap(item=>item.output).find(item=>item.type==='chunk').code;
+ const dom=new JSDOM('<div id="root"></div>',{runScripts:'dangerously',pretendToBeVisual:true,url:'https://example.test'}),w=dom.window;w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});w.eval(code);
+ w.URL.createObjectURL=()=> 'blob:test-photo';w.URL.revokeObjectURL=()=>{};
+ let listener,destroyed=false,draft='',tab='',upload,choice,submissions=0;
+ const state={kind:'course',subject:'math',subjectName:'数学',chapter:{title:'全等三角形',nodes:[{id:'n1',title:'全等'}]},node:{title:'全等',steps:['对应边相等'],review:'全等关系'},selected:'n1',view:'home',tab:'learn',read:0,record:{self:[],attempts:[],draft:''},practice:{choices:{},completed:0,total:10,busy:false},questions:[{id:'q0',type:'choice',level:'basic',levelLabel:'基础题',prompt:'选择正确的条件',options:['条件一','条件二','条件三','条件四'],photos:[],history:[]},{id:'q1',type:'solution',level:'hard',levelLabel:'难题',prompt:'证明全等',photos:[],history:[],writingHref:'handwriting.html'}]};
+ const actions=new Proxy({tab:value=>{tab=value;state.tab=value;listener({...state});},draft:value=>draft=value,uploadPhoto:(id,file)=>upload={id,file},practiceChoice:(id,value)=>{choice={id,value};state.practice.choices[id]=value;listener({...state});},submitPractice:()=>submissions++}, {get:(target,key)=>target[key]||(()=>{})});
+ const controller={snapshot:()=>state,actions,subscribe:fn=>(listener=fn,()=>{}),destroy:()=>destroyed=true};
+ const app=w.MathClassTest.mount(null,controller);app.mount(w.document.querySelector('#root'));await new Promise(r=>setTimeout(r,30));
+ assert.equal(w.document.querySelectorAll('.lesson-tabs .van-button').length,3);assert.equal(w.document.querySelectorAll('select').length,0);
+ const recall=[...w.document.querySelectorAll('.lesson-tabs button')].find(el=>el.textContent.includes('闭卷复述'));recall.click();await new Promise(r=>setTimeout(r,30));assert.equal(tab,'recall');
+ const textarea=w.document.querySelector('textarea');textarea.value='这是我的解释';textarea.dispatchEvent(new w.Event('input',{bubbles:true}));assert.equal(draft,'这是我的解释');
+ actions.tab('practice');await new Promise(r=>setTimeout(r,30));assert.equal(w.document.querySelectorAll('input[type=file]').length,1);assert.equal(w.document.querySelectorAll('[role=radio]').length,4);assert.equal(w.document.querySelectorAll('[aria-checked=true]').length,0);assert.doesNotMatch(w.document.body.textContent,/基础题|难题|手写作答|重新批改/);w.document.querySelectorAll('[role=radio]')[2].click();await new Promise(r=>setTimeout(r,30));assert.deepEqual(choice,{id:'q0',value:2});assert.equal(w.document.querySelectorAll('[role=radio]')[2].getAttribute('aria-checked'),'true');
+ const submit=[...w.document.querySelectorAll('button')].find(el=>el.textContent.includes('统一提交答案'));assert.equal(submit.disabled,true);state.practice.completed=1;listener({...state});await new Promise(r=>setTimeout(r,30));assert.equal(submit.disabled,false);submit.click();assert.equal(submissions,1);
+ const input=w.document.querySelector('input[type=file]');const file=new w.File(['photo'],'answer.png',{type:'image/png'});Object.defineProperty(input,'files',{value:[file]});input.dispatchEvent(new w.Event('change',{bubbles:true}));await new Promise(r=>setTimeout(r,30));assert.equal(upload.id,'q1');assert.equal(upload.file,file);
+ state.view='calendar';state.metrics=[];state.calendar={day:'2026-11-12',days:['2026-11-12'],totals:{newCount:2,grades:3,practice:4,special:5,ms:65000},rows:[{id:'n1',title:'全等',reads:1,grades:3,best:9,practice:4,special:5,correct:6,total:7,ms:65000}],points:[],baseline:0,total:2,maximum:3};listener({...state});await new Promise(r=>setTimeout(r,40));const text=w.document.body.textContent;assert.match(text,/新增掌握 2 项/);assert.match(text,/应用练习 4 轮/);assert.match(text,/专项 5 题/);assert.match(text,/最高 9\/10/);assert.match(text,/答对 6\/7 题/);assert.match(text,/有效学习 1分5秒/);
+ app.unmount();assert.equal(destroyed,true);w.close();
+});

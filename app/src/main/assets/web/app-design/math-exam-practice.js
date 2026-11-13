@@ -1,4 +1,5 @@
 (()=>{
+const start=()=>{
 'use strict';
 const paper=window.GrowingParallelPaper,format=s=>GrowingMathFormat.html(s),$=s=>document.querySelector(s),key='growing-paper-draft-v1:'+paper.id;
 const empty=()=>({version:1,answers:{},writing:{},scores:{},submitted:false,startedAt:Date.now(),finishedAt:null});
@@ -155,4 +156,5 @@ function writer(n){
 $('#questions').addEventListener('click',e=>{const clicked=e.target.closest('[data-write],[data-finish]');if(!clicked)return;const n=clicked.dataset.write||clicked.dataset.finish,host=$('#writer-'+n),button=$('[data-write="'+n+'"]');host.hidden=clicked.hasAttribute('data-finish')||!host.hidden;button.setAttribute('aria-expanded',String(!host.hidden));button.textContent=host.hidden?'手写解答':'完成手写';if(host.hidden){renderAnswer(n);save();}else{writer(n);$('#answer-'+n).hidden=true;}});
 for(const q of paper.questions.filter(q=>q.type==='solution'))renderAnswer(q.n);
 window.addEventListener('pagehide',()=>{for(const job of [...aiJobs.values(),...handJobs.values()])job.abort();save();});document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});if(state.submitted)report();if(!blocked)status(state.updatedAt?'已恢复本设备草稿':'作答后自动保存到本设备');
+};if(!window.GrowingStudentPages?.registerLegacy(start))start();
 })();

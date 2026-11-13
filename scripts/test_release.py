@@ -17,7 +17,7 @@ class ReleaseTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=release.ROOT / '.nmai/tmp')
         self.addCleanup(self.temp.cleanup)
-        self.args = argparse.Namespace(check=False, offline=False, message=None, wait_minutes=1)
+        self.args = argparse.Namespace(check=False, offline=False, message=None, wait_minutes=1, skip_tests=False)
         with patch.object(release, 'ROOT', Path(self.temp.name)):
             self.r = release.Release(self.args)
         self.r.logs = Path(self.temp.name) / 'logs'
@@ -146,7 +146,7 @@ class ReleaseTests(unittest.TestCase):
             result = self.r.wait_run('android-release.yml', 'abc')
         self.assertEqual(result['id'], 43)
         self.assertIn(unittest.mock.call(release.BASE + '/actions/workflows/android-release.yml/dispatches',
-                                        'POST', {'ref': 'main'}),
+                                    'POST', {'ref': 'main', 'inputs': {'skip_tests': False}}),
                       request.call_args_list)
 
     def test_missing_web_ci_is_dispatched_only_once(self):

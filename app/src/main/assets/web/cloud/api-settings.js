@@ -16,7 +16,7 @@
     deviceButton.addEventListener('click',()=>{menu.open=false;window.GrowingNative.configureDevice();});
   }
   const dialog=document.createElement('dialog');dialog.id='api-settings-dialog';dialog.setAttribute('aria-labelledby','api-settings-title');
-  dialog.innerHTML='<div class="actions api-settings-heading"><h2 id="api-settings-title">AI 密钥设置</h2><button type="button" id="close-api-settings" autofocus>关闭</button></div><nav class="actions api-settings-tabs" aria-label="选择密钥设置"><button type="button" data-api-tab="deepseek">DeepSeek 密钥</button><button type="button" data-api-tab="voice">语音 Key</button></nav><div id="api-settings-content"></div>';
+  dialog.innerHTML='<div class="actions api-settings-heading"><h2 id="api-settings-title">AI 密钥设置</h2><button type="button" id="close-api-settings" aria-label="关闭" title="关闭" style="width:44px;height:44px;padding:0;font-size:28px;line-height:1;flex:0 0 44px" autofocus>×</button></div><nav class="actions api-settings-tabs" aria-label="选择密钥设置"><button type="button" data-api-tab="deepseek">DeepSeek 密钥</button><button type="button" data-api-tab="voice">语音 Key</button></nav><div id="api-settings-content"></div>';
   document.body.append(dialog);
   const content=dialog.querySelector('#api-settings-content');let loading,version=0;
   function load(){

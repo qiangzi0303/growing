@@ -1,4 +1,5 @@
 (()=>{
+ const startLegacy=()=>{
   'use strict';
   const M=window.GrowingMathLab,D=window.GrowingMath,$=id=>document.getElementById(id),esc=M.esc;
   const params=new URLSearchParams(location.search);
@@ -59,4 +60,6 @@
   document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();update();}});window.addEventListener('pagehide',stop);
   reduce.addEventListener('change',()=>{stop();update();});
   render();
+ };
+ if(!window.GrowingStudentPages?.registerLegacy(startLegacy))startLegacy();
 })();

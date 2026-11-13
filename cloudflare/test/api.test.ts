@@ -166,6 +166,10 @@ before(async () => {
   await db.batch(subjectMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
   const classificationMigration=await readFile(new URL('../migrations/0016_paper_classification.sql',import.meta.url),'utf8');
   await db.batch(classificationMigration.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
+  for(const migration of ['0017_paper_import_jobs.sql','0018_photo_question_type.sql']){
+    const sql=await readFile(new URL('../migrations/'+migration,import.meta.url),'utf8');
+    await db.batch(sql.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
+  }
 });
 after(async () => { await mf.dispose(); });
 
@@ -428,14 +432,18 @@ test('original paper review sends the actual image and returns cited errors with
     const sent=aiRequests.at(-1)!.data;
     assert.equal(sent.messages[1].content.filter((c:any)=>c.type==='image_url').length,1);
     assert.equal(sent.messages[1].content.find((c:any)=>c.type==='image_url').image_url.url,image);
-    assert.deepEqual(JSON.parse(sent.messages[1].content[0].text),{questionNumber:'22',prompt:input.prompt,answerSource:'本题固定参考原卷图片'});
+    const reviewContext=JSON.parse(sent.messages[1].content[0].text);
+    assert.equal(reviewContext.questionNumber,'22');assert.equal(reviewContext.prompt,input.prompt);
+    assert.equal(reviewContext.subject,'math');assert.equal(reviewContext.pageCount,1);
+    assert.match(reviewContext.answerSource,/只批改指定题号的原卷笔迹/);
+    assert.match(reviewContext.answerSource,/不得将照片批改当作当前学生的新成绩/);
     assert.match(sent.messages[0].content,/不能把教师批注当成学生原句/);
     assert.match(sent.messages[0].content,/每处错误必须.*引用图片/);
     assert.match(sent.messages[0].content,/逐小问独立判断/);
     assert.match(sent.messages[0].content,/不另写完整解答/);
     assert.match(sent.messages[0].content,/answerAnnotations/);
     const before=aiRequests.length;
-    for(const patch of [{pages:[]},{pages:[image,image]},{pages:['https://fake.test/image.png']},{questionNumber:''},{prompt:''},{reference:'旧核对摘要'},{studentId:student.user.id}])assert.equal((await call(path,'POST',{...input,...patch},student.token)).status,400);
+    for(const patch of [{pages:[]},{pages:Array(5).fill(image)},{pages:['https://fake.test/image.png']},{questionNumber:''},{prompt:''},{reference:'旧核对摘要'},{studentId:student.user.id}])assert.equal((await call(path,'POST',{...input,...patch},student.token)).status,400);
     assert.equal(aiRequests.length,before);
     for(const patch of [{solution:'多余的完整解答'},{verdict:'invented'},{needsReview:true},{answerAnnotations:[{...original.answerAnnotations[0],page:2}]},{answerAnnotations:[{...original.answerAnnotations[0],x:.9}]},{feedback:''},{corrections:[{location:'第2步',issue:'错误',correction:'改正'}]},{score:0}]){
       originalReview={...original,...patch};assert.equal((await call(path,'POST',input,student.token)).status,502);

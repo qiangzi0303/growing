@@ -1,8 +1,8 @@
 import {RealtimeConnection} from './realtime-client.js';
 import {LessonSession} from './lesson-session.js';
-import {navigationIntent,openDestination} from './navigation.js';
-import {visibilityIntent} from './companion-actions.js';
-const $=selector=>document.querySelector(selector),params=new URLSearchParams(location.search),lesson=new LessonSession();
+import {navigationIntent,openDestination} from './navigation.js?studentUi=20261112-vant-style-4';
+import {visibilityIntent} from './companion-actions.js?studentUi=20261112-vant-style-4';
+const $=selector=>window.GrowingStudentDuckControls?.node(selector)||document.querySelector(selector),params=new URLSearchParams(location.search),lesson=new LessonSession();
 document.body.classList.add('realtime-mode');if(params.get('embed')==='1')document.body.classList.add('embedded-mode');
 const labels={idle:'安静陪伴',listen:'认真倾听',think:'正在想一想',speak:'小鸭正在说',celebrate:'完成这一段'};
 let state='idle',starting=false,preparingTeach=false,preparation=0,pendingKind='answer',turn=null,version=0,awaitingContinuation=false;
@@ -10,6 +10,7 @@ let currentSummary=null,summaryAttempt=0,summaryTimer;
 const notice=text=>{$('#voice-notice').textContent=text;};
 const add=(role,text)=>{const node=document.createElement('div');node.className='message '+role;node.textContent=text;$('#messages').append(node);$('#messages').scrollTop=$('#messages').scrollHeight;return node;};
 function update(){
+  if(window.GrowingStudentDuckControls?.active===false)return;
   const progress=lesson.snapshot();$('#lesson-title').textContent=progress.title||'从课程页面打开小鸭，即可同步当前知识点';
   $('#lesson-progress').textContent=progress.total?(Math.min(progress.index+1,progress.total)+' / '+progress.total+' 段 · '+({idle:'待开始',teaching:'正在讲解',paused:'已暂停',question:'答疑中',between:'本段结束',finished:'本节讲解结束'}[progress.phase]||'')):(progress.mode==='exam'?'测验中 · 仅澄清题意':'尚未选择课程');
   $('#lesson-start').disabled=starting||preparingTeach||!progress.total||progress.mode==='exam';$('#lesson-start').textContent=['paused','question'].includes(progress.phase)?'从本段继续':progress.phase==='between'?'讲下一段':progress.phase==='finished'?'重新讲解':'开始讲解';
@@ -45,7 +46,7 @@ function handleNavigation(text){
   if(intent.type==='choose'){
     navigationChoices=intent.choices;
     const list=document.createElement('div');list.className='duck-navigation-options';list.setAttribute('aria-label','选择要打开的知识点');
-    intent.choices.forEach((d,i)=>{const button=document.createElement('button');button.type='button';button.textContent=(i+1)+'. '+d.unitTitle+' · '+d.title;button.addEventListener('click',()=>navigateCourse(d));list.append(button);});
+    intent.choices.forEach((d,i)=>{const button=window.GrowingStudentDuckControls?.wrap(document.createElement('button'))||document.createElement('button');button.type='button';button.textContent=(i+1)+'. '+d.unitTitle+' · '+d.title;button.addEventListener('click',()=>navigateCourse(d));list.append(window.GrowingStudentDuckControls?.unwrap(button)||button);});
     $('#messages').append(list);$('#messages').scrollTop=$('#messages').scrollHeight;
   }
   return true;

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html data-ui-kind="learning" lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,12 +9,13 @@
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="../course-ai.css">
   <link rel="stylesheet" href="./companion.css">
+  <link rel="stylesheet" href="../learning-ui.css?v=workspace-20261111">
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
 <body class="companion-mode">
   <main class="studio">
     <header class="header">
-      <a class="brand" href="../units.html" aria-label="返回课程目录"><span class="brand-mark">d.</span><span>学习伙伴<span class="brand-sub">CHARACTER STUDIO</span></span></a>
+      <a class="brand" href="../units.html?studentUi=20261112-vant-3" aria-label="返回课程目录"><span class="brand-mark">d.</span><span>学习伙伴<span class="brand-sub">CHARACTER STUDIO</span></span></a>
       <button class="settings-toggle" id="open-settings">连接设置</button>
     </header>
     <section class="intro"><div class="eyebrow">YOUR STUDY COMPANION</div><h1>小鸭在这里<span>。</span></h1><p id="connection-summary">可以打字聊天，也可以开启语音。</p></section>
@@ -88,8 +89,9 @@
     </form>
     <p class="settings-note">对话仅保留在本页，关闭页面后不保存。语音开启时会发送声音至所选识别服务；设备识别也可能使用浏览器厂商的在线服务。使用耳机有助于减少回声误触发。</p>
   </dialog>
+  <script src="../student-duck-controls.js?studentUi=20261113-partial-practice-1"></script>
   <script src="../course-ai.js"></script>
-  <script type="module" src="./duck.js"></script>
-  <script type="module" src="./bootstrap.js"></script>
+  <script type="module" src="./duck.js?studentUi=20261113-partial-practice-1"></script>
+  <script type="module" src="./bootstrap.js?studentUi=20261113-partial-practice-1"></script>
 </body>
 </html>

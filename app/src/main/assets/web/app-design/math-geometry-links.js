@@ -24,5 +24,5 @@ function markup(q){
  const models=geometryModels[q.id];if(!models)return '';
  return `<section class="wrong-models" aria-label="对应几何模型"><h4>对应几何模型</h4><ul>${models.map(([id,title,note])=>`<li><a data-geometry-model="${id}" href="geometry-models.html#model-${id}">${id}号 · ${esc(title)} →</a><p>${esc(note)}</p></li>`).join('')}</ul></section>`;
 }
-window.GrowingGeometryLinks={markup};
+window.GrowingGeometryLinks={markup,models:q=>(geometryModels[q.id]||[]).map(([id,title,note])=>({id,title,note,href:'geometry-models.html#model-'+id}))};
 })();

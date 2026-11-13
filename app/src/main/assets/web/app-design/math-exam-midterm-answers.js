@@ -1,5 +1,6 @@
 /* Reviewed wrong-question flags and photographed student work, never model answers. */
 (()=>{
+ const startLegacy=()=>{
   'use strict';
   const questions=new Map(GrowingMidterm.questions.map(q=>[String(q.number),q]));
   const jobs=new Set();
@@ -81,7 +82,7 @@
   window.addEventListener('pagehide',()=>{for(const job of jobs)job.abort();});
   const dialog=document.createElement('dialog');
   dialog.className='student-answer-dialog';
-  dialog.innerHTML='<header><h2 id="student-answer-title"></h2><button type="button">关闭</button></header><div class="student-answer-content"></div>';
+  dialog.innerHTML='<header><h2 id="student-answer-title"></h2><button type="button" aria-label="关闭" title="关闭" style="width:44px;height:44px;padding:0;font-size:28px;line-height:1;flex:0 0 44px">×</button></header><div class="student-answer-content"></div>';
   dialog.setAttribute('aria-labelledby','student-answer-title');
   document.body.append(dialog);
   const close=dialog.querySelector('button');
@@ -104,4 +105,6 @@
     section.prepend(button);
     if(q.priority)addExplanation(section,q);
   });
+ };
+ if(!window.GrowingStudentPages?.registerLegacy(startLegacy))startLegacy();
 })();

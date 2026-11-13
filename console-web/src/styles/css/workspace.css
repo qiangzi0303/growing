@@ -1,0 +1,52 @@
+/* One quiet frame for family records, reports and administration. */
+html {
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  font-synthesis: none;
+  font-variant-numeric: tabular-nums;
+}
+html:not(.dark) {
+  --layout-bg-color: 245, 247, 245;
+  --base-text-color: 37, 51, 44;
+  --header-box-shadow: none;
+  --sider-box-shadow: none;
+  --tab-box-shadow: none;
+}
+.console-page, .account-settings { max-width: 1200px; margin-inline: auto; padding-block: 8px 24px; }
+.console-page > header { padding-bottom: 16px; border-bottom: 1px solid #e0e6e1; }
+.console-page h1, .account-settings h1 { font-size: 24px; font-weight: 600; line-height: 1.4; }
+.account-settings > h1 + p { color: #5e6b63; }
+#app .console-page .overview-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+#app .console-page .overview-number { color: inherit; font-size: 28px; font-weight: 400; }
+.console-page .n-card, .account-settings .n-card { border-radius: 12px; box-shadow: none; }
+.console-page .n-card-header { font-size: 15px; font-weight: 500; }
+.console-page .overview-grid .n-card { background: #eef2ef; border-color: transparent; }
+.console-page .n-card__content, .account-settings .n-card__content { line-height: 1.8; }
+.console-page .n-data-table-th { background: #fff; font-weight: 500; }
+.console-page .n-data-table-td { padding-block: 14px; }
+.console-page :is(.overview-links, .actions) { gap: 10px; }
+.console-page .n-button, .account-settings .n-button { border-radius: 8px; }
+.console-page .n-button:not(.n-button--text-type), .account-settings .n-button:not(.n-button--text-type) { min-height: 40px; }
+.n-menu .n-menu-item-content--selected::before { background-color: #e8eeea; }
+.n-menu .n-menu-item-content--selected .n-menu-item-content-header,
+.n-menu .n-menu-item-content--selected .n-menu-item-content__icon { color: #25332c; }
+.n-card:has(form) { border-radius: 12px; box-shadow: none; }
+.n-card:has(form) .n-card-header { font-size: 22px; font-weight: 600; padding-top: 28px; }
+.n-card:has(form) .n-card__content { padding-bottom: 28px; }
+html.dark .console-page .overview-grid .n-card { background: #262c28; }
+html.dark .console-page > header { border-color: #3a443d; }
+html.dark .console-page .n-data-table-th { background: #202622; }
+html.dark .n-menu .n-menu-item-content--selected::before { background: #354139; }
+html.dark .n-menu .n-menu-item-content--selected .n-menu-item-content-header,
+html.dark .n-menu .n-menu-item-content--selected .n-menu-item-content__icon { color: #eef2ef; }
+@media (max-width: 1000px) {
+  #app .console-page .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .console-page, .account-settings { padding-top: 0; padding-bottom: 20px; }
+  .console-page h1, .account-settings h1 { font-size: 22px; }
+  #app .console-page .overview-grid { gap: 12px; }
+  #app .console-page .overview-number { font-size: 25px; }
+  .console-page .n-button:not(.n-button--text-type), .account-settings .n-button:not(.n-button--text-type) { min-height: 44px; }
+  .console-page .n-card > .n-card-header { padding: 18px 18px 12px; }
+  .console-page .n-card > .n-card__content { padding-inline: 18px; }
+}

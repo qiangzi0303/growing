@@ -2,7 +2,7 @@ const params=new URLSearchParams(location.search);
 let realtime=params.get('realtime')==='1';
 if(!params.has('legacy')&&!realtime){try{realtime=(await (await fetch('./api/health')).json()).realtimeConfigured===true;}catch{}}
 try {
-  if(realtime)await import('./classroom.js');else await import('./companion.js');
+  if(realtime)await import('./classroom.js?studentUi=20261112-vant-style-4');else await import('./companion.js?studentUi=20261112-vant-style-4');
 } catch(error) {
   console.error('Duck initialization failed:',error);
   const notice=document.querySelector('#voice-notice');

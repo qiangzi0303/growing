@@ -6,10 +6,13 @@ const rules=Object.fromEntries(Object.entries(context.window.GrowingEnglishVocab
   wordCount:words.length,words:words.filter(w=>!w.optional).map(w=>wordRules.describe(w)),lessons:(context.window.GrowingEnglishLessons[number]||[]).map(l=>({id:l.id,answers:l.questions.map(q=>q.answer)}))
 }]));
 const legacy=vm.createContext({window:{}}),fraction=fs.readFileSync(path.join(root,'app/src/main/assets/web/fraction-ops/分式作战_一分钟学习版.html'),'utf8');
-const fractionScript=[...fraction.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)][0][1];
+const fractionScript=[...fraction.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(match=>match[1]).find(script=>script.includes('window.MINUTE_DATA='));
+if(!fractionScript)throw Error('Fraction course data script was not found');
 vm.runInContext(fractionScript.slice(0,fractionScript.indexOf('window.MINUTE_LESSONS')),legacy);
 const wordHtml=fs.readFileSync(path.join(root,'app/src/main/assets/web/word-ops-unit3/index.html'),'utf8');
-vm.runInContext([...wordHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)][0][1],legacy);
+const wordScript=[...wordHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(match=>match[1]).find(script=>/window\.UNIT3\s*=/.test(script));
+if(!wordScript)throw Error('Unit 3 course data script was not found');
+vm.runInContext(wordScript,legacy);
 const unit=legacy.window.UNIT3;
 const sentenceData=require(path.join(web,'english-sentence-data.js'));
 const sentenceRules=Object.fromEntries(Object.values(sentenceData.units).map(u=>[u.id,u.topics.flatMap(t=>t.sentences.map(({id,en})=>({id,en})))]));

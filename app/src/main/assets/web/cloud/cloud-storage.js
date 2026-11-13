@@ -21,6 +21,8 @@
     if(link.hasAttribute('data-growing-back')&&cloud.back){event.preventDefault();cloud.back();return;}
     const url=new URL(link.href,location.href);
     if(url.origin!==location.origin||!url.pathname.startsWith('/learn/')||url.pathname===location.pathname&&url.search===location.search&&url.hash)return;
+    // The mounted catalog updates its term in place after this capture phase.
+    if(url.pathname===location.pathname&&link.closest('[data-student-vue="catalog"] .term-switch'))return;
     if(cloud.navigate){event.preventDefault();cloud.navigate(url.href);}
     else if(link.target==='_top')link.target='_self';
   },true);

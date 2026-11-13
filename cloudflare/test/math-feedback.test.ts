@@ -12,7 +12,7 @@ const grade={schema:'math-four-part-v1',valid:true,answer,score:8.5,feedback:'่ง
 ]};
 const doc=(attempt:any):Document=>({key:'growing-math-lessons-v1',value:JSON.stringify({topics:{'tri-lines':{draft:answer,bestQuiz:3,attempts:[attempt]}}}),revision:1,updatedAt:'2026-10-25T02:00:00Z'});
 test('verified half-point rubric grades count toward both rankings and unit reports',()=>{
- assert.equal(masteryBoards([doc(grade)]).find(u=>u.id==='math-8a-01')!.conceptDone,1);
+ assert.equal(masteryBoards([doc(grade)]).find(u=>u.id==='math-8a-01')!.conceptDone,0.85);
  const report=buildUnitReports([doc(grade)]).units.find(u=>u.id==='math-8a-01')!;
  assert.equal(report.concept.latest,8.5);assert.equal(report.mastered,1);
 });

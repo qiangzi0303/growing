@@ -1,7 +1,7 @@
 import {streamReply} from './ai-client.js';
 import {Speaker,Microphone,usesCloudTTS,preferredVoice} from './voice-engine.js';
 
-const $=s=>document.querySelector(s);
+const $=s=>window.GrowingStudentDuckControls?.node(s)||document.querySelector(s);
 const defaults={engine:'browser',ttsEngine:'auto',speakingStyle:'warm',speechRate:'1',ttsInstructions:'',language:'zh-CN',browserVoice:'',silence:'2500',asrBase:'',asrModel:'',ttsBase:'',ttsModel:'',ttsVoice:''};
 let config={...defaults,asrKey:'',ttsKey:''};
 try{const stored=JSON.parse(localStorage.getItem('duck-voice-prefs-v1')||'{}');for(const key of Object.keys(defaults))if(typeof stored[key]==='string')config[key]=stored[key];}catch{}

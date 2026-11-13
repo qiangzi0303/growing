@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html data-ui-kind="lab" lang="zh-CN">
+<head><script src="student-pages.js?v=3&studentUi=20261113-partial-practice-1"></script>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#081923"><title>声现象 · 可以听见的物理实验室</title><link rel="icon" href="data:,">
 <script async src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" onload="window.dispatchEvent(new Event('three-ready'))"></script>
@@ -10,10 +10,10 @@
 #speed-comparison[hidden],#propagation-markers[hidden],#speed-marker[hidden],#speed-status[hidden]{display:none}
 </style>
 <link rel="stylesheet" href="physics-lab-layout.css"><script src="physics-lab-layout.js" defer></script>
-  <script src="course-duck.js" defer></script>
-</head>
+  <script src="course-duck.js?studentUi=20261113-partial-practice-1" defer></script>
+<link rel="stylesheet" href="learning-ui.css?v=workspace-20261111"></head>
 <body>
-<header class="top"><div><p class="eyebrow">AETHERVIZ · SOUND LAB / 苏科版八上第1章</p><h1>声现象 · 听见振动</h1><p>用耳朵比较，用波形观察，用实验找到原因。</p></div><nav class="top-actions" aria-label="页面工具"><a href="physics-course.html?chapter=physics-8a-01&amp;v=shared-ai-1">← 回到本章微课</a><button id="reset">重置</button><button id="random">随机实验</button><button id="fullscreen">全屏</button><button id="about">关于</button></nav></header>
+<header class="top"><div><p class="eyebrow">AETHERVIZ · SOUND LAB / 苏科版八上第1章</p><h1>声现象 · 听见振动</h1><p>用耳朵比较，用波形观察，用实验找到原因。</p></div><nav class="top-actions" aria-label="页面工具"><a href="physics-course.html?chapter=physics-8a-01&amp%3Bv=shared-ai-1&studentUi=20261112-vant-3">← 回到本章微课</a><button id="reset">重置</button><button id="random">随机实验</button><button id="fullscreen">全屏</button><button id="about">关于</button></nav></header>
 <main class="layout"><aside class="sidebar" id="sidebar"><div class="nav-label"><span>本章的 8 个实验</span><button class="sidebar-toggle" id="sidebar-toggle" aria-expanded="true">收起目录</button></div><nav class="chapter-nav" id="chapter-nav" aria-label="切换声现象实验"></nav><section class="goals"><h3>这一次，我想弄懂</h3><label><input type="checkbox">声音为什么来自振动</label><label><input type="checkbox">响度、音调和音色怎样区分</label><label><input type="checkbox">怎样公平比较两个声音</label><label><input type="checkbox">声音怎样传播、怎样减弱</label></section></aside>
 <section class="lab" aria-labelledby="lab-title"><header class="lab-heading"><div><h2 id="lab-title"></h2><p id="lab-subtitle"></p></div><span class="tag" id="section-tag"></span></header>
 <div class="lab-workspace sound-workspace"><div class="lab-observation"><div class="stage"><div class="scene" id="scene"><svg class="fallback" viewBox="0 0 800 300" role="img" aria-label="声源振动和介质粒子往复运动的慢放示意"><defs><radialGradient id="speaker-fill"><stop stop-color="#72e5ea"/><stop offset="1" stop-color="#19546c"/></radialGradient></defs><path d="M20 250H780" stroke="#225165"/><g id="speaker-svg"><rect x="62" y="95" width="92" height="125" rx="18" fill="#183e50" stroke="#447e92"/><ellipse id="membrane" cx="110" cy="157" rx="28" ry="44" fill="url(#speaker-fill)" stroke="#8cf6f7"/></g><g id="particles-svg"></g><g id="listener-svg"><circle cx="650" cy="130" r="16" fill="#ffd38b"/><path d="M650 148V206M650 162L625 186M650 162L675 186M650 206L632 235M650 206L668 235" stroke="#ffd38b" stroke-width="6" fill="none" stroke-linecap="round"/></g><text x="110" y="268" fill="#afd9e5" text-anchor="middle" font-size="15">振动的声源</text><text id="listener-label" x="650" y="268" fill="#ffd38b" text-anchor="middle" font-size="15">听者</text></svg></div><div class="stage-top"><span id="scene-label">声源 → 介质 → 听者</span><span id="scene-renderer">交互示意</span></div><div class="stage-bottom"><button id="animation-toggle">暂停动画</button></div></div>
@@ -21,9 +21,11 @@
 <div class="stats" id="stats"></div></div><section class="card lab-parameters" aria-label="实验参数"><div class="card-head"><h3>动手调一调</h3><span>先预测，再试听</span></div><p class="experiment-tip" id="experiment-tip"></p><div id="controls"></div><div class="play-row"><button class="primary" id="listen">▶ 试听 6 秒</button><button id="compare">A/B 对比试听</button><button class="stop" id="stop">■ 停止声音</button></div><p class="audio-status" id="audio-status" role="status" aria-live="polite">尚未播放。点击试听后才会发声。</p><div class="control"><label for="volume">试听总音量 <output id="volume-value">40%</output></label><input type="range" id="volume" min="0" max="100" value="40" step="5"></div><p class="audio-note">先把设备音量调低，再按需增加。设备音量只影响试听，不作为实验变量；本页数值不是实际声压级测量。</p><div class="conclusion" id="conclusion"></div></section></div>
 <div class="bottom-grid"><section class="card quiz" id="quiz" aria-labelledby="quiz-title"><div class="card-head"><h3 id="quiz-title">想明白了吗？</h3><button class="hide" id="quiz-hide">隐藏 ✕</button></div><span class="quiz-counter" id="quiz-counter"></span><p class="question" id="quiz-question"></p><div class="quiz-choices" id="quiz-choices"></div><p class="quiz-feedback" id="quiz-feedback" role="status"></p></section></div><section class="explain"><h3>把听到的现象说清楚</h3><div id="explanation"></div></section>
 </section></main><button class="quiz-launch" id="quiz-launch" hidden aria-label="展开小测验">小测验<br>？</button><div class="toast" id="toast" role="status"></div><footer class="footer"><span>每一次认真比较，都会离规律更近一步。</span></footer>
-<dialog id="about-dialog"><h2>可以听见的物理</h2><p>本实验室用浏览器合成声音，将振幅、频率、音色与波形联系起来。合成音色是模型，不是实录乐器。</p><p>响度受到振幅、距离、频率及听觉等多种因素影响。距离实验采用理想自由声场的简化关系，真实教室中的反射、吸收和设备特性会影响结果。相对电平不是手机所在位置的实际分贝。</p><p>3D组件可用时支持拖动旋转、滚轮或双指缩放；离线或不支持3D时仍可使用图示与全部试听实验。本页不使用麦克风，也不上传声音。</p><button id="about-close">明白了</button></dialog>
+<dialog id="about-dialog"><h2>可以听见的物理</h2><p>本实验室用浏览器合成声音，将振幅、频率、音色与波形联系起来。合成音色是模型，不是实录乐器。</p><p>响度受到振幅、距离、频率及听觉等多种因素影响。距离实验采用理想自由声场的简化关系，真实教室中的反射、吸收和设备特性会影响结果。相对电平不是手机所在位置的实际分贝。</p><p>3D组件可用时支持拖动旋转、滚轮或双指缩放；离线或不支持3D时仍可使用图示与全部试听实验。本页不使用麦克风，也不上传声音。</p><button id="about-close" aria-label="关闭实验说明">×</button></dialog>
 <noscript>请启用JavaScript以运行交互实验和声音试听。</noscript>
 <script>
+(()=>{const startLegacy=()=>{
+
 (() => {
 'use strict';
 const $=id=>document.getElementById(id),clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -95,4 +97,6 @@ function animate(now){const dt=Math.min((now-previous)/1000,.05);previous=now;if
 const param=new URLSearchParams(location.search),nodeToMode={'phy-ultrasound':'hearing','phy-source':'source','phy-medium':'medium','phy-echo':'echo','phy-loudness':'loudness','phy-pitch':'pitch','phy-timbre':'timbre','phy-noise':'noise'};switchMode(param.get('experiment')||nodeToMode[param.get('node')]||'loudness',false);init3D();requestAnimationFrame(animate);
 window.SoundLab={model:(s,m)=>model(s||state,m||mode),makeSource,harmonicSample,get state(){return {...state};},get mode(){return mode;},get audio(){return audio;},get scene3D(){return three;}};
 })();
+
+};if(!window.GrowingStudentPages?.registerLegacy(startLegacy))startLegacy();})();
 </script></body></html>

@@ -19,10 +19,21 @@
   style('native-menu.css?v=unified-account-1');
   const bar=document.createElement('header');bar.className='native-account-bar';
   bar.innerHTML=`<details id="account-menu"><summary aria-label="设置" title="设置"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></summary><div class="account-menu-panel"><p id="account-identity"></p><button id="open-api-settings" type="button">DeepSeek 密钥设置</button><button id="open-voice-settings" type="button">语音 Key 设置</button><button id="my-rankings" type="button" aria-haspopup="dialog" aria-controls="native-rankings-dialog" hidden>我的排行榜</button><button id="logout" type="button">退出云账号</button><p id="native-account-status" role="status" aria-live="polite"></p></div></details><a class="native-account-brand" href="/assets/web/app-design/index.html"><img src="${new URL('vendor/brand/logo.webp',resources).href}" width="44" height="44" alt="">逆流</a>`;
-  bar.querySelector('#account-identity').textContent=profile.displayName;
+  bar.querySelector('#account-identity').textContent=profile.username||'当前账号';
   document.body.prepend(bar);
+  const calendarButton=document.createElement('button');calendarButton.type='button';calendarButton.textContent='学习日历';calendarButton.id='open-learning-calendar';
+  bar.querySelector('#my-rankings').after(calendarButton);
   const menu=bar.querySelector('#account-menu'),toggle=menu.querySelector('summary'),rankButton=bar.querySelector('#my-rankings'),status=bar.querySelector('#native-account-status');
   rankButton.hidden=profile.role!=='Student'||profile.roleSelectionRequired!==false;
+  calendarButton.hidden=profile.role!=='Student'||profile.roleSelectionRequired!==false;
+  calendarButton.addEventListener('click',async()=>{
+    status.textContent='';
+    try{
+      if(window.GrowingCourseAccount){menu.open=false;window.GrowingCourseAccount.open('calendar');return;}
+      if(!window.GrowingLearningCalendar)await script('../app-design/learning-calendar.js');
+      menu.open=false;await window.GrowingLearningCalendar.open(toggle);
+    }catch(error){status.textContent=error.message;menu.open=true;}
+  });
   document.addEventListener('click',event=>{if(!event.target.closest('#account-menu'))menu.open=false;});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&menu.open){menu.open=false;toggle.focus();}});
   const settings=script('api-settings.js?v=unified-account-1');
@@ -34,7 +45,7 @@
     menu.open=false;
     if(!dialog){
       style('rankings.css');dialog=document.createElement('dialog');dialog.id='native-rankings-dialog';dialog.className='native-account-dialog';dialog.setAttribute('aria-labelledby','native-rankings-title');
-      dialog.innerHTML='<div class="native-dialog-heading"><h2 id="native-rankings-title">我的排行榜</h2><button type="button" autofocus>关闭排行榜</button></div><section data-rankings-root></section>';
+      dialog.innerHTML='<div class="native-dialog-heading"><h2 id="native-rankings-title">我的排行榜</h2><button type="button" aria-label="关闭排行榜" title="关闭排行榜" style="width:44px;height:44px;padding:0;font-size:28px;line-height:1;flex:0 0 44px" autofocus>×</button></div><section data-rankings-root></section>';
       dialog.querySelector('button').addEventListener('click',()=>dialog.close());
       dialog.addEventListener('close',()=>{dialog.querySelector('[data-rankings-root]').replaceChildren();toggle.focus();});document.body.append(dialog);
     }

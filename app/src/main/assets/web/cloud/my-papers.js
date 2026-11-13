@@ -1,7 +1,7 @@
 /* Whole papers share the authenticated photo bank; original handwriting stays on the server. */
 (()=>{
   'use strict';
-  window.GrowingPapers={async mount(root,api,esc,alive,user,context={}){
+  window.GrowingPapers={async mountLegacy(root,api,esc,alive,user,context={}){
     context={...context};
     if(context.subject!==undefined&&!['math','english','physics'].includes(context.subject))throw Error('学科参数无效。');
     let subject=context.subject||'';
@@ -26,7 +26,7 @@
     const pause=document.createElement('button');pause.dataset.pauseImport='';pause.textContent='暂存并退出整理';pause.hidden=true;$('[data-status]').after(pause);
     function stopImport(){jobGeneration++;runningJob=false;pause.hidden=true;jobsHost.hidden=false;lock(false);message('进度已保存，可继续整理。');}
     pause.onclick=stopImport;
-    function jobCard(job){const action=job.mode==='grade'?'批改':'整理';return `<article class="papers-import-job"><strong>${esc(subjectName(job.subject))} · ${job.status==='failed'?action+'中断':'待继续'+action}</strong><p>已规划 ${job.plannedPages}/${job.pageCount} 页 · 已${action} ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题</p>${job.error?`<details class="papers-import-error"><summary>查看原因</summary><p>${esc(job.error)}</p></details>`:''}<button data-resume="${esc(job.id)}">${job.status==='failed'?'重试'+action:'继续'+action}</button></article>`;}
+    function jobCard(job){const action=job.mode==='grade'?'批改':'整理';return `<article class="papers-import-job" data-job-id="${esc(job.id)}" data-job-revision="${job.revision}" tabindex="0" aria-label="${esc(subjectName(job.subject))}待继续${action}，长按或按 Delete 删除"><strong>${esc(subjectName(job.subject))} · ${job.status==='failed'?action+'中断':'待继续'+action}</strong><p>已规划 ${job.plannedPages}/${job.pageCount} 页 · 已${action} ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题</p>${job.error?`<details class="papers-import-error"><summary>查看原因</summary><p>${esc(job.error)}</p></details>`:''}<button data-resume="${esc(job.id)}">${job.status==='failed'?'重试'+action:'继续'+action}</button></article>`;}
     async function runJob(initial){
       const student=studentId,selectedSubject=subject,generation=++jobGeneration;
       const current=()=>valid()&&generation===jobGeneration&&student===studentId&&selectedSubject===subject;
@@ -67,11 +67,44 @@
     function lock(value){busy=value;root.querySelectorAll('button,input,select,textarea').forEach(e=>{if(e.id==='question-bank-home')return;if(value){if(!disabledState.has(e))disabledState.set(e,e.disabled);e.disabled=true;}else if(disabledState.has(e))e.disabled=disabledState.get(e);});if(!value)disabledState.clear();$('[data-import]').disabled=value||!photos.length;}
     function modal(title,kind=''){
       const d=document.createElement('dialog');d.className='papers-modal '+kind;d.setAttribute('aria-label',title);
-      d.innerHTML=`<header class="actions"><h2>${esc(title)}</h2><button data-close>关闭</button></header><div data-body></div>`;
+      d.innerHTML=`<header class="actions"><h2>${esc(title)}</h2><button data-close aria-label="关闭" title="关闭" style="width:44px;height:44px;padding:0;font-size:28px;line-height:1;flex:0 0 44px">×</button></header><div data-body></div>`;
       const close=()=>{d.close();d.remove();dialogs.delete(d);};d.querySelector('[data-close]').onclick=close;
       d.addEventListener('cancel',e=>{e.preventDefault();close();});dialogs.add(d);document.body.append(d);d.showModal();return d;
     }
-    const observer=new MutationObserver(()=>{if(!root.isConnected||!alive()){closeReview();disposed=true;sequence++;dialogs.forEach(d=>{d.close();d.remove();});dialogs.clear();observer.disconnect();}});
+    function deleteJob(card,fromHold=false){
+      if(busy||!valid()||jobsHost.hidden||document.querySelector('.papers-delete-job'))return;
+      const student=studentId,selectedSubject=subject,id=card.dataset.jobId,revision=Number(card.dataset.jobRevision);
+      const current=()=>valid()&&student===studentId&&selectedSubject===subject;
+      const d=modal('删除待整理任务','papers-delete-job'),body=d.querySelector('[data-body]');
+      body.innerHTML='<p>删除这项未完成任务及其照片？已保存的试卷和作答不受影响。删除后无法继续此任务。</p><button data-delete-job>确认删除</button><p role="status" aria-live="polite"></p>';
+      // Releasing the held finger must not activate a dialog button underneath it.
+      let armed=!fromHold;const arm=()=>{armed=true;};d.addEventListener('pointerdown',arm,{once:true});d.addEventListener('keydown',arm,{once:true});
+      const closeButton=d.querySelector('[data-close]'),close=closeButton.onclick;closeButton.onclick=()=>{if(armed)close();};
+      body.querySelector('[data-delete-job]').onclick=async()=>{
+        if(!armed||!current()||busy)return;lock(true);body.querySelector('button').disabled=true;d.querySelector('[data-close]').disabled=true;
+        let removed=false;
+        try{
+          await api('/question-bank/import-jobs/'+id,{method:'DELETE',body:JSON.stringify({studentId:student,revision})});
+          removed=true;
+          if(!current())return;card.remove();d.close();d.remove();dialogs.delete(d);await list();if(current())message('待整理任务已删除。');
+        }catch(error){if(current()){if(d.isConnected)body.querySelector('[role=status]').textContent=error.message;else message((removed?'任务已删除，列表刷新失败：':'')+error.message);}}
+        finally{if(current()){lock(false);body.querySelector('button').disabled=false;d.querySelector('[data-close]').disabled=false;}}
+      };
+    }
+    let holdTimer,holdStart,suppressJob='',suppressUntil=0;
+    const clearHold=()=>{clearTimeout(holdTimer);holdTimer=null;holdStart=null;};
+    jobsHost.addEventListener('pointerdown',e=>{
+      clearHold();const card=e.target.closest('[data-job-id]');if(!card||busy||e.button!==0||e.isPrimary===false)return;
+      holdStart={x:e.clientX,y:e.clientY};holdTimer=setTimeout(()=>{clearHold();if(!card.isConnected||!valid()||busy)return;suppressJob=card.dataset.jobId;suppressUntil=Date.now()+1000;deleteJob(card,true);},650);
+    });
+    jobsHost.addEventListener('pointermove',e=>{if(holdStart&&Math.hypot(e.clientX-holdStart.x,e.clientY-holdStart.y)>12)clearHold();});
+    for(const type of ['pointerup','pointercancel','pointerleave'])jobsHost.addEventListener(type,clearHold);
+    root.addEventListener('scroll',clearHold,true);
+    jobsHost.addEventListener('click',e=>{if(e.target.closest('[data-job-id]')?.dataset.jobId===suppressJob&&Date.now()<suppressUntil){e.preventDefault();e.stopImmediatePropagation();}},true);
+    jobsHost.addEventListener('contextmenu',e=>{const card=e.target.closest('[data-job-id]');if(card){e.preventDefault();const fromHold=!!holdStart||e.pointerType==='touch';clearHold();suppressJob=card.dataset.jobId;suppressUntil=Date.now()+1000;deleteJob(card,fromHold);}});
+    jobsHost.addEventListener('keydown',e=>{if(e.key==='Delete'&&e.target.matches('[data-job-id]')){e.preventDefault();deleteJob(e.target);}});
+    const uploadBack=document.createElement('button');uploadBack.dataset.library='';uploadBack.textContent='← 试卷列表';$('[data-upload]').prepend(uploadBack);
+    const observer=new MutationObserver(()=>{if(!root.isConnected||!alive()){clearHold();closeReview();disposed=true;sequence++;dialogs.forEach(d=>{d.close();d.remove();});dialogs.clear();observer.disconnect();}});
     observer.observe(document.body,{childList:true,subtree:true});
     const sourceResult=q=>q.grades?.filter(g=>g.revision===q.revision).at(-1)?.result;
     const wrong=q=>{if(q.paperWrong!==null&&q.paperWrong!==undefined)return !!q.paperWrong;const r=sourceResult(q);return !!r&&(r.markedWrong||['incorrect','partial'].includes(r.verdict));};
@@ -188,10 +221,10 @@
       const actionStudent=studentId;
       try{
         if(b.hasAttribute('data-student-prev')||b.hasAttribute('data-student-next')){lock(true);studentPage+=b.hasAttribute('data-student-prev')?-1:1;await students();return;}
-        if(b.hasAttribute('data-new')){if(!subject)throw Error('请先选择学科，再拍照整理试卷。');closeReview();$('[data-upload]').hidden=false;$('[data-list]').hidden=false;$('[data-paper]').hidden=true;return;}
+        if(b.hasAttribute('data-new')){if(!subject)throw Error('请先选择学科，再拍照整理试卷。');closeReview();jobsHost.hidden=true;$('[data-upload]').hidden=false;$('[data-list]').hidden=true;$('[data-paper]').hidden=true;$('[data-upload]').scrollIntoView?.({block:'nearest'});return;}
         if(b.hasAttribute('data-remove')){photos.splice(Number(b.dataset.remove),1);requestId=crypto.randomUUID();previews();return;}
         if(b.hasAttribute('data-rotate')){lock(true);const student=studentId,index=Number(b.dataset.rotate),src=photos[index],rotated=await GrowingQuestionFigures.rotatePhoto(src);if(!valid()||student!==studentId||photos[index]!==src)return;photos[index]=rotated;requestId=crypto.randomUUID();previews();return;}
-        if(b.hasAttribute('data-library')){closeReview();$('[data-paper]').hidden=true;$('[data-list]').hidden=false;await list();return;}
+        if(b.hasAttribute('data-library')){closeReview();$('[data-upload]').hidden=true;$('[data-paper]').hidden=true;$('[data-list]').hidden=false;await list();return;}
         lock(true);
         if(b.dataset.resume){const student=studentId,generation=jobGeneration;const job=await api('/question-bank/import-jobs/'+b.dataset.resume+'?'+new URLSearchParams({studentId:student}));if(!valid()||student!==studentId||generation!==jobGeneration)return;await runJob(job);return;}
         if(b.dataset.open)await open(b.dataset.open);
@@ -218,4 +251,12 @@
     else{await students();if(context.paperId)await open(context.paperId);return;}
     if(context.paperId)await open(context.paperId);else await list();
   }};
+  let vueLoader;
+  window.GrowingPapers.mount=async function(root,api,esc,alive,user,context={}){
+    if(new URLSearchParams(location.search).get('ui')==='legacy')return this.mountLegacy(root,api,esc,alive,user,context);
+    if(!window.GrowingStudentPaperPages){if(!vueLoader)vueLoader=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='student-paper-pages.js?studentUi=20261112-vant-style-4';script.onload=resolve;script.onerror=()=>{vueLoader=null;script.remove();reject(Error('新版试卷列表暂不可用。'));};document.head.append(script);});await vueLoader;}
+    return window.GrowingStudentPaperPages.mount(root,api,esc,alive,user,context,'papers');
+  };
+  window.GrowingPapers.createVue=window.GrowingPapers.mount;
+  window.GrowingMyPapers=window.GrowingPapers;
 })();

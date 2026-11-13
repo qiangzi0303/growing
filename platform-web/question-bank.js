@@ -16,7 +16,7 @@
       throw Error('照片无法压缩，请裁剪后重试。');
     }finally{URL.revokeObjectURL(url);}
   }
-  window.GrowingQuestionBank={async mount(root,api,esc,alive,user,context={}){
+  window.GrowingQuestionBank={async mountLegacy(root,api,esc,alive,user,context={}){
     context={...context};
     const math=window.GrowingMathFormat,formatTried=new Set(),formatErrors=new Map();
     const newId=()=>GrowingPhotoReview.uuid();
@@ -126,4 +126,12 @@
     });
     try{units=await api('/question-bank/catalog');if(!valid())return;await students();}catch(error){if(valid())root.querySelector('[data-students]').textContent='题库暂时无法打开：'+error.message;}
   }};
+  let vueLoader;
+  window.GrowingQuestionBank.photo=photo;
+  window.GrowingQuestionBank.mount=async function(root,api,esc,alive,user,context={}){
+    if(new URLSearchParams(location.search).get('ui')==='legacy')return this.mountLegacy(root,api,esc,alive,user,context);
+    if(!window.GrowingStudentPaperPages){if(!vueLoader)vueLoader=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='student-paper-pages.js?studentUi=20261112-vant-style-4';script.onload=resolve;script.onerror=()=>{vueLoader=null;script.remove();reject(Error('新版拍照题库暂不可用。'));};document.head.append(script);});await vueLoader;}
+    return window.GrowingStudentPaperPages.mount(root,api,esc,alive,user,context,'bank');
+  };
+  window.GrowingQuestionBank.createVue=window.GrowingQuestionBank.mount;
 })();

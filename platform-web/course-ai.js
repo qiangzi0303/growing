@@ -132,6 +132,16 @@
     const fallback=await call('config',options);
     return {...fallback,...(c.saved?{voice:c.voice}:{}),model:MODEL};
   }
+  async function settingsInfo({signal}={}){
+    // Capture once, before awaiting: an account can change while the server responds.
+    let c;try{c=read();}catch{return info();}
+    const local={model:MODEL,base:c.base,voice:c.voice,configured:!!c.apiKey,native:!!native};
+    if(c.saved)return local;
+    try{
+      const server=await call('config',{signal});
+      return {...local,base:typeof server.base==='string'?server.base:local.base,voice:typeof server.voice==='string'?server.voice:local.voice,serverConfigured:server.configured===true};
+    }catch(error){if(error.name==='AbortError')throw error;return local;}
+  }
   async function connect(sdp,{signal}={}){
     const c=read();return call('connect',{signal,data:{sdp,...(c.apiKey?normalize(c):{}),...(c.saved?{voice:c.voice}:{})}});
   }
@@ -148,7 +158,7 @@
       panel.querySelector('.realtime-state').textContent=c.configured?'服务端连接已配置；可保存个人密钥覆盖':'请填写个人 Qwen 密钥';
     }catch{/* Settings remain editable even if the connection service is unavailable. */}
   }
-  window.GrowingRealtime={model:MODEL,voices,info,save,clear,connectionInfo,connect,settingsMarkup,hydrate};
+  window.GrowingRealtime={model:MODEL,voices,info,settingsInfo,save,clear,connectionInfo,connect,settingsMarkup,hydrate};
   const original=window.GrowingCourseAI.settingsMarkup;
   window.GrowingCourseAI.settingsMarkup=()=>original()+settingsMarkup();
   document.addEventListener('input',event=>{const form=event.target.closest('.realtime-config');if(form)form.dataset.realtimeDirty='1';});

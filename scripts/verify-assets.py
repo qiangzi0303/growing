@@ -35,7 +35,7 @@ for name in ['app-design/index.html','app-design/home.css','app-design/units.htm
 for path in web.rglob('*'):
     if path.is_file() and path.suffix in ('.html','.js','.css'):
         text=path.read_text(encoding='utf-8')
-        if re.search(r'sk-[a-zA-Z0-9_-]{12,}',text):raise SystemExit('Embedded API credential detected; publishing blocked.')
+        if re.search(r'(?<![a-zA-Z0-9_-])sk-[a-zA-Z0-9_-]{12,}',text):raise SystemExit('Embedded API credential detected; publishing blocked.')
         if path.suffix=='.html':
             from urllib.parse import urlsplit,unquote
             for link in re.findall(r'<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"',text):

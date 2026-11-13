@@ -1,5 +1,6 @@
 /* Personal papers supplement the fixed reference graph; no learning records are written. */
 (()=>{
+ const startLegacy=()=>{
   'use strict';
   const host=document.createElement('section');host.id='paper-graph';host.setAttribute('aria-labelledby','paper-graph-title');
   host.innerHTML='<h2 id="paper-graph-title">我的拍照试卷 · 知识图谱</h2><div data-students></div><p data-status role="status" aria-live="polite"></p><button data-refresh type="button">刷新试卷</button><div data-tree class="paper-graph-tree"></div><h3 data-selection></h3><div data-questions class="results"></div>';
@@ -62,4 +63,6 @@
   window.addEventListener('pagehide',()=>{disposed=true;sequence++;window.top.removeEventListener('growing:knowledge-changed',changed);});
   window.addEventListener('pageshow',e=>{if(e.persisted){disposed=false;window.top.addEventListener('growing:knowledge-changed',changed);init();}});
   init();
+ };
+ if(!window.GrowingStudentPages?.registerLegacy(startLegacy))startLegacy();
 })();

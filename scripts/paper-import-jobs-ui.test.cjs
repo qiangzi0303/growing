@@ -8,11 +8,41 @@ async function fixture(fail=false,options={}){
  const dom=new JSDOM('<main></main>',{url:'https://test.invalid',runScripts:'outside-only'}),w=dom.window,requests=[];
  const region={page:1,x:0,y:0,width:.5,height:.5};let job={id:'j1',subject:'math',status:'recognizing',revision:1,pageCount:2,plannedPages:2,recognizedQuestions:0,totalQuestions:1,next:{kind:'question',number:'1',pages:[1,2],regions:[region]}};
  w.GrowingLegacy={target:async()=> 's1'};w.GrowingQuestionFigures={photo:async()=> 'image',importStage:()=> '核对题面',prepareImportStep:async(next,pages)=>({fragments:next.regions.map(region=>({page:region.page,region,image:'cropped'}))})};w.GrowingMathFormat={questionHtml:s=>s};w.GrowingPaperReview={mount:()=>({dispose(){}})};
- const api=async(path,request)=>{const body=request&&JSON.parse(request.body);requests.push({path,body});if(options.api){const override=await options.api(path,body,requests);if(override!==undefined)return override;}if(path==='/parent/children')return [{id:'s1',displayName:'One'},{id:'s2',displayName:'Two'}];if(path.includes('/papers/'))return {id:'p1',subject:'math',title:'试卷',mode:'paper-draft',warnings:[],questions:[],pages:[]};if(path.includes('/papers?'))return [];if(path.includes('/step')){if(fail)throw Error('模型失败');job={...job,status:'complete',paperId:'p1',next:null};return job;}if(path.includes('/import-jobs/'))return {...job,sourcePages:[{page:1,image:'original1'},{page:2,image:'original2'}]};return [job];};
+ w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};
+ const api=async(path,request)=>{const body=request&&JSON.parse(request.body);requests.push({path,body,method:request?.method||'GET'});if(options.api){const override=await options.api(path,body,requests,request);if(override!==undefined)return override;}if(path==='/parent/children')return [{id:'s1',displayName:'One'},{id:'s2',displayName:'Two'}];if(path.includes('/papers/'))return {id:'p1',subject:'math',title:'试卷',mode:'paper-draft',warnings:[],questions:[],pages:[]};if(path.includes('/papers?'))return [];if(path.includes('/step')){if(fail)throw Error('模型失败');job={...job,status:'complete',paperId:'p1',next:null};return job;}if(path.includes('/import-jobs/'))return {...job,sourcePages:[{page:1,image:'original1'},{page:2,image:'original2'}]};return [job];};
  w.eval(source);const root=w.document.querySelector('main');await w.GrowingPapers.mount(root,api,String,()=>true,{role:options.parent?'Parent':'Student',id:'s1'},{subject:'math'});return {dom,w,root,requests};
 }
 test('saved import resumes with cropped fragments and opens only completed paper',async()=>{const {dom,root,requests}=await fixture();assert.ok(root.querySelector('[data-resume]'));root.querySelector('[data-resume]').click();await tick();assert.equal(requests.find(r=>r.path.endsWith('/step')).body.fragments[0].image,'cropped');assert.ok(root.querySelector('[data-paper-title]'));dom.window.close();});
 test('failed step keeps resumable task and actionable error',async()=>{const {dom,root}=await fixture(true);root.querySelector('[data-resume]').click();await tick();assert.match(root.querySelector('.papers-import-error').textContent,/模型失败/);assert.ok(root.querySelector('[data-resume]'));dom.window.close();});
+
+test('new paper shows the upload immediately and returning keeps prepared photos',async()=>{
+ const {dom,w,root}=await fixture();root.querySelector('[data-new]').click();
+ assert.equal(root.querySelector('[data-upload]').hidden,false);assert.equal(root.querySelector('[data-list]').hidden,true);assert.equal(root.querySelector('.papers-import-jobs').hidden,true);
+ const input=root.querySelector('[data-album]');Object.defineProperty(input,'files',{value:[{}]});input.dispatchEvent(new w.Event('change',{bubbles:true}));await tick();
+ root.querySelector('[data-upload] [data-library]').click();await tick();assert.equal(root.querySelector('[data-upload]').hidden,true);assert.equal(root.querySelector('.papers-import-jobs').hidden,false);
+ root.querySelector('[data-new]').click();assert.equal(root.querySelectorAll('[data-photos] img').length,1);assert.equal(root.querySelector('[data-import]').disabled,false);dom.window.close();
+});
+
+test('long press asks before deleting, suppresses resume and sends only the selected job revision',async()=>{
+ let deleted=false;const {dom,w,root,requests}=await fixture(false,{api:(path,body,_requests,request)=>{if(request?.method==='DELETE'){deleted=true;return {deleted:true};}if(deleted&&path.includes('/import-jobs?'))return [];}});
+ const card=root.querySelector('.papers-import-job'),resume=card.querySelector('[data-resume]');resume.dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true,button:0,clientX:20,clientY:20}));await new Promise(r=>setTimeout(r,700));resume.dispatchEvent(new w.MouseEvent('pointerup',{bubbles:true}));resume.click();await tick();
+ assert.ok(w.document.querySelector('[data-delete-job]'));assert.equal(requests.filter(r=>r.path.includes('/import-jobs/')).length,0);
+ const confirm=w.document.querySelector('[data-delete-job]');confirm.click();assert.equal(requests.some(r=>r.method==='DELETE'),false);confirm.dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true}));confirm.click();await tick();assert.deepEqual(requests.find(r=>r.method==='DELETE'),{path:'/question-bank/import-jobs/j1',body:{studentId:'s1',revision:1},method:'DELETE'});assert.equal(root.querySelector('.papers-import-job'),null);dom.window.close();
+});
+
+test('scroll gesture cancels long press; cancelled or failed deletion preserves task',async()=>{
+ const {dom,w,root,requests}=await fixture(false,{api:(_path,_body,_requests,request)=>{if(request?.method==='DELETE')throw Error('任务正在识别，请稍后再删除。');}});
+ const card=root.querySelector('.papers-import-job');card.dispatchEvent(new w.MouseEvent('pointerdown',{bubbles:true,button:0,clientX:20,clientY:20}));card.dispatchEvent(new w.MouseEvent('pointermove',{bubbles:true,clientX:20,clientY:60}));await new Promise(r=>setTimeout(r,700));assert.equal(w.document.querySelector('dialog'),null);
+ card.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Delete',bubbles:true}));w.document.querySelector('[data-close]').click();assert.equal(requests.filter(r=>r.method==='DELETE').length,0);
+ card.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Delete',bubbles:true}));w.document.querySelector('[data-delete-job]').click();await tick();assert.match(w.document.querySelector('dialog [role=status]').textContent,/正在识别/);assert.ok(root.querySelector('[data-resume]'));assert.equal(root.querySelector('[data-new]').disabled,false);dom.window.close();
+});
+
+test('escaping a pending delete reports a later failure without claiming the task was deleted',async()=>{
+ let reject;const {dom,w,root}=await fixture(false,{api:(_path,_body,_requests,request)=>request?.method==='DELETE'?new Promise((_resolve,fail)=>{reject=fail;}):undefined});
+ root.querySelector('.papers-import-job').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Delete',bubbles:true}));w.document.querySelector('[data-delete-job]').click();
+ w.document.querySelector('dialog').dispatchEvent(new w.Event('cancel',{cancelable:true}));reject(Error('网络中断，请重试。'));await tick();
+ assert.equal(root.querySelector('[data-status]').textContent,'网络中断，请重试。');assert.ok(root.querySelector('[data-resume]'));assert.equal(root.querySelector('[data-new]').disabled,false);dom.window.close();
+});
 
 test('retry hides the old failure while running and restores enabled retry on failure',async()=>{
  const job={id:'j1',subject:'math',status:'failed',revision:13,pageCount:2,plannedPages:2,recognizedQuestions:5,totalQuestions:30,error:'本步识别失败，已保存进度，请重试。',next:{kind:'question',number:'6',pages:[1],regions:[]}};

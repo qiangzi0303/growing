@@ -50,3 +50,27 @@ test('a delayed server default never overwrites edits already made in the settin
   finish(Response.json({configured:true,voice:'Tina',base:'https://workspace.cn-beijing.maas.aliyuncs.com'}));
   await pending;assert.equal(form.elements.voice.value,'Ethan');assert.equal(form.elements.base.value,'https://dashscope.aliyuncs.com');
 });
+
+test('sample settings prefill server defaults without passing credentials or rereading another account',async()=>{
+  let finish;const t=setup(undefined,()=>new Promise(resolve=>finish=resolve));
+  const signal=new AbortController().signal,pending=t.api.settingsInfo({signal});
+  t.window.GrowingCourseAIStorage=()=>{throw Error('another account must not be read');};
+  finish(Response.json({configured:true,voice:'ServerCustom',base:'https://dashscope-intl.aliyuncs.com',apiKey:'must-not-reach-ui',unexpected:'ignored'}));
+  const info=await pending;
+  assert.equal(info.voice,'ServerCustom');assert.equal(info.base,'https://dashscope-intl.aliyuncs.com');
+  assert.equal(info.configured,false);assert.equal(info.serverConfigured,true);
+  assert.equal(info.apiKey,undefined);assert.equal(info.unexpected,undefined);assert.equal(t.calls[0].options.signal,signal);
+});
+
+test('sample settings preserve saved personal choices and remain editable offline',async()=>{
+  const t=setup(undefined,()=>{throw Error('offline');});
+  assert.equal((await t.api.settingsInfo()).voice,'Tina');
+  t.api.save({voice:'PersonalVoice',base:'https://dashscope-intl.aliyuncs.com'});
+  const before=t.calls.length,info=await t.api.settingsInfo();
+  assert.equal(info.voice,'PersonalVoice');assert.equal(info.base,'https://dashscope-intl.aliyuncs.com');assert.equal(t.calls.length,before);
+});
+
+test('sample settings propagate cancellation instead of displaying a stale fallback',async()=>{
+  const t=setup(undefined,()=>{throw new DOMException('cancelled','AbortError');});
+  await assert.rejects(t.api.settingsInfo(),{name:'AbortError'});
+});

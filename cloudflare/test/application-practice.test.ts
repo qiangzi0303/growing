@@ -6,6 +6,15 @@ import {buildUnitReports} from '../src/unit-reports';
 import {buildKnowledge} from '../src/student-knowledge';
 import type {Document} from '../src/database';
 const record=(topic:any):Document=>({key:'growing-math-lessons-v1',value:JSON.stringify({version:1,topics:{pythagoras:{seen:true,draft:'',self:[],attempts:[{score:8,criticalErrors:[],feedback:'解释正确'}],...topic}}}),revision:1,updatedAt:'2026-11-05T00:00:00Z'});
+
+test('submitted mixed rounds override photo and legacy scores consistently in reports',()=>{
+ for(const score of [8,10]){
+  const items=Array.from({length:10},(_,i)=>({id:'pythagoras-application-'+(i+1),type:i<8?'choice':'solution',...(i<8?{choice:0}:{key:'growing-handwriting-v1:12345678-1234-1234-1234-123456789abc',revision:1,at:'2026-11-12T00:00:00Z',score:i<score?100:70}),passed:i<score}));
+  const doc=record({bestQuiz:3,practice10:{version:1,total:10,best:10},practicePhoto:{broken:true},practiceRound:{version:1,total:10,at:'2026-11-12T00:00:00Z',items}});
+  assert.equal(buildReport([doc]).subjects[0].mastered,Number(score===10));assert.equal(buildUnitReports([doc]).units.find(u=>u.id==='math-8a-03')?.mastered,Number(score===10));assert.equal(masteryBoards([doc]).find(u=>u.id==='math-8a-03')?.testDone,score/10);assert.equal(buildKnowledge([doc]).topics.find(t=>t.id==='pythagoras')?.courseMastered,score===10);
+ }
+ for(const practiceRound of [{},null,{version:1,total:10,at:'2026-11-12',items:[{}]}])assert.equal(buildReport([record({bestQuiz:3,practiceRound})]).subjects[0].mastered,0);
+});
 test('new ten-question grades drive reports and rankings without granting historical three-question credit twice',()=>{
   for(const [best,passed] of [[8,false],[10,true]] as const){
     const doc=record({bestQuiz:3,practice10:{version:1,total:10,best}}),original=doc.value;

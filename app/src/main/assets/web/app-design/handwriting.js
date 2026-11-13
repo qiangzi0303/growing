@@ -1,5 +1,6 @@
 (()=>{
   'use strict';
+  const renderLegacy=()=>{
   const C=window.GrowingHandwriting,$=s=>document.querySelector(s),params=new URLSearchParams(location.search);
   const subject=['math','physics','english'].includes(params.get('subject'))?params.get('subject'):'math';
   const unitId=C.units(subject).includes(params.get('unit'))?params.get('unit'):C.units(subject)[0];
@@ -135,4 +136,6 @@
   const requested=C.PREFIX+params.get('id');if(C.KEY.test(requested)){try{const d=JSON.parse(localStorage.getItem(requested));if(!C.validate(d)||d.unitId!==unitId||applicationTask&&d.prompt!==applicationTask.prompt)throw Error();doc=d;key=requested;}catch{blocked=true;say('#ai-status','该原稿无法读取或不属于本题，已停止覆盖。原记录保留，请返回课堂后重新进入。',true);}}
   if(!C.KEY.test(requested))history.replaceState(null,'',writingUrl());
   matchTask();render();if(!C.KEY.test(requested)){dirty=true;save();}
+  };
+  if(!window.GrowingStudentPages?.registerLegacy(renderLegacy))renderLegacy();
 })();

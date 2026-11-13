@@ -1,4 +1,5 @@
 (()=>{
+ const startLegacy=()=>{
   'use strict';
   const M=window.GrowingEnglishVisual,$=id=>document.getElementById(id),params=new URLSearchParams(location.search),reduce=matchMedia('(prefers-reduced-motion:reduce)');
   const initial=M.words.find(w=>w.id===params.get('word'));
@@ -56,4 +57,6 @@
   $('help').addEventListener('close',startLoop);
   document.addEventListener('visibilitychange',startLoop);window.addEventListener('pagehide',()=>{away=true;stopAll();if('speechSynthesis' in window)speechSynthesis.cancel();});window.addEventListener('pageshow',()=>{away=false;startLoop();});reduce.addEventListener('change',startLoop);
   render();
+ };
+ if(!window.GrowingStudentPages?.registerLegacy(startLegacy))startLegacy();
 })();

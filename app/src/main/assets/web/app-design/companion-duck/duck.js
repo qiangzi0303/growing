@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
 import { RoundedBoxGeometry } from './vendor/RoundedBoxGeometry.js';
+const $=selector=>window.GrowingStudentDuckControls?.node(selector)||document.querySelector(selector),$$=selector=>window.GrowingStudentDuckControls?.nodes(selector)||[...document.querySelectorAll(selector)];
 
-const viewport = document.querySelector('#viewport');
-const loading = document.querySelector('#loading');
+const viewport = $('#viewport');
+const loading = $('#loading');
 try { await init(); } catch (error) {
   console.error(error);
   loading.classList.add('error');
@@ -225,7 +226,7 @@ async function init() {
     camera.updateProjectionMatrix();if(wasMobile!==mobile)resetView();
   }
   resize();resetView();
-  new ResizeObserver(resize).observe(viewport);
+  new ResizeObserver(resize).observe(window.GrowingStudentDuckControls?.unwrap(viewport)||viewport);
 
   const states={
     idle:['安静陪伴','我在这里，你慢慢来。',''],
@@ -236,26 +237,26 @@ async function init() {
     celebrate:['开心一下','这一小步，也值得开心。','这一步，你做到了！']
   };
   let action='idle',actionStart=0, elapsed=0,live=false,mouthSource=()=>0;
-  const speech=document.querySelector('#speech');
+  const speech=$('#speech');
   function setAction(value) {
     action=value;actionStart=elapsed;
-    document.querySelector('#state-name').textContent=states[value][0];
-    document.querySelector('#state-description').textContent=states[value][1];
-    document.querySelector('#speech-text').textContent=states[value][2];
+    $('#state-name').textContent=states[value][0];
+    $('#state-description').textContent=states[value][1];
+    $('#speech-text').textContent=states[value][2];
     speech.classList.toggle('show',Boolean(states[value][2]));
-    document.querySelectorAll('[data-action]').forEach(b=>{const active=b.dataset.action===value;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
+    $$('[data-action]').forEach(b=>{const active=b.dataset.action===value;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
   }
-  document.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('click',()=>{live=false;setAction(b.dataset.action);}));
+  $$('[data-action]').forEach(b=>b.addEventListener('click',()=>{live=false;setAction(b.dataset.action);}));
   const palettes={mint:[0x81d0cd,0xff791c,0xf4c33d,'薄荷青'],lavender:[0xb4a0d8,0xf3c83f,0x91d7d9,'雾紫'],cream:[0xe5d6b2,0xed862c,0xefc142,'奶油白'],graphite:[0x526779,0xf0c141,0xa7c9d4,'石墨蓝']};
   let palette='mint';
-  document.querySelectorAll('[data-color]').forEach(b=>b.addEventListener('click',()=>{
+  $$('[data-color]').forEach(b=>b.addEventListener('click',()=>{
     palette=b.dataset.color;const c=palettes[palette];shell.color.setHex(c[0]);orange.color.setHex(c[1]);yellow.color.setHex(c[2]);
-    document.querySelector('#color-name').textContent=c[3];
-    document.querySelectorAll('[data-color]').forEach(el=>{const active=el===b;el.classList.toggle('active',active);el.setAttribute('aria-pressed',String(active));});
+    $('#color-name').textContent=c[3];
+    $$('[data-color]').forEach(el=>{const active=el===b;el.classList.toggle('active',active);el.setAttribute('aria-pressed',String(active));});
   }));
-  document.querySelector('#reset').addEventListener('click',resetView);
-  document.querySelector('#rotate').addEventListener('click',e=>{controls.autoRotate=!controls.autoRotate;e.currentTarget.setAttribute('aria-pressed',String(controls.autoRotate));});
-  document.querySelector('#export').addEventListener('click',async e=>{
+  $('#reset').addEventListener('click',resetView);
+  $('#rotate').addEventListener('click',e=>{controls.autoRotate=!controls.autoRotate;e.currentTarget.setAttribute('aria-pressed',String(controls.autoRotate));});
+  $('#export').addEventListener('click',async e=>{
     const button=e.currentTarget;button.disabled=true;button.textContent='正在导出…';
     try {
       const {GLTFExporter}=await import('./vendor/GLTFExporter.js');
@@ -266,7 +267,7 @@ async function init() {
       const result=await new GLTFExporter().parseAsync(copy,{binary:true});
       const url=URL.createObjectURL(new Blob([result],{type:'model/gltf-binary'}));
       const a=document.createElement('a');a.href=url;a.download='study-duck-'+palette+'.glb';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);
-    } catch(error){console.error(error);document.querySelector('#state-description').textContent='模型导出失败，请重试。';}
+    } catch(error){console.error(error);$('#state-description').textContent='模型导出失败，请重试。';}
     finally{button.disabled=false;button.innerHTML='下载模型 <span>↗</span>';}
   });
 
@@ -293,6 +294,6 @@ async function init() {
     controls.update();renderer.render(scene,camera);
   }
   // A small read-only inspection surface for model and interaction verification.
-  window.duckPreview={setLiveState:(value,text='')=>{live=true;setAction(value);if(text){document.querySelector('#speech-text').textContent=text.slice(0,70);speech.classList.add('show');}},setMouthSource:fn=>{mouthSource=fn;},getState:()=>({action,palette,live,meshes:renderer.info.render.calls,triangles:renderer.info.render.triangles,headTilt:head.rotation.z,beakAngle:joints.jaw.rotation.x,autoRotate:controls.autoRotate,webgl:renderer.getContext().getParameter(renderer.getContext().VERSION)}),renderer,scene,robot,camera,controls};
+  window.duckPreview={setLiveState:(value,text='')=>{live=true;setAction(value);if(text){$('#speech-text').textContent=text.slice(0,70);speech.classList.add('show');}},setMouthSource:fn=>{mouthSource=fn;},getState:()=>({action,palette,live,meshes:renderer.info.render.calls,triangles:renderer.info.render.triangles,headTilt:head.rotation.z,beakAngle:joints.jaw.rotation.x,autoRotate:controls.autoRotate,webgl:renderer.getContext().getParameter(renderer.getContext().VERSION)}),renderer,scene,robot,camera,controls};
   renderer.render(scene,camera);loading.hidden=true;document.body.dataset.ready='true';window.dispatchEvent(new Event('duck:ready'));animate();
 }

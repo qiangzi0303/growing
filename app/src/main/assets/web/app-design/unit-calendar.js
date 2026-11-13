@@ -62,10 +62,10 @@
     const h=globalThis.GrowingHandwriting;
     return entries(h.knowledgeNodes).map(([id,title])=>({id,title,unitId:h.nodeUnit(id)}));
   }
-  async function mount(host,unitId){
+  async function mount(host,unitId,store=localStorage){
     host.innerHTML='<p role="status">正在读取本单元学习日历…</p>';
     let data;
-    try{const map=await topics();if(!host.isConnected)return;data=collect(unitId,key=>{const raw=localStorage.getItem(key);return raw===null?null:JSON.parse(raw);},map);}
+    try{const map=await topics();if(!host.isConnected)return;data=collect(unitId,key=>{const raw=store.getItem(key);return raw===null?null:JSON.parse(raw);},map);}
     catch{if(host.isConnected)host.innerHTML='<p role="status">日历记录暂时无法读取，原记录未改动。请检查存储权限后重新打开。</p>';return;}
     let selected=day(),month=selected.slice(0,7);
     function render(focus){

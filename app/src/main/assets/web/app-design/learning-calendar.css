@@ -1,0 +1,8 @@
+#learning-calendar-dialog { box-sizing: border-box; width: min(760px, calc(100% - 24px)); max-height: calc(100svh - 24px); overflow: auto; padding: 24px; border: 1px solid #dce4de; border-radius: 12px; background: #fff; color: #25332c; font: 14px/1.7 "Microsoft YaHei", system-ui, sans-serif; }
+#learning-calendar-dialog::backdrop { background: #16251c66; }
+#learning-calendar-dialog > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+#learning-calendar-dialog h2 { margin: 0; font-size: 22px; }
+#learning-calendar-dialog :is(button,select) { min-height: 44px; padding: 8px 12px; border: 1px solid #bac9bf; border-radius: 6px; background: #fff; color: inherit; font: inherit; cursor: pointer; }
+#learning-calendar-dialog select { display: block; width: 100%; margin-top: 6px; font-size: 16px; }
+#learning-calendar-dialog :focus-visible { outline: 2px solid #38694f; outline-offset: 2px; }
+@media(max-width:600px) { #learning-calendar-dialog { padding: 16px; } }

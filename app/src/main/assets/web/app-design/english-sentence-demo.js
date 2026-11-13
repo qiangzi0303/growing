@@ -1,4 +1,5 @@
 (()=>{
+ const startLegacy=()=>{
   'use strict';
   const D=window.SentenceDemo,P=window.EnglishSentenceProgress,root=document.getElementById('sentence-app');
   const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -193,4 +194,6 @@
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stopSpeech();});
   if('speechSynthesis' in window)speechSynthesis.getVoices();
   resetSentence();render();
+ };
+ if(!window.GrowingStudentPages?.registerLegacy(startLegacy))startLegacy();
 })();

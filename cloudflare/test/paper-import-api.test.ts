@@ -43,6 +43,20 @@ before(async()=>{
  }
 });
 
+test('HTTP delete requires an authenticated authorized student, a current revision and an idle unfinished task',async()=>{
+ const a=await register('delete_owner'),b=await register('delete_other');
+ const task=await ok(await call(base,'POST',{studentId:a.user.id,requestId:crypto.randomUUID(),subject:'math',pages:[image]},a.token));
+ const path=base+'/'+task.id,body={studentId:a.user.id,revision:task.revision};
+ assert.equal((await call(path,'DELETE',body)).status,401);
+ assert.equal((await call(path,'DELETE',body,b.token)).status,404);
+ assert.equal((await call(path,'DELETE',{...body,studentId:b.user.id},b.token)).status,404);
+ assert.equal((await call(path,'DELETE',{...body,revision:task.revision+1},a.token)).status,409);
+ assert.equal((await call(path,'DELETE',{studentId:a.user.id},a.token)).status,400);
+ assert.deepEqual(await ok(await call(path,'DELETE',body,a.token)),{deleted:true});
+ assert.equal((await call(path+'?studentId='+a.user.id,'GET',undefined,a.token)).status,404);
+ assert.deepEqual(await ok(await call(base+'?studentId='+a.user.id,'GET',undefined,a.token)),[]);
+});
+
 test('HTTP grading progress counts persisted questions, survives failure and saves grades exactly once',async()=>{
  const a=await register('grade_owner'),b=await register('grade_other');
  const input={studentId:a.user.id,requestId:crypto.randomUUID(),subject:'math',pages:[image],mode:'grade'};

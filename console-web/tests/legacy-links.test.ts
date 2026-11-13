@@ -21,9 +21,9 @@ it('resolves exact bound children and protected Admin members without fallback',
 it('old paper mount consumes student without paper and refuses unbound target', async () => {
  new Function(readFileSync('../platform-web/my-papers.js','utf8'))();
  const root=document.createElement('div');document.body.append(root);const api=vi.fn(async(path:string)=>path==='/parent/children'?[{id:'a',displayName:'小安'},{id:'b',displayName:'小贝'}]:[]);
- const papers=(window as any).GrowingPapers;await papers.mount(root,api,String,()=>true,{role:'Parent'},{studentId:'b'});
+ const papers=(window as any).GrowingPapers;await papers.mountLegacy(root,api,String,()=>true,{role:'Parent'},{studentId:'b'});
  expect((root.querySelector('[data-student]') as HTMLSelectElement).value).toBe('b');expect(api).toHaveBeenCalledWith('/question-bank/papers?studentId=b');expect(api).not.toHaveBeenCalledWith('/question-bank/papers?studentId=a');root.remove();
- const denied=document.createElement('div');document.body.append(denied);api.mockClear();await expect(papers.mount(denied,api,String,()=>true,{role:'Parent'},{studentId:'x'})).rejects.toThrow('关联');expect(api.mock.calls.filter(([url])=>url.startsWith('/question-bank/'))).toHaveLength(0);denied.remove();
+ const denied=document.createElement('div');document.body.append(denied);api.mockClear();await expect(papers.mountLegacy(denied,api,String,()=>true,{role:'Parent'},{studentId:'x'})).rejects.toThrow('关联');expect(api.mock.calls.filter(([url])=>url.startsWith('/question-bank/'))).toHaveLength(0);denied.remove();
 });
 it('shared sound control changes the existing engine, storage and iframe attach', async () => {
  const engine={play:vi.fn(),setEnabled:vi.fn(),setVolume:vi.fn(),unlock:vi.fn().mockResolvedValue(true)};

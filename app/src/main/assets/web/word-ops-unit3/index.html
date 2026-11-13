@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html data-ui-kind="learning" lang="zh-CN">
 <head><link rel="stylesheet" href="../app-design/assessment-feedback.css?v=red-1">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -296,10 +296,10 @@ nav{display:flex;gap:5px;align-items:center}nav button{background:none;border:1p
   </style>
   <link rel="stylesheet" href="../app-design/english-course.css?v=word-card-status-1">
   <link rel="stylesheet" href="../app-design/course-theme.css?v=catalog-light-1">
-  <link rel="stylesheet" href="../app-design/unit3-classroom.css?v=2"></head>
+  <link rel="stylesheet" href="../app-design/unit3-classroom.css?v=2"><link rel="stylesheet" href="../app-design/learning-ui.css?v=workspace-20261111"></head>
 <body class="english-legacy">
 <main id="english-course">
-  <header class="legacy-course-header"><div class="unit-header"><div><p class="eyebrow">译林版 · 2025秋新教材 · 八年级上册</p><div class="unit-title"><h1>Unit 3<br>To be a good learner</h1></div><p class="muted">善于学习 · 副词比较级与最高级 · 反身代词</p><a href="../app-design/units.html?subject=english&term=upper">← 英语目录</a></div><label>切换单元<select id="legacy-unit-switch" aria-label="切换英语单元"></select></label></div><nav class="tabs" aria-label="学习内容"><button data-action="library" data-nav="library">单词与默写</button><button data-action="knowledge" data-nav="knowledge">阅读与语法</button><button data-action="feynman" data-nav="feynman">概念复述</button><a class="english-animation-button" href="../app-design/english-sentence-demo.html?unit=english-8a-03">句子闯关</a><a class="english-animation-button" href="../app-design/english-resources.html?unit=english-8a-03">试卷</a></nav><button type="button" data-action="settings" data-nav="settings" hidden>学习设置</button></header>
+  <header class="legacy-course-header"><div class="unit-header"><div><p class="eyebrow">译林版 · 2025秋新教材 · 八年级上册</p><div class="unit-title"><h1>Unit 3<br>To be a good learner</h1></div><p class="muted">善于学习 · 副词比较级与最高级 · 反身代词</p><a href="../app-design/units.html?subject=english&term=upper&studentUi=20261112-vant-3">← 英语目录</a></div><label>切换单元<select id="legacy-unit-switch" aria-label="切换英语单元"></select></label></div><nav class="tabs" aria-label="学习内容"><button data-action="library" data-nav="library">单词与默写</button><button data-action="knowledge" data-nav="knowledge">阅读与语法</button><button data-action="feynman" data-nav="feynman">概念复述</button><a class="english-animation-button" href="../app-design/english-sentence-demo.html?unit=english-8a-03&studentUi=20261112-vant-3">句子闯关</a><a class="english-animation-button" href="../app-design/english-resources.html?unit=english-8a-03&studentUi=20261112-vant-3">试卷</a></nav><button type="button" data-action="settings" data-nav="settings" hidden>学习设置</button></header>
   <p id="course-status" role="status" aria-live="polite"></p>
   <div id="main" tabindex="-1">
     <section id="homeScene" class="scene" aria-label="训练基地"></section>
@@ -1707,9 +1707,10 @@ window.ChapterRewards=(()=>{
   <script src="../app-design/english-sentence-data.js?v=english-score-50"></script>
   <script src="../app-design/english-sentence-progress.js?v=english-score-50"></script>
   <script src="../app-design/english-score.js?v=english-score-50"></script>
+  <script src="../app-design/student-pages.js?v=unit3-vant-1&studentUi=20261113-partial-practice-1"></script>
   <script data-source="app.js">
 /* 分关学习、考核、错题与费曼复述；无需构建，直接打开 index.html。 */
-(() => {
+((start)=>{if(window.GrowingStudentPages?.registerLegacy(start))return;start();})(()=>{
   'use strict';
   const D=window.UNIT3, $=id=>document.getElementById(id);
   const KEY='wordops_8A_unit3', PROJECT='96c9c104-852e-4848-95b3-f9be2356612e';
@@ -2219,7 +2220,7 @@ window.ChapterRewards=(()=>{
   const requestedLesson=requestedNode?.startsWith('lesson:')?D.lessons.find(l=>l.id===requestedNode.slice(7)):null;
   if(requestedWord)startCards('all',D.words.indexOf(requestedWord));
   else if(requestedLesson)startCards(requestedLesson.id);else renderHome();
-})();
+});
   </script>
 <script src="../app-design/legacy-classroom.js?v=1" defer></script></body>
 </html>

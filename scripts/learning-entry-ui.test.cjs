@@ -3,20 +3,50 @@ const {JSDOM}=require('../console-web/node_modules/jsdom');
 const source=name=>fs.readFileSync(path.join(__dirname,'../platform-web',name),'utf8');
 const tick=()=>new Promise(r=>setTimeout(r,20));
 async function until(check){for(let n=0;n<100;n++){if(check())return;await tick();}assert.ok(check(),'UI did not finish loading');}
-async function mount({native=true,login=true,role='Student',confirmed=true,bound=true,records={},me=async profile=>Response.json(profile),state=async()=>Response.json([])}={}){
- const dom=new JSDOM(source('index.html'),{url:native?'https://appassets.androidplatform.net/assets/web/cloud/index.html':'https://learn.test/',runScripts:'outside-only'}),w=dom.window,calls=[];
- const profile={id:'11111111-1111-4111-8111-111111111111',displayName:'Test',role,roleSelectionRequired:!confirmed};
- let opened=0;
+async function mount({native=true,login=true,role='Student',confirmed=true,bound=true,records={},hash='',me=async profile=>Response.json(profile),state=async()=>Response.json([])}={}){
+ const dom=new JSDOM(source('index.html'),{url:(native?'https://appassets.androidplatform.net/assets/web/cloud/index.html':'https://learn.test/')+hash,runScripts:'outside-only'}),w=dom.window,calls=[];
+ const profile={id:'11111111-1111-4111-8111-111111111111',username:'test-login-account',displayName:'Test',role,roleSelectionRequired:!confirmed};
+ let opened=0,rankingsOpened=0;
  for(const [key,value] of Object.entries(records))w.localStorage.setItem(key,JSON.stringify(value));
  w.HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');};
  w.HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
  w.TextEncoder=TextEncoder;w.scrollTo=()=>{};
+ w.GrowingRankings={mount:async()=>{rankingsOpened++;}};
  w.GrowingManagement={create:()=>({dispose(){},admin:async root=>{root.textContent='Management';}})};
  if(native){w.GrowingNative={cloudApiUrl:()=> 'https://learn.test',identityAccount:()=>profile.id,openLearning:()=>{opened++;return '{"ok":true}';}};if(login){w.localStorage.setItem('growing-cloud-session-v1',JSON.stringify({token:'test-only',user:profile}));if(bound)w.localStorage.setItem('growing-cloud-binding-v1',profile.id);}}
  w.fetch=async(url,options)=>{const p=new URL(url,w.location.href).pathname;calls.push(p);if(p==='/api/auth/me')return login?me(profile):Response.json({error:'Login required'},{status:401});if(p.startsWith('/api/student/state'))return state(options,p);if(p==='/api/parent/children')return Response.json([]);throw Error('Unexpected request: '+p);};
  for(const name of ['sync-core.js','legacy-navigation.js','app.js'])w.eval(source(name));await tick();
- return {dom,w,calls,profile,get opened(){return opened;},setState:fn=>{state=fn;}};
+ return {dom,w,calls,profile,get opened(){return opened;},get rankingsOpened(){return rankingsOpened;},setState:fn=>{state=fn;}};
 }
+test('home rankings deep link opens only for an authenticated confirmed student',async()=>{
+ for(const options of [{},{role:'Parent'},{confirmed:false},{login:false}]){
+  const s=await mount({native:false,hash:'#my-rankings',...options});
+  try{assert.equal(s.rankingsOpened,options.role||options.confirmed===false||options.login===false?0:1);}
+  finally{s.dom.window.close();}
+ }
+});
+test('shell calendar opens inside the current course and restores its menu trigger',async()=>{
+ const s=await mount({native:false});
+ try{
+  const frame=s.w.document.querySelector('#course');let trigger;
+  frame.contentWindow.GrowingLearningCalendar={open:focus=>{trigger=focus;}};
+  const action=s.w.document.querySelector('[data-account-view=calendar]');
+  assert.equal(action.hidden,false);action.click();
+  assert.equal(trigger,s.w.document.querySelector('#account-menu>summary'));
+ }finally{s.dom.window.close();}
+});
+
+test('account menu displays the login username rather than a display name',async()=>{
+ const s=await mount({native:false});
+ try{assert.equal(s.w.document.querySelector('#account-identity').textContent,s.profile.username);assert.notEqual(s.profile.username,s.profile.displayName);}
+ finally{s.dom.window.close();}
+});
+
+test('legacy sessions without a username show a neutral account label',async()=>{
+ const s=await mount({native:false,me:async profile=>{delete profile.username;return Response.json(profile);}});
+ try{assert.equal(s.w.document.querySelector('#account-identity').textContent,'当前账号');}
+ finally{s.dom.window.close();}
+});
 test('native student enters learning directly, leaving sync to the lesson background agent',async()=>{
  const s=await mount();assert.equal(s.opened,1);assert.equal(s.w.document.querySelector('#download-apk').hidden,true);assert.ok(!s.w.document.body.textContent.includes('今天，也向前一步'));s.w.GrowingCloud.pageReady('https://appassets.androidplatform.net/assets/web/app-design/index.html');assert.equal(s.w.document.querySelector('#download-apk').hidden,true);s.dom.window.close();
 });

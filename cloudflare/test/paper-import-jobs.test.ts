@@ -29,6 +29,33 @@ after(async()=>mf.dispose());
 test('D1 persisted creation is idempotent and content-conflicting request IDs are rejected',async()=>{const j=jobs(),input={studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages};const a=await j.create(input),b=await j.create(input);assert.equal(a.id,b.id);await assert.rejects(j.create({...input,pages:[pages[0]]}),rejected(409));assert.equal((await j.get(student.id,a.id)).sourcePages[1].image,pages[1]);assert.ok(!JSON.stringify(await j.list(student.id)).includes('/9j/'));const [row]=await db.query<any>('SELECT "State" FROM "GrowingPaperImportJobs" WHERE "Id"=?1',[a.id]);assert.ok(!row.State.includes('/9j/'));});
 test('D1 recovery preserves prior successful pages, cross-page questions and atomically creates ungraded draft once',async()=>{const j=jobs();let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages});v=await step(j,v);failure=true;v=await step(j,v);assert.equal(v.status,'failed');assert.equal(v.plannedPages,1);failure=false;v=await step(j,v);assert.equal(v.plannedPages,2);assert.equal(v.totalQuestions,2);assert.deepEqual((v.next as any).pages,[1,2]);v=await step(j,v);assert.equal(v.recognizedQuestions,1);v=await step(j,v);assert.equal(v.status,'complete');const repeat=await step(j,v);assert.equal(repeat.paperId,v.paperId);const [paper]=await db.query<any>('SELECT "Mode" FROM "GrowingQuestionPapers" WHERE "Id"=?1',[v.paperId]);assert.equal(paper.Mode,'paper-draft');const qs=await db.query<any>('SELECT "Pages","Answer","FigureDrawing" FROM "GrowingPhotoQuestions" WHERE "PaperId"=?1',[v.paperId]);assert.equal(qs.length,2);assert.deepEqual(JSON.parse(qs[0].Pages),[1,2]);assert.ok(qs.every(q=>q.Answer===''&&q.FigureDrawing===''));assert.equal((await db.query('SELECT * FROM "GrowingPhotoGrades"')).length,0);assert.deepEqual(await db.query('PRAGMA foreign_key_check'),[]);});
 test('CAS prevents concurrent model calls; expired lease recovers; 429 preserves resumable task',async()=>{const j=jobs();let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'physics',pages:[pages[0]]});let release!:()=>void;block=new Promise<void>(r=>release=r);const before=planCalls;const pending=step(j,v);await new Promise(r=>setTimeout(r,80));await assert.rejects(step(j,v),rejected(409));release();v=await pending;block=null;assert.equal(planCalls,before+1);await assert.rejects(step(j,v,{AI_LIMITER:{limit:async()=>({success:false})}}),rejected(429));v=await j.get(student.id,v.id);assert.equal(v.status,'recognizing');assert.equal(v.recognizedQuestions,0);await db.query('UPDATE "GrowingPaperImportJobs" SET "LeaseToken"=\'crashed\',"LeaseUntil"=1 WHERE "Id"=?1',[v.id]);v=await step(j,v);assert.equal(v.status,'complete');});
+test('unfinished task deletion removes only its source pages and rejects active or stale work',async()=>{
+ const j=jobs(),make=()=>j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages});
+ const target=await make(),other=await make();
+ await assert.rejects(j.remove(student.id,target.id,target.revision+1),rejected(409));
+ await db.query('UPDATE "GrowingPaperImportJobs" SET "LeaseUntil"=?2 WHERE "Id"=?1',[target.id,Date.now()+60000]);
+ await assert.rejects(j.remove(student.id,target.id,target.revision),rejected(409));
+ assert.equal((await j.get(student.id,target.id)).sourcePages.length,2);
+ await db.query('UPDATE "GrowingPaperImportJobs" SET "LeaseUntil"=0 WHERE "Id"=?1',[target.id]);
+ // A damaged upload must still be removable without loading the missing source page.
+ await db.query('DELETE FROM "GrowingPaperImportJobPages" WHERE "JobId"=?1 AND "Page"=2',[target.id]);
+ const before=(await db.query('SELECT * FROM "GrowingQuestionPapers"')).length;
+ assert.deepEqual(await j.remove(student.id,target.id,target.revision),{deleted:true});
+ assert.equal((await db.query('SELECT * FROM "GrowingPaperImportJobPages" WHERE "JobId"=?1',[target.id])).length,0);
+ await assert.rejects(j.get(student.id,target.id),rejected(404));
+ assert.equal((await j.get(student.id,other.id)).sourcePages.length,2);
+ assert.equal((await db.query('SELECT * FROM "GrowingQuestionPapers"')).length,before);
+ assert.deepEqual(await db.query('PRAGMA foreign_key_check'),[]);
+});
+
+test('completed import deletion is blocked and preserves its paper and photos',async()=>{
+ const j=jobs();let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages:[pages[0]]});
+ while(v.status!=='complete')v=await step(j,v);
+ await assert.rejects(j.remove(student.id,v.id,v.revision),rejected(409));
+ assert.equal((await j.get(student.id,v.id)).sourcePages.length,1);
+ assert.equal((await db.query('SELECT * FROM "GrowingQuestionPapers" WHERE "Id"=?1',[v.paperId])).length,1);
+});
+
 test('unreliable page planning cannot complete a paper or discard its source page',async()=>{const broken={...recognition,planPage:async()=>({title:'空卷',classification:null,warnings:[],questions:[],continuesPrevious:false,continuationRegions:[]})};const j=new PaperImportJobs(db,student,broken);let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages:[pages[0]]});v=await step(j,v);assert.equal(v.status,'failed');assert.equal(v.plannedPages,0);assert.equal(v.paperId,null);assert.equal((await j.get(student.id,v.id)).sourcePages.length,1);});
 test('figure failure preserves completed questions and retry saves the real figure with the draft',async()=>{
  let rejectFigure=true;

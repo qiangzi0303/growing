@@ -6,6 +6,7 @@ import runpy
 import os
 
 repo = Path(__file__).resolve().parents[1]
+subprocess.run(['node', str(repo / 'scripts/build-learning-ui.mjs')], check=True)
 subprocess.run(['pnpm.cmd' if os.name == 'nt' else 'pnpm', '--dir', str(repo / 'console-web'), 'run', 'build'], check=True)
 stage_console = runpy.run_path(str(repo / 'scripts/stage-console.py'))['stage_console']
 subprocess.run(['node', str(repo / 'scripts/build-duck-catalog.cjs')], check=True)

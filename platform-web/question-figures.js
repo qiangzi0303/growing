@@ -103,7 +103,7 @@
     function close(){if(dialog){dialog.close();dialog.remove();dialog=null;}}
     function modal(title){
       close();const d=document.createElement('dialog');dialog=d;d.className='question-figure-dialog';d.setAttribute('aria-label',title);
-      d.innerHTML=`<div class="actions"><h2>${esc(title)}</h2><button type="button" data-figure-close>关闭</button></div><div data-figure-body></div>`;
+      d.innerHTML=`<div class="actions"><h2>${esc(title)}</h2><button type="button" data-figure-close aria-label="关闭" title="关闭" style="width:44px;height:44px;padding:0;font-size:28px;line-height:1;flex:0 0 44px">×</button></div><div data-figure-body></div>`;
       d.querySelector('[data-figure-close]').onclick=close;d.addEventListener('cancel',e=>{e.preventDefault();close();});document.body.append(d);d.showModal();return d;
     }
     async function mount(host,q,options={}){

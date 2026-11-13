@@ -1,0 +1,82 @@
+/* Workspace theme shared by the web shell and the APK cloud view. */
+:root, body.admin-console {
+  --ink: #25332c; --green: #38694f; --paper: #f5f7f5; --line: #e0e6e1;
+  --ui-muted: #5e6b63; --ui-control: #b8c5bc;
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  font-synthesis: none; font-variant-numeric: tabular-nums;
+}
+body, body.admin-console { background: var(--paper); color: var(--ink); font-size: 15px; line-height: 1.65; }
+.bar, .admin-console .bar { padding-block: 12px; background: var(--paper); border-color: var(--line); gap: 14px; }
+.bar .brand, .admin-console .brand { font-size: 21px; font-weight: 600; }
+.bar .brand-logo { width: 38px; height: 38px; }
+main { max-width: 1160px; margin-block: 28px; }
+.panel, .admin-console .panel { border-color: var(--line); border-radius: 12px; box-shadow: none; padding: 24px; }
+h1, .admin-console h1 { font-size: 26px; font-weight: 600; line-height: 1.4; letter-spacing: 0; }
+h2, .admin-console h2 { font-size: 20px; font-weight: 600; line-height: 1.5; }
+.muted, .admin-console .muted, .admin-console small { color: var(--ui-muted); }
+.metric, .stat .metric, .admin-console .stat .metric { font-size: 28px; font-weight: 400; color: var(--ink); }
+button, .button, .admin-console :is(button, .button) {
+  background: #fff; color: var(--ink); border-color: var(--ui-control); border-radius: 8px;
+  min-height: 40px; font-size: 14px; padding: 8px 14px; line-height: 1.5;
+  transition: background-color .15s, border-color .15s;
+}
+button:hover:not(:disabled), .button:hover, .admin-console :is(button, .button):hover:not(:disabled) {
+  background: #eef2ef; color: var(--ink); border-color: #83978a;
+}
+button.primary, .button.primary, .admin-console :is(button.primary, .button.primary) { background: var(--ink); color: #fff; border-color: var(--ink); }
+button.primary:hover:not(:disabled), .button.primary:hover, .admin-console :is(button.primary, .button.primary):hover:not(:disabled) { background: #38694f; color: #fff; border-color: #38694f; }
+button:disabled { cursor: default; }
+:is(button, a, input, select, textarea, summary):focus-visible, .admin-console :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+input, select, textarea, .admin-console :is(input, select) {
+  background: #fff; color: var(--ink); border: 1px solid var(--ui-control); border-radius: 8px;
+  min-height: 40px; padding: 10px 12px; font: inherit; max-width: 100%;
+}
+input::placeholder, textarea::placeholder, .admin-console input::placeholder { color: var(--ui-muted); }
+.auth { margin: 6vh auto; padding: 32px; }
+.auth h1 { margin-bottom: 12px; }
+.auth label { font-size: 14px; font-weight: 500; }
+.badge, .admin-console .badge { background: #eef2ef; color: var(--green); border-radius: 5px; font-size: 12px; }
+.table-scroll, .admin-console .table-scroll { border-radius: 8px; border-color: var(--line); }
+.table-scroll th, .admin-console .table-scroll th { background: #fff; font-weight: 500; color: var(--ui-muted); }
+.admin-console .table-scroll :is(td, th) { font-size: 13px; border-right: 0; padding: 12px; }
+.admin-console .table-scroll tbody tr:nth-child(even) { background: #fff; }
+.admin-console .table-scroll tbody tr:hover { background: #f5f8f5; }
+.admin-console .admin-tabs { gap: 8px; }
+.admin-console .admin-tabs button { border-radius: 0; background: none; color: var(--ui-muted); }
+.admin-console .admin-tabs button.primary { background: none; color: var(--ink); border-bottom-color: var(--ink); }
+.admin-console #admin-overview { border-radius: 12px; }
+.admin-console #admin-overview .stat { padding: 20px; }
+.admin-console .admin-data-panel { padding: 0; }
+.admin-console .link-button, .link-button { background: none; border: 0; color: var(--green); padding-inline: 2px; text-underline-offset: 4px; }
+.admin-console .link-button:hover:not(:disabled) { background: none; color: var(--green); }
+.growth-chart, .admin-console .growth-chart { background: #fff; border-radius: 8px; }
+.account-menu-panel { background: #fff; border-radius: 12px; box-shadow: 0 10px 28px #14251b1a; }
+:is(#photo-dialog, #api-settings-dialog, #rankings-dialog, .papers-modal) { background: #fff; color: var(--ink); border-radius: 12px; border-color: var(--line); }
+.papers-modal > header { background: #fff; }
+.papers-heading { margin: 12px 0 24px; }
+.papers-card { background: #fff; border-color: var(--line); border-radius: 12px; padding: 24px; }
+.papers-card:hover { border-color: #83978a; }
+.papers-card strong { font-size: 18px; line-height: 1.6; font-weight: 600; }
+.papers-import-job { background: #f7f9f7; border-color: var(--line); border-radius: 10px; }
+.my-photo-papers [data-upload] { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+.papers-confirm, .papers-import-jobs { border-radius: 12px; }
+.unit-report-facts dt, .unit-report-facts small { color: var(--ui-muted); }
+.bank-upload { border-color: var(--ui-control); border-radius: 8px; background: #fff; }
+@media (max-width: 600px) {
+  main, .admin-console main { margin-block: 20px; padding-inline: 16px; }
+  .bar, .admin-console .bar { padding: 10px 16px; gap: 10px; }
+  .panel, .admin-console .panel { padding: 20px; }
+  .admin-console .admin-data-panel { padding: 0; }
+  h1, .admin-console h1, .papers-heading h1 { font-size: 23px; }
+  h2, .admin-console h2 { font-size: 18px; }
+  button, .button, .admin-console :is(button, .button, input, select) { min-height: 44px; }
+  .auth { padding: 24px; }
+  .papers-card, .my-photo-papers [data-upload] { padding: 20px; }
+  .papers-heading { gap: 12px; margin-top: 8px; }
+  .papers-heading > button { width: 100%; }
+  .admin-console .admin-tabs { flex-wrap: nowrap; overflow-x: auto; }
+  .admin-console .admin-tabs button { flex-shrink: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  button, .button { transition: none; }
+}

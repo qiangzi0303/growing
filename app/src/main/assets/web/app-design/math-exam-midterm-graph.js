@@ -1,5 +1,7 @@
 /* Explicit links use real, reviewed course node IDs. No attempt records are created. */
 (()=>{
+ window.GrowingMidtermGraphData=D;
+ const startLegacy=()=>{
 'use strict';
 const base='';
 const bank=base+'math-wrong-questions.html?source=midterm-20261029';
@@ -27,4 +29,6 @@ document.querySelector('main').addEventListener('click',e=>{
 });
 window.addEventListener('hashchange',()=>{const id=location.hash.startsWith('#concept=')?decodeURIComponent(location.hash.slice(9)):'all';show(id);});
 const initial=location.hash.startsWith('#concept=')?decodeURIComponent(location.hash.slice(9)):'all';show(initial);
+ };
+ if(!window.GrowingStudentPages?.registerLegacy(startLegacy))startLegacy();
 })();

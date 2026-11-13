@@ -87,7 +87,7 @@
       document.body.append(dialog);
     }
     opener=button;
-    dialog.innerHTML=`<header class="unit-reward-dialog-bar"><h2 id="unit-reward-dialog-title">${esc(providers.get(id).title)} · 掌握程度</h2><button type="button" data-reward-close autofocus aria-label="关闭掌握程度">关闭 ×</button></header><nav class="unit-reward-tabs" aria-label="查看本单元记录"><button type="button" data-reward-tab="progress" aria-pressed="true">掌握与奖励</button><button type="button" data-reward-tab="calendar" aria-pressed="false">学习日历</button></nav><section data-unit-reward="${esc(id)}" aria-label="本单元进度与奖励"></section><section class="unit-calendar" data-unit-calendar="${esc(id)}" hidden></section>`;
+    dialog.innerHTML=`<header class="unit-reward-dialog-bar"><h2 id="unit-reward-dialog-title">${esc(providers.get(id).title)} · 掌握程度</h2><button type="button" data-reward-close autofocus aria-label="关闭掌握程度" title="关闭掌握程度" style="width:44px;height:44px;padding:0;font-size:28px;line-height:1;flex:0 0 44px">×</button></header><nav class="unit-reward-tabs" aria-label="查看本单元记录"><button type="button" data-reward-tab="progress" aria-pressed="true">掌握与奖励</button><button type="button" data-reward-tab="calendar" aria-pressed="false">学习日历</button></nav><section data-unit-reward="${esc(id)}" aria-label="本单元进度与奖励"></section><section class="unit-calendar" data-unit-calendar="${esc(id)}" hidden></section>`;
     render(dialog.querySelector('[data-unit-reward]'),id);
     if(!dialog.open)dialog.showModal();
     document.documentElement.classList.add('unit-reward-modal-open');

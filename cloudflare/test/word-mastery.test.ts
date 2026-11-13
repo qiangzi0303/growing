@@ -9,7 +9,8 @@ const doc=(key:string,value:any):Document=>({key,value:JSON.stringify(value),rev
 test('ranking and unit reports agree that new evidence requires both plural and oral mastery',()=>{
   for(const [record,credit] of [[good,1],[{...good,pluralAnswer:'shelfs'},0],[{...good,oral:{...good.oral,posPassed:false}},0],[{...good,oral:{...good.oral,answer:''}},0],[{practice:{answers:good.answers,pluralAnswer:'shelves'}},0]] as const){
     const docs=[doc('growing-english-course-v1:english-8a-04',{version:1,words:{shelf:record},lessons:{}})];
-    assert.equal(masteryBoards(docs).find(b=>b.id==='english-8a-04')!.testDone,credit);
+    const board=masteryBoards(docs).find(b=>b.id==='english-8a-04')!;
+    assert.equal(board.conceptDone,credit);assert.equal(board.testDone,0);
     assert.equal(buildUnitReports(docs).units.find(b=>b.id==='english-8a-04')!.mastered,credit);
     assert.equal(buildUnitReports(docs).units.find(b=>b.id==='english-8a-04')!.words!.mastered,credit);
     assert.equal(buildReport(docs).subjects.find(s=>s.subject==='英语')!.mastered,credit);

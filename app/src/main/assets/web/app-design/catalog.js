@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  const renderLegacy=()=>{
   const data=window.GrowingCurriculum;
   const params=new URLSearchParams(location.search);
   const subject=params.get('subject')||'math';
@@ -78,4 +79,6 @@
     <a class="primary-link" href="${catalogLink()}">返回${course.name}目录 <span aria-hidden="true">→</span></a>
   </main>`;
   window.UnitRewards.register(unit.id,{title:unit.title,rule:'当前仅可约定奖励总额，课程开放并有正式达标记录后开始累计。',progress:()=>({done:0,total:0})});
+  };
+  if(!window.GrowingStudentPages?.registerLegacy(renderLegacy))renderLegacy();
 })();

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html data-ui-kind="learning" lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -8,12 +8,12 @@
   <link rel="icon" href="brand-logo.webp">
   <link rel="stylesheet" href="catalog.css?v=unit-progress-summary-1">
   <link rel="stylesheet" href="brand.css">
-  <script src="course-duck.js" defer></script>
-</head>
+  <script src="course-duck.js?studentUi=20261113-partial-practice-1" defer></script>
+<link rel="stylesheet" href="learning-ui.css?v=workspace-20261111"></head>
 <body class="math">
   <main class="catalog-shell">
     <nav class="page-nav" aria-label="页面导航">
-      <a class="back-link" id="resources-back" href="units.html?subject=math&term=upper">← 返回数学目录</a>
+      <a class="back-link" id="resources-back" href="units.html?subject=math&term=upper&studentUi=20261112-vant-3">← 返回数学目录</a>
       <span class="mini-brand"><img class="brand-logo" src="brand-logo.webp" alt="" width="32" height="32">逆流</span>
     </nav>
     <header class="catalog-heading"><div><p class="eyebrow">数学</p><h1>试卷和推导</h1></div></header>
@@ -26,9 +26,9 @@
       <div class="paper-entry">
         <div><h3>期中复习卷</h3></div>
         <nav aria-label="期中复习卷资料">
-          <a href="math-exam-midterm.html">无答案试卷</a>
-          <a href="math-exam-practice.html">检测卷2</a>
-          <a href="math-exam-midterm-graph.html">交互知识图谱</a>
+          <a href="math-exam-midterm.html?studentUi=20261112-vant-3">无答案试卷</a>
+          <a href="math-exam-practice.html?studentUi=20261112-vant-3">检测卷2</a>
+          <a href="math-exam-midterm-graph.html?studentUi=20261112-vant-3">交互知识图谱</a>
         </nav>
       </div>
     </section>
@@ -36,11 +36,13 @@
       <h2 id="geometry-models-title">模型推导</h2>
       <div class="paper-entry">
         <div><h3>初中几何模型</h3></div>
-        <nav aria-label="模型推导"><a href="geometry-models.html">进入模型推导</a></nav>
+        <nav aria-label="模型推导"><a href="geometry-models.html?studentUi=20261112-vant-3">进入模型推导</a></nav>
       </div>
     </section>
   </main>
+  <script src="student-pages.js?v=2&studentUi=20261113-partial-practice-1"></script>
   <script>
+   const renderLegacy=()=>{
     const term=new URLSearchParams(location.search).get('term')==='lower'?'lower':'upper';
     document.getElementById('resources-back').href='units.html?subject=math&term='+term;
     document.getElementById('open-my-papers').addEventListener('click',event=>{
@@ -48,6 +50,8 @@
       if(window.top.GrowingCloud?.openPapers)window.top.GrowingCloud.openPapers({subject:'math'});
       else location.href=window.GrowingNative?'../cloud/index.html?subject=math&return='+encodeURIComponent(location.href)+'#my-papers':'/?subject=math#my-papers';
     });
+   };
+   if(!window.GrowingStudentPages?.registerLegacy(renderLegacy))renderLegacy();
   </script>
 </body>
 </html>

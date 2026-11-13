@@ -1,0 +1,1 @@
+{"name":"growing-learning-ui","private":true,"type":"module","scripts":{"build":"vite build","test":"node --test test/*.test.js"},"dependencies":{"vue":"3.5.45","vant":"4.10.2"},"devDependencies":{"vite":"8.3.8","@vitejs/plugin-vue":"6.0.10","jsdom":"26.1.0"}}

@@ -1,4 +1,5 @@
 (()=>{
+  const start=()=>{
   'use strict';
   const data=window.GrowingMathWrongQuestions,params=new URLSearchParams(location.search);
   const select=document.getElementById('unit'),search=document.getElementById('search'),host=document.getElementById('questions');
@@ -54,4 +55,5 @@
     if(data.units.some(u=>u.id===params.get('unit')))select.value=params.get('unit');
     attempts=GrowingQuestionAttempts.create(document.body,context.api,context.studentId,()=>true,render,{manualPractice:false});await attempts.load('math');render();
   }catch(e){document.getElementById('attempt-summary').textContent='作答统计连接失败：'+e.message;}})();
+  };if(!window.GrowingStudentPages?.registerLegacy(start))start();
 })();
