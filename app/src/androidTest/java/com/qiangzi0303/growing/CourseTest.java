@@ -30,7 +30,12 @@ public class CourseTest {
             IdentityFixtures.enterCache(s);
             ready(s,"!!document.querySelector('.subjects')");
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=math&term=upper&unit=math-8a-03'");
-            ready(s,"location.pathname.endsWith('/math-course.html') && !!document.querySelector('#mark-read') && !!window.GrowingCourseAccount");
+            ready(s,"location.pathname.endsWith('/math-course.html') && !!document.querySelector('.student-math-course .lesson-tabs') && !!window.GrowingCourseAccount");
+            js(s,"GrowingCourseAccount.open('settings')");
+            ready(s,"!!document.querySelector('.student-course-settings')");
+            // Keep the legacy reward-dialog contract covered alongside the current Vue route.
+            js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/math-course.html?chapter=math-8a-03&ui=legacy'");
+            ready(s,"!!document.querySelector('#mark-read') && !!window.GrowingCourseAccount");
             js(s,"GrowingCourseAccount.open('settings')");
             ready(s,"!!document.querySelector('.unit-reward-trigger')");
             assertEquals("0",js(s,"document.querySelectorAll('iframe').length"));
@@ -42,25 +47,28 @@ public class CourseTest {
             js(s,"localStorage.setItem('course.route','native-bridge-ok')");
             assertEquals("\"native-bridge-ok\"",js(s,"localStorage.getItem('course.route')"));
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/knowledge.html?chapter=math-8b-09&mode=panorama&range=year'");
-            ready(s,"document.body.classList.contains('is-panorama') && !!document.querySelector('svg')");
+            ready(s,"!!document.querySelector('.student-knowledge.is-panorama svg')");
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=physics&term=upper&unit=physics-8a-01'");
             ready(s,"location.pathname.endsWith('/physics-course.html') && !!(window.GrowingCourseAI && document.querySelector('.course-tools-nav'))");
             assertEquals("true",js(s,"GrowingCourseAI.info().native"));
-            assertEquals("\"微课首页|拍照题库|交互\"",js(s,"Array.from(document.querySelectorAll('.course-tools-nav button'),b=>b.textContent.trim()).join('|')"));
-            js(s,"document.querySelector('[data-tab=practice]').click()");
-            ready(s,"!!document.querySelector('#practice-form .practice-photo-link')");
-            assertEquals("10",js(s,"document.querySelectorAll('[data-practice-question]').length"));
-            assertEquals("true",js(s,"Array.from(document.querySelectorAll('.practice-photo-link')).every(a=>{const u=new URL(a.href);return u.pathname.endsWith('/handwriting.html')&&u.searchParams.get('subject')==='physics'&&u.searchParams.get('unit')==='physics-8a-01'&&u.searchParams.get('practice')===a.closest('[data-practice-question]').dataset.practiceQuestion;})"));
+            js(s,"Array.from(document.querySelectorAll('.lesson-tabs button')).find(b=>b.textContent.trim()==='应用练习').click()");
+            ready(s,"document.querySelectorAll('.application-round [data-question-id]').length===10");
+            assertEquals("true",js(s,"!!document.querySelector('.application-round input[type=file]')"));
+            assertEquals("true",js(s,"document.querySelector('.practice-submit button').disabled"));
+            js(s,"document.querySelector('.application-round [role=radio]').click()");
+            ready(s,"!document.querySelector('.practice-submit button').disabled");
+            js(s,"document.querySelector('.practice-submit button').click()");
+            ready(s,"!!document.querySelector('.round-score') && Array.from(document.querySelectorAll('.question-result')).some(e=>e.textContent.includes('未作答'))");
             assertEquals("\"native-bridge-ok\"",js(s,"localStorage.getItem('course.route')"));
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/study.html?subject=english&term=upper&unit=english-8a-01'");
             ready(s,"location.pathname.endsWith('/english-course.html') && !!(window.GrowingCourseAI && document.querySelector('.word-card'))");
             assertEquals("true",js(s,"GrowingCourseAI.info().native"));
             assertEquals("0",js(s,"document.querySelectorAll('#word-detail,.tabs [data-view=settings]').length"));
             assertEquals("\"native-bridge-ok\"",js(s,"localStorage.getItem('course.route')"));
-            js(s,"document.querySelector('.word-card [data-action=word]').click()");
-            ready(s,"!!document.querySelector('#word-detail')");
-            js(s,"document.querySelector('[data-view=settings]').click()");
-            ready(s,"!!document.querySelector('[data-course-ai-native]')");
+            js(s,"document.querySelector('.word-card-link').click()");
+            ready(s,"!!document.querySelector('.student-english-panel h2[lang=en]')");
+            js(s,"GrowingCourseAccount.open('settings')");
+            ready(s,"!!document.querySelector('.student-course-settings input[readonly]')");
         }
     }
 }
