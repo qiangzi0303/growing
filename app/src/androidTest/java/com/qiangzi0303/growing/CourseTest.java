@@ -37,10 +37,12 @@ public class CourseTest {
             js(s,"location.href='https://appassets.androidplatform.net/assets/web/app-design/math-course.html?chapter=math-8a-03&ui=legacy'");
             ready(s,"!!document.querySelector('#mark-read') && !!window.GrowingCourseAccount");
             js(s,"GrowingCourseAccount.open('settings')");
-            ready(s,"!!document.querySelector('.unit-reward-trigger')");
+            ready(s,"!!window.UnitRewards && !!document.querySelector('#course-reset')");
             assertEquals("0",js(s,"document.querySelectorAll('iframe').length"));
             assertEquals("0",js(s,"document.querySelectorAll('.unit-reward-summary').length"));
-            js(s,"document.querySelector('.unit-reward-trigger').click()");
+            js(s,"UnitRewards.openCalendar('math-8a-03')");
+            ready(s,"!!document.querySelector('dialog[open] [data-reward-tab=progress]')");
+            js(s,"document.querySelector('dialog[open] [data-reward-tab=progress]').click()");
             ready(s,"!!document.querySelector('dialog[open] .unit-reward-summary')");
             assertEquals("200",js(s,"JSON.parse(localStorage.getItem('growing-unit-rewards-v1:math-8a-03')).config.cashYuan"));
             assertEquals("false",js(s,"Object.getOwnPropertyDescriptor(window,'localStorage').configurable"));
