@@ -77,6 +77,9 @@ input::placeholder, textarea::placeholder, .admin-console input::placeholder { c
   .admin-console .admin-tabs { flex-wrap: nowrap; overflow-x: auto; }
   .admin-console .admin-tabs button { flex-shrink: 0; }
 }
+.bar .home-brand-copy { display: flex; flex-direction: column; gap: 3px; line-height: 1.2; }
+.bar .home-brand-copy small { font-size: 11px; line-height: 1.5; font-weight: 400; color: #64766b; white-space: nowrap; letter-spacing: 0; }
+.bar:has(.home-brand-copy) { background: #fff; min-height: 72px; }
 @media (prefers-reduced-motion: reduce) {
   button, .button { transition: none; }
 }

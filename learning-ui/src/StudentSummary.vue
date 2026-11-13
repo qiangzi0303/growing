@@ -5,7 +5,7 @@ defineProps({model:{type:Object,required:true}});
 </script>
 <template>
  <main class="student-summary summary-shell">
-  <nav class="summary-nav" aria-label="课程导航"><Button tag="a" :href="model.backHref">{{model.backLabel||'返回目录'}}</Button><Button tag="a" href="index.html" class="brand" aria-label="逆流，选择课程"><img class="brand-logo" :src="'brand-logo.webp'" alt="" width="32" height="32">逆流</Button></nav>
+  <nav class="summary-nav" aria-label="课程导航"><Button tag="a" :href="model.backHref">{{model.backLabel||'返回目录'}}</Button><Button tag="a" href="index.html" class="brand" aria-label="逆流，选择课程">选择课程</Button></nav>
   <header><p v-if="model.eyebrow" class="eyebrow">{{model.eyebrow}}</p><h1>{{model.title}}</h1></header>
   <p v-if="model.kind==='error'" role="status">{{model.message}}</p>
   <div v-else class="summary-groups"><section v-for="group in model.groups" :key="group.key" :class="['summary-group',group.key]" :aria-labelledby="'student-summary-'+group.key"><h2 :id="'student-summary-'+group.key">{{group.label}} <Tag>{{group.rows.length}}</Tag></h2><ul v-if="group.rows.length"><li v-for="row in group.rows" :key="row.id" :data-summary-node="row.id">{{row.title}}</li></ul><p v-else class="summary-empty">暂无</p></section></div>

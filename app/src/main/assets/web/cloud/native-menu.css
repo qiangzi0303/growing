@@ -1,7 +1,8 @@
 .native-account-bar{display:flex;align-items:center;gap:16px;padding:12px 20px;background:#fff;border-bottom:1px solid #d7e0d4;color:#263f35;font:16px/1.5 system-ui,"Microsoft YaHei",sans-serif}
 .native-account-brand{display:flex;align-items:center;gap:10px;font-size:25px;font-weight:700;color:inherit;text-decoration:none}.native-account-brand img{object-fit:contain}
+.native-brand-copy{display:flex;flex-direction:column;gap:3px;line-height:1.2}.native-brand-copy small{font-size:11px;line-height:1.5;font-weight:400;color:#64766b;white-space:nowrap}.native-account-bar{min-height:72px;box-sizing:border-box;gap:10px}.native-account-brand{font-size:23px}.native-account-brand img{width:40px;height:40px}
 .native-account-bar #account-menu{position:relative;flex-shrink:0;margin:0}
-.native-account-bar #account-menu>summary{display:grid;place-items:center;box-sizing:border-box;width:44px;height:44px;list-style:none;border:0;border-radius:9px;background:#edf3e9;cursor:pointer}
+.native-account-bar #account-menu>summary{display:grid;place-items:center;box-sizing:border-box;width:44px;height:44px;list-style:none;border:0;border-radius:9px;background:transparent;cursor:pointer}
 .native-account-bar #account-menu>summary::-webkit-details-marker{display:none}
 .native-account-bar .account-menu-panel{position:absolute;left:0;top:calc(100% + 8px);z-index:200;width:260px;max-width:calc(100vw - 40px);max-height:calc(100dvh - 100px);overflow:auto;box-sizing:border-box;display:grid;gap:9px;padding:14px;border:1px solid #d7e0d4;border-radius:12px;background:#fffdf9;box-shadow:0 10px 30px #263f3520}
 .native-account-bar .account-menu-panel p{margin:0 0 4px;font-size:13px;overflow-wrap:anywhere}.native-account-bar .account-menu-panel p:empty{display:none}

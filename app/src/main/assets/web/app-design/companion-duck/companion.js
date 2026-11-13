@@ -7,7 +7,7 @@ let config={...defaults,asrKey:'',ttsKey:''};
 try{const stored=JSON.parse(localStorage.getItem('duck-voice-prefs-v1')||'{}');for(const key of Object.keys(defaults))if(typeof stored[key]==='string')config[key]=stored[key];}catch{}
 // Never silently reopen the microphone or persist conversations/provider speech keys.
 let history=[],job=null,serial=0,voiceGeneration=0,wantsVoice=false,startingVoice=false,state='idle',celebrationTimer;
-const labels={idle:'安静陪伴',listen:'认真倾听',think:'正在想一想',speak:'小鸭正在说',celebrate:'完成这一段'};
+const labels={idle:'安静陪伴',listen:'认真倾听',think:'正在想一想',speak:'学习伙伴正在说',celebrate:'完成这一段'};
 const messages=$('#messages'),input=$('#chat-input'),notice=$('#voice-notice');
 function showNotice(text){notice.textContent=text||'';}
 function setState(value,text=''){
@@ -142,7 +142,7 @@ form.addEventListener('submit',event=>{
     stopPreview();++voiceGeneration;startingVoice=false;wantsVoice=false;microphone.stop();interrupt(false);config=next;fillSettings();updateVoiceButton();$('#settings-status').textContent='已保存。请重新开启语音；接口密钥只在当前页暂存。';
   }catch(error){$('#settings-status').textContent=error.message;}
 });
-settings.addEventListener('close',()=>{$('#connection-summary').textContent=window.GrowingCourseAI?.info().configured?'连接已就绪，随时可以和小鸭聊聊。':'先在连接设置中保存 AI 密钥，即可开始。';});
+settings.addEventListener('close',()=>{$('#connection-summary').textContent=window.GrowingCourseAI?.info().configured?'连接已就绪，随时可以和学习伙伴聊聊。':'先在连接设置中保存 AI 密钥，即可开始。';});
 fillSettings();updateVoiceButton();
 function connectDuck(){window.duckPreview?.setMouthSource(()=>speaker.mouth());setState(state);}
 window.addEventListener('duck:ready',connectDuck);if(window.duckPreview)connectDuck();

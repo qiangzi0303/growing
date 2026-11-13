@@ -1,7 +1,7 @@
 // Local UI commands and summaries never change an assessment or lesson progress.
 export function visibilityIntent(value){
   if(typeof value!=='string'||value.length>60)return null;
-  const text=value.replace(/[\s，,。.!！?？]/g,'').replace(/^(?:小鸭子?|鸭鸭)[呀啊]?/,'').replace(/^(?:请你|请|你)/,'').replace(/(?:一下)?(?:吧|啦|呀|啊|好吗)$|一下$/,'');
+  const text=value.replace(/[\s，,。.!！?？]/g,'').replace(/^(?:学习伙伴|伙伴|女孩|小鸭子?|鸭鸭)[呀啊]?/,'').replace(/^(?:请你|请|你)/,'').replace(/(?:一下)?(?:吧|啦|呀|啊|好吗)$|一下$/,'');
   if(/^(?:隐身|隐藏|躲起来|藏起来|隐藏自己)$/.test(text))return 'hide';
   if(/^(?:出来|现身|回来|出现|显示自己)$/.test(text))return 'show';
   return null;

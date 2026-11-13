@@ -10,7 +10,7 @@
  window.GrowingStudentPages={registerLegacy(render){if(!enabled)return false;legacyRenders.push(render);if(failed)render();return true;}};
  if(!enabled)return;
  const base=new URL('./',document.currentScript.src),loads=new Map(),hidden=[];
- const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi','20261113-practice-figures-1');return url;};
+ const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi','20261113-home-v7');return url;};
  function load(name,css=false){
   if(loads.has(name))return loads.get(name);
   const promise=new Promise((resolve,reject)=>{const el=document.createElement(css?'link':'script');if(css){el.rel='stylesheet';el.href=assetUrl(name);}else el.src=assetUrl(name);el.onload=resolve;el.onerror=()=>{el.remove();loads.delete(name);reject(Error('新版学习页面资源暂不可用，已保留原页面。'));};document.head.append(el);});loads.set(name,promise);return promise;

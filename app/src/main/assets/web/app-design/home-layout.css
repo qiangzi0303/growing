@@ -1,0 +1,22 @@
+/* Confirmed home layout, shared by Vue and the offline fallback. */
+body:has(.home){background:#f5f7f4;color:#26382f}
+body .home,body .home:has(.home-settings-entry){width:100%;max-width:none;min-height:100svh;padding:100px max(24px,calc((100vw - 992px)/2)) 110px;justify-content:flex-start}
+.home-brand{position:absolute;top:0;left:0;width:100%;height:76px;background:#fff;border-bottom:1px solid #e3e8e2;display:flex;align-items:center;gap:10px;padding:10px max(82px,calc((100vw - 876px)/2))}
+.home-brand img{width:44px;height:44px;object-fit:contain;flex-shrink:0}
+.home-brand-copy{display:flex;flex-direction:column;gap:3px}
+.home-brand strong{font-size:24px;line-height:1.2;letter-spacing:1px;font-weight:600}
+.home-brand small{font-size:11px;line-height:1.5;color:#64766b;white-space:nowrap}
+body .home-settings-entry,body .home>.vant-sample-entry{position:absolute;top:16px;left:max(24px,calc((100vw - 992px)/2));z-index:20}
+.home .home-settings-entry>button{width:44px;padding:10px;border:0;background:transparent}
+body .home .subjects{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;background:transparent}
+body .home .subject-card,body .home .student-subject.van-cell{min-height:210px;padding:28px;display:flex;flex-direction:column;align-items:flex-start;gap:24px;border:1px solid #dce4dc;border-radius:16px;background:#fff;color:#26382f;box-shadow:none}
+body .home .subject-icon{width:44px;height:44px;margin:0;background:none;color:#466d58;flex-shrink:0}
+body .home .subject-icon svg{width:40px;height:40px}
+body .home .subject-icon.letters{font:36px/1 Georgia,serif}
+body .home .subject-copy h2{margin:0 0 9px;font-size:24px;line-height:1.4;font-weight:600;letter-spacing:0;color:#26382f}
+body .home .subject-copy p{margin:0;font-size:14px;line-height:1.6;color:#748078}
+.home .subject-en{display:none}
+html.home-in-shell .home-brand{display:none}
+html.home-in-shell body .home{padding-top:24px;min-height:calc(100svh - 72px)}
+@media(max-width:760px){body .home,body .home:has(.home-settings-entry){padding:96px 20px 96px}.home-brand{height:72px;padding:10px 70px;gap:10px}.home-brand img{width:40px;height:40px}.home-brand strong{font-size:23px}body .home-settings-entry,body .home>.vant-sample-entry{top:14px;left:16px}body .home .subjects{grid-template-columns:1fr;gap:14px}body .home .subject-card,body .home .student-subject.van-cell{min-height:124px;padding:24px;flex-direction:row;align-items:center;gap:22px;border-radius:14px}body .home .subject-copy h2{font-size:22px;margin-bottom:7px}body .home .subject-copy p{font-size:13px}}
+@media(max-width:360px){body .home,body .home:has(.home-settings-entry){padding-left:16px;padding-right:16px}.home-brand{padding-left:60px;gap:7px}.home-brand small{font-size:10px}body .home .subject-card,body .home .student-subject.van-cell{padding:20px 16px;gap:16px}body .home .subject-copy p{font-size:12px}}

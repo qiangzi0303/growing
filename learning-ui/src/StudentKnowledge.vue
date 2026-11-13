@@ -36,7 +36,7 @@ onBeforeUnmount(()=>{stop();observer?.disconnect();pointers.clear();});
  <main class="student-knowledge workspace" :class="{'is-panorama':m.mode==='panorama'}">
   <template v-if="m.kind==='error'"><h1>{{ m.title }}</h1><Button tag="a" :href="m.backHref">返回目录</Button></template>
   <template v-else>
-   <nav class="student-knowledge-nav"><Button tag="a" :href="m.backHref" icon="arrow-left">{{ m.subjectName }}目录</Button><Button tag="a" href="index.html" class="brand"><img :src="'brand-logo.webp'" alt="" width="32" height="32">逆流</Button></nav>
+   <nav class="student-knowledge-nav"><Button tag="a" :href="m.backHref" icon="arrow-left">{{ m.subjectName }}目录</Button><Button tag="a" href="index.html" class="brand">选择课程</Button></nav>
    <header class="student-k-heading"><div><p class="student-k-eyebrow">{{ m.subject==='physics'?'苏科版2025年第4版':'苏科版' }} · 八年级{{ m.chapter.term==='upper'?'上':'下' }}册 · 第{{ m.chapter.number }}章</p><h1>先找到卡住的那一步。</h1></div><span class="chapter-number">{{m.chapter.number}}</span></header><p class="scope-note"> </p>
    <div class="student-k-toolbar"><label>选择章节</label><Button @click="openPicker('chapter')">{{m.chapter.term==='upper'?'上册':'下册'}} · 第{{m.chapter.number}}章 {{ m.chapter.title }} <span aria-hidden="true">⌄</span></Button><Button tag="a" :href="m.studyHref">回本章学习</Button><Button tag="a" :href="m.summaryHref">单元总结</Button></div>
    <Tabs :active="m.mode" @update:active="run('mode',$event)"><Tab name="graph" title="知识图谱"/><Tab name="panorama" title="全景图谱"/><Tab name="diagnosis" title="先测一下"/></Tabs>

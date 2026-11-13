@@ -2,3 +2,11 @@ Mechanical duck study companion — original procedural 3D model and preview.
 Visual reference: MicroDuck by Pollen Robotics, https://github.com/pollen-robotics/microduck
 This preview uses independently authored geometry, not the official CAD, robot software or motion policies.
 Three.js 0.169.0 is bundled locally under the MIT license; see vendor/THREE-LICENSE.txt.
+
+Girl companion: based on the project's existing .nmai/TTCut/image/girl1_rig.glb
+and girl1_walk.glb (generator metadata: Tripo / Blender glTF exporter).
+girl1_face.glb is a derived mobile asset with 1024px textures, localized mouth
+deformation and separate skinned eyelids. Original input GLBs are unchanged.
+It provides basic blinking and amplitude-driven mouth opening, not phoneme shapes.
+The girl renderer uses the project's existing Three.js r187 distribution;
+see vendor/girl/LICENSE for its MIT license.

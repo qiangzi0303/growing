@@ -32,7 +32,7 @@
     const rows=unitRows.filter(q=>(!repeat.checked||attempts?.get('math',q.id).wrongCount>=2)&&(!key||`第${q.number}题 ${q.number} ${q.title} ${q.text} ${q.note} ${q.review||''} ${(q.concepts||[]).join(' ')}`.toLowerCase().includes(key)));
     if(attempts){
       const ready=attempts.ready('math');repeat.disabled=!ready;
-      document.getElementById('attempt-summary').textContent=ready?`本单元累计错误 ${unitRows.reduce((sum,q)=>sum+attempts.get('math',q.id).wrongCount,0)} 次 · 反复错题 ${unitRows.filter(q=>attempts.get('math',q.id).wrongCount>=2).length} 题。做对后仍保留历史错误次数。`:'统计暂未读取成功，请检查网络后刷新；未把历史次数显示为零。';
+      document.getElementById('attempt-summary').textContent=ready?'':'统计暂未读取成功，请检查网络后刷新；未把历史次数显示为零。';
     }
     document.getElementById('count').textContent=`${id==='all'?'全部单元':unitName(id)} · 共 ${rows.length} 题`;
     const back=document.getElementById('back');

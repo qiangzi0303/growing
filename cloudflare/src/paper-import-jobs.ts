@@ -10,7 +10,7 @@ import {locateQuestionRegions,recognizeQuestionText,reviewQuestion,redrawQuestio
 
 type Task={number:string;pages:number[];regions:PhotoRegion[]};
 type Stage='locate'|'transcribe'|'review'|'draw'|'verify'|'grade';
-type Pending={number:string;stage:Stage;draft?:ImportedQuestion;question?:ImportedQuestion;issues?:string[];drawingHash?:string};
+type Pending={number:string;stage:Stage;draft?:ImportedQuestion;question?:ImportedQuestion;issues?:string[];drawingHash?:string;drawingFailures?:number};
 type State={workflow?:'visual-v1';pending?:Pending;mode?:'grade';pages:string[];planned:number;tasks:Task[];results:any[];title:string;classification:any;warnings:string[];error:string;paperId:string|null};
 type Row={Id:string;StudentId:string;RequestId:string;Fingerprint:string;Subject:string;State:string;Revision:number;LeaseUntil:number};
 const fail=(status:number,message:string):never=>{throw new HttpError(status,message);};
@@ -133,7 +133,16 @@ export class PaperImportJobs{
       if(!pending.question?.drawing||await hash(JSON.stringify(pending.question.drawing))!==data.drawingHash)fail(409,'重绘题图版本已变化。');
       const checked=await this.recognition.verifyQuestionDrawing(env,signal,upstream,r.Subject,task,pages,pending.question!,pending.question!.drawing!,data.diagramImages as string[],fragments??[]);
       if(checked.matches){pending.issues=[];next();}
-      else{pending.issues=checked.issues;pending.stage='draw';pending.question!.drawing=null;delete pending.drawingHash;s.error='本题重绘未通过原图复核：'+checked.issues.join('；')+'。重试将只修正本题图形。';}
+      else{
+       pending.issues=checked.issues;pending.question!.drawing=null;delete pending.drawingHash;
+       pending.drawingFailures=(pending.drawingFailures??0)+1;
+       if(pending.drawingFailures<2)pending.stage='draw';
+       else{
+        const note='第'+task.number+'题题图重绘未通过核对，已保留原图，请通过“查看原题”核对题图。';
+        pending.question!.uncertain=[...new Set([note,...pending.question!.uncertain])].slice(0,10);
+        s.warnings.push(note);next();
+       }
+      }
       break;
      }
      case 'grade':{

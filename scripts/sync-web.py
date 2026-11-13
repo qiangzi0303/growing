@@ -11,7 +11,7 @@ subprocess.run(['node',str(repo/'scripts/build-parallel-links.cjs')],check=True)
 subprocess.run(['node',str(repo/'scripts/build-wrong-question-links.cjs')],check=True)
 deferred={'physics-'+name+'.js' for name in ['matter','particles','forces','dynamics','pressure','lower-figures']}
 files=[p.relative_to(project) for p in (project/'app-design').iterdir() if p.is_file() and p.suffix in ('.html','.css','.js') and p.name not in deferred]
-# Companion geometry is generated in JS. Ship only public UI/vendor assets, never the proxy or keys.
+# Ship public UI/vendor assets; character binaries are copied by sync-duck below.
 files += [p.relative_to(project) for p in (project/'app-design/companion-duck').rglob('*') if p.is_file() and p.suffix in ('.html','.css','.js','.svg','.txt') and 'tests' not in p.parts and '__pycache__' not in p.parts]
 # Preserve previously copied drafts outside the APK assets, without deleting them.
 for name in sorted(deferred):
@@ -40,4 +40,5 @@ for name in tests:
     source=source.replace("require('../","require('../app/src/main/assets/web/app-design/")
     source=source.replace("require.resolve('../","require.resolve('../app/src/main/assets/web/app-design/")
     (repo/'scripts'/name).write_text(source,encoding='utf-8',newline='\n')
+runpy.run_path(str(repo/'scripts/sync-duck.py'))
 print(json.dumps({'offline_files':len(files),'credentials_removed':removed,'rule_tests':len(tests)}))

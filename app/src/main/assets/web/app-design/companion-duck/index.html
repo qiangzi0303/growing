@@ -4,33 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#eef2ee">
-  <title>小鸭 · 语音学习伙伴</title>
+  <title>学习伙伴 · 语音学习伙伴</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="../course-ai.css">
   <link rel="stylesheet" href="./companion.css">
   <link rel="stylesheet" href="../learning-ui.css?v=workspace-20261111">
-  <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+  <link rel="stylesheet" href="./girl.css?v=20261113-girl-1">
+  <script type="importmap">{"imports":{"three":"./vendor/girl/build/three.module.js"}}</script>
 </head>
-<body class="companion-mode">
+<body class="companion-mode girl-mode">
   <main class="studio">
     <header class="header">
-      <a class="brand" href="../units.html?studentUi=20261112-vant-3" aria-label="返回课程目录"><span class="brand-mark">d.</span><span>学习伙伴<span class="brand-sub">CHARACTER STUDIO</span></span></a>
+      <a class="brand" href="../units.html?studentUi=20261112-vant-3" aria-label="返回课程目录"><span class="brand-mark">g.</span><span>学习伙伴<span class="brand-sub">CHARACTER STUDIO</span></span></a>
       <button class="settings-toggle" id="open-settings">连接设置</button>
     </header>
-    <section class="intro"><div class="eyebrow">YOUR STUDY COMPANION</div><h1>小鸭在这里<span>。</span></h1><p id="connection-summary">可以打字聊天，也可以开启语音。</p></section>
-    <div id="viewport" role="img" aria-label="可旋转的机械小鸭3D模型。拖动旋转，滚轮或双指缩放。"></div>
-    <div class="loading" id="loading">正在唤醒小鸭…</div>
+    <section class="intro"><div class="eyebrow">YOUR STUDY COMPANION</div><h1>学习伙伴在这里<span>。</span></h1><p id="connection-summary">可以打字聊天，也可以开启语音。</p></section>
+    <div id="viewport" role="img" aria-label="女孩3D模型。拖动旋转，滚轮或双指缩放。"></div>
+    <div class="loading" id="loading">正在唤醒学习伙伴…</div>
     <aside class="panel" aria-label="形象与动作设置" hidden>
-      <div class="panel-title"><div><span class="eyebrow">YOUR COMPANION</span><h2>小鸭 <span>DUCK / 01</span></h2></div><span class="online-dot" title="本地动作预览"></span></div>
+      <div class="panel-title"><div><span class="eyebrow">YOUR COMPANION</span><h2>学习伙伴 <span>GIRL / 01</span></h2></div><span class="online-dot" title="本地动作预览"></span></div>
       <div class="divider"></div>
-      <fieldset><legend>选个喜欢的颜色</legend><div class="swatches">
-        <button class="swatch active" data-color="mint" style="--swatch:#8bd3ce" aria-label="薄荷青" aria-pressed="true"></button>
-        <button class="swatch" data-color="lavender" style="--swatch:#b5a0dc" aria-label="雾紫" aria-pressed="false"></button>
-        <button class="swatch" data-color="cream" style="--swatch:#e7d6af" aria-label="奶油白" aria-pressed="false"></button>
-        <button class="swatch" data-color="graphite" style="--swatch:#556477" aria-label="石墨蓝" aria-pressed="false"></button>
-        <span id="color-name">薄荷青</span>
-      </div></fieldset>
       <fieldset><legend>看看它的反应</legend><div class="actions">
         <button data-action="idle" class="active" aria-pressed="true"><span>◌</span>安静陪伴</button>
         <button data-action="listen" aria-pressed="false"><span>◖</span>认真倾听</button>
@@ -38,24 +32,25 @@
         <button data-action="speak" aria-pressed="false"><span>≋</span>开口说话</button>
         <button data-action="greet" aria-pressed="false"><span>✦</span>打个招呼</button>
         <button data-action="celebrate" aria-pressed="false"><span>↗</span>开心一下</button>
+        <button data-action="walk" aria-pressed="false"><span>↔</span>原地走路</button>
       </div></fieldset>
       <div class="status" aria-live="polite"><span class="status-mark">◌</span><div><strong id="state-name">安静陪伴</strong><p id="state-description">我在这里，你慢慢来。</p></div></div>
       <p class="demo-note">形象与动作预览</p>
     </aside>
-    <section class="conversation" aria-label="与小鸭对话">
+    <section class="conversation" aria-label="与学习伙伴对话">
       <header class="conversation-heading"><div><span class="eyebrow">LET’S LEARN TOGETHER</span><h2>今天一起学什么？</h2></div><span class="live-state" id="live-state" role="status">安静陪伴</span></header>
       <div class="learning-context"><input id="topic" maxlength="300" aria-label="当前学习内容" placeholder="当前内容，例如：分式加减中的通分"><select id="study-mode" aria-label="学习方式"><option value="learn">练习辅导</option><option value="exam">独立测验</option></select></div>
       <section class="lesson-control" aria-label="课程讲解"><strong id="lesson-title">从课程页面选择知识点</strong><p id="lesson-progress" role="status"></p><div><button id="lesson-start" type="button">开始讲解</button><button id="lesson-pause" type="button">暂停讲解</button></div></section>
-      <div id="messages" class="messages" role="log" aria-label="本页对话记录" aria-live="polite"><div class="message assistant welcome">你好呀，我是小鸭。哪里没想明白，我们就从哪里开始。</div></div>
+      <div id="messages" class="messages" role="log" aria-label="本页对话记录" aria-live="polite"><div class="message assistant welcome">你好呀，我是学习伙伴。哪里没想明白，我们就从哪里开始。</div></div>
       <p id="interim" class="interim" aria-live="polite"></p>
       <p id="voice-notice" class="voice-notice" role="status"></p>
-      <form id="chat-form"><label class="sr-only" for="chat-input">对小鸭说</label><textarea id="chat-input" rows="2" maxlength="4000" placeholder="对小鸭说点什么…"></textarea><div class="composer-bottom"><label class="read-toggle"><input id="read-aloud" type="checkbox" checked> 朗读回答</label><button id="send-message" type="submit">发送 ↗</button></div></form>
+      <form id="chat-form"><label class="sr-only" for="chat-input">对学习伙伴说</label><textarea id="chat-input" rows="2" maxlength="4000" placeholder="对学习伙伴说点什么…"></textarea><div class="composer-bottom"><label class="read-toggle"><input id="read-aloud" type="checkbox" checked> 朗读回答</label><button id="send-message" type="submit">发送 ↗</button></div></form>
       <div class="voice-controls"><button id="voice-toggle" class="primary" aria-pressed="false">开启语音</button><button id="interrupt" type="button" disabled>打断 / 停止</button><button id="done-learning" type="button">完成这一段</button></div>
       <div class="conversation-foot"><span id="voice-source">设备语音 · 开启后才使用麦克风</span><button id="clear-chat">清空对话</button></div>
     </section>
-    <div class="speech" id="speech" aria-live="polite"><span class="speech-dot"></span><span id="speech-text">你好呀，我是小鸭。</span></div>
+    <div class="speech" id="speech" aria-live="polite"><span class="speech-dot"></span><span id="speech-text">你好呀，我是学习伙伴。</span></div>
     <footer class="toolbar"><span class="hint"><span class="drag-icon">↔</span> 拖动旋转 <i>·</i> 滚轮缩放</span><div class="tools"><button id="appearance">形象预览</button><button id="rotate" aria-pressed="false">自动旋转</button><button id="reset">重置视角</button><button id="export" class="export">下载模型 <span>↗</span></button></div></footer>
-    <div class="model-label"><span>01 — MECHANICAL DUCK</span><span>MicroDuck 形态参考 · 独立建模</span></div>
+    <div class="model-label"><span>01 — GIRL COMPANION</span><span>轻轻陪伴，慢慢学会</span></div>
   </main>
   <dialog id="settings-dialog"><div class="settings-heading"><h2>连接与语音</h2><button id="close-settings" aria-label="关闭设置">✕</button></div><div id="ai-settings"></div>
     <form id="voice-settings">
@@ -91,7 +86,7 @@
   </dialog>
   <script src="../student-duck-controls.js?studentUi=20261113-partial-practice-1"></script>
   <script src="../course-ai.js"></script>
-  <script type="module" src="./duck.js?studentUi=20261113-partial-practice-1"></script>
+  <script type="module" src="./girl-view.js?v=20261113-girl-1"></script>
   <script type="module" src="./bootstrap.js?studentUi=20261113-partial-practice-1"></script>
 </body>
 </html>

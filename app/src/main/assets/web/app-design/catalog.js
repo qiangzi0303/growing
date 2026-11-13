@@ -24,7 +24,7 @@
     const tagline={math:'宇宙的语言。',english:'通往世界的钥匙。',physics:'现象是观察，发现规律才是智慧。'}[subject];
     target.innerHTML=`
       <header class="catalog-heading">
-        <div><p class="eyebrow">八年级 · ${book.edition||course.edition}</p><h1>${course.name}<span>${tagline}</span></h1></div>
+        <div><p class="eyebrow">八年级 · ${book.edition||course.edition}</p><h1>${course.name}</h1></div>
         <div class="subject-stamp" aria-hidden="true">${subject==='physics'?'v = s/t':hasGraph?'x²':'Aa'}</div>
       </header>
       <div class="catalog-actions">
@@ -37,7 +37,7 @@
         <div class="list-heading"><h2 id="unit-list-title">${book.name}<span> / ${course.label}目录</span></h2><p>${book.units.length?book.units.length+' '+(book.verified?(hasGraph?'章':'个单元'):'个预留单元'):'目录待补充'}${available?`<span class="available-count"> · ${available} ${hasGraph?'章':'个'}可学习</span>`:''}</p></div>
         <ol class="unit-list">${book.units.map(unit=>`<li><div class="unit-row ${unit.entry?'is-ready':''}" data-unit="${unit.id}">
           <span class="unit-number" aria-hidden="true">${String(unit.number).padStart(2,'0')}</span>
-          <div class="unit-copy"><span class="unit-label">${label(unit)}</span><div class="unit-title"><h3><a class="unit-course-link" href="${studyLink(unit)}">${escape(unit.title)}</a></h3></div><p>${escape(unit.summary)}</p>${book.verified&&unit.entry?`<div class="unit-actions"><a class="unit-reward-trigger" href="unit-summary.html?subject=${subject}&unit=${unit.id}">单元总结</a></div>${window.UnitRewards.placeholder(unit.id)}`:''}</div>
+          <div class="unit-copy"><span class="unit-label">${label(unit)}</span><div class="unit-title"><h3><a class="unit-course-link" href="${studyLink(unit)}">${escape(unit.title)}</a></h3></div>${book.verified&&unit.entry?`<div class="unit-actions"><a class="unit-reward-trigger" href="unit-summary.html?subject=${subject}&unit=${unit.id}">单元总结</a></div>${window.UnitRewards.placeholder(unit.id)}`:''}</div>
           ${!book.verified||!unit.entry?`<span class="unit-state">${state(unit)}</span>`:''}
         </div></li>`).join('')}</ol>
       </section>

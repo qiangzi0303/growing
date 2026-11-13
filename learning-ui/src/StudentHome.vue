@@ -6,13 +6,12 @@ defineProps({model:{type:Object,required:true}});
 </script>
 <template>
  <section class="student-home" aria-label="选择学科">
-  <header class="welcome"><div class="brand-mark" aria-hidden="true"><img :src="'brand-logo.webp'" alt="" width="96" height="96"></div><h1>逆流</h1><p>逆流而上，奔赴山海</p></header>
   <CellGroup class="subjects student-subjects" :border="false">
    <Cell v-for="subject in model.subjects" :key="subject.id" tag="a" :href="`units.html?subject=${subject.id}`" class="subject-card student-subject" :class="subject.id" :data-subject="subject.id" :aria-labelledby="subject.id+'-title '+subject.id+'-topic'">
     <template #default>
      <span v-if="subject.id==='english'" class="subject-icon letters" aria-hidden="true">Aa</span>
-     <span v-else class="subject-icon" aria-hidden="true"><svg v-if="subject.id==='math'" viewBox="0 0 64 64" fill="none"><rect x="11" y="9" width="42" height="46" rx="10" stroke="currentColor" stroke-width="2"/><path d="M22 22h20M25 33v12m-6-6h12m6-4 8 8m0-8-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg v-else viewBox="0 0 64 64" fill="none"><path d="M20 12h24M26 12v19L14 49q-2 5 4 5h28q6 0 4-5L38 31V12M22 40h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="29" cy="44" r="2" fill="currentColor"/><circle cx="37" cy="49" r="2" fill="currentColor"/></svg></span>
-     <div class="subject-copy"><span class="subject-en" aria-hidden="true">{{ ({math:'MATHEMATICS',english:'ENGLISH',physics:'PHYSICS'})[subject.id] }}</span><h2 :id="subject.id+'-title'">{{subject.name}}</h2><p :id="subject.id+'-topic'">{{subject.description}}</p></div>
+     <span v-else class="subject-icon" aria-hidden="true"><svg v-if="subject.id==='math'" viewBox="0 0 64 64" fill="none"><rect x="11" y="9" width="42" height="46" rx="10" stroke="currentColor" stroke-width="2"/><path d="M22 22h20M25 33v12m-6-6h12m6-4 8 8m0-8-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg v-else viewBox="0 0 48 48" fill="none"><ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(-45 24 24)" stroke="currentColor" stroke-width="1.7"/><ellipse cx="24" cy="24" rx="20" ry="8" transform="rotate(45 24 24)" stroke="currentColor" stroke-width="1.7"/><circle cx="24" cy="24" r="3" fill="currentColor"/></svg></span>
+     <div class="subject-copy"><h2 :id="subject.id+'-title'">{{subject.name}}</h2><p :id="subject.id+'-topic'">{{subject.description}}</p></div>
     </template>
    </Cell>
   </CellGroup>

@@ -78,7 +78,7 @@
   async function api(path,options={}){
     const controller=new AbortController();let timeout;
     const abort=()=>controller.abort();if(options.signal?.aborted)abort();else options.signal?.addEventListener('abort',abort,{once:true});
-    const deadline=new Promise((_,reject)=>{timeout=setTimeout(()=>{reject(Error('连接云服务超时，请检查网络后重试。'));controller.abort();},path==='/question-bank/import'||/^\/question-bank\/import-jobs\/[^/?]+\/step$/.test(path)||/^\/question-bank\/questions\/[^/]+\/(format|followup|correct|drawing|paper-ai)$/.test(path)?110000:12000);});
+    const deadline=new Promise((_,reject)=>{timeout=setTimeout(()=>{reject(Object.assign(Error('连接云服务超时，请检查网络后重试。'),{code:'REQUEST_TIMEOUT'}));controller.abort();},/^\/question-bank\/import-jobs\/[^/?]+\/step$/.test(path)?190000:path==='/question-bank/import'||/^\/question-bank\/questions\/[^/]+\/(format|followup|correct|drawing|paper-ai)$/.test(path)?110000:12000);});
     try{return await Promise.race([deadline,(async()=>{
     const response=await fetch(base+'/api'+path,{...options,keepalive:!options.body||new TextEncoder().encode(options.body).length<60000,signal:controller.signal,credentials:isNative?'omit':'same-origin',headers:{'Content-Type':'application/json','X-Growing-Client':'1',...(token?{Authorization:'Bearer '+token}:{}),...options.headers}});
     if(response.status===204)return null;

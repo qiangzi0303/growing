@@ -1,0 +1,4 @@
+.companion-mode.shared-character-mode #viewport,.shared-character-mode .loading{display:none!important}
+.companion-mode.embedded-mode.shared-character-mode .conversation{position:absolute;top:8px;left:8px;right:8px;bottom:8px;width:auto;margin:0;min-height:0;max-height:none}
+.girl-mode .model-label{color:#886c7a}
+.girl-mode .model-label span:last-child{max-width:230px}

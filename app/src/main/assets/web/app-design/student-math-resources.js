@@ -57,12 +57,12 @@ function figure(kind){
    catch(e){if(alive){const text=e.name==='AbortError'?'解答已取消或超时，可重试。':e.message;if(archive)reviewRecords[id]={...reviewRecords[id],status:text};else status=text;}}
    finally{clearTimeout(timeout);if(jobs.get('ai:'+id)===c)jobs.delete('ai:'+id);emit();}
   }
-  async function refresh(){if(!archive)return;try{check();context=await window.GrowingQuestionAttempts.context();if(!context){status='登录学生云账号后，可查看原稿与统计反复错题。';emit();return;}check();const result=await context.api('/question-bank/attempt-stats?'+new URLSearchParams({studentId:context.studentId,kind:'math'}));if(!alive)return;check();stats=result;status='历史错误次数保留，做对后不归零。';emit();}catch(e){if(alive){status='统计读取失败，未将旧次数显示为零：'+e.message;emit();}}}
+  async function refresh(){if(!archive)return;try{check();context=await window.GrowingQuestionAttempts.context();if(!context){status='登录学生云账号后，可查看原稿与统计反复错题。';emit();return;}check();const result=await context.api('/question-bank/attempt-stats?'+new URLSearchParams({studentId:context.studentId,kind:'math'}));if(!alive)return;check();stats=result;status='';emit();}catch(e){if(alive){status='统计读取失败，未将旧次数显示为零：'+e.message;emit();}}}
   async function history(id){
    if(busy)return;check();if(!archiveRows.some(q=>q.id===id))return;
    if(reviewController?.snapshot().locked)return;
    if(openId===id&&reviewController?.snapshot().visible){reviewController.close();return;}
-   reviewController?.beforeLeave();busy=true;emit();
+   reviewController?.beforeLeave();review=null;openId=id;status='';reviewRecords[id]={...reviewRecords[id],openStatus:'正在打开拍照 / 手写订正…'};busy=true;emit();
    try{
     const next=await window.GrowingQuestionAttempts.context();check();if(!next)throw Error('请先登录学生云账号');if(context&&context.studentId!==next.studentId)throw Error('账号已切换，请重新打开错题');context=next;
     const data=await context.api('/question-bank/unit-wrong',{method:'POST',body:JSON.stringify({studentId:context.studentId,questionId:id})});check();
@@ -72,8 +72,8 @@ function figure(kind){
      reviewController=window.GrowingStudentPhotoReview.create({api:context.api,studentId:context.studentId,active:()=>{check();return true;},inline:true,onChange:refresh});
      reviewOff=reviewController.subscribe(model=>{if(!model.visible)openId='';emit();});
     }
-    await reviewController.open(data.question);check();if(reviewController.snapshot().question?.id===data.question.id){openId=id;review=data;}
-   }catch(e){if(alive)status=e.message;}finally{if(alive){busy=false;emit();}}
+    review=data;emit();await reviewController.open(data.question);check();openId=id;reviewRecords[id]={...reviewRecords[id],openStatus:''};
+   }catch(e){if(alive)reviewRecords[id]={...reviewRecords[id],openStatus:e.message};}finally{if(alive){busy=false;emit();}}
   }
   async function questionType(value){
    if(!reviewController||busy||!['choice','fill','written'].includes(value))return;check();const q=reviewController.snapshot().question;if(!q||reviewController.snapshot().locked)return;busy=true;emit();

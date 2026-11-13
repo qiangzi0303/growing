@@ -28,7 +28,7 @@
     const groups=[['passed','已掌握知识点'],['weak','薄弱点'],['untested','未测点'],['shaky','待巩固'],['pending','待复测'],['screened','初筛通过'],['unknown','记录不可用']];
     const status=row=>row.status==='passed'&&row.screened?'screened':row.status;
     document.title=`${unit.title} · 单元总结 · 逆流`;
-    root.innerHTML=`<nav class="summary-nav"><a href="units.html?subject=${subject}&term=${term}" target="_top">返回${course.name}目录</a><a class="brand" href="index.html" target="_top"><img class="brand-logo" src="brand-logo.webp" alt="" width="32" height="32">逆流</a></nav>
+    root.innerHTML=`<nav class="summary-nav"><a href="units.html?subject=${subject}&term=${term}" target="_top">返回${course.name}目录</a><a class="brand" href="index.html" target="_top">选择课程</a></nav>
       <header><p class="eyebrow">${course.name} · ${book.name} · ${subject==='english'?'Unit':'第'} ${unit.number}${subject==='english'?'':' 章'}</p><h1>${esc(unit.title)} · 单元总结</h1></header>
       <div class="summary-groups">${groups.map(([key,label],i)=>{
         const rows=summary.rows.filter(row=>status(row)===key);

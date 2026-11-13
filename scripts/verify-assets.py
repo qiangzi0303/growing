@@ -5,6 +5,13 @@ root=Path(__file__).resolve().parents[1]
 web=root/'app/src/main/assets/web'
 for name in ['course-duck.js','companion-duck/index.html','companion-duck/bootstrap.js','companion-duck/duck.js','companion-duck/classroom.js','companion-duck/realtime-client.js','companion-duck/lesson-session.js']:
     if not (web/'app-design'/name).is_file():raise SystemExit('Missing duck classroom asset: '+name)
+for name in ['girl-avatar.html','girl-view.js','girl-renderer.js','girl.css','launcher-girl.png','vendor/girl/build/three.module.js','vendor/girl/build/three.core.js','vendor/girl/addons/loaders/GLTFLoader.js','vendor/girl/LICENSE','characters/girl/girl1_face.glb','characters/girl/girl1_walk.glb']:
+    path=web/'app-design/companion-duck'/name
+    if not path.is_file():raise SystemExit('Missing girl companion asset: '+name)
+    if path.suffix=='.glb':
+        import struct
+        data=path.read_bytes()
+        if len(data)<12 or data[:4]!=b'glTF' or struct.unpack_from('<I',data,8)[0]!=len(data):raise SystemExit('Invalid packaged GLB: '+name)
 for name in ['server.py','duck-realtime.json']:
     if list((web/'app-design/companion-duck').rglob(name)):raise SystemExit('Private duck runtime must not be packaged: '+name)
 for name in ['geometry-models.html','geometry-models.css','geometry-models.js','geometry-models-data.js','geometry-models-more.js','geometry-models-advanced.js']+['geometry-source-'+str(page)+'.webp' for page in range(1,9)]:

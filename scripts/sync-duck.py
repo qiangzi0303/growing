@@ -8,7 +8,8 @@ target = repo / 'app/src/main/assets/web/app-design/companion-duck'
 updated = 0
 if source.is_dir():
     for path in source.rglob('*'):
-        if not path.is_file() or (path.suffix not in ('.html', '.css', '.js', '.svg', '.txt') and path.name != 'launcher.png') or any(p in ('tests', '__pycache__') for p in path.parts):
+        character_asset = path.relative_to(source).as_posix() in ('characters/girl/girl1_rig.glb', 'characters/girl/girl1_walk.glb', 'characters/girl/girl1_face.glb')
+        if not path.is_file() or (path.suffix not in ('.html', '.css', '.js', '.svg', '.txt') and path.name not in ('launcher.png', 'launcher-girl.png', 'LICENSE') and not character_asset) or any(p in ('tests', '__pycache__') for p in path.parts):
             continue
         output = target / path.relative_to(source)
         if not output.is_file() or output.read_bytes() != path.read_bytes():
