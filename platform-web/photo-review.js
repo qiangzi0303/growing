@@ -13,9 +13,9 @@
     const sourceId='photo-review-original-'+uuid(),knowledgeId='photo-review-knowledge-'+uuid();
     host.id||='photo-review-workbench-'+uuid();
     const draftKey='growing-photo-review-v1:'+studentId;
-    let drafts={};try{drafts=JSON.parse(sessionStorage.getItem(draftKey)||'{}');}catch{}
+    let drafts={},storageBlocked=false,storageError='';try{const local=localStorage.getItem(draftKey),raw=local===null?sessionStorage.getItem(draftKey):local;const value=JSON.parse(raw||'{}');if(!value||typeof value!=='object'||Array.isArray(value)||!Object.values(value).every(d=>d&&typeof d==='object'&&!Array.isArray(d)))throw Error('草稿格式无效');drafts=value;if(local===null&&raw)localStorage.setItem(draftKey,raw);}catch(error){storageBlocked=true;storageError='订正草稿读取或迁移失败，已停止保存以保护原稿：'+error.message;}
     const valid=()=>!disposed&&alive()&&host.isConnected;
-    const save=()=>{try{sessionStorage.setItem(draftKey,JSON.stringify(drafts));}catch{status('草稿暂时无法保存到设备，笔迹仍保留在当前页面，请勿刷新或关闭。',true);}};
+    const save=()=>{if(storageBlocked){status(storageError,true);return false;}try{localStorage.setItem(draftKey,JSON.stringify(drafts));return true;}catch{status('照片草稿暂时无法保存到设备，仍保留在当前页面，请勿刷新或关闭。',true);return false;}};
     const draft=()=>drafts[current.id]??=( {prompt:'',correction:'',requests:{}} );
     function request(kind,value){const d=draft();d.requests??={};const key=kind+':'+selectedGrade+':'+current.revision+':'+value;if(!d.requests[key])d.requests[key]=uuid();save();return d.requests[key];}
     const english=()=>(current?.subject||paper?.subject)==='english';
@@ -51,7 +51,7 @@
       if(!valid()||!current)return;const g=grade(),result=g?.result,d=draft(),stale=g&&g.revision!==current.revision;
       const inline=[...root.querySelectorAll('[data-review-open]')].some(button=>button.dataset.reviewOpen===current.id);
       host.hidden=false;
-      host.innerHTML=`<div class="actions"><h2>逐题批改工作台</h2><button type="button" data-review-close>收起工作台</button></div><p class="muted">${esc(paper.title)} · 首次批改与订正分别保留</p>${paper.warnings?.length?`<p class="warning">${esc(paper.warnings.join('；'))}</p>`:''}<nav class="photo-question-tabs" aria-label="切换题目">${paper.questions.map(q=>{const last=q.grades?.at(-1);return `<button type="button" data-review-question="${esc(q.id)}" ${q.id===current.id?'aria-current="page"':''}>第 ${esc(q.number||'?')} 题 · ${esc(verdicts[last?.result.verdict]||'未批改')}</button>`;}).join('')}</nav><div class="photo-review-grid${sourceOpen?' photo-source-open':''}"><section class="photo-source" id="${sourceId}" ${sourceOpen?'':'hidden'}><h3>原始作业</h3><div data-review-source></div></section><section class="photo-review-result"><div class="photo-question-heading"><h3>第 ${esc(current.number)} 题</h3><button type="button" data-review-original aria-expanded="${sourceOpen}" aria-controls="${sourceId}">${sourceOpen?'收起原题':'查看原题'}</button></div>${inline?'':`<div class="bank-text math-prose">${renderQuestion(current.text)}</div>`}${current.uncertain?.length?`<p class="warning">识别疑点：${esc(current.uncertain.join('；'))}</p>`:''}${g?`${stale?'<p class="warning">题干已修改。下方批改对应旧版本，请提交新作答后再追问。</p>':''}<p class="photo-verdict" data-verdict="${esc(result.verdict)}">${esc(verdicts[result.verdict])}</p>${knowledge(result)}${result.verdict==='correct'?'':`<section class="photo-followups"><h4>围绕这次批改追问</h4><div class="actions">${['这一步为什么错','只提示下一步','换一种讲法'].map(p=>`<button type="button" data-followup-preset="${p}" ${stale?'disabled':''}>${p}</button>`).join('')}</div><div data-followup-history>${(current.followups||[]).filter(f=>f.gradeId===g.id).slice(-1).map(f=>`<article><p><strong>我：</strong>${esc(f.prompt)}</p><div class="bank-text math-prose">${render(f.reply)}</div></article>`).join('')}</div><form data-followup><label>我的追问<textarea name="prompt" maxlength="1600" required ${stale?'disabled':''}>${esc(d.prompt)}</textarea></label><button class="primary" type="submit" ${stale?'disabled':''}>发送追问</button></form></section>`}`:'<p class="muted">该题尚无逐题批改。下方可以手写自己的完整作答；原题条件不全时请先核对题面。</p>'}${g?`<div class="photo-grade-history"><label>查看批改记录<select data-review-grade>${current.grades.map((item,i)=>`<option value="${esc(item.id)}" ${item.id===g.id?'selected':''}>${item.kind==='initial'?'首次原稿批改':'订正批改 '+i} · ${esc(verdicts[item.result.verdict])}</option>`).join('')}</select></label></div><div data-graded-answer></div>`:''}<details class="photo-correct-form" ${result?.verdict==='correct'&&!stale?'hidden':''} ${(d.correctionOpen??!g)?'open':''}><summary>订正后再练 · 保留首次批改</summary><form data-correction><div data-correction-pad></div><button type="submit" class="primary">提交本次作答批改</button></form></details><p data-review-status role="status" aria-live="polite"></p></section></div>`;
+      host.innerHTML=`<div class="actions"><h2>逐题批改工作台</h2><button type="button" data-review-close>收起工作台</button></div><p class="muted">${esc(paper.title)} · 首次批改与订正分别保留</p>${paper.warnings?.length?`<p class="warning">${esc(paper.warnings.join('；'))}</p>`:''}<nav class="photo-question-tabs" aria-label="切换题目">${paper.questions.map(q=>{const last=q.grades?.at(-1);return `<button type="button" data-review-question="${esc(q.id)}" ${q.id===current.id?'aria-current="page"':''}>第 ${esc(q.number||'?')} 题 · ${esc(verdicts[last?.result.verdict]||'未批改')}</button>`;}).join('')}</nav><div class="photo-review-grid${sourceOpen?' photo-source-open':''}"><section class="photo-source" id="${sourceId}" ${sourceOpen?'':'hidden'}><h3>原始作业</h3><div data-review-source></div></section><section class="photo-review-result"><div class="photo-question-heading"><h3>第 ${esc(current.number)} 题</h3><button type="button" data-review-original aria-expanded="${sourceOpen}" aria-controls="${sourceId}">${sourceOpen?'收起原题':'查看原题'}</button></div>${inline?'':`<div class="bank-text math-prose">${renderQuestion(current.text)}</div>`}${current.uncertain?.length?`<p class="warning">识别疑点：${esc(current.uncertain.join('；'))}</p>`:''}${g?`${stale?'<p class="warning">题干已修改。下方批改对应旧版本，请提交新作答后再追问。</p>':''}<p class="photo-verdict" data-verdict="${esc(result.verdict)}">${esc(verdicts[result.verdict])}</p>${knowledge(result)}${result.verdict==='correct'?'':`<section class="photo-followups"><h4>围绕这次批改追问</h4><div class="actions">${['这一步为什么错','只提示下一步','换一种讲法'].map(p=>`<button type="button" data-followup-preset="${p}" ${stale?'disabled':''}>${p}</button>`).join('')}</div><div data-followup-history>${(current.followups||[]).filter(f=>f.gradeId===g.id).slice(-1).map(f=>`<article><p><strong>我：</strong>${esc(f.prompt)}</p><div class="bank-text math-prose">${render(f.reply)}</div></article>`).join('')}</div><form data-followup><label>我的追问<textarea name="prompt" maxlength="1600" required ${stale?'disabled':''}>${esc(d.prompt)}</textarea></label><button class="primary" type="submit" ${stale?'disabled':''}>发送追问</button></form></section>`}`:'<p class="muted">该题尚无逐题批改。下方可以上传自己的完整作答照片；原题条件不全时请先核对题面。</p>'}${g?`<div class="photo-grade-history"><label>查看批改记录<select data-review-grade>${current.grades.map((item,i)=>`<option value="${esc(item.id)}" ${item.id===g.id?'selected':''}>${item.kind==='initial'?'首次原稿批改':'订正批改 '+i} · ${esc(verdicts[item.result.verdict])}</option>`).join('')}</select></label></div><div data-graded-answer></div>`:''}<details class="photo-correct-form" ${result?.verdict==='correct'&&!stale?'hidden':''} ${(d.correctionOpen??!g)?'open':''}><summary>订正后再练 · 保留首次批改</summary><form data-correction><div data-correction-pad></div><button type="submit" class="primary">提交本次作答批改</button></form></details><p data-review-status role="status" aria-live="polite"></p></section></div>`;
       if(g)window.GrowingGradedAnswer.mount(host.querySelector('[data-graded-answer]'),g,current,paper,esc,render);
       d.handwriting??={pages:[[]]};
       pad=window.GrowingCorrectionPad.mount(host.querySelector('[data-correction-pad]'),d.handwriting,()=>{d.answerRevision=(d.answerRevision||0)+1;save();},status);
@@ -59,7 +59,7 @@
       host.querySelector('.photo-review-result>.bank-text')?.classList.toggle('question-wrong',wrong);
       host.querySelector('.photo-question-heading>h3').classList.toggle('question-wrong',wrong);
       if(!inline){const images=document.createElement('div');host.querySelector('.photo-review-result>.bank-text').after(images);figures.mount(images,current,{originals:false,minimal:true});}
-      source();lock();centerQuestionTab();
+      source();lock();centerQuestionTab();if(storageError)status(storageError,true);
     }
     function sync(){
       root.querySelectorAll('[data-review-open]').forEach(button=>{
@@ -69,7 +69,7 @@
       root.querySelectorAll('[data-review-camera]').forEach(input=>input.disabled=busy);
     }
     function close(){if(!valid()||busy)return;host.hidden=true;sync();}
-    function lock(){if(!valid())return;host.querySelectorAll('button,select,textarea').forEach(el=>{el.disabled=busy||!!(grade()&&grade().revision!==current?.revision&&(el.closest('[data-followup]')||el.hasAttribute('data-followup-preset')));});pad?.lock(busy);sync();}
+    function lock(){if(!valid())return;host.querySelectorAll('button,select,textarea').forEach(el=>{el.disabled=storageBlocked||busy||!!(grade()&&grade().revision!==current?.revision&&(el.closest('[data-followup]')||el.hasAttribute('data-followup-preset')));});pad?.lock(storageBlocked||busy);sync();}
     async function loadQuestion(id){
       const n=++sequence;busy=true;lock();status('正在读取本题批改…');
       try{const data=await api('/question-bank/questions/'+id+'/review?'+new URLSearchParams({studentId}));if(!valid()||n!==sequence)return;
@@ -139,8 +139,8 @@
       if(!valid())return;
       if(!event.target.matches('[data-followup],[data-correction]'))return;event.preventDefault();if(busy)return;
       if(event.target.matches('[data-followup]')){await followup(new FormData(event.target).get('prompt'));return;}
-      let answerPages;try{answerPages=pad.images();}catch(error){status(error.message,true);return;}
-      const q=current,n=sequence;let savedMessage='';busy=true;lock();status('正在批改本次手写订正，首次批改会保留…');
+      let answerPages;try{answerPages=pad.images();if(!save())return;}catch(error){status(error.message,true);return;}
+      const q=current,n=sequence;let savedMessage='';busy=true;lock();status('正在批改本次照片订正，首次批改会保留…');
       try{
         if(['english','physics'].includes(current?.subject||paper?.subject)&&q.figures?.length&&!q.hasFigureImage){
           const image=await window.GrowingQuestionFigures.englishFigureImage(q,paper);
@@ -151,8 +151,8 @@
         }
         const result=await api('/question-bank/questions/'+q.id+'/correct',{method:'POST',body:JSON.stringify({studentId,revision:q.revision,requestId:request('handwriting',String(draft().answerRevision||0)),answerPages})});if(!valid()||n!==sequence)return;
         const assessment=result.grade.result;
-        savedMessage=`本次手写作答批改已保存：${verdicts[assessment.verdict]}。`;
-        if(!q.grades.some(g=>g.id===result.grade.id))q.grades.push(result.grade);selectedGrade=result.grade.id;draft().correction='';draft().handwriting={pages:[[]]};draft().answerRevision=(draft().answerRevision||0)+1;save();paint();status(savedMessage);revealGrade(savedMessage);
+        savedMessage=`本次照片作答批改已保存：${verdicts[assessment.verdict]}。`;
+        if(!q.grades.some(g=>g.id===result.grade.id))q.grades.push(result.grade);selectedGrade=result.grade.id;draft().correction='';draft().handwriting={...draft().handwriting,photos:[],answerMode:'photo'};draft().answerRevision=(draft().answerRevision||0)+1;save();paint();status(savedMessage);revealGrade(savedMessage);
         try{await onChange();}catch(error){if(valid()&&n===sequence)status(savedMessage+' 题库列表刷新失败，请稍后重新打开。',true);}
       }catch(error){if(valid()&&n===sequence)status(savedMessage?savedMessage+' 结果显示失败，请重新打开本题查看。':error.message+' 订正内容保留，可重试。',true);}finally{if(valid()&&n===sequence){busy=false;lock();}}
     });

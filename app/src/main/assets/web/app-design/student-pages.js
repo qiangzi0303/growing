@@ -10,7 +10,7 @@
  window.GrowingStudentPages={registerLegacy(render){if(!enabled)return false;legacyRenders.push(render);if(failed)render();return true;}};
  if(!enabled)return;
  const base=new URL('./',document.currentScript.src),loads=new Map(),hidden=[];
- const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi','20261113-home-v7');return url;};
+ const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi','20261114-photo-history-1');return url;};
  function load(name,css=false){
   if(loads.has(name))return loads.get(name);
   const promise=new Promise((resolve,reject)=>{const el=document.createElement(css?'link':'script');if(css){el.rel='stylesheet';el.href=assetUrl(name);}else el.src=assetUrl(name);el.onload=resolve;el.onerror=()=>{el.remove();loads.delete(name);reject(Error('新版学习页面资源暂不可用，已保留原页面。'));};document.head.append(el);});loads.set(name,promise);return promise;
@@ -45,7 +45,7 @@
       await Promise.all(['handwriting-core.js','practice-progress.js','practice-math-upper.js','practice-math-lower.js','practice-physics.js'].map(name=>load(name)));
       await load('application-practice.js');await load('course-ai.js');await load('handwriting-ai.js');
      }
-     if(page==='math-resources-workbench')await Promise.all(['handwriting-core.js','student-photo-review.js'].map(name=>load(name)));
+     if(page==='math-resources-workbench')await Promise.all(['handwriting-core.js','student-photo-review.js','paper-photo-uploads.js'].map(name=>load(name)));
      if(['handwriting','math-course','math-resources-workbench'].includes(page)&&!window.GrowingHandwritingAI)await load('handwriting-ai.js');
      if(!window[global])await load(script);
     }

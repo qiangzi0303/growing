@@ -16,7 +16,7 @@ if(!process.argv.includes('--stage-only')){
   execFileSync(process.execPath,[vite,'build'],{cwd:ui,stdio:'inherit'});
 }
 const course=join(repo,'app/src/main/assets/web/app-design');
-const assetRevision='20261113-partial-practice-1';
+const assetRevision='20261114-photo-history-1';
 function reviseHtml(path,names){
  if(!existsSync(path))return;
  const before=readFileSync(path,'utf8'),after=before.replace(/<(?:script|link)\b[^>]*>/gi,tag=>tag.replace(/\b(src|href)=(['"])([^'"<>]+)\2/g,(all,attr,quote,value)=>{
@@ -27,7 +27,8 @@ function reviseHtml(path,names){
 }
 const newModels=['student-pages.js','student-catalog-model.js','student-summary-model.js','student-resources-model.js','student-math-course.js','student-english-course.js','student-knowledge.js','student-handwriting.js','student-english-labs.js','student-math-resources.js','student-math-labs.js','student-physics-labs.js','student-triangle-centers.js','student-fraction-course.js','student-midterm.js','student-unit3-course.js','student-paper-ai.js','student-figure-editor.js'];
 newModels.push('student-duck-controls.js');
-newModels.push('practice-progress.js','math-figures.js','practice-figures.js');
+newModels.push('practice-progress.js','math-figures.js','practice-figures.js','geometry-guidance.js');
+newModels.push('paper-photo-uploads.js');
 const migratedAssets=['catalog.js','unit-summary.js','math-course.js','english-course.js','knowledge.js','handwriting.js','index.html','units.html','study.html','unit-summary.html','math-resources.html','english-resources.html','physics-resources.html','math-course.html','physics-course.html','english-course.html','knowledge.html','physics-knowledge.html','handwriting.html','english-visual-lab.html','english-visual-quiz.html','english-sentence-demo.html','english-visual-lab.js','english-visual-quiz.js','english-sentence-demo.js','math-exam-practice.html','math-wrong-questions.html','math-exam-practice.js','math-wrong-questions.js','math-explore-lab.html','geometry-models.html','math-lab.js','geometry-models.js'];
 const targets=[course,join(project,'app-design'),join(repo,'cloudflare/public/learn/app-design')];
 migratedAssets.push('physics-explore-lab.html','physics-sound-lab.html','triangle-centers.html','triangle-centers-legacy.js','math-exam-midterm.html','math-exam-midterm-graph.html','math-exam-midterm-answers.js','math-exam-midterm-graph.js','paper-knowledge-graph.js','math-geometry-links.js');

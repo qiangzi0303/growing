@@ -3,7 +3,7 @@
  'use strict';
  if(new URLSearchParams(location.search).get('ui')==='legacy')return;
  const shellBase=new URL('./',document.currentScript.src),resources=window.GrowingNative?new URL('../app-design/',document.currentScript.src):new URL('/learn/app-design/',location.href),loads=new Map(),mounted=new Map();
- const assetUrl=name=>{const url=new URL(name,name.startsWith('vendor/learning-ui/')?shellBase:resources);url.searchParams.set('studentUi','20261112-vant-style-4');return url;};
+ const assetUrl=name=>{const url=new URL(name,name.startsWith('vendor/learning-ui/')?shellBase:resources);url.searchParams.set('studentUi','20261114-photo-history-1');return url;};
  const load=(name,css=false)=>{if(loads.has(name))return loads.get(name);const promise=new Promise((resolve,reject)=>{const el=document.createElement(css?'link':'script');if(css){el.rel='stylesheet';el.href=assetUrl(name);}else el.src=assetUrl(name);el.onload=resolve;el.onerror=()=>{el.remove();loads.delete(name);reject(Error('新版界面资源未加载，可继续使用原界面。'));};document.head.append(el);});loads.set(name,promise);return promise;};
  function storeModel(initial,actions){let model=initial;const listeners=new Set();return {get model(){return model;},actions,update(patch){model={...model,...patch};for(const fn of listeners)fn(model);},subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},destroy(){listeners.clear();}};}
  async function mount(root,kind,controller,active=()=>root.isConnected){

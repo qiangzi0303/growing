@@ -24,7 +24,7 @@
   }
   const prompt=q=>q.prompt+(q.type==='choice'?'\n'+q.options.map((o,i)=>'ABCD'[i]+' · '+o).join('\n'):'');
   function results(storage,subject,unit,qs){
-    const byPrompt=new Map((qs?qs.map(q=>({id:q.id,prompt:prompt(q),nodes:[q.topic]})):tasks(subject,unit)).map(t=>[t.prompt,t])),found={},history={};
+    const byPrompt=new Map((qs?qs.map(q=>({id:q.id,prompt:prompt(q),nodes:[q.topic]})):tasks(subject,unit)).map(t=>[t.prompt,t])),found={},history={},uploads={};
     for(let i=0;i<storage.length;i++){
       const key=storage.key(i);if(!C.KEY.test(key||''))continue;
       const raw=storage.getItem(key);
@@ -33,13 +33,14 @@
         if(doc.subject!==subject||doc.unitId!==unit)continue;
         const task=byPrompt.get(doc.prompt);if(!task||!C.validate(doc))continue;
         (history[task.id]||= []).push(...doc.grades.filter(g=>g.source==='handwriting'&&(g.needsReview||C.matchesKnowledge(g,task))).map(grade=>({grade,key})));
-        if(found[task.id]&&found[task.id].updatedAt>=doc.updatedAt)continue;
         const grade=doc.grades.filter(g=>g.revision===doc.revision&&g.source==='handwriting').at(-1);
         const evaluated=grade&&!grade.needsReview&&C.matchesKnowledge(grade,task)&&grade.knowledge.every(k=>k.score!==null)&&doc.pages.some((p,i)=>doc.photos?.[i]||p.some(s=>s.tool==='pen'));
+        if(doc.photos?.some(Boolean))(uploads[task.id]||=[]).push({key,createdAt:doc.createdAt||doc.updatedAt,updatedAt:doc.updatedAt,photos:doc.photos.filter(Boolean),status:evaluated?'graded':'pending',grades:doc.grades.filter(g=>g.source==='handwriting'&&(g.needsReview||C.matchesKnowledge(g,task))).map(g=>({...g,historical:g.revision!==doc.revision}))});
+        if(found[task.id]&&found[task.id].updatedAt>=doc.updatedAt)continue;
         found[task.id]={key,doc,grade,updatedAt:doc.updatedAt,status:evaluated?'graded':'pending',passed:!!(evaluated&&grade.score>=80&&grade.knowledge.every(k=>k.score!==null&&k.score>=80)),feedback:grade?.feedback||''};
       }catch{/* An unrelated unreadable draft must not hide the current question. */}
     }
-    for(const [id,r] of Object.entries(found))r.history=(history[id]||[]).sort((a,b)=>a.grade.at.localeCompare(b.grade.at));
+    for(const [id,r] of Object.entries(found)){r.history=(history[id]||[]).sort((a,b)=>a.grade.at.localeCompare(b.grade.at));r.uploads=(uploads[id]||[]).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));}
     return found;
   }
   function score(qs,choices,solutions){

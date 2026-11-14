@@ -9,7 +9,7 @@
   let pendingTime=0,timeTopic=selected,lastTick=performance.now(),lastInput=lastTick,audio=null,audioToken=0;
   const photoJobs=new Map(),photoMessages=new Map(),unsaved=new Map(),viewHistory=[];
   let practiceJob=null,practiceMessage='';
-  const roundDrafts=new Map();
+  const roundDrafts=new Map(),guidanceCache=new Map();
   const KEY=physics?'growing-physics-lessons-v1':'growing-math-lessons-v1';
   const valid=()=>{if(!alive)return false;try{return active()!==false;}catch{return false;}};
   function assertActive(){if(!valid())throw Error('学习会话已退出或变更，请重新打开课堂。');}
@@ -30,12 +30,14 @@
   function store(change,id=selected,event){if(!valid())return false;const next={...records,[id]:{...record(id),...change}},tools=T.restore(learning);if(event)T.log(tools,id,{...event,mastered:concept(next[id])&&P.result(next[id]).passed});return saveBundle(next,tools);}
   function results(qs){return A.results(storeApi,subject,chapter.id,qs);}
   function questions(n=node()){return A.questions(n,subject);}
+  const hasAnswer=doc=>!!doc?.pages?.some((strokes,i)=>doc.photos?.[i]||strokes.some(s=>s.tool==='pen'&&s.points.length));
+  function guidance(q){const source=W.GrowingGeometryGuidance;if(subject!=='math'||!source?.get)return null;const key=JSON.stringify([q.id,q.question,q.prompt]);let entry=guidanceCache.get(key);if(!entry||entry.source!==source){entry={source,value:source.get(q)||null};guidanceCache.set(key,entry);}return entry.value;}
   function syncPhoto(id){if(!valid()||record(id).practiceMode==='round'||record(id).practiceRound!==undefined)return;try{const n=chapter.nodes.find(n=>n.id===id);if(!n)return;const qs=questions(n),found=results(qs),next=A.snapshot(qs,found);if((Object.keys(found).length||record(id).practicePhoto)&&JSON.stringify(record(id).practicePhoto)!==JSON.stringify(next))store({practicePhoto:next},id);}catch(error){storageError='批改成绩尚未保存：'+error.message;}}
-  function sameRound(round,qs,choices,found){return P.round(round)&&qs.every((q,i)=>{const item=round.items[i],r=found[q.id];return item.id===q.id&&(q.type==='choice'?item.choice===(choices[q.id]??null):item.unanswered===true?!r?.doc.photos?.some(Boolean):r?.key===item.key&&r.doc.revision===item.revision&&r.grade?.at===item.at);});}
+  function sameRound(round,qs,choices,found){return P.round(round)&&qs.every((q,i)=>{const item=round.items[i],r=found[q.id];return item.id===q.id&&(q.type==='choice'?item.choice===(choices[q.id]??null):item.unanswered===true?!hasAnswer(r?.doc):r?.key===item.key&&r.doc.revision===item.revision&&r.grade?.at===item.at);});}
   function practiceState(qs){
    const found=results(qs),choices=P.choices(record().practiceChoices),candidate=roundDrafts.get(selected),saved=record().practiceRound;
    const round=sameRound(candidate,qs,choices,found)?candidate:sameRound(saved,qs,choices,found)?saved:null;
-   const completed=qs.filter(q=>q.type==='choice'?Number.isInteger(choices[q.id]):!unsaved.has(q.id)&&found[q.id]?.doc.photos?.some(Boolean)).length;
+   const completed=qs.filter(q=>q.type==='choice'?Number.isInteger(choices[q.id]):!unsaved.has(q.id)&&hasAnswer(found[q.id]?.doc)).length;
    return {choices,completed,total:qs.length,busy:!!practiceJob,uploading:photoJobs.size>0,message:practiceMessage,result:round?{...P.result({practiceRound:round}),pending:round.items.filter(q=>q.type==='solution'&&!q.unanswered&&q.score===null).length,items:round.items,saved:round===saved}:null};
   }
   function metrics(n){
@@ -47,14 +49,14 @@
   function snapshot(){
    if(!chapter||!physics&&chapter.number===10)return {kind:'error',title:'请从'+name+'目录选择课程',backHref:'units.html?subject='+subject};
    const n=node(),r=record(),draft=learning.doubts[selected]||{draft:'',messages:[]};let qs=[],practiceError='';
-   try{qs=questions();const found=results(qs);qs=qs.map(q=>{const saved=unsaved.get(q.id)||found[q.id],doc=saved?.doc,history=[...(found[q.id]?.history||[])];if(unsaved.has(q.id))for(const grade of doc.grades)if(!history.some(row=>row.grade.at===grade.at))history.push({grade,key:saved.key});return {...q,diagram:W.GrowingPracticeFigures?.render(q)||'',levelLabel:A.labels[q.level],pending:photoJobs.has(q.id),message:photoMessages.get(q.id)||'',photos:doc?.photos?.filter(Boolean)||[],key:saved?.key,writingHref:A.link(q,subject,chapter.id,saved?.key),history:history.slice().reverse().map(({grade,key})=>({...grade,historical:key!==saved?.key||grade.revision!==doc?.revision})),unsaved:unsaved.has(q.id)};});}catch(error){practiceError='应用练习暂不可用：'+error.message;}
+   try{qs=questions();const found=results(qs);qs=qs.map(q=>{const saved=unsaved.get(q.id)||found[q.id],doc=saved?.doc,history=[...(found[q.id]?.history||[])];if(unsaved.has(q.id))for(const grade of doc.grades)if(!history.some(row=>row.grade.at===grade.at))history.push({grade,key:saved.key});return {...q,guidance:guidance(q),diagram:W.GrowingPracticeFigures?.render(q)||'',levelLabel:A.labels[q.level],pending:photoJobs.has(q.id),message:photoMessages.get(q.id)||'',photos:doc?.photos?.filter(Boolean)||[],key:saved?.key,uploads:found[q.id]?.uploads||[],history:history.slice().reverse().map(({grade,key})=>({...grade,historical:key!==saved?.key||grade.revision!==doc?.revision})),unsaved:unsaved.has(q.id)};});}catch(error){practiceError='应用练习暂不可用：'+error.message;}
    const ids=chapter.nodes.map(n=>n.id),dates=[...new Set(Object.entries(learning.mastery).filter(([id,date])=>ids.includes(id)&&date).map(([,date])=>date))].sort(),baseline=ids.filter(id=>Object.hasOwn(learning.mastery,id)&&!learning.mastery[id]).length;let total=baseline;
    const points=dates.map(date=>({date,total:total+=ids.filter(id=>learning.mastery[id]===date).length}));
    const toolFile=physics?'physics-knowledge.html':'knowledge.html';
    return {kind:'course',subject,subjectName:name,chapter,node:n,selected,tab,view,message,busy,doubtBusy,doubtMessage,storageError,record:{...r,self:[...r.self],attempts:[...r.attempts]},metrics:chapter.nodes.map(metrics),read:chapter.nodes.filter(n=>record(n.id).seen).length,questions:qs,practice:practiceError?{choices:{},completed:0,total:0,busy:false,message:'',result:null}:practiceState(qs),practiceError,figure:(physics?W.GrowingPhysicsFigure:W.GrowingMathFigure)(n),feedback:!physics&&r.attempts.at(-1)?.schema==='math-four-part-v1'?F.render(r.attempts.at(-1)):'',doubt:{draft:draft.draft,messages:draft.messages.map(m=>({...m,html:!physics&&m.role==='assistant'?F.renderAnswer(m.text):null}))},calendar:{day:calendarDay,totals:T.totals(learning,calendarDay,ids),rows:chapter.nodes.filter(n=>learning.days[calendarDay]?.[n.id]).map(n=>({id:n.id,title:n.title,...learning.days[calendarDay][n.id]})),days:Object.keys(learning.days).filter(date=>ids.some(id=>learning.days[date][id])),baseline,points,total,maximum:ids.length},summaryHref:'unit-summary.html?'+new URLSearchParams({subject,unit:chapter.id}),graphHref:toolFile+'?'+new URLSearchParams({chapter:chapter.id,node:selected}),wrongHref:physics?null:'math-wrong-questions.html?'+new URLSearchParams({unit:chapter.id}),labHref:(physics?(chapter.number===1?'physics-sound-lab.html':'physics-explore-lab.html'):'math-explore-lab.html')+'?'+new URLSearchParams({chapter:chapter.id,node:selected}),backHref:'units.html?'+new URLSearchParams({subject,term:chapter.term})};
   }
   function context(){if(!valid()||!chapter)return;const n=node(),exam=view==='home'&&tab!=='learn';W.GrowingDuckContext={id:subject+':'+chapter.id+':'+n.id,title:chapter.title+' · '+n.title,subject,mode:exam?'exam':'learn',segments:exam?[]:[n.review,...(n.steps||[]),n.example,n.pitfall?'易错提醒：'+n.pitfall:''].filter(Boolean)};W.dispatchEvent(new CustomEvent('duck:course-context',{detail:W.GrowingDuckContext}));}
-  function route(){if(!valid()||!chapter)return;const search=new URLSearchParams({chapter:chapter.id,node:selected});for(const key of ['v','ui'])if(params.has(key))search.set(key,params.get(key));if(tab==='practice')search.set('practice','1');try{history.replaceState(null,'',(physics?'physics-course.html':'math-course.html')+'?'+search);}catch{}document.title=node().title+' · '+chapter.title+' · 逆流';context();}
+  function route(){if(!valid()||!chapter)return;const search=new URLSearchParams({chapter:chapter.id,node:selected});for(const key of ['v','ui'])if(params.has(key))search.set(key,params.get(key));if(tab==='practice')search.set('practice','1');try{history.replaceState(null,'',(physics?'physics-course.html':'math-course.html')+'?'+search+(location.hash.startsWith('#question-'+selected+'-application-')?location.hash:''));}catch{}document.title=node().title+' · '+chapter.title+' · 逆流';context();}
   function stop(){audioToken++;if(audio){audio.pause();audio.removeAttribute('src');audio.load();audio=null;}}
   function cancelPractice(){practiceJob?.abort();practiceJob=null;for(const [id,job] of photoJobs){job.abort();photoMessages.set(id,'上传已取消，已保存原稿保留。');}photoJobs.clear();practiceMessage='提交已取消，答案和已保存照片保留。';}
   function cancel(){request?.abort();request=null;busy=false;doubtRequest?.abort();doubtRequest=null;doubtBusy=false;cancelPractice();practiceMessage='';stop();}
@@ -113,14 +115,14 @@
   }
   async function gradePhoto(q,controller){
    const saved=results([q])[q.id],doc=saved?.doc,key=saved?.key;
-   if(!doc?.photos?.some(Boolean)||unsaved.has(q.id))throw Error('第'+q.id.split('-').at(-1)+'题照片尚未保存');
+   if(!hasAnswer(doc)||unsaved.has(q.id))throw Error('第'+q.id.split('-').at(-1)+'题原稿尚未保存');
    const revision=doc.revision;
    const current=()=>valid()&&practiceJob===controller&&!controller.signal.aborted;
-   const pages=await Promise.all(doc.pages.map(async(strokes,i)=>{const image=new Image();image.src=doc.photos[i];await image.decode();assertActive();return W.GrowingHandwritingAI.pageImage(strokes,C.draw,C.WIDTH,C.HEIGHT,image);}));
+   const pages=await Promise.all(doc.pages.map(async(strokes,i)=>{let image=null;if(doc.photos?.[i]){image=new Image();image.src=doc.photos[i];await image.decode();}assertActive();return W.GrowingHandwritingAI.pageImage(strokes,C.draw,C.WIDTH,C.HEIGHT,image);}));
    if(!current())throw new DOMException('已取消','AbortError');
    const response=await W.GrowingHandwritingAI.request({subject,unitId:chapter.id,prompt:doc.prompt,nodeIds:[q.topic],pages},controller.signal);
    if(!current())throw new DOMException('已取消','AbortError');
-   const latest=JSON.parse(storeApi.getItem(key)||'null');if(!C.validate(latest)||latest.revision!==revision||latest.prompt!==doc.prompt||latest.updatedAt!==doc.updatedAt||results([q])[q.id]?.key!==key)throw Error('原稿已更新，请按最新照片重新提交');
+   const latest=JSON.parse(storeApi.getItem(key)||'null');if(!C.validate(latest)||latest.revision!==revision||latest.prompt!==doc.prompt||latest.updatedAt!==doc.updatedAt||results([q])[q.id]?.key!==key)throw Error('原稿已更新，请按最新作答重新提交');
    const value={...response,revision,at:new Date().toISOString()};if(!value.needsReview&&!C.matchesKnowledge(value,{nodes:[q.topic]}))throw Error('本题知识点评分不完整，请重试');
    latest.grades=[...latest.grades,value].slice(-10);latest.updatedAt=value.at;persistPhoto(key,latest);
    return {key,revision,at:value.at};
@@ -135,7 +137,7 @@
    try{
     let round=roundDrafts.get(id);
     if(!sameRound(round,qs,state.choices,results(qs))){
-     const submitted=results(qs),graded={};for(const q of qs.filter(q=>q.type==='solution'&&submitted[q.id]?.doc.photos?.some(Boolean))){if(!current())throw new DOMException('已取消','AbortError');graded[q.id]=await gradePhoto(q,controller);}
+     const submitted=results(qs),graded={};for(const q of qs.filter(q=>q.type==='solution'&&hasAnswer(submitted[q.id]?.doc))){if(!current())throw new DOMException('已取消','AbortError');graded[q.id]=await gradePhoto(q,controller);}
      if(!current())return;const found=results(qs);
      if(qs.some(q=>q.type==='solution'&&graded[q.id]&&(found[q.id]?.key!==graded[q.id].key||found[q.id]?.doc.revision!==graded[q.id].revision||found[q.id]?.grade?.at!==graded[q.id].at)))throw Error('原稿或批改已更新，请重新提交');
      round={version:1,total:10,at:new Date().toISOString(),items:qs.map(q=>{const r=found[q.id];if(q.type==='choice'&&!Number.isInteger(state.choices[q.id])||q.type==='solution'&&!graded[q.id])return {id:q.id,type:q.type,unanswered:true,choice:null,score:null,passed:false};return q.type==='choice'?{id:q.id,type:q.type,choice:state.choices[q.id],passed:state.choices[q.id]===q.answer}:{id:q.id,type:q.type,key:r.key,revision:r.doc.revision,at:r.grade.at,score:r.status==='graded'?r.grade.score:null,passed:r.passed};})};

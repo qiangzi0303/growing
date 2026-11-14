@@ -45,6 +45,37 @@ function answers(f){
 }
 const photoGrade=(id,extra={})=>({score:100,parts:[20,30,30,20],feedback:'正确',needsReview:false,source:'handwriting',corrections:[],knowledge:[{nodeId:id,score:100,feedback:'正确'}],...extra});
 
+test('guidance is optional and snapshot enrichment never changes question text or scores',async()=>{
+ const f=await fixture(),c=f.controller,w=f.w;
+ assert.equal(c.snapshot().questions[8].guidance,null);
+ const before=w.localStorage.length;let calls=0;
+ w.GrowingGeometryGuidance={get:q=>{calls++;return q.type==='solution'?{id:q.id}:null;}};
+ for(const id of ['cong-hl','perp-bisector','angle-bisector']){
+  c.actions.choose(id);const original=w.GrowingApplicationPractice.questions(c.snapshot().node,'math');
+  const s=c.snapshot();assert.deepEqual(s.questions.map(q=>q.prompt),original.map(q=>q.prompt));
+  for(const q of s.questions.slice(8))assert.equal(q.guidance.id,q.id);
+  const previousCalls=calls;c.snapshot();assert.equal(calls,previousCalls);
+ }
+ w.location.hash='#question-angle-bisector-application-9';c.actions.tab('practice');assert.equal(w.location.hash,'#question-angle-bisector-application-9');
+ assert.ok(calls);assert.equal(w.localStorage.length,before);c.destroy();w.close();
+});
+
+test('group submission accepts pen originals, preserves mixed pages and invalidates edited revisions',async()=>{
+ const f=await fixture(),c=f.controller,w=f.w,C=w.GrowingHandwriting,A=w.GrowingApplicationPractice;
+ const q=c.snapshot().questions[8],doc=C.create('math',c.snapshot().chapter.id,A.prompt(q)),key=C.PREFIX+'12345678-1234-1234-1234-123456789abc';
+ const pen={tool:'pen',width:4,points:[[10,20,.5]]};doc.pages=[[pen],[]];doc.photos=[null,'data:image/jpeg;base64,/9j/AAAA'];
+ w.localStorage.setItem(key,JSON.stringify(doc));w.Image=class{decode(){return Promise.resolve();}};
+ const rendered=[];w.GrowingHandwritingAI.pageImage=async(strokes,draw,width,height,image)=>{rendered.push({strokes,image});return image?'photo-page':'pen-page';};
+ w.GrowingHandwritingAI.request=async input=>{assert.deepEqual([...input.pages],['pen-page','photo-page']);return photoGrade(q.topic);};
+ assert.equal(c.snapshot().practice.completed,1);await c.actions.submitPractice();assert.equal(c.snapshot().practice.result.score,1);
+ assert.deepEqual(JSON.parse(JSON.stringify(rendered[0].strokes)),[pen]);assert.equal(rendered[0].image,null);assert.ok(rendered[1].image);
+ const updated=JSON.parse(w.localStorage.getItem(key));C.change(updated);updated.pages=[[pen]];updated.photos=[null];w.localStorage.setItem(key,JSON.stringify(updated));assert.equal(c.snapshot().practice.result,null);
+ w.GrowingHandwritingAI.request=async input=>{assert.deepEqual([...input.pages],['pen-page']);return photoGrade(q.topic);};
+ assert.equal(c.snapshot().practice.completed,1);await c.actions.submitPractice();assert.equal(c.snapshot().practice.result.score,1);
+ updated.pages=[[{...pen,tool:'eraser'}]];updated.photos=[null];w.localStorage.setItem(key,JSON.stringify(updated));assert.equal(c.snapshot().practice.completed,0);
+ updated.pages=[[]];w.localStorage.setItem(key,JSON.stringify(updated));assert.equal(c.snapshot().practice.completed,0);c.destroy();w.close();
+});
+
 test('partial choices submit without AI, keep unanswered items at zero and allow later completion',async()=>{
  for(const subject of ['math','physics']){
   const f=await fixture({subject}),c=f.controller,w=f.w,qs=c.snapshot().questions;let calls=0;
@@ -78,7 +109,8 @@ test('uploads save only solution photos, retain originals and never grade before
  const create=w.document.createElement.bind(w.document);w.document.createElement=tag=>tag==='canvas'?{getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=> 'data:image/jpeg;base64,/9j/AAAA'}:create(tag);
  const file=new w.File(['photo'],'answer.jpg',{type:'image/jpeg'});await c.actions.uploadPhoto(qs[0].id,file);assert.equal(w.localStorage.length,0);
  await c.actions.uploadPhoto(qs[8].id,file);assert.equal(calls,0);assert.equal(c.snapshot().questions[8].photos.length,1);assert.equal(c.snapshot().practice.completed,1);assert.equal(c.snapshot().record.practicePhoto,undefined);assert.equal(c.snapshot().record.practiceRound,undefined);
- const previous=c.snapshot().questions[8].key;await c.actions.uploadPhoto(qs[8].id,file);assert.notEqual(c.snapshot().questions[8].key,previous);assert.ok(w.localStorage.getItem(previous));c.destroy();w.close();
+ const previous=c.snapshot().questions[8].key;await c.actions.uploadPhoto(qs[8].id,file);assert.notEqual(c.snapshot().questions[8].key,previous);assert.ok(w.localStorage.getItem(previous));
+ const uploaded=c.snapshot().questions;assert.equal(uploaded[8].uploads.length,2);assert.ok(uploaded[8].uploads.some(row=>row.key===previous&&row.grades.length===0));assert.equal(uploaded[9].uploads.length,0);assert.equal(uploaded[8].writingHref,undefined);c.destroy();w.close();
 });
 
 test('one group submission grades two actual photos, saves a ten-point score and avoids duplicate rounds',async()=>{

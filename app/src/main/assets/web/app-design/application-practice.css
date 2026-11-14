@@ -18,3 +18,5 @@
 .math-legacy #fraction-score{margin:20px auto;max-width:1160px;background:var(--surface,#fffdf7)}
 .math-legacy fieldset.question{min-width:0;margin:20px 0;padding:18px;border:1px solid var(--line,#cdd9c0);border-radius:10px;font-size:16px}
 @media(max-width:520px){.practice-photo-link{display:flex;flex-wrap:wrap;gap:8px;width:100%}.practice-photo-link input{margin:0;max-width:100%;width:100%}}
+
+.practice-guidance-legacy svg{display:block;width:100%;max-width:360px;height:auto;margin:12px auto}.practice-guidance-legacy details{margin:12px 0}.practice-guidance-legacy summary{cursor:pointer;min-height:44px;padding:10px 0}.practice-guidance-legacy dt{font-weight:600}.practice-guidance-legacy dd{margin:4px 0 14px}.practice-guidance-legacy details details{padding-left:12px;border-left:2px solid #dce4dc}

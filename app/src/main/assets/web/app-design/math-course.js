@@ -138,10 +138,15 @@
     }catch(error){storageError='批改成绩尚未保存：'+error.message;}
     if(paint)render();
   }
+  function guidanceMarkup(q){
+    const g=!physics&&window.GrowingGeometryGuidance?.get(q);if(!g)return '';
+    const hints=g.hints.reduceRight((next,h,i)=>`<details><summary>${i?'再给一点提示':'给我一点提示'}</summary><p>${esc(h.text)}</p>${h.svg}${next}</details>`,'');
+    return `<section class="practice-guidance-legacy">${g.svg}${hints}<details><summary>看解题思路</summary>${g.steps.map((s,i)=>`<details><summary>${i+1}. ${esc(s.title)}</summary>${s.svg}<p>${esc(s.text)}</p><details><summary>为什么这样想</summary><dl><dt>想解决什么？</dt><dd>${esc(s.why.goal)}</dd><dt>看到了什么？</dt><dd>${esc(s.why.noticed)}</dd><dt>为什么这样做？</dt><dd>${esc(s.why.reason)}</dd></dl></details></details>`).join('')}</details></section>`;
+  }
   function practice(n,r){
     try{
       const qs=A.questions(n,subject),results=A.results(localStorage,subject,chapter.id,qs);
-      return `<div id="practice-form">${qs.map((q,i)=>`<fieldset class="question" data-practice-question="${esc(q.id)}"><legend>${i+1}. ${esc(q.prompt)}</legend>${q.type==='choice'?`<ol class="practice-options">${q.options.map((option,i)=>`<li>${'ABCD'[i]} · ${esc(option)}</li>`).join('')}</ol>`:''}${photos.markup(q,results[q.id])}</fieldset>`).join('')}</div>`;
+      return `<div id="practice-form">${qs.map((q,i)=>`<fieldset class="question" data-practice-question="${esc(q.id)}"><legend>${i+1}. ${esc(q.prompt)}</legend>${q.type==='choice'?`<ol class="practice-options">${q.options.map((option,i)=>`<li>${'ABCD'[i]} · ${esc(option)}</li>`).join('')}</ol>`:''}${guidanceMarkup(q)}${photos.markup(q,results[q.id])}</fieldset>`).join('')}</div>`;
     }catch(error){return `<p role="alert">应用练习暂不可用：${esc(error.message)}</p>`;}
   }
   async function grade(){

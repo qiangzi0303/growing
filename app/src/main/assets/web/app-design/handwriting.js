@@ -15,16 +15,16 @@
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function writingUrl(){const route=new URLSearchParams({subject,unit:unitId,id:key.slice(C.PREFIX.length)});if(applicationTask)route.set('practice',applicationTask.id);return '?'+route;}
   $('#course-label').textContent=GrowingCurriculum[subject].name+' · '+course.title+' · '+(subject==='english'?'作文 / 书面表达':'解答题 / 推导过程');
-  document.title=GrowingCurriculum[subject].name+'手写'+(essay?'作文':'解答题')+' · '+course.title;
-  $('#page-title').textContent=GrowingCurriculum[subject].name+'手写'+(essay?'作文':'解答题');
-  $('#writing-guide').textContent=essay?'根据本单元主题和写作要求，在下方书写完整作文，保留你的原始字迹与段落。':'根据本章题目，在下方画图、列式并写出推导或证明过程，保留你的原始笔迹。';
+  document.title=GrowingCurriculum[subject].name+'拍照'+(essay?'作文':'解答题')+' · '+course.title;
+  $('#page-title').textContent=GrowingCurriculum[subject].name+'拍照'+(essay?'作文':'解答题');
+  $('#writing-guide').textContent=essay?'根据本单元主题和写作要求，在纸上写好作文后上传照片，保留你的原始字迹与段落。':'根据本章题目，在纸上完成解答后上传照片，保留你的原始笔迹。';
   $('#task-heading').textContent='本'+(essay?'单元作文题目':'章解答题');
   $('#prompt-label').textContent=essay?'作文题目与写作要求':'解答题题目与作答要求';
   $('#prompt').placeholder=essay?'填写主题、写作情境、要点与词数要求。':'填写完整题目、已知条件和需要求解或证明的问题。';
 
   $('#task-choice').innerHTML=tasks.map(t=>`<option value="${esc(t.id)}">${esc(t.title)}</option>`).join('')+'<option value="custom">自拟题目 / 老师布置的作业</option>';
 
-  if(tasks.some(t=>t.source))$('#bank-description').textContent='用户提供实卷：'+tasks.filter(t=>t.source).length+'组清晰原题，仅保留题目；选择后手写解答，由 AI 看过程评分。原照片中的答案、批改及不清楚部分未录入。';
+  if(tasks.some(t=>t.source))$('#bank-description').textContent='用户提供实卷：'+tasks.filter(t=>t.source).length+'组清晰原题，仅保留题目；选择后在纸上作答并拍照上传，由 AI 看过程评分。原照片中的答案、批改及不清楚部分未录入。';
   function previewTask(){const task=tasks.find(t=>t.id===$('#task-choice').value);$('#task-knowledge').textContent=task?.nodes?'考核知识点：'+task.nodes.map(id=>C.knowledgeNodes[id]).join('、')+'。知识点评分：低于60为薄弱，60–79为不稳，80及以上为本题通过。':'';}
   function matchTask(){const task=tasks.find(t=>t.prompt===doc.prompt);$('#task-choice').value=task?.id||'custom';previewTask();}
   function selectedPrompt(){return tasks.find(t=>t.id===$('#task-choice').value)?.prompt||'';}
@@ -35,7 +35,7 @@
   function save(){
     clearTimeout(saveTimer);if(blocked||!doc)return false;
     try{if(!C.validate(doc))throw Error('原稿超出保存限制');const value=JSON.stringify(doc);if(value.length>900000)throw Error('原稿过大，请新建下一份作业');localStorage.setItem(key,value);dirty=false;say('#save-status','原稿已保存到当前设备 · '+new Date().toLocaleTimeString());return true;}
-    catch{dirty=true;say('#save-status','原稿尚未保存，当前笔迹仍在页面中。请勿关闭或切换作业，恢复设备存储后点击“立即保存原稿”。',true);return false;}
+    catch{dirty=true;say('#save-status','原稿尚未保存，当前原稿仍在页面中。请勿关闭或切换作业，恢复设备存储后点击“立即保存原稿”。',true);return false;}
   }
   function changed(){C.change(doc);dirty=true;redo=[];review();save();}
   function loadPhoto(data){
@@ -59,18 +59,25 @@
       const ctx=output.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,C.WIDTH,C.HEIGHT);
       const scale=Math.min(C.WIDTH/image.naturalWidth,C.HEIGHT/image.naturalHeight),w=image.naturalWidth*scale,h=image.naturalHeight*scale;
       ctx.drawImage(image,(C.WIDTH-w)/2,(C.HEIGHT-h)/2,w,h);
-      const remaining=650000-(doc.photos||[]).reduce((n,p,i)=>n+(i===page?0:p?.length||0),0);
+      const remaining=650000;
       let data;for(const quality of [.9,.8,.65,.5]){data=output.toDataURL('image/jpeg',quality);if(data.length<=remaining)break;}
       if(data.length>remaining)throw Error('照片保存空间不足，请减少页数或拍摄更清晰的单页。');
       if(key!==currentKey||page!==currentPage)return;
-      await loadPhoto(data);if(!doc.photos)doc.photos=doc.pages.map(()=>null);
-      doc.photos[page]=data;doc.pages[page]=[];changed();render();
-      say('#ai-status','照片已替换当前页，可点击“AI批改”。');
+      await loadPhoto(data);if(dirty&&!save())throw Error('请先保存当前原稿，再上传照片。');
+      const previous=doc,previousKey=key,previousPage=page;doc=C.create(subject,unitId,previous.prompt);doc.photos=[data];key=C.PREFIX+crypto.randomUUID();page=0;dirty=true;
+      if(!save()){doc=previous;key=previousKey;page=previousPage;dirty=false;throw Error('照片未保存，历史记录已保留，请释放设备存储后重试。');}
+      history.replaceState(null,'',writingUrl());render();
+      say('#ai-status','照片已保存为新上传记录，可点击“AI批改”。');
     }catch(error){say('#ai-status',error.message||'照片导入失败，请重新拍摄。',true);}
     finally{URL.revokeObjectURL(url);importing=false;render();}
   };
+  function renderRecords(){
+    const records=[];try{for(let i=0;i<localStorage.length;i++){const id=localStorage.key(i);if(!C.KEY.test(id))continue;const d=JSON.parse(localStorage.getItem(id));if(C.validate(d)&&d.subject===subject&&d.unitId===unitId&&d.prompt===doc.prompt&&d.pages.some((p,j)=>p.length||d.photos?.[j]))records.push({id,at:d.updatedAt});}}catch{}
+    $('#upload-records').innerHTML='<h2>上传与历史原稿记录</h2>'+records.sort((a,b)=>b.at.localeCompare(a.at)).map(r=>{const q=new URLSearchParams({subject,unit:unitId,id:r.id.slice(C.PREFIX.length)});if(applicationTask)q.set('practice',applicationTask.id);return '<p><a href="?'+esc(q.toString())+'">最后保存：'+esc(new Date(r.at).toLocaleString('zh-CN'))+(r.id===key?' · 当前':'')+'</a></p>';}).join('');
+  }
   function render(){
-    drawPage(doc.pages[page]);$('#prompt').value=doc.prompt;
+    renderRecords();canvas.parentElement.hidden=!doc.pages.some((p,i)=>p.length||doc.photos?.[i]);
+    drawPage(doc.pages[page]);$('#prompt').value=doc.prompt.replaceAll('请在下方手写作答','请在纸上作答后拍照上传');
     $('#page-label').textContent=`第 ${page+1} / ${doc.pages.length} 页`;
     $('#prev').disabled=blocked||!!job||page===0;$('#next').disabled=blocked||!!job||page===doc.pages.length-1;
     $('#add-page').disabled=blocked||!!job||doc.pages.length>=C.MAX_PAGES;
@@ -80,9 +87,9 @@
   }
   function review(){
     $('#grade').disabled=blocked||!!job||importing;
-    $('#grades').innerHTML=doc.grades.slice().reverse().map(g=>`<article><strong>${g.revision===doc.revision?'本份原稿':'历史点评 · 原稿已修改'}</strong><p class="score">${g.needsReview?'需要复核 · 不计分':g.score+' / 100'}</p>${g.parts?`<p>${(doc.mode==='essay'?['内容','结构','语言','标点与格式']:['审题','思路','推导','表达']).map((n,i)=>`<span class="${g.parts[i]<(doc.mode==='essay'?[25,20,35,20]:[20,30,30,20])[i]?'assessment-gap':''}">${n} ${g.parts[i]}/${(doc.mode==='essay'?[25,20,35,20]:[20,30,30,20])[i]}</span>`).join(' · ')}</p>`:''}<p class="${g.needsReview||g.score<80?'assessment-gap':''}">${esc(g.feedback)}</p>${GrowingHandwritingAI.details(g)}<small>${esc(g.at.slice(0,19).replace('T',' '))} · ${g.source==='handwriting'?'直接查看手写原稿':'历史文字点评'}</small></article>`).join('');
+    $('#grades').innerHTML=doc.grades.slice().reverse().map(g=>`<article><strong>${g.revision===doc.revision?'本份原稿':'历史点评 · 原稿已修改'}</strong><p class="score">${g.needsReview?'需要复核 · 不计分':g.score+' / 100'}</p>${g.parts?`<p>${(doc.mode==='essay'?['内容','结构','语言','标点与格式']:['审题','思路','推导','表达']).map((n,i)=>`<span class="${g.parts[i]<(doc.mode==='essay'?[25,20,35,20]:[20,30,30,20])[i]?'assessment-gap':''}">${n} ${g.parts[i]}/${(doc.mode==='essay'?[25,20,35,20]:[20,30,30,20])[i]}</span>`).join(' · ')}</p>`:''}<p class="${g.needsReview||g.score<80?'assessment-gap':''}">${esc(g.feedback)}</p>${GrowingHandwritingAI.details(g)}<small>${esc(g.at.slice(0,19).replace('T',' '))} · ${g.source==='handwriting'?'直接查看作答原稿':'历史文字点评'}</small></article>`).join('');
   }
-  function newDoc(){if(job||active||importing||dirty&&!save())return;doc=C.create(subject,unitId,selectedPrompt());key=C.PREFIX+crypto.randomUUID();page=0;redo=[];blocked=false;dirty=true;matchTask();render();save();say('#ai-status',doc.prompt?'已按所选题目新建，请在下方书写'+(essay?'作文。':'解答过程。'):'已新建自拟作业，请先填写'+(essay?'作文要求。':'题目与条件。'));history.replaceState(null,'',writingUrl());}
+  function newDoc(){if(job||active||importing||dirty&&!save())return;doc=C.create(subject,unitId,selectedPrompt());key=C.PREFIX+crypto.randomUUID();page=0;redo=[];blocked=false;dirty=true;matchTask();render();save();say('#ai-status',doc.prompt?'已按所选题目新建，请拍照上传'+(essay?'作文。':'解答过程。'):'已新建自拟作业，请先填写'+(essay?'作文要求。':'题目与条件。'));history.replaceState(null,'',writingUrl());}
 
   $('#save').onclick=()=>{if(!active)save();};
   $('#prompt').oninput=()=>{C.change(doc);doc.prompt=$('#prompt').value;dirty=true;matchTask();review();say('#save-status','正在保存…');clearTimeout(saveTimer);saveTimer=setTimeout(save,400);};
@@ -93,32 +100,17 @@
   function turn(n){if(importing||active||job||blocked)return;page=Math.max(0,Math.min(doc.pages.length-1,n));redo=[];render();}
   $('#prev').onclick=()=>turn(page-1);$('#next').onclick=()=>turn(page+1);
   $('#add-page').onclick=()=>{if(importing||active||job||blocked||doc.pages.length>=C.MAX_PAGES)return;doc.pages.push([]);if(doc.photos)doc.photos.push(null);page=doc.pages.length-1;changed();render();};
-  function point(e){const box=canvas.getBoundingClientRect();return [Math.round(Math.max(0,Math.min(C.WIDTH,(e.clientX-box.left)*C.WIDTH/box.width))),Math.round(Math.max(0,Math.min(C.HEIGHT,(e.clientY-box.top)*C.HEIGHT/box.height))),Math.round((e.pointerType==='pen'?Math.max(.05,Math.min(1,e.pressure||.5)):.5)*100)/100];}
-  canvas.addEventListener('pointerdown',e=>{
-    if(importing||blocked||job||active||e.pointerType==='touch'&&!$('#finger').checked||e.button!==0&&!(e.pointerType==='pen'&&e.button===5))return;
-    if(C.count(doc)>=C.MAX_POINTS||doc.pages[page].length>=3000){say('#save-status','当前原稿笔迹已达上限，请新建下一份作业。',true);return;}
-    e.preventDefault();canvas.setPointerCapture(e.pointerId);
-    const selectedTool=e.button===5?'eraser':tool;
-    active={id:e.pointerId,stroke:{tool:selectedTool,width:selectedTool==='eraser'?28:Number($('#width').value),points:[point(e)]},remaining:C.MAX_POINTS-C.count(doc)-1};
-    C.change(doc);dirty=true;redo=[];review();drawPage([...doc.pages[page],active.stroke]);
-  });
-  canvas.addEventListener('pointermove',e=>{
-    if(!active||active.id!==e.pointerId)return;e.preventDefault();
-    for(const p of e.getCoalescedEvents?.().length?e.getCoalescedEvents():[e]){if(active.remaining<=0)break;active.stroke.points.push(point(p));active.remaining--;}
-    drawPage([...doc.pages[page],active.stroke]);
-  });
-  function end(e){if(!active||active.id!==e.pointerId)return;doc.pages[page].push(active.stroke);active=null;save();render();}
-  canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);canvas.addEventListener('lostpointercapture',end);
+  const end=()=>{};
   document.addEventListener('visibilitychange',()=>{if(document.hidden){if(active)end({pointerId:active.id});else if(dirty)save();}});
   window.addEventListener('pagehide',()=>{job?.abort();if(active)end({pointerId:active.id});else if(dirty)save();});
   window.addEventListener('beforeunload',e=>{if(dirty||active){e.preventDefault();e.returnValue='';}});
   async function request(){
     if(job||active||blocked||importing)return;
-    if(!doc.prompt.trim()||!doc.pages.some((p,i)=>doc.photos?.[i]||p.some(s=>s.tool==='pen'))){say('#ai-status',essay?'请填写作文要求，并先写下作文。':'请填写完整题目，并先写下解答过程。',true);return;}
+    if(!doc.prompt.trim()||!doc.pages.some((p,i)=>doc.photos?.[i]||p.some(s=>s.tool==='pen'))){say('#ai-status',essay?'请填写作文要求，并先上传作文照片。':'请填写完整题目，并先上传解答照片。',true);return;}
     if(!save()){say('#ai-status','请先成功保存原稿，再发送批改。',true);return;}
     const controller=new AbortController();job=controller;const revision=doc.revision,documentKey=key;
     const timer=setTimeout(()=>controller.abort(),115000);$('#cancel').hidden=false;render();
-    say('#ai-status','AI 正在逐页查看手写原稿并批改，请稍候…');
+    say('#ai-status','AI 正在逐页查看作答原稿并批改，请稍候…');
     try{
       const task=currentTask();
       const pages=await Promise.all(doc.pages.map(async(strokes,i)=>GrowingHandwritingAI.pageImage(strokes,C.draw,C.WIDTH,C.HEIGHT,doc.photos?.[i]?await loadPhoto(doc.photos[i]):null)));
@@ -127,8 +119,8 @@
       const g={...result,revision,at:new Date().toISOString()};
       if(task&&!g.needsReview&&!C.matchesKnowledge(g,task))throw Error('知识点评估不完整，本次不计分，请重新批改。');
       doc.grades=[...doc.grades,g].slice(-10);doc.updatedAt=new Date().toISOString();dirty=true;save();
-      say('#ai-status',g.needsReview?'原稿部分内容需要复核，未生成分数。请按提示补充清晰内容后重新批改。':'手写原稿批改完成，可查看错误订正与关联知识点。');
-    }catch(err){say('#ai-status',err.name==='AbortError'?'批改已取消或超时，原稿已保留，本次不计分。':err instanceof TypeError?'手写批改连接失败，请检查网络后重试；原稿已保留。':err.message,true);}
+      say('#ai-status',g.needsReview?'原稿部分内容需要复核，未生成分数。请按提示补充清晰内容后重新批改。':'作答原稿批改完成，可查看错误订正与关联知识点。');
+    }catch(err){say('#ai-status',err.name==='AbortError'?'批改已取消或超时，原稿已保留，本次不计分。':err instanceof TypeError?'照片批改连接失败，请检查网络后重试；原稿已保留。':err.message,true);}
     finally{clearTimeout(timer);if(job===controller){job=null;$('#cancel').hidden=true;render();}}
   }
   $('#grade').onclick=request;$('#cancel').onclick=()=>job?.abort();

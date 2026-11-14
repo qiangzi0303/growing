@@ -1,10 +1,13 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, nextTick, ref, shallowRef, watch } from 'vue';
 import { Button, Calendar, Cell, CellGroup, Checkbox, Collapse, CollapseItem, Dialog, Field, Picker, Popup, Radio, RadioGroup, Tab, Tabs, Uploader, showImagePreview } from 'vant';
+import StudentUploadHistory from './StudentUploadHistory.vue';
 import StudentCourseSettings from './StudentCourseSettings.vue';
+import StudentGeometryGuidance from './StudentGeometryGuidance.vue';
 import 'vant/lib/index.css';
 const props=defineProps({controller:{type:Object,required:true}}),m=shallowRef(props.controller.snapshot()),a=props.controller.actions;
 const unsubscribe=props.controller.subscribe(value=>m.value=value);
+onMounted(async()=>{await nextTick();const id=location.hash.slice(1);if(m.value.questions?.some(q=>'question-'+q.id===id)){const card=document.getElementById(id);card?.scrollIntoView({block:'start'});card?.focus({preventScroll:true});}});
 onBeforeUnmount(()=>{unsubscribe();props.controller.destroy();});
 const picker=ref(false),expanded=ref([]),reset=ref(false),confirmed=ref(false),uploadMessage=ref('');
 const pickerSelection=ref([]);
@@ -40,9 +43,10 @@ function resetProgress(){if(a.reset(confirmed.value)){reset.value=false;confirme
     <section v-else class="course-panel application-round">
      <h2>应用练习 · {{m.questions.length}} 题</h2><p>选择题点选答案，解答题拍照上传。可提交已作答的题目，未作答题按未通过计。</p>
      <p v-if="m.practiceError" role="alert">{{m.practiceError}}</p><p v-if="uploadMessage" role="alert">{{uploadMessage}}</p>
-     <article v-for="(q,i) in m.questions" :key="q.id" class="practice-question" :data-level="q.level" :data-question-id="q.id">
+     <article v-for="(q,i) in m.questions" :key="q.id" :id="'question-'+q.id" tabindex="-1" class="practice-question" :data-level="q.level" :data-question-id="q.id">
       <h3 class="question-prompt preserve">{{i+1}}. {{q.prompt}}</h3>
-      <div v-if="q.diagram" class="practice-figure" v-html="q.diagram"/>
+      <StudentGeometryGuidance v-if="q.guidance" :key="q.id" :guide="q.guidance"/>
+      <div v-else-if="q.diagram" class="practice-figure" v-html="q.diagram"/>
       <RadioGroup v-if="q.type==='choice'" :model-value="m.practice.choices[q.id]" :disabled="m.practice.busy" :aria-label="'第'+(i+1)+'题答案'" @update:model-value="value=>a.practiceChoice(q.id,value)">
        <Radio v-for="(option,j) in q.options" :key="j" :name="j"><span class="option-letter">{{'ABCD'[j]}}.</span> {{option}}</Radio>
       </RadioGroup>
@@ -51,7 +55,7 @@ function resetProgress(){if(a.reset(confirmed.value)){reset.value=false;confirme
        <p v-if="q.message" role="status">{{q.message}}</p><div class="photo-list"><Button v-for="(image,j) in q.photos" :key="j" aria-label="查看作答原稿" @click="showImagePreview({images:q.photos,startPosition:j})"><img :src="image" alt="作答原稿"/></Button></div>
       </template>
       <section v-if="m.practice.result&&!m.practice.busy" class="question-result"><p>{{m.practice.result.items[i].unanswered?'未作答 · 0分':m.practice.result.items[i].passed?'✓ 答对 · 1分':m.practice.result.items[i].type==='solution'&&m.practice.result.items[i].score===null?'待复核 · 暂不计分':'未通过 · 0分'}}</p><p v-if="q.type==='choice'">正确答案：{{'ABCD'[q.answer]}} · {{q.explanation}}</p><p v-else-if="!m.practice.result.items[i].unanswered">{{q.history[0]?.feedback}}</p></section>
-      <details v-if="q.history.length&&!m.practice.busy"><summary>查看批改记录</summary><article v-for="(g,j) in q.history" :key="j" class="grade-history"><h4>{{g.historical?'历史批改':'最近批改'}} · {{g.score}} 分 {{g.needsReview?'（待复核）':''}}</h4><p>{{gradeText(g)}}</p><p v-for="(correction,k) in g.corrections||[]" :key="k">{{correction.location}}：{{correction.issue}} {{correction.correction}}</p></article></details>
+      <StudentUploadHistory :uploads="q.uploads"/><details v-if="q.history.length&&!m.practice.busy"><summary>查看批改记录</summary><article v-for="(g,j) in q.history" :key="j" class="grade-history"><h4>{{g.historical?'历史批改':'最近批改'}} · {{g.score}} 分 {{g.needsReview?'（待复核）':''}}</h4><p>{{gradeText(g)}}</p><p v-for="(correction,k) in g.corrections||[]" :key="k">{{correction.location}}：{{correction.issue}} {{correction.correction}}</p></article></details>
      </article>
      <div class="practice-submit"><p>已作答 {{m.practice.completed}} / {{m.practice.total}} 题</p><Button type="primary" :loading="m.practice.busy" :disabled="m.practice.busy||m.practice.uploading||!m.practice.completed||!!m.practiceError" @click="a.submitPractice">统一提交答案</Button><Button v-if="m.practice.busy" @click="a.cancelPractice">取消提交</Button><p v-if="m.practice.message" role="status">{{m.practice.message}}</p><p v-if="m.practice.result&&!m.practice.busy" class="round-score" role="status">本轮得分 {{m.practice.result.score}} / 10<span v-if="m.practice.result.pending"> · {{m.practice.result.pending}}题待复核</span><span v-if="!m.practice.result.saved"> · 尚未保存</span></p></div>
     </section>
