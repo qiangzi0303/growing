@@ -8,7 +8,6 @@
   const unitHref=unit=>'english-sentence-demo.html?unit='+encodeURIComponent(unit.id);
   if(practice.unit){
     document.title=`Unit ${practice.unit.number} · ${practice.topic?.title||'句子闯关'} · 逆流英语`;
-    document.querySelector('.brand span').textContent=`Unit ${practice.unit.number} · ${practice.topic?.title||practice.unit.title}`;
     const back=document.querySelector('.back-link');back.href=practice.backHref;back.textContent='返回 Unit '+practice.unit.number;
   }
   if(practice.error){
