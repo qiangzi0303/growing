@@ -1,7 +1,8 @@
 /* Shared connection for math, physics and English. Never embed a credential. */
 (() => {
   'use strict';
-  const KEY='growing-course-ai-v1',endpoint='https://api.deepseek.com/chat/completions',defaultModel='deepseek-flash';
+  const KEY='growing-course-ai-v1',endpoint='https://api.deepseek.com/chat/completions',defaultModel='DeepSeek-V4.1-Flash-1017';
+  const modelName=value=>!value||/^deepseek/i.test(value)?defaultModel:value;
   const native=window.GrowingNative;
   const connectionStorage=()=>{
     if(window.GrowingCourseAIStorage)return window.GrowingCourseAIStorage();
@@ -13,13 +14,13 @@
   const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function read(){
     if(native)return {model:defaultModel,apiKey:String(native.aiKey()||'').trim()};
-    try{const raw=JSON.parse(connectionStorage().getItem(KEY)||'{}');return {model:typeof raw.model==='string'&&raw.model.trim()?raw.model.trim():defaultModel,apiKey:typeof raw.apiKey==='string'?raw.apiKey.trim():''};}
+    try{const raw=JSON.parse(connectionStorage().getItem(KEY)||'{}');return {model:modelName(typeof raw.model==='string'?raw.model.trim():''),apiKey:typeof raw.apiKey==='string'?raw.apiKey.trim():''};}
     catch{throw Error('AI连接配置无法读取，请在设置中重新保存或清除连接配置');}
   }
   function info(){try{const c=read();return {model:c.model,configured:!!c.apiKey,native:!!native};}catch(error){return {model:defaultModel,configured:false,native:!!native,error:error.message};}}
   function save({model,apiKey}){
     if(native&&!native.saveAiKey){native.configureAi();return;}
-    model=String(model||defaultModel).trim();apiKey=String(apiKey||'').trim();
+    model=modelName(String(model||defaultModel).trim());apiKey=String(apiKey||'').trim();
     if(!apiKey){try{apiKey=read().apiKey;}catch{}}
     if(!apiKey)throw Error('请填写 DeepSeek API Key');
     if(/\s/.test(apiKey)||apiKey.length<8)throw Error('密钥格式不正确，请完整粘贴 API Key');

@@ -20,6 +20,17 @@ test('no credentials means no network request; saved config supplies direct auth
   await t.api.request({task:'评分',format:'json_object'});assert.equal(JSON.parse(t.calls[1].options.body).response_format.type,'json_object');
   assert(!JSON.stringify(t.api.info()).includes('fake-test-key'));assert(!t.api.settingsMarkup().includes('fake-test-key'));
 });
+test('saved DeepSeek model names use the requested model without changing the saved key',async()=>{
+  const t=setup();
+  t.data.set('growing-course-ai-v1',JSON.stringify({model:'deepseek-flash',apiKey:'fake-test-key'}));
+  await t.api.request({task:'test'});
+  assert.equal(JSON.parse(t.calls[0].options.body).model,'DeepSeek-V4.1-Flash-1017');
+  assert.equal(t.calls[0].options.headers.Authorization,'Bearer fake-test-key');
+  const native=setup({aiKey:()=> 'fake-native-key'});
+  await native.api.request({task:'test'});
+  assert.equal(JSON.parse(native.calls[0].options.body).model,'DeepSeek-V4.1-Flash-1017');
+});
+
 test('connection updates are atomic and clear affects only shared key',()=>{
   const t=setup();t.api.save({apiKey:'fake-test-key'});t.api.save({model:'another-model',apiKey:''});assert.equal(t.api.info().model,'another-model');
   const before=t.data.get('growing-course-ai-v1');t.blockSave();assert.throws(()=>t.api.save({apiKey:'fake-replacement'}),/保存失败/);assert.equal(t.data.get('growing-course-ai-v1'),before);

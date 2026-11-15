@@ -9,7 +9,7 @@ export async function streamReply({history, topic, mode, signal, onText}) {
   let response;
   try {response=await fetch('https://api.deepseek.com/chat/completions',{
     method:'POST',credentials:'omit',signal,headers:{'Content-Type':'application/json',Authorization:'Bearer '+config.apiKey},
-    body:JSON.stringify({model:config.model||'deepseek-flash',messages:[{role:'system',content:SYSTEM+'\n'+context},...history.slice(-16).map(({role,content})=>({role,content:content.slice(0,4000)}))],stream:true,temperature:.35,max_tokens:700,thinking:{type:'disabled'}})
+    body:JSON.stringify({model:(!config.model||/^deepseek/i.test(config.model)?'DeepSeek-V4.1-Flash-1017':config.model),messages:[{role:'system',content:SYSTEM+'\n'+context},...history.slice(-16).map(({role,content})=>({role,content:content.slice(0,4000)}))],stream:true,temperature:.35,max_tokens:700,thinking:{type:'disabled'}})
   });}catch(error){if(signal.aborted)throw error;throw Error('无法连接 AI，请检查网络或连接设置。');}
   if(!response.ok){const reasons={401:'密钥无效',402:'账户余额不足',404:'模型不存在',429:'请求频繁或额度不足'};throw Error('AI服务 HTTP '+response.status+'：'+(reasons[response.status]||'请求失败，请稍后重试'));}
   if(!response.body)throw Error('浏览器无法读取流式回答。');
