@@ -1,5 +1,5 @@
 /* Build and stage the student Vue/Vant pages for both offline APK and Worker assets. */
-import { existsSync, mkdirSync, readFileSync, copyFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, copyFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -16,19 +16,31 @@ if(!process.argv.includes('--stage-only')){
   execFileSync(process.execPath,[vite,'build'],{cwd:ui,stdio:'inherit'});
 }
 const course=join(repo,'app/src/main/assets/web/app-design');
+// Copy scene directories recursively without the native Windows cpSync fast-fail.
+function copySceneAssets(source,target){
+  mkdirSync(target,{recursive:true});
+  for(const entry of readdirSync(source,{withFileTypes:true})){
+    const from=join(source,entry.name),to=join(target,entry.name);
+    if(entry.isDirectory())copySceneAssets(from,to);
+    else if(entry.isFile())copyFileSync(from,to);
+    else throw Error('Unsupported scene asset: '+from);
+  }
+}
 const assetRevision='20261121-photo-practice-1';
 function reviseHtml(path,names){
  if(!existsSync(path))return;
  const before=readFileSync(path,'utf8'),after=before.replace(/<(?:script|link)\b[^>]*>/gi,tag=>tag.replace(/\b(src|href)=(['"])([^'"<>]+)\2/g,(all,attr,quote,value)=>{
   const name=value.split(/[?#]/)[0].split('/').pop();if(!names.has(name))return all;
   const hash=value.indexOf('#'),fragment=hash<0?'':value.slice(hash),url=hash<0?value:value.slice(0,hash),query=url.indexOf('?'),base=query<0?url:url.slice(0,query),params=new URLSearchParams(query<0?'':url.slice(query+1));
-  params.set('studentUi',assetRevision);return attr+'='+quote+base+'?'+params+fragment+quote;
+  params.set('studentUi',path.endsWith('units.html')?'20261121-catalog-clean-1':path.endsWith('english-course.html')||path.endsWith(join('word-ops-unit3','index.html'))?'20261121-all-unit-study-1':assetRevision);return attr+'='+quote+base+'?'+params+fragment+quote;
  }));if(after!==before)writeFileSync(path,after);
 }
 const newModels=['student-pages.js','student-catalog-model.js','student-summary-model.js','student-resources-model.js','student-math-course.js','student-english-course.js','student-knowledge.js','student-handwriting.js','student-english-labs.js','student-math-resources.js','student-math-labs.js','student-physics-labs.js','student-triangle-centers.js','student-fraction-course.js','student-midterm.js','student-unit3-course.js','student-paper-ai.js','student-figure-editor.js'];
 newModels.push('student-duck-controls.js');
 newModels.push('application-practice.js','handwriting-ai.js','handwriting-core.js','practice-progress.js','math-figures.js','practice-figures.js','geometry-guidance.js');
 newModels.push('paper-photo-uploads.js','question-attempts.js');
+newModels.push('english-engine.js','english-word-pilot-data.js','english-word-pilot-core.js','student-word-pilot.js');
+newModels.push('english-word-review.js','english-word-study-data.js','english-word-study-units-245.js','english-word-study-units-3678.js');
 const migratedAssets=['catalog.js','unit-summary.js','math-course.js','english-course.js','knowledge.js','handwriting.js','index.html','units.html','study.html','unit-summary.html','math-resources.html','english-resources.html','physics-resources.html','math-course.html','physics-course.html','english-course.html','knowledge.html','physics-knowledge.html','handwriting.html','english-visual-lab.html','english-visual-quiz.html','english-sentence-demo.html','english-visual-lab.js','english-visual-quiz.js','english-sentence-demo.js','math-exam-practice.html','math-wrong-questions.html','math-exam-practice.js','math-wrong-questions.js','math-explore-lab.html','geometry-models.html','math-lab.js','geometry-models.js'];
 const targets=[course,join(project,'app-design'),join(repo,'cloudflare/public/learn/app-design')];
 migratedAssets.push('physics-explore-lab.html','physics-sound-lab.html','triangle-centers.html','triangle-centers-legacy.js','math-exam-midterm.html','math-exam-midterm-graph.html','math-exam-midterm-answers.js','math-exam-midterm-graph.js','paper-knowledge-graph.js','math-geometry-links.js');
@@ -44,8 +56,9 @@ for(const target of targets){
   writeFileSync(join(vendor,'LICENSES.txt'),licenses);
   if(target!==course)copyFileSync(join(course,'vant-home.js'),join(target,'vant-home.js'));
   if(target!==course)for(const name of newModels)copyFileSync(join(course,name),join(target,name));
+  if(target!==course)for(const folder of ['word-pilot-scenes','word-study-scenes'])copySceneAssets(join(course,folder),join(target,folder));
   if(target!==course)for(const name of migratedAssets){
-   if(target===join(project,'app-design')&&name!=='course-duck.js'&&!name.startsWith('companion-duck/'))continue;
+   if(target===join(project,'app-design')&&!['course-duck.js','english-course.html','english-course.js'].includes(name)&&!name.startsWith('companion-duck/'))continue;
    mkdirSync(dirname(join(target,name)),{recursive:true});copyFileSync(join(course,name),join(target,name));
   }
 }

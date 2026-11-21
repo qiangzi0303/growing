@@ -4,19 +4,62 @@ import {readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {JSDOM} from 'jsdom';
 const require=createRequire(import.meta.url),base=new URL('../../app/src/main/assets/web/',import.meta.url),KEY='wordops_8A_unit3';
+test('Unit3 consecutive recall clears errors immediately and shared study preserves old mastery',async()=>{
+ const f=await fixture({saved:{mastered:{w2:{protocol:'seven-recalls',answers:Array(7).fill('feed'),at:1000}}}});
+ try{const c=f.c;c.actions.word('w1');c.actions.startWord();c.actions.finishMemory();c.actions.recallInput('learner');c.actions.submitRecall();assert.equal(c.snapshot().wordRun.answers.length,1);c.actions.recallInput('wrong');c.actions.submitRecall();assert.equal(c.snapshot().wordRun.answers.length,0);assert.equal(c.snapshot().wordRun.phase,'recall');assert.equal(c.snapshot().study.wordPassed.w2,true);assert.equal(c.snapshot().study.words[0].id,'w1');}finally{f.close();}
+});
 async function fixture({saved,active=()=>true,request=async()=>''}={}){
  const dom=new JSDOM('<main></main>',{url:'https://learn.test/word-ops-unit3/index.html',runScripts:'outside-only'}),w=dom.window,html=await readFile(new URL('word-ops-unit3/index.html',base),'utf8'),scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
  for(const i of [0,2,3,4,5,6,7])w.eval(scripts[i][1]);
- for(const [name,file] of Object.entries({WordMasteryRules:'word-mastery-rules.js',GrowingRewards:'reward-engine.js',GrowingEnglishScore:'english-score.js'}))w[name]=require('../../app/src/main/assets/web/app-design/'+file);
+ for(const [name,file] of Object.entries({WordMasteryRules:'word-mastery-rules.js',GrowingRewards:'reward-engine.js',GrowingEnglishScore:'english-score.js',GrowingEnglishWordReview:'english-word-review.js'}))w[name]=require('../../app/src/main/assets/web/app-design/'+file);
  w.UnitRewards={register(){},update(){}};w.GrowingCourseSpeech={create:()=>({play(){},stop(){}})};w.GrowingCourseAI={request};w.SentenceDemo={units:{'english-8a-03':{topics:[]}}};
  if(saved!==undefined)w.localStorage.setItem(KEY,typeof saved==='string'?saved:JSON.stringify(saved));w.eval(await readFile(new URL('app-design/student-unit3-course.js',base),'utf8'));
  const c=w.GrowingStudentUnit3Course.create({storage:w.localStorage,active});return {w,c,close(){c.destroy();w.close();}};
 }
+
+test('Unit3 review schedules first answers only, keeps historic mastery and resumes saved sessions',async()=>{
+ const f=await fixture({saved:{mastered:{w1:{protocol:'seven-recalls',answers:Array(7).fill('learner'),at:1000},w2:{protocol:'seven-recalls',answers:Array(7).fill('feed'),at:1000}}}});
+ try{const c=f.c,a=c.studyActions;a.startReview();assert.equal(c.snapshot().study.view,'review');assert.equal(c.snapshot().study.word.id,'w1');a.reviewInput('wrong');a.submitReview();let saved=JSON.parse(f.w.localStorage.getItem(KEY));assert.equal(saved.wordReview.w1.level,0);assert.equal(saved.wordReviewSession.ids.length,3);const due=saved.wordReview.w1.due;a.submitReview();assert.equal(JSON.parse(f.w.localStorage.getItem(KEY)).wordReviewSession.ids.length,3);a.reviewNext();assert.equal(c.snapshot().study.word.id,'w2');a.reviewInput('feed');a.submitReview();a.reviewNext();a.reviewInput('learner');a.submitReview();a.reviewNext();saved=JSON.parse(f.w.localStorage.getItem(KEY));assert.equal(saved.wordReview.w1.due,due);assert.equal(saved.wordReview.w1.level,0);assert.equal(saved.wordReview.w2.level,1);assert.equal(saved.wordReviewSession.finished,true);assert.equal(c.snapshot().study.wordPassed.w1,true);assert.equal(c.snapshot().study.reviewSummary.correct,1);
+  const again=await fixture({saved});try{assert.equal(again.c.snapshot().study.reviewPlan.dueIds.length,0);assert.equal(again.c.snapshot().study.wordPassed.w1,true);}finally{again.close();}
+ }finally{f.close();}
+});
+
+test('Unit3 interrupted old recall keeps only correct suffix and formal save failures block duplicate answers',async()=>{
+ const f=await fixture({saved:{wordRuns:{w1:{phase:'recall',answers:['learner','bad','learner'],input:'learner',seconds:15}}}});
+ try{const c=f.c,a=c.studyActions;a.word('w1');a.recall();assert.equal(c.snapshot().study.run.answers.length,1);assert.equal(c.snapshot().study.recallDraft,'learner');const original=f.w.Storage.prototype.setItem;f.w.Storage.prototype.setItem=function(key,value){if(key===KEY)throw Error('quota');return original.call(this,key,value);};a.submitRecall();assert.equal(c.snapshot().study.run.answers.length,2);assert.equal(c.snapshot().study.reviewUnsaved,true);a.recallInput('learner');a.submitRecall();assert.equal(c.snapshot().study.run.answers.length,2);f.w.Storage.prototype.setItem=original;a.retryReviewSave();assert.equal(c.snapshot().study.reviewUnsaved,false);assert.equal(JSON.parse(f.w.localStorage.getItem(KEY)).wordRuns.w1.answers.length,2);a.submitRecall();assert.equal(c.snapshot().study.run.answers.length,2);
+ }finally{f.close();}
+});
+
+test('Unit3 malformed review archive stays untouched and inactive study actions cannot write',async()=>{
+ const raw={wordReviewSession:{ids:['missing'],index:0,draft:'',finished:false,firstCount:1,correct:0}},f=await fixture({saved:raw});try{f.c.studyActions.startReview();assert.equal(f.w.localStorage.getItem(KEY),JSON.stringify(raw));assert.ok(f.c.snapshot().study.reviewError);}finally{f.close();}
+ let active=true;const g=await fixture({active:()=>active});try{g.c.studyActions.word('w1');g.c.studyActions.recall();const before=g.w.localStorage.getItem(KEY);active=false;g.c.studyActions.recallInput('learner');g.c.studyActions.submitRecall();assert.equal(g.w.localStorage.getItem(KEY),before);}finally{g.close();}
+});
+
+test('Unit3 rejects invalid calendar dates, null plans and malformed review feedback without rewriting',async()=>{
+ const cases=[{wordReview:null},{wordReviewSession:false},{wordReview:{w1:{level:1,due:'2026-02-30',lastDay:'2026-02-01'}}},{wordReviewSession:{ids:['w1'],index:0,draft:'learner',hinted:false,finished:false,firstCount:1,correct:0,feedback:{correct:true,hinted:false,retry:false,answer:'learner',wordId:'w2'}}}];
+ for(const saved of cases){const f=await fixture({saved});try{assert.ok(f.c.snapshot().study.reviewError);f.c.studyActions.startReview();assert.equal(f.w.localStorage.getItem(KEY),JSON.stringify(saved));}finally{f.close();}}
+});
+
+test('Unit3 refuses to overwrite another page changes during recall',async()=>{
+ const f=await fixture();try{const a=f.c.studyActions;a.word('w1');a.recall();const external=JSON.parse(f.w.localStorage.getItem(KEY));external.extension='another page';f.w.localStorage.setItem(KEY,JSON.stringify(external));a.recallInput('learner');a.submitRecall();assert.equal(f.c.snapshot().study.reviewUnsaved,true);assert.equal(f.w.localStorage.getItem(KEY),JSON.stringify(external));a.retryReviewSave();assert.equal(f.w.localStorage.getItem(KEY),JSON.stringify(external));}finally{f.close();}
+});
+
+test('Unit3 first formal answer schedules review and refresh restores closed-book draft without exposing card',async()=>{
+ const f=await fixture();try{const a=f.c.studyActions;a.word('w1');a.recall();a.recallInput('learner');a.submitRecall();a.recallInput('lear');const saved=JSON.parse(f.w.localStorage.getItem(KEY));assert.equal(saved.wordReview.w1.level,1);assert.equal(saved.activeWordRecall,'w1');assert.equal(new URL(f.w.location.href).searchParams.has('node'),false);const g=await fixture({saved});try{assert.equal(g.c.snapshot().study.view,'recall');assert.equal(g.c.snapshot().study.run.answers.length,1);assert.equal(g.c.snapshot().study.recallDraft,'lear');g.c.studyActions.navigate('word');const peeked=JSON.parse(g.w.localStorage.getItem(KEY));assert.equal(peeked.wordRuns.w1.hinted,true);assert.equal(peeked.wordReview.w1.level,0);}finally{g.close();}}finally{f.close();}
+});
+
+test('Unit3 review grants one daily formal credit, resets unmastered mistakes, and records answer exposure',async()=>{
+ const today=new Date().toISOString().slice(0,10),saved={wordReview:{w1:{level:0,due:'2020-01-01',lastDay:'2020-01-01'}},wordRuns:{w1:{phase:'recall',answers:['learner'],input:'',seconds:15}}};
+ const f=await fixture({saved});try{const a=f.c.studyActions;a.startReview();a.reviewInput('learner');a.submitReview();assert.equal(f.c.snapshot().study.reviewSummary.correct,1);let raw=JSON.parse(f.w.localStorage.getItem(KEY));assert.equal(raw.wordRuns.w1.answers.length,2);a.submitReview();assert.equal(JSON.parse(f.w.localStorage.getItem(KEY)).wordRuns.w1.answers.length,2);a.reviewNext();raw=JSON.parse(f.w.localStorage.getItem(KEY));raw.wordReview.w1.due='2020-01-01';raw.wordReviewSession=null;
+  const g=await fixture({saved:raw});try{const b=g.c.studyActions;b.startReview();b.reviewInput('learner');b.submitReview();assert.equal(JSON.parse(g.w.localStorage.getItem(KEY)).wordRuns.w1.answers.length,2);}finally{g.close();}
+  const h=await fixture({saved});try{const b=h.c.studyActions;b.startReview();b.reviewInput('lea');const resumed=await fixture({saved:JSON.parse(h.w.localStorage.getItem(KEY))});try{assert.equal(resumed.c.snapshot().study.view,'review');assert.equal(resumed.c.snapshot().study.reviewSession.draft,'lea');}finally{resumed.close();}b.navigate('words');b.startReview();b.reviewInput('learner');b.submitReview();const r=JSON.parse(h.w.localStorage.getItem(KEY));assert.equal(r.wordReviewSession.hintCount,1);assert.equal(r.wordReviewSession.correct,0);assert.equal(r.wordRuns.w1.answers.length,0);assert.equal(r.wordReview.w1.level,0);}finally{h.close();}
+ }finally{f.close();}
+});
 test('Unit3 preserves exact word/question IDs, five-question plans and historical data',async()=>{
  const f=await fixture({saved:{seen:[],best:{adverbs:80},wrongs:{},records:[{title:'旧考核',score:4,total:5}],drafts:{adverbs:'旧复述'},extension:'保留'}});try{const m=f.c.snapshot();assert.equal(m.words.length,f.w.UNIT3.words.length);f.c.actions.word('w1');assert.equal(f.c.snapshot().practice.length,5);assert.equal(JSON.stringify(f.c.snapshot().practice.map(p=>p.question.id)),JSON.stringify(f.w.UNIT3.wordPractice.w1.items.map(p=>p.id)));f.c.actions.feynman('adverbs');assert.equal(f.c.snapshot().feynmanDraft,'旧复述');f.c.actions.feynmanDraft('新复述');assert.equal(JSON.parse(f.w.localStorage.getItem(KEY)).extension,'保留');assert.equal(JSON.parse(f.w.localStorage.getItem(KEY)).records[0].title,'旧考核');}finally{f.close();}
 });
 test('Unit3 keeps w34 case-sensitive across seven recalls and requires plural/oral verification',async()=>{
- const f=await fixture({request:async()=>JSON.stringify({meaningPassed:true,posPassed:true,feedback:'词义词类准确',errors:[]})});try{const c=f.c;c.actions.word('w34');c.actions.startWord();c.actions.finishMemory();for(let i=0;i<7;i++){c.actions.recallInput(f.w.UNIT3.words.find(w=>w.id==='w34').en.toLowerCase());c.actions.submitRecall();}assert.equal(c.snapshot().wordRun.phase,'result');assert.equal(c.snapshot().mastered.w34,undefined);
+ const f=await fixture({request:async()=>JSON.stringify({meaningPassed:true,posPassed:true,feedback:'词义词类准确',errors:[]})});try{const c=f.c;c.actions.word('w34');c.actions.startWord();c.actions.finishMemory();for(let i=0;i<7;i++){c.actions.recallInput(f.w.UNIT3.words.find(w=>w.id==='w34').en.toLowerCase());c.actions.submitRecall();}assert.equal(c.snapshot().wordRun.phase,'recall');assert.equal(c.snapshot().wordRun.answers.length,0);assert.equal(c.snapshot().mastered.w34,undefined);
   c.actions.word('w1');c.actions.startWord();c.actions.finishMemory();for(let i=0;i<7;i++){c.actions.recallInput('learner');c.actions.submitRecall();}assert.equal(c.snapshot().wordRun.phase,'verify');assert.equal(c.snapshot().verifyStage,'plural');c.actions.verifyInput('learners');c.actions.submitVerify();assert.equal(c.snapshot().verifyStage,'oral');c.actions.oralDraft('名词，学习者');await c.actions.gradeOral();assert.equal(c.snapshot().wordRun.phase,'result');assert.equal(c.snapshot().mastered.w1.protocol,'word-mastery-v2');assert.ok(c.snapshot().studyHistory.days[f.w.Unit3Study.today()].words.w1.passes);assert.ok(c.snapshot().wordEfficiency.w1.last);
  }finally{f.close();}
 });

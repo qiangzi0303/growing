@@ -1,0 +1,172 @@
+/* Unit 1 scenes include attributed Word Atlas artwork; meanings follow the textbook. */
+(function(root,factory){
+  if(typeof module==='object'&&module.exports)module.exports=factory();
+  else root.GrowingWordPilotData=factory();
+})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  'use strict';
+  return {
+  "version": 1,
+  "unitId": "english-8a-01",
+  "words": [
+    {
+      "id": "friendship",
+      "word": "friendship",
+      "pos": "n.",
+      "meaning": "友谊",
+      "ipa": "/ˈfrendʃɪp/",
+      "scene": "两位朋友并肩坐在湖边的长椅上，一起看远处的夕阳。",
+      "example": "Their friendship grows as they spend time together.",
+      "translation": "随着相处的时间增多，他们的友谊不断加深。",
+      "collocation": "a close friendship 亲密的友谊",
+      "tip": "注意中间的 d：friend + ship，表示朋友之间的关系。",
+      "cloze": "Their ___ grows as they spend time together.",
+      "reviewCloze": "We built a close ___ during the school trip.",
+      "art": "word-pilot-scenes/friendship.webp",
+      "artSource": "https://github.com/designfuchen/word-atlas/blob/main/public/atlas/img/friendship.webp"
+    },
+    {
+      "id": "honest",
+      "word": "honest",
+      "pos": "adj.",
+      "meaning": "诚实的，正直的",
+      "ipa": "/ˈɒnɪst/",
+      "scene": "女子把钱包交还给男士，表现出诚实的品质。",
+      "example": "It is honest of you to return the wallet.",
+      "translation": "你归还钱包的行为很诚实。",
+      "collocation": "an honest person 一个诚实的人",
+      "tip": "h 不发音，所以前面用 an，不用 a。",
+      "cloze": "It is ___ of you to return the wallet.",
+      "reviewCloze": "An ___ child tells the truth, even after making a mistake.",
+      "art": "word-pilot-scenes/honest.webp",
+      "artSource": "https://github.com/designfuchen/word-atlas/blob/main/public/atlas/img/honest.webp"
+    },
+    {
+      "id": "cheerful",
+      "word": "cheerful",
+      "pos": "adj.",
+      "meaning": "快乐的，高兴的",
+      "ipa": "/ˈtʃɪəfl/",
+      "scene": "女子在花园里微笑着向邻居挥手。",
+      "example": "Our cheerful neighbour waves to us from her garden.",
+      "translation": "我们开朗的邻居在花园里向我们挥手。",
+      "collocation": "a cheerful smile 快乐的微笑",
+      "tip": "cheer + ful；结尾只有一个 l。",
+      "cloze": "Our ___ neighbour waves to us from her garden.",
+      "reviewCloze": "His ___ smile shows how happy he is today.",
+      "art": "word-pilot-scenes/cheerful.webp",
+      "artSource": "https://github.com/designfuchen/word-atlas/blob/main/public/atlas/img/cheerful.webp"
+    },
+    {
+      "id": "truth",
+      "word": "truth",
+      "pos": "n.",
+      "meaning": "事实",
+      "ipa": "/truːθ/",
+      "scene": "孩子拿着摔坏的杯子，向大人说明事情经过。",
+      "example": "Please tell the truth about the broken cup.",
+      "translation": "请说出杯子摔碎这件事的实情。",
+      "collocation": "tell the truth 说实话",
+      "tip": "true 是“真实的”；truth 是名词，结尾发 /θ/。",
+      "cloze": "Please tell the ___ about the broken cup.",
+      "reviewCloze": "We need to know the ___ about what happened yesterday.",
+      "art": "word-pilot-scenes/truth.webp",
+      "artSource": "https://github.com/designfuchen/word-atlas/blob/main/public/atlas/img/truth.webp"
+    },
+    {
+      "id": "joke",
+      "word": "joke",
+      "pos": "n.",
+      "meaning": "笑话，玩笑",
+      "ipa": "/dʒəʊk/",
+      "scene": "餐桌旁，一个人讲着笑话，身边的人开心地笑起来。",
+      "example": "Tom tells a joke to make his friends smile.",
+      "translation": "汤姆讲了一个笑话，让朋友们笑起来。",
+      "collocation": "tell a joke 讲笑话",
+      "tip": "作可数名词时，一个笑话是 a joke。",
+      "cloze": "Tom tells a ___ to make his friends smile.",
+      "reviewCloze": "Can you tell us a funny ___ after lunch?",
+      "art": "word-pilot-scenes/joke.webp",
+      "artSource": "https://github.com/designfuchen/word-atlas/blob/main/public/atlas/img/joke.webp"
+    },
+    {
+      "id": "humorous",
+      "word": "humorous",
+      "pos": "adj.",
+      "meaning": "幽默的",
+      "ipa": "/ˈhjuːmərəs/",
+      "scene": "老师用袜子做成手偶，逗得学生们哈哈大笑。",
+      "example": "Our humorous teacher makes lessons fun.",
+      "translation": "我们幽默的老师让课堂很有趣。",
+      "collocation": "a humorous teacher 一位幽默的老师",
+      "tip": "常用来形容能逗人发笑的人；注意结尾是 -ous。",
+      "cloze": "Our ___ teacher makes lessons fun.",
+      "reviewCloze": "My uncle is ___ and often makes everyone laugh.",
+      "art": "word-pilot-scenes/humorous.svg"
+    },
+    {
+      "id": "caring",
+      "word": "caring",
+      "pos": "adj.",
+      "meaning": "关心他人的，体贴人的",
+      "ipa": "/ˈkeərɪŋ/",
+      "scene": "女子为坐在椅子上的老人端来一碗热汤。",
+      "example": "Our caring neighbour brings hot soup to the old woman.",
+      "translation": "我们体贴的邻居给那位老妇人送来热汤。",
+      "collocation": "a caring friend 一位体贴的朋友",
+      "tip": "这里是形容词，描述愿意关心、照顾别人的人。",
+      "cloze": "Our ___ neighbour brings hot soup to the old woman.",
+      "reviewCloze": "A ___ neighbour brings hot food to the old man.",
+      "art": "word-pilot-scenes/caring.webp",
+      "artSource": "https://github.com/designfuchen/word-atlas/blob/main/public/atlas/img/caring.webp"
+    },
+    {
+      "id": "patient",
+      "word": "patient",
+      "pos": "adj.",
+      "meaning": "有耐心的",
+      "ipa": "/ˈpeɪʃnt/",
+      "scene": "老师在孩子身旁，耐心等待孩子完成一道题。",
+      "example": "Our teacher is patient with us when we need more time.",
+      "translation": "当我们需要更多时间时，老师对我们很有耐心。",
+      "collocation": "be patient with sb 对某人有耐心",
+      "tip": "本单元学形容词“有耐心的”，不是名词“病人”。",
+      "cloze": "Our teacher is ___ with us when we need more time.",
+      "reviewCloze": "Please be ___ with your little brother while he learns to read.",
+      "art": "word-pilot-scenes/patient.svg"
+    },
+    {
+      "id": "laugh",
+      "word": "laugh",
+      "pos": "v.",
+      "meaning": "笑，发笑",
+      "ipa": "/lɑːf/",
+      "scene": "朋友们围坐在餐桌旁，听到趣事后一起开怀大笑。",
+      "example": "We laugh together when our friend tells a funny story.",
+      "translation": "朋友讲有趣的故事时，我们一起笑起来。",
+      "collocation": "make sb laugh 使某人发笑",
+      "tip": "gh 在这里发 /f/；make 后接动词原形 laugh。",
+      "cloze": "We ___ together when our friend tells a funny story.",
+      "reviewCloze": "Her funny story can make everyone ___.",
+      "art": "word-pilot-scenes/laugh.webp",
+      "artSource": "https://github.com/designfuchen/word-atlas/blob/main/public/atlas/img/laugh.webp"
+    },
+    {
+      "id": "unhappy",
+      "word": "unhappy",
+      "pos": "adj.",
+      "meaning": "不开心的",
+      "ipa": "/ʌnˈhæpi/",
+      "scene": "下雨了，女孩坐在窗边，身旁放着准备好的野餐篮。",
+      "example": "The girl feels unhappy because the picnic is cancelled.",
+      "translation": "女孩因为野餐取消了而感到不开心。",
+      "collocation": "feel unhappy 感到不开心",
+      "tip": "un- 加在 happy 前，表示相反的意思。",
+      "cloze": "The girl feels ___ because the picnic is cancelled.",
+      "reviewCloze": "She looks ___ after losing her favourite pen.",
+      "art": "word-pilot-scenes/unhappy.webp",
+      "artSource": "https://github.com/designfuchen/word-atlas/blob/main/public/atlas/img/unhappy.webp"
+    }
+  ]
+};
+});
+
