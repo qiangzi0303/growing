@@ -11,13 +11,14 @@ import {locateQuestionRegions,recognizeQuestionText,reviewQuestion,redrawQuestio
 type Task={number:string;pages:number[];regions:PhotoRegion[]};
 type Stage='locate'|'transcribe'|'review'|'draw'|'verify'|'grade';
 type Pending={number:string;stage:Stage;draft?:ImportedQuestion;question?:ImportedQuestion;issues?:string[];drawingHash?:string;drawingFailures?:number};
-type State={workflow?:'visual-v1';pending?:Pending;mode?:'grade';pages:string[];planned:number;tasks:Task[];results:any[];title:string;classification:any;warnings:string[];error:string;paperId:string|null};
+type State={workflow?:'visual-v1';pending?:Pending;mode?:'grade'|'paper';pages:string[];planned:number;tasks:Task[];results:any[];title:string;classification:any;warnings:string[];error:string;paperId:string|null};
 type Row={Id:string;StudentId:string;RequestId:string;Fingerprint:string;Subject:string;State:string;Revision:number;LeaseUntil:number};
 const fail=(status:number,message:string):never=>{throw new HttpError(status,message);};
 const uuid=/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
 const image=(v:unknown):v is string=>typeof v==='string'&&v.length<=500000&&/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(v);
 const subject=(v:unknown)=>['math','english','physics'].includes(String(v));
 const packed=(s:State)=>JSON.stringify({...s,pages:s.pages.map(()=> '')});
+const canDefer=(s:State)=>s.mode!=='grade'&&!s.paperId&&!!s.error&&s.planned===s.pages.length&&!!s.tasks[s.results.length]&&['locate','transcribe','review'].includes(s.pending?.stage??'locate');
 export class PaperImportJobs{
  constructor(private db:Database,private user:User,private recognition={planPage,transcribeQuestion:recognizeQuestionText,locateQuestionRegions,reviewQuestion,redrawQuestion,verifyQuestionDrawing},private grade=assessReviewedQuestion){}
  private bank(){return new QuestionBank(this.db,this.user);}
@@ -30,14 +31,14 @@ export class PaperImportJobs{
   if(pages.length!==state.pages.length||pages.some((p,i)=>p.Page!==i+1||!image(p.Image)))fail(409,'试卷原页缺失或损坏，不能继续录入。');
   state.pages=pages.map(p=>p.Image);row.State=JSON.stringify(state);return row;
  }
- private view(r:Row){const s:State=JSON.parse(r.State),planned=s.planned===s.pages.length;return {id:r.Id,subject:r.Subject,mode:s.mode||'paper',status:s.paperId?'complete':s.error?'failed':!planned?'planning':s.mode==='grade'?'grading':'recognizing',revision:r.Revision,pageCount:s.pages.length,plannedPages:s.planned,recognizedQuestions:s.results.length,completedQuestions:s.results.length,totalQuestions:s.tasks.length,progressPercent:s.paperId?100:planned&&s.tasks.length?Math.floor(s.results.length*100/s.tasks.length):null,paperId:s.paperId,error:s.error,next:s.paperId?null:!planned?{kind:'plan',page:s.planned+1}:s.tasks[s.results.length]?{kind:'question',...s.tasks[s.results.length],stage:s.pending?.stage??'locate',...(s.pending?.stage==='verify'?{drawing:s.pending.question?.drawing,drawingHash:s.pending.drawingHash}:{})}:null};}
+ private view(r:Row){const s:State=JSON.parse(r.State),planned=s.planned===s.pages.length;return {id:r.Id,subject:r.Subject,mode:s.mode||'paper',status:s.paperId?'complete':s.error?'failed':!planned?'planning':s.mode==='grade'?'grading':'recognizing',revision:r.Revision,pageCount:s.pages.length,plannedPages:s.planned,recognizedQuestions:s.results.length,completedQuestions:s.results.length,deferredQuestions:s.results.filter(q=>q.deferred).length,canDefer:canDefer(s),totalQuestions:s.tasks.length,progressPercent:s.paperId?100:planned&&s.tasks.length?Math.floor(s.results.length*100/s.tasks.length):null,paperId:s.paperId,error:s.error,next:s.paperId?null:!planned?{kind:'plan',page:s.planned+1}:s.tasks[s.results.length]?{kind:'question',...s.tasks[s.results.length],stage:s.pending?.stage??'locate',...(s.pending?.stage==='verify'?{drawing:s.pending.question?.drawing,drawingHash:s.pending.drawingHash}:{})}:null};}
  async create(data:Record<string,unknown>){
   const student=await this.bank().authorize(data.studentId);
-  if(Object.keys(data).some(k=>!['studentId','requestId','subject','pages','mode'].includes(k))||data.mode!==undefined&&data.mode!=='grade'||typeof data.requestId!=='string'||!uuid.test(data.requestId)||!subject(data.subject)||!Array.isArray(data.pages)||!data.pages.length||data.pages.length>4||!data.pages.every(image))fail(400,'请上传最多4页清晰JPG照片。');
-  const fingerprint=await hash(JSON.stringify({subject:data.subject,pages:data.pages,...(data.mode==='grade'?{mode:'grade'}:{})}));
+  if(Object.keys(data).some(k=>!['studentId','requestId','subject','pages','mode'].includes(k))||data.mode!==undefined&&!['grade','paper'].includes(String(data.mode))||typeof data.requestId!=='string'||!uuid.test(data.requestId)||!subject(data.subject)||!Array.isArray(data.pages)||!data.pages.length||data.pages.length>4||!data.pages.every(image))fail(400,'请上传最多4页清晰JPG照片。');
+  const fingerprint=await hash(JSON.stringify({subject:data.subject,pages:data.pages,...(data.mode?{mode:data.mode}:{})}));
   const find=async()=> (await this.db.query<Row>('SELECT * FROM "GrowingPaperImportJobs" WHERE "StudentId"=?1 AND "RequestId"=?2',[student,data.requestId]))[0];
   let old=await find();if(old){if(old.Fingerprint!==fingerprint)fail(409,'上传内容已变化，请新建任务。');return this.view(old);}
-  const state:State={...(data.mode==='grade'?{mode:'grade' as const}:{}),pages:data.pages as string[],planned:0,tasks:[],results:[],title:'待核对试卷',classification:null,warnings:[],error:'',paperId:null};
+  const state:State={...(data.mode?{mode:data.mode as 'grade'|'paper'}:{}),pages:data.pages as string[],planned:0,tasks:[],results:[],title:'待核对试卷',classification:null,warnings:[],error:'',paperId:null};
   const id=crypto.randomUUID();
   await this.db.batch([{sql:`INSERT INTO "GrowingPaperImportJobs" ("Id","StudentId","RequestId","Fingerprint","Subject","State","CreatedAt") SELECT ?1,?2,?3,?4,?5,?6,${nowSql} WHERE (SELECT count(*) FROM "GrowingPaperImportJobs" WHERE "StudentId"=?2)<100 AND (SELECT count(*) FROM "GrowingQuestionPapers" WHERE "StudentId"=?2)<100 ON CONFLICT DO NOTHING`,params:[id,student,data.requestId,fingerprint,data.subject,packed(state)]},...state.pages.map((image,i)=>({sql:'INSERT INTO "GrowingPaperImportJobPages" ("JobId","Page","Image") SELECT ?1,?2,?3 WHERE EXISTS (SELECT 1 FROM "GrowingPaperImportJobs" WHERE "Id"=?1)',params:[id,i+1,image]}))]);
   old=await find();if(!old)fail(413,'本学生试卷录入容量已满。');if(old.Fingerprint!==fingerprint)fail(409,'上传内容已变化，请新建任务。');return this.view(old);
@@ -66,15 +67,17 @@ export class PaperImportJobs{
  }
  async step(student:string,id:string,data:Record<string,unknown>,env:VisionEnv,signal:AbortSignal,upstream:typeof fetch){
   const r=await this.row(student,id),s:State=JSON.parse(r.State);if(s.paperId)return this.view(r);
-  if(Object.keys(data).some(k=>!['studentId','revision','fragments','diagramImages','drawingHash','workflow'].includes(k))||!Number.isSafeInteger(data.revision)||data.revision!==r.Revision)fail(409,'任务进度已更新，请刷新后继续。');
+  if(Object.keys(data).some(k=>!['studentId','revision','fragments','diagramImages','drawingHash','workflow','defer'].includes(k))||!Number.isSafeInteger(data.revision)||data.revision!==r.Revision)fail(409,'任务进度已更新，请刷新后继续。');
   if(data.workflow!==undefined&&data.workflow!=='visual-v1')fail(400,'不支持的试卷整理版本。');
   const visual=data.workflow==='visual-v1';
+  const defer=data.defer===true;
+  if(data.defer!==undefined&&(!defer||!visual||!canDefer(s)))fail(409,'只有整理模式下识别中断的当前题目可以留待核对。');
   if(s.workflow==='visual-v1'&&!visual)fail(426,'此任务已启用逐题视觉复核，请更新应用或刷新网页后继续；原稿和进度已保留。');
   const task=s.tasks[s.results.length];
   const fragments=data.fragments as any[]|undefined;
   if(fragments!==undefined&&(!Array.isArray(fragments)||s.planned<s.pages.length||!task||fragments.length>task.regions.length||new Set(fragments.map(f=>f?.page)).size!==fragments.length||fragments.some(f=>!f||!image(f.image)||f.page!==f.region?.page||!task.regions.some(r=>sameRegion(r,f.region)))))fail(400,'题目裁剪区域与规划不一致。');
   const stage=s.pending?.stage??'locate';
-  if(visual&&s.planned===s.pages.length&&task&&['transcribe','review','draw','verify','grade'].includes(stage)&&task.pages.some(p=>!fragments?.some(f=>f.page===p)))fail(400,'本题辅助裁剪缺失，请刷新页面后继续整理。');
+  if(!defer&&visual&&s.planned===s.pages.length&&task&&['transcribe','review','draw','verify','grade'].includes(stage)&&task.pages.some(p=>!fragments?.some(f=>f.page===p)))fail(400,'本题辅助裁剪缺失，请刷新页面后继续整理。');
   if(data.diagramImages!==undefined||data.drawingHash!==undefined){
    if(!visual||stage!=='verify'||s.planned!==s.pages.length||data.drawingHash!==s.pending?.drawingHash||!Array.isArray(data.diagramImages)||data.diagramImages.length!==s.pending?.question?.drawing?.figures.length||data.diagramImages.some(i=>!image(i)||i.length>180000)||fragments?.some(f=>f.image.length>100000))fail(400,'重绘预览与当前题目版本不一致。');
   }else if(visual&&s.planned===s.pages.length&&stage==='verify')fail(400,'缺少本题重绘预览，请刷新后重试。');
@@ -82,9 +85,17 @@ export class PaperImportJobs{
   const lease=await this.db.query('UPDATE "GrowingPaperImportJobs" SET "LeaseToken"=?3,"LeaseUntil"=?4 WHERE "Id"=?1 AND "Revision"=?2 AND "LeaseUntil"<=?5 RETURNING "Id"',[id,r.Revision,token,now+180000,now]);
   if(!lease.length)fail(409,'任务正在识别，请稍后刷新。');
   try{
-   if(!(await env.AI_LIMITER.limit({key:'vision:'+this.user.id})).success)fail(429,'识别请求过于频繁，请稍后继续。');
+   if(!defer&&!(await env.AI_LIMITER.limit({key:'vision:'+this.user.id})).success)fail(429,'识别请求过于频繁，请稍后继续。');
    s.error='';if(visual)s.workflow='visual-v1';
-   if(s.planned<s.pages.length){
+   if(defer){
+    // Keep the exact task slot and originals. A saved OCR draft is not a successful visual review.
+    const note='本题自动复核未完成，请对照原图核对题干、公式和配图后再确认。';
+    const draft=s.pending?.draft;
+    const checked=draft&&validatePaper({format:r.Subject+'-text-v1',title:s.title,warnings:[],questions:[{...draft,confidence:0,unitId:'',answer:'',drawing:null}]},s.pages.length,r.Subject)?.questions[0];
+    const q=checked&&checked.number===task.number&&JSON.stringify(checked.pages)===JSON.stringify(task.pages)?checked:{number:task.number,text:'【待补录题面】请对照原卷补全本题题干、选项、公式和配图。',answer:'',unitId:'',reason:'自动识别未完成',questionType:'unknown',uncertain:[],pages:task.pages,figures:[],drawing:null};
+    s.results.push({...q,regions:task.regions,uncertain:[note,...q.uncertain].slice(0,10),deferred:true});
+    s.warnings.push('第'+task.number+'题留待人工核对，未自动批改。');delete s.pending;
+   }else if(s.planned<s.pages.length){
     const page=s.planned+1,previous=s.tasks.at(-1);
     const plan=await this.recognition.planPage(env,signal,upstream,r.Subject as any,s.pages[s.planned],page,s.pages.length,previous?.number??'');
     if(plan.continuesPrevious){if(!previous)throw new HttpError(502,'第一页不能承接前页。');previous.pages.push(page);previous.regions=mergePageRegions([...previous.regions,...plan.continuationRegions]);}
@@ -136,12 +147,8 @@ export class PaperImportJobs{
       else{
        pending.issues=checked.issues;pending.question!.drawing=null;delete pending.drawingHash;
        pending.drawingFailures=(pending.drawingFailures??0)+1;
-       if(pending.drawingFailures<2)pending.stage='draw';
-       else{
-        const note='第'+task.number+'题题图重绘未通过核对，已保留原图，请通过“查看原题”核对题图。';
-        pending.question!.uncertain=[...new Set([note,...pending.question!.uncertain])].slice(0,10);
-        s.warnings.push(note);next();
-       }
+       pending.stage='draw';
+       if(pending.drawingFailures>=2)s.error='第'+task.number+'题（题图复核）：SVG 重绘未通过原图核对，已保留进度，请重试。';
       }
       break;
      }
@@ -172,6 +179,7 @@ export class PaperImportJobs{
     result.questions.forEach((q,i)=>{
      const qid=crypto.randomUUID();
      statements.push({sql:`INSERT INTO "GrowingPhotoQuestions" ("Id","PaperId","Number","Text","Answer","UnitId","Reason","Uncertain","Pages","Format","Regions","Figures","QuestionType","FigureDrawing","DrawingRevision") SELECT ?1,?2,?3,?4,'',?5,?6,?7,?8,?9,?10,?11,?12,?13,?14 WHERE EXISTS (SELECT 1 FROM "GrowingQuestionPapers" WHERE "Id"=?2)`,params:[qid,paperId,q.number,q.text,q.unitId,q.reason,JSON.stringify(q.uncertain),JSON.stringify(q.pages),format,JSON.stringify(s.results[i].regions),JSON.stringify(q.figures),q.questionType,q.drawing?JSON.stringify(q.drawing):'',q.drawing?1:0]});
+     statements.push({sql:'UPDATE "GrowingPhotoQuestions" SET "Practice"=?2 WHERE "Id"=?1',params:[qid,JSON.stringify(q.practice||{})]});
      if(s.mode==='grade')statements.push(...photoGradeStatements(qid,student,this.user.id,s.results[i].assessment,'initial',qid,r.Fingerprint));
     });
     s.paperId=paperId;
@@ -182,6 +190,7 @@ export class PaperImportJobs{
   }catch(error){
    // Preserve the pre-step snapshot, so partial planning/recognition cannot skip work.
    const previous:State=JSON.parse(r.State);previous.error=error instanceof HttpError&&error.status===429?'':error instanceof HttpError&&[413,502,503].includes(error.status)?error.message:'本步识别失败，已保存进度，请重试。';
+   if(previous.error&&task)previous.error='第'+task.number+'题（'+({locate:'定位',transcribe:'转录',review:'原图复核',draw:'绘图',verify:'题图复核',grade:'批改'}[stage])+'）：'+previous.error;
    await this.db.query('UPDATE "GrowingPaperImportJobs" SET "State"=?4,"Revision"="Revision"+1,"LeaseToken"=\'\',"LeaseUntil"=0 WHERE "Id"=?1 AND "LeaseToken"=?2 AND "Revision"=?3',[id,token,r.Revision,packed(previous)]);
    if(error instanceof HttpError&&[429,499,404,409].includes(error.status))throw error;
   }

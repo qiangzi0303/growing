@@ -17,6 +17,11 @@ async function call(path:string,method='GET',data?:unknown,token?:string){return
 async function register(role='Student'){const r=await call('/auth/register','POST',{username:'english_'+crypto.randomUUID().replaceAll('-','').slice(0,12),displayName:'测试',password:'Test-Only-1987!',role});assert.equal(r.status,200);return r.json() as Promise<any>;}
 before(async()=>{db=connect(await mf.getD1Database('DB') as unknown as D1Database);for(const file of (await readdir(new URL('../migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort()){const sql=await readFile(new URL('../migrations/'+file,import.meta.url),'utf8');await db.batch(sql.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));}});
 after(async()=>{await mf.dispose();});
+async function confirmPaper(u:any,paperId:string){
+ const detail=await (await call('/question-bank/papers/'+paperId+'?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;
+ for(const q of detail.questions)assert.equal((await call('/question-bank/questions/'+q.id,'PUT',{studentId:u.user.id,revision:q.revision,figureVersion:q.figureVersion,reviewed:true},u.token)).status,200);
+ assert.equal((await call('/question-bank/papers/'+paperId+'/confirm','POST',{studentId:u.user.id,title:detail.title},u.token)).status,200);
+}
 test('English paper lifecycle preserves grouped material, subject filtering, authorization and immutable original images',async()=>{
  const u=await register(),other=await register(),parent=await register('Parent');output=paper();
  const input={studentId:u.user.id,requestId:crypto.randomUUID(),pages,mode:'paper',subject:'english'};
@@ -35,6 +40,7 @@ test('English paper lifecycle preserves grouped material, subject filtering, aut
  assert.equal((await call('/question-bank/papers?studentId='+u.user.id+'&subject=english','GET',undefined,parent.token)).status,404);
  await db.query('INSERT INTO "GrowingFamilyLinks" ("StudentId","ParentId","CreatedAt") VALUES (?1,?2,?)',[u.user.id,parent.user.id,'2026-11-07']);assert.equal((await call('/question-bank/papers?studentId='+u.user.id+'&subject=english','GET',undefined,parent.token)).status,200);
  const q=saved.questions[0];r=await call('/question-bank/questions/'+q.id,'PUT',{studentId:u.user.id,revision:1,number:q.number,text:q.text,answer:'',unitId:'math-8a-01'},u.token);assert.equal(r.status,400);
+ await confirmPaper(u,saved.paperId);
  output={...grade(),verdict:'correct',score:100,studentAnswer:'Alice',feedback:'Correct.'};r=await call('/question-bank/questions/'+q.id+'/correct','POST',{studentId:u.user.id,revision:1,requestId:crypto.randomUUID(),studentAnswer:'Alice'},u.token);assert.equal(r.status,200,await r.clone().text());const corrected=await r.json() as any;
  assert.deepEqual(JSON.parse(calls.at(-1).messages[1].content[0].text).geometryModels,[]);assert.match(calls.at(-1).messages[0].content,/英语/);
  output={reply:'Alice is a pupil.'};assert.equal((await call('/question-bank/questions/'+q.id+'/followup','POST',{studentId:u.user.id,gradeId:corrected.grade.id,requestId:crypto.randomUUID(),prompt:'Why?'},u.token)).status,200);assert.match(calls.at(-1).messages[0].content,/英语/);
@@ -61,6 +67,7 @@ test('English handwritten image questions require isolated illustrations and nev
  const path='/question-bank/questions/'+q.id,answer='data:image/png;base64,iVBORw0KGgoAAA==',figure='data:image/jpeg;base64,/9j/Ag==';
  const input={studentId:u.user.id,revision:1,requestId:crypto.randomUUID(),answerPages:[answer]};
  output={...grade(),verdict:'correct',score:100,studentAnswer:'Alice',feedback:'Correct.',answerAnnotations:[]};
+ await confirmPaper(u,saved.paperId);
  const beforeCalls=calls.length;assert.equal((await call(path+'/correct','POST',input,u.token)).status,409);assert.equal(calls.length,beforeCalls);
  assert.equal((await call(path+'/figures','PUT',{studentId:u.user.id,figureVersion:q.figureVersion,image:figure},u.token)).status,200);
  const corrected=await call(path+'/correct','POST',input,u.token);assert.equal(corrected.status,200);const savedGrade=(await corrected.json() as any).grade;

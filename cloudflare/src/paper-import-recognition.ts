@@ -8,7 +8,7 @@ export type PlannedQuestion={number:string;regions:PhotoRegion[]};
 export type PagePlan={title:string;classification:PaperClassification;warnings:string[];questions:PlannedQuestion[];continuesPrevious:boolean;continuationRegions:PhotoRegion[]};
 export type ImportTask=PlannedQuestion&{pages:number[]};
 export type SourcePage={page:number;image:string};
-export type ImportFragment=SourcePage&{region:PhotoRegion};
+export type ImportFragment=SourcePage&{region:PhotoRegion;context?:{image:string;region:PhotoRegion}};
 export type ImportedQuestion=NonNullable<ReturnType<typeof validatePaper>>['questions'][number];
 const jpeg=(v:unknown):v is string=>typeof v==='string'&&v.length<=500000&&/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(v);
 const number=(v:unknown):v is string=>typeof v==='string'&&v.trim()===v&&!!v&&v.length<=40&&!/[\x00-\x1f]/.test(v);

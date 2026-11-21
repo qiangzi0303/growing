@@ -40,7 +40,7 @@
       if(questions.contains(workbench))questions.before(workbench);
       workbench.hidden=true;questions.textContent='正在读取题库…';
       if(!unit){root.querySelector('[data-questions]').textContent='请从单元课堂打开题库。';root.querySelector('[data-pagination]').hidden=true;return;}
-      const query=()=>new URLSearchParams({studentId:id,unitId:unit,page,...(context.wrongOnly?{wrong:'1'}:{}),...(context.repeated?{repeated:'1'}:{})});
+      const query=()=>new URLSearchParams({studentId:id,unitId:unit,page,...((context.nodeId||new URLSearchParams(location.search).get('nodeId'))?{nodeId:context.nodeId||new URLSearchParams(location.search).get('nodeId')}:{}),...(context.wrongOnly?{wrong:'1'}:{}),...(context.repeated?{repeated:'1'}:{})});
       try{let data=await api('/question-bank/questions?'+query());if(!valid()||n!==serial||id!==studentId)return;
         let converted=false;
         for(const q of data.rows.filter(q=>q.format==='legacy')){

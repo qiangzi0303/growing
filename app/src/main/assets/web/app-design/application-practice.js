@@ -24,14 +24,14 @@
   }
   const prompt=q=>q.prompt+(q.type==='choice'?'\n'+q.options.map((o,i)=>'ABCD'[i]+' · '+o).join('\n'):'');
   function results(storage,subject,unit,qs){
-    const byPrompt=new Map((qs?qs.map(q=>({id:q.id,prompt:prompt(q),nodes:[q.topic]})):tasks(subject,unit)).map(t=>[t.prompt,t])),found={},history={},uploads={};
+    const byPrompt=new Map((qs?qs.map(q=>({id:q.id,prompt:prompt(q),nodes:[q.topic],sourceKey:q.sourceKey})):tasks(subject,unit)).map(t=>[t.prompt,t])),found={},history={},uploads={};
     for(let i=0;i<storage.length;i++){
       const key=storage.key(i);if(!C.KEY.test(key||''))continue;
       const raw=storage.getItem(key);
       try{
         const doc=JSON.parse(raw);
         if(doc.subject!==subject||doc.unitId!==unit)continue;
-        const task=byPrompt.get(doc.prompt);if(!task||!C.validate(doc))continue;
+        const task=byPrompt.get(doc.prompt);if(!task||!C.validate(doc)||(doc.practiceSource||'')!==(task.sourceKey||''))continue;
         (history[task.id]||= []).push(...doc.grades.filter(g=>g.source==='handwriting'&&(g.needsReview||C.matchesKnowledge(g,task))).map(grade=>({grade,key})));
         const grade=doc.grades.filter(g=>g.revision===doc.revision&&g.source==='handwriting').at(-1);
         const evaluated=grade&&!grade.needsReview&&C.matchesKnowledge(grade,task)&&grade.knowledge.every(k=>k.score!==null)&&doc.pages.some((p,i)=>doc.photos?.[i]||p.some(s=>s.tool==='pen'));

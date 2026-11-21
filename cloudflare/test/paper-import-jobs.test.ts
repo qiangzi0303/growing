@@ -4,6 +4,7 @@ import {readFile,readdir} from 'node:fs/promises';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {connect,type Database,type User,HttpError} from '../src/database';
 import {PaperImportJobs} from '../src/paper-import-jobs';
+import {QuestionBank} from '../src/question-bank';
 const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:'export default {fetch(){return new Response("ok")}}',compatibilityDate:'2026-10-22',d1Databases:['DB']}));
 let db:Database;
 const student={id:crypto.randomUUID(),role:'Student',roleConfirmed:1,username:'student',displayName:'测试',passwordHash:'test'} as User;
@@ -26,6 +27,33 @@ const step=async(j:any,v:any,e=env)=>{const before=v;for(let i=0;i<8;i++){v=awai
 const rejected=(status:number)=>(e:any)=>e instanceof HttpError&&e.status===status;
 before(async()=>{db=connect(await mf.getD1Database('DB') as any);for(const f of (await readdir(new URL('../migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort()){const sql=await readFile(new URL('../migrations/'+f,import.meta.url),'utf8');await db.batch(sql.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));}for(const u of [student,parent])await db.query('INSERT INTO "GrowingUsers" ("Id","Username","NormalizedName","DisplayName","Role","PasswordHash","CreatedAt","RoleConfirmed") VALUES (?1,?2,?2,?2,?3,\'test\',\'2026\',1)',[u.id,u.username,u.role]);await db.query('INSERT INTO "GrowingFamilyLinks" ("StudentId","ParentId","CreatedAt") VALUES (?1,?2,\'2026\')',[student.id,parent.id]);});
 after(async()=>mf.dispose());
+test('editable math paper requires SVG drawing and verification without grading, and rejects stale diagrams on confirmation',async()=>{
+ const vector={version:'question-svg-v1',warnings:[],figures:[{width:200,height:200,title:'题图',elements:[{tag:'line',x1:20,y1:20,x2:150,y2:150}]}]};
+ const service={...recognition,reviewQuestion:async(...args:any[])=>{
+  const value=await recognition.reviewQuestion(...args);return {...value,hasFigures:true,question:{...value.question,questionType:'written',figures:[region(1)]}};
+ },redrawQuestion:async()=>({drawing:vector,warnings:[]}),verifyQuestionDrawing:async()=>({matches:true,issues:[]})};
+ const input={studentId:student.id,requestId:crypto.randomUUID(),subject:'math',mode:'paper',pages:[pages[0]]};
+ let j=new PaperImportJobs(db,student,service),v=await j.create(input);
+ assert.equal(v.mode,'paper');await assert.rejects(j.create({...input,mode:'grade'}),rejected(409));
+ v=await singleStep(j,v);v=await singleStep(j,v);
+ j=new PaperImportJobs(db,student,service);v=await singleStep(j,v);v=await singleStep(j,v);
+ assert.equal((v.next as any).stage,'draw');assert.equal(v.completedQuestions,0);
+ v=await singleStep(j,v);assert.equal((v.next as any).stage,'verify');
+ v=await j.step(student.id,v.id,{revision:v.revision,workflow:'visual-v1',fragments:[{page:1,region:region(1),image:pages[0]}],diagramImages:[pages[0]],drawingHash:(v.next as any).drawingHash},env,new AbortController().signal,fetch);
+ assert.equal(v.status,'complete');
+ const [q]=await db.query<any>('SELECT * FROM "GrowingPhotoQuestions" WHERE "PaperId"=?1',[v.paperId]);
+ assert.deepEqual(JSON.parse(q.Figures),[region(1)]);assert.deepEqual(JSON.parse(q.FigureDrawing),vector);assert.equal(q.Reviewed,0);assert.equal(q.Answer,'');assert.ok(!q.Uncertain.includes('SVG'));
+ assert.equal((await db.query('SELECT * FROM "GrowingPhotoGrades" WHERE "QuestionId"=?1',[q.Id])).length,0);
+ const bank=new QuestionBank(db,student),confirmation={title:'可编辑测试卷',classification:{examType:'other',termName:'',unitIds:[]}};
+ await assert.rejects(bank.confirmPaper(student.id,v.paperId!,confirmation),rejected(409));
+ await bank.edit(student.id,q.Id,{number:'1',text:'求值：\\(x^{2}\\)。',answer:'',unitId:'',revision:1,questionType:'written'});
+ const [edited]=await db.query<any>('SELECT "QuestionType","Revision","Reviewed" FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[q.Id]);
+ assert.deepEqual(edited,{QuestionType:'written',Revision:2,Reviewed:1});
+ await assert.rejects(bank.confirmPaper(student.id,v.paperId!,confirmation),rejected(409));
+ await db.query('UPDATE "GrowingPhotoQuestions" SET "DrawingRevision"=2 WHERE "Id"=?1',[q.Id]);
+ await bank.confirmPaper(student.id,v.paperId!,confirmation);
+ assert.equal((await db.query<any>('SELECT "Mode" FROM "GrowingQuestionPapers" WHERE "Id"=?1',[v.paperId]))[0].Mode,'paper');
+});
 test('D1 persisted creation is idempotent and content-conflicting request IDs are rejected',async()=>{const j=jobs(),input={studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages};const a=await j.create(input),b=await j.create(input);assert.equal(a.id,b.id);await assert.rejects(j.create({...input,pages:[pages[0]]}),rejected(409));assert.equal((await j.get(student.id,a.id)).sourcePages[1].image,pages[1]);assert.ok(!JSON.stringify(await j.list(student.id)).includes('/9j/'));const [row]=await db.query<any>('SELECT "State" FROM "GrowingPaperImportJobs" WHERE "Id"=?1',[a.id]);assert.ok(!row.State.includes('/9j/'));});
 test('D1 recovery preserves prior successful pages, cross-page questions and atomically creates ungraded draft once',async()=>{const j=jobs();let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages});v=await step(j,v);failure=true;v=await step(j,v);assert.equal(v.status,'failed');assert.equal(v.plannedPages,1);failure=false;v=await step(j,v);assert.equal(v.plannedPages,2);assert.equal(v.totalQuestions,2);assert.deepEqual((v.next as any).pages,[1,2]);v=await step(j,v);assert.equal(v.recognizedQuestions,1);v=await step(j,v);assert.equal(v.status,'complete');const repeat=await step(j,v);assert.equal(repeat.paperId,v.paperId);const [paper]=await db.query<any>('SELECT "Mode" FROM "GrowingQuestionPapers" WHERE "Id"=?1',[v.paperId]);assert.equal(paper.Mode,'paper-draft');const qs=await db.query<any>('SELECT "Pages","Answer","FigureDrawing" FROM "GrowingPhotoQuestions" WHERE "PaperId"=?1',[v.paperId]);assert.equal(qs.length,2);assert.deepEqual(JSON.parse(qs[0].Pages),[1,2]);assert.ok(qs.every(q=>q.Answer===''&&q.FigureDrawing===''));assert.equal((await db.query('SELECT * FROM "GrowingPhotoGrades"')).length,0);assert.deepEqual(await db.query('PRAGMA foreign_key_check'),[]);});
 test('CAS prevents concurrent model calls; expired lease recovers; 429 preserves resumable task',async()=>{const j=jobs();let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'physics',pages:[pages[0]]});let release!:()=>void;block=new Promise<void>(r=>release=r);const before=planCalls;const pending=step(j,v);await new Promise(r=>setTimeout(r,80));await assert.rejects(step(j,v),rejected(409));release();v=await pending;block=null;assert.equal(planCalls,before+1);await assert.rejects(step(j,v,{AI_LIMITER:{limit:async()=>({success:false})}}),rejected(429));v=await j.get(student.id,v.id);assert.equal(v.status,'recognizing');assert.equal(v.recognizedQuestions,0);await db.query('UPDATE "GrowingPaperImportJobs" SET "LeaseToken"=\'crashed\',"LeaseUntil"=1 WHERE "Id"=?1',[v.id]);v=await step(j,v);assert.equal(v.status,'complete');});
@@ -100,29 +128,87 @@ test('OCR failure, blind review and rendered diagram repair each resume from the
  const [row]=await db.query<any>('SELECT "State" FROM "GrowingPaperImportJobs" WHERE "Id"=?1',[v.id]);assert.ok(!row.State.includes('/9j/'));assert.equal(JSON.parse(row.State).pending,undefined);
 });
 
-test('repeated drawing mismatch resumes across restarts and preserves originals while completing later questions',async()=>{
+test('repeated drawing mismatch preserves retry state and cannot finish without a verified SVG',async()=>{
  let draws=0;
+ let matches=false;
  const service={...recognition,
   reviewQuestion:async(...args:any[])=>{const result=await recognition.reviewQuestion(...args);return {...result,hasFigures:args[4].number==='1',question:{...result.question,figures:args[4].number==='1'?[region(1)]:[],uncertain:Array.from({length:10},(_,i)=>'核对项'+i)}};},
   redrawQuestion:async()=>{draws++;return {drawing:{version:'question-svg-v1',warnings:[],figures:[{width:200,height:200,title:'题图',elements:[{tag:'line',x1:20,y1:20,x2:150,y2:150}]}]},warnings:[]};},
-  verifyQuestionDrawing:async()=>({matches:false,issues:['点名和角度不符']})
+  verifyQuestionDrawing:async()=>({matches,issues:matches?[]:['点名和角度不符']})
  };
  let j=new PaperImportJobs(db,student,service),v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages});
- for(let i=0;i<20&&v.status!=='complete';i++){
+ for(let i=0;i<20&&v.status!=='failed';i++){
   j=new PaperImportJobs(db,student,service);
   const next=v.next as any;
   v=next?.stage==='verify'?await j.step(student.id,v.id,{revision:v.revision,workflow:'visual-v1',fragments:next.regions.map((region:any)=>({page:region.page,region,image:pages[region.page-1]})),diagramImages:[pages[0]],drawingHash:next.drawingHash},env,new AbortController().signal,fetch):await singleStep(j,v);
-  assert.notEqual(v.status,'failed',v.error);
  }
- assert.equal(v.status,'complete');assert.equal(v.completedQuestions,2);assert.equal(draws,2);
+ assert.equal(v.status,'failed');assert.equal(v.completedQuestions,0);assert.equal(draws,2);assert.equal(v.paperId,null);assert.equal((v.next as any)?.stage,'draw');assert.equal(v.canDefer,false);
+ assert.match(v.error,/SVG/);assert.equal((await j.get(student.id,v.id)).sourcePages.length,2);
+ matches=true;
+ for(let i=0;i<12&&v.status!=='complete';i++){
+  j=new PaperImportJobs(db,student,service);const next=v.next as any;
+  v=next?.stage==='verify'?await j.step(student.id,v.id,{revision:v.revision,workflow:'visual-v1',fragments:next.regions.map((region:any)=>({page:region.page,region,image:pages[region.page-1]})),diagramImages:[pages[0]],drawingHash:next.drawingHash},env,new AbortController().signal,fetch):await singleStep(j,v);
+ }
+ assert.equal(v.status,'complete');assert.equal(v.completedQuestions,2);assert.equal(draws,3);
  const qs=await db.query<any>('SELECT "Number","FigureDrawing","Figures","Uncertain" FROM "GrowingPhotoQuestions" WHERE "PaperId"=?1 ORDER BY "Number"',[v.paperId]);
- assert.equal(qs.length,2);assert.equal(qs[0].FigureDrawing,'');assert.ok(JSON.parse(qs[0].Figures).length);assert.match(qs[0].Uncertain,/已保留原图/);
+ assert.equal(qs.length,2);assert.ok(JSON.parse(qs[0].FigureDrawing).figures.length);assert.ok(JSON.parse(qs[0].Figures).length);
  const originals=await db.query<any>('SELECT "Image" FROM "GrowingQuestionPages" WHERE "PaperId"=?1 ORDER BY "Page"',[v.paperId]);assert.deepEqual(originals.map(p=>p.Image),pages);
  assert.equal((await singleStep(j,v)).paperId,v.paperId);
 });
 
 test('capacity reached after planning never marks a task complete or inserts partial paper rows',async()=>{const j=jobs();let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'physics',pages:[pages[0]]});v=await step(j,v);const [{total}]=await db.query<any>('SELECT count(*) AS total FROM "GrowingQuestionPapers" WHERE "StudentId"=?1',[student.id]);const ids=Array.from({length:100-total},()=>crypto.randomUUID());await db.batch(ids.map(id=>({sql:'INSERT INTO "GrowingQuestionPapers" ("Id","StudentId","RequestId","Fingerprint","Title","Warnings","CreatedAt") VALUES (?1,?2,?1,?1,\'capacity\',\'[]\',\'2026\')',params:[id,student.id]})));await assert.rejects(step(j,v),rejected(409));const state=await j.get(student.id,v.id);assert.equal(state.paperId,null);assert.equal(state.recognizedQuestions,0);assert.equal((await db.query<any>('SELECT count(*) AS total FROM "GrowingQuestionPapers" WHERE "StudentId"=?1',[student.id]))[0].total,100);await assert.rejects(j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',pages:[pages[0]]}),rejected(413));await db.batch(ids.map(id=>({sql:'DELETE FROM "GrowingQuestionPapers" WHERE "Id"=?1',params:[id]})));});
 test('linked parent shares progress and unlink revokes future reads and steps',async()=>{const j=jobs(),v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'english',pages:[pages[0]]});const p=new PaperImportJobs(db,parent,recognition);assert.equal((await p.get(student.id,v.id)).id,v.id);await db.query('DELETE FROM "GrowingFamilyLinks" WHERE "StudentId"=?1',[student.id]);await assert.rejects(p.get(student.id,v.id),rejected(404));await assert.rejects(step(p,v),rejected(404));});
+
+test('deferred review preserves completed questions, OCR draft and originals; never grades or confirms it',async()=>{
+ const service={...recognition,reviewQuestion:async(...args:any[])=>{
+  if(args[4].number==='2')throw new HttpError(502,'未能确认本题配图');
+  return recognition.reviewQuestion(...args);
+ }};
+ let j=new PaperImportJobs(db,student,service),v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',mode:'paper',pages});
+ const defer=(value:any,e=env)=>j.step(student.id,value.id,{revision:value.revision,workflow:'visual-v1',defer:true},e,new AbortController().signal,fetch);
+ await assert.rejects(defer(v),rejected(409));
+ v=await step(j,v);v=await step(j,v);v=await step(j,v);v=await step(j,v);
+ assert.equal(v.completedQuestions,1);assert.equal(v.status,'failed');assert.equal(v.canDefer,true);assert.match(v.error,/第2题.*原图复核.*配图/);
+ const stale=v;
+ j=new PaperImportJobs(db,student,service);v=await defer(v,{AI_LIMITER:{limit:async()=>{throw Error('manual recovery must not call AI');}}});
+ assert.equal(v.status,'complete');assert.equal(v.completedQuestions,2);assert.equal(v.deferredQuestions,1);assert.equal(v.canDefer,false);
+ assert.equal((await defer(stale)).paperId,v.paperId);
+ const qs=await db.query<any>('SELECT * FROM "GrowingPhotoQuestions" WHERE "PaperId"=?1 ORDER BY "Number"',[v.paperId]);
+ assert.equal(qs.length,2);assert.equal(qs[1].Text,'完整题面');assert.equal(qs[1].Reviewed,0);assert.equal(qs[1].Answer,'');assert.match(qs[1].Uncertain,/自动复核未完成/);
+ assert.equal((await db.query('SELECT * FROM "GrowingPhotoGrades" WHERE "QuestionId"=?1',[qs[1].Id])).length,0);
+ assert.deepEqual((await j.get(student.id,v.id)).sourcePages.map(p=>p.image),pages);
+ await assert.rejects(new QuestionBank(db,student).confirmPaper(student.id,v.paperId!,{title:'待核对卷',classification:{examType:'other',termName:'',unitIds:[]}}),rejected(409));
+});
+
+test('defer is revision-safe, cannot skip a later question or bypass grading, and survives missing OCR drafts',async()=>{
+ const service={...recognition,locateQuestionRegions:async()=>{throw new HttpError(502,'定位失败');}};
+ for(const mode of ['paper','grade']){
+  const j=new PaperImportJobs(db,student,service);let v=await j.create({studentId:student.id,requestId:crypto.randomUUID(),subject:'math',mode,pages});
+  v=await step(j,v);v=await step(j,v);v=await step(j,v);
+  const request={revision:v.revision,workflow:'visual-v1',defer:true};
+  if(mode==='grade'){assert.equal(v.canDefer,false);await assert.rejects(j.step(student.id,v.id,request,env,new AbortController().signal,fetch),rejected(409));continue;}
+  await db.query('UPDATE "GrowingPaperImportJobs" SET "LeaseUntil"=?2 WHERE "Id"=?1',[v.id,Date.now()+60000]);
+  await assert.rejects(j.step(student.id,v.id,request,env,new AbortController().signal,fetch),rejected(409));
+  await db.query('UPDATE "GrowingPaperImportJobs" SET "LeaseUntil"=0 WHERE "Id"=?1',[v.id]);
+  const controller=new AbortController();controller.abort();
+  await assert.rejects(j.step(student.id,v.id,request,env,controller.signal,fetch),rejected(499));
+  v=await j.get(student.id,v.id);assert.equal(v.completedQuestions,0);
+  v=await j.step(student.id,v.id,{...request,revision:v.revision},env,new AbortController().signal,fetch);
+  assert.equal(v.completedQuestions,1);assert.equal(v.deferredQuestions,1);assert.equal((v.next as any).number,'2');
+  await assert.rejects(j.step(student.id,v.id,request,env,new AbortController().signal,fetch),rejected(409));
+  const [row]=await db.query<any>('SELECT "State" FROM "GrowingPaperImportJobs" WHERE "Id"=?1',[v.id]);
+  assert.match(JSON.parse(row.State).results[0].text,/待补录题面/);
+  assert.equal(JSON.parse(row.State).results[0].assessment,undefined);
+  v=await singleStep(j,v);v=await j.step(student.id,v.id,{...request,revision:v.revision},env,new AbortController().signal,fetch);
+  assert.equal(v.status,'complete');
+  const [q]=await db.query<any>('SELECT * FROM "GrowingPhotoQuestions" WHERE "PaperId"=?1 ORDER BY "Number"',[v.paperId]);
+  const bank=new QuestionBank(db,student);
+  await assert.rejects(bank.edit(student.id,q.Id,{revision:1,figureVersion:q.FigureVersion,reviewed:true}),rejected(409));
+  await assert.rejects(bank.edit(student.id,q.Id,{revision:1,number:q.Number,text:q.Text,answer:'',unitId:''}),rejected(400));
+  await bank.edit(student.id,q.Id,{revision:1,number:q.Number,text:'人工核对并补全的题目',answer:'',unitId:''});
+  assert.equal((await db.query<any>('SELECT "Reviewed" FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[q.Id]))[0].Reviewed,1);
+ }
+});
 
 test('grading progress reports the active lease and blocks concurrent calls; cancellation never advances completion',async()=>{
  let release!:()=>void,entered!:()=>void,calls=0;

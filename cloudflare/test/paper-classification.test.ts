@@ -74,6 +74,13 @@ test('three subject upload, duplicate, list, manual confirmation and reopen shar
   const autoConfirmation={examType:result.classification.examType,unitIds:result.classification.unitIds,termName:result.classification.termName};
   assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'核对自动分类',classification:autoConfirmation},u.token)).status,409);
   assert.equal((await call(questionPath,'PUT',{studentId:u.user.id,revision:item.revision,figureVersion:item.figureVersion,reviewed:true},u.token)).status,200);
+  if(subject==='math'){
+   assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'核对自动分类',classification:autoConfirmation},u.token)).status,409);
+   output={version:'question-svg-v1',figures:[{width:100,height:100,title:'测量示意',elements:[{tag:'line',x1:10,y1:50,x2:90,y2:50}]}],warnings:[]};
+   assert.equal((await call(questionPath+'/drawing','POST',{studentId:u.user.id,revision:item.revision,figureVersion:item.figureVersion},u.token)).status,200);
+   const updated=await (await call(path+query,'GET',undefined,u.token)).json() as any,question=updated.questions[0];
+   assert.equal((await call(questionPath,'PUT',{studentId:u.user.id,revision:question.revision,figureVersion:question.figureVersion,reviewed:true},u.token)).status,200);
+  }
   assert.equal((await call(path+'/confirm','POST',{studentId:u.user.id,title:'核对自动分类',classification:autoConfirmation},u.token)).status,200);
   const confirmedAI=await (await call(path+query,'GET',undefined,u.token)).json() as any;
   assert.equal(confirmedAI.classification.source,'ai');assert.equal(confirmedAI.classification.confirmed,true);assert.equal(confirmedAI.classification.evidence,result.classification.evidence);assert.equal(confirmedAI.classification.confidence,.95);
@@ -90,6 +97,8 @@ test('physics handwriting grading and followup use separate original illustratio
  const u=await register();output=paper();const result=await (await call('/question-bank/import','POST',{studentId:u.user.id,requestId:crypto.randomUUID(),pages,mode:'paper',subject:'physics'},u.token)).json() as any;
  const q=result.questions[0],path='/question-bank/questions/'+q.id,answer='data:image/png;base64,iVBORw0KGgoAAA==',figure='data:image/jpeg;base64,/9j/Ag==';
  const input={studentId:u.user.id,revision:1,requestId:crypto.randomUUID(),answerPages:[answer]};output={...grade(),verdict:'correct',score:100,studentAnswer:'10 cm',feedback:'正确',answerAnnotations:[]};
+ assert.equal((await call(path,'PUT',{studentId:u.user.id,revision:q.revision,figureVersion:q.figureVersion,reviewed:true},u.token)).status,200);
+ assert.equal((await call('/question-bank/papers/'+result.paperId+'/confirm','POST',{studentId:u.user.id,title:result.title||'物理试卷'},u.token)).status,200);
  assert.equal((await call(path+'/correct','POST',input,u.token)).status,409);
  assert.equal((await call(path+'/figures','PUT',{studentId:u.user.id,figureVersion:q.figureVersion,image:figure},u.token)).status,200);
  const response=await call(path+'/correct','POST',input,u.token);assert.equal(response.status,200,await response.clone().text());const saved=await response.json() as any;

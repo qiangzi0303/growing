@@ -166,7 +166,7 @@ before(async () => {
   await db.batch(subjectMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
   const classificationMigration=await readFile(new URL('../migrations/0016_paper_classification.sql',import.meta.url),'utf8');
   await db.batch(classificationMigration.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
-  for(const migration of ['0017_paper_import_jobs.sql','0018_photo_question_type.sql']){
+  for(const migration of ['0017_paper_import_jobs.sql','0018_photo_question_type.sql','0019_photo_practice.sql']){
     const sql=await readFile(new URL('../migrations/'+migration,import.meta.url),'utf8');
     await db.batch(sql.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
   }

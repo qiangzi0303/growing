@@ -3,6 +3,10 @@
   'use strict';
   const valid=p=>p&&p.version===1&&p.total===10&&Number.isInteger(p.best)&&p.best>=0&&p.best<=10;
   function result(record){
+    if(record?.practiceSet!==undefined){
+      const set=record.practiceSet,items=record.practiceRound?.items;
+      if(!Array.isArray(set)||set.length!==10||set.some(s=>typeof s!=='string')||items&&set.some((s,i)=>s!==(items[i]?.sourceKey||''))||!items&&set.some(Boolean))return {score:0,total:10,passed:false,legacy:false};
+    }
     if(record?.practiceRound!==undefined){const p=record.practiceRound,items=round(p)?p.items:[],score=items.filter(q=>q.passed).length;return {score,total:10,passed:items.length===10&&score===10,legacy:false};}
     if(record?.practicePhoto!==undefined){
       const p=record.practicePhoto,items=photo(p)?p.items:[],score=items.length?items.reduce((n,q)=>n+(q.score??0),0)/items.length:0;

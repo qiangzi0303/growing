@@ -1,4 +1,5 @@
 <script setup>
+const cloudWrongHref=id=>(window.GrowingNative?'../cloud/index.html':'/')+'?'+new URLSearchParams({unit:id,wrong:'1'})+'#question-bank';
 import { computed, onBeforeUnmount, onMounted, nextTick, ref, shallowRef, watch } from 'vue';
 import { Button, Calendar, Cell, CellGroup, Checkbox, Collapse, CollapseItem, Dialog, Field, Picker, Popup, Radio, RadioGroup, Tab, Tabs, Uploader, showImagePreview } from 'vant';
 import StudentUploadHistory from './StudentUploadHistory.vue';
@@ -32,7 +33,7 @@ function resetProgress(){if(a.reset(confirmed.value)){reset.value=false;confirme
   <template v-if="m.kind==='error'"><h1>{{m.title}}</h1><Button :url="m.backHref">返回目录</Button></template>
   <template v-else>
    <header class="course-heading"><div><p class="eyebrow">苏科版 · 八年级{{m.chapter.term==='upper'?'上':'下'}}册 · 第{{m.chapter.number}}章</p><h1>{{m.chapter.title}}课堂</h1></div><div class="progress-ring"><strong>{{m.read}}/{{m.chapter.nodes.length}}</strong></div></header>
-   <nav class="course-tools-nav" aria-label="课堂工具"><Button v-if="m.wrongHref" @click="a.navigate(m.wrongHref)">本单元错题</Button><Button @click="a.open('interactive')">交互</Button></nav>
+   <nav class="course-tools-nav" aria-label="课堂工具"><Button tag="a" :href="cloudWrongHref(m.chapter.id)">拍照错题</Button><Button v-if="m.wrongHref" @click="a.navigate(m.wrongHref)">本单元错题</Button><Button @click="a.open('interactive')">交互</Button></nav>
    <p v-if="m.message" role="status">{{m.message}}</p><p v-if="m.storageError" role="alert">{{m.storageError}}</p>
    <div v-if="m.view==='home'" class="course-layout">
     <div class="mobile-lesson-select"><label>切换本章知识点</label><Field :model-value="sectionLabel(m.node.section)+' · '+m.node.title+' · '+(m.metrics?.[index]?.label||'')" readonly is-link @click="picker=true"/><div class="lesson-study-meta"><small>累计学习 {{m.metrics?.[index]?.time}}</small><small>{{m.metrics?.[index]?.label}}</small></div></div>
@@ -42,19 +43,22 @@ function resetProgress(){if(a.reset(confirmed.value)){reset.value=false;confirme
     <section v-else-if="m.tab==='recall'" class="course-panel"><h2><label for="recall-content">用自己的话讲清楚</label></h2><Field id="recall-content" :model-value="m.record.draft" type="textarea" rows="8" autosize maxlength="6000" :disabled="m.busy" @update:model-value="a.draft"/><div class="course-actions"><Button type="primary" :loading="m.busy" :disabled="m.busy" @click="a.grade">AI检查解释</Button><Button v-if="m.busy" @click="a.cancelGrade">取消等待</Button></div><div v-if="m.feedback" v-html="m.feedback"/><section v-else-if="last"><h3>最近评分 {{last.score}} / 10</h3><p>{{last.feedback}}</p><ul><li v-for="(gap,i) in [...(last.criticalErrors||[]),...(last.gaps||[])]" :key="i">{{gap}}</li></ul></section><Collapse v-model="expanded"><CollapseItem title="历史复述记录" name="attempts"><article v-for="(attempt,i) in [...m.record.attempts].reverse()" :key="i"><p>{{attempt.at}} · {{attempt.score}} / 10</p><p class="preserve">{{attempt.answer}}</p><p>{{attempt.feedback}}</p></article></CollapseItem></Collapse></section>
     <section v-else class="course-panel application-round">
      <h2>应用练习 · {{m.questions.length}} 题</h2><p>选择题点选答案，解答题拍照上传。可提交已作答的题目，未作答题按未通过计。</p>
+     <div class="course-actions"><Button @click="a.openPhotoBank(false)">本知识点拍照题库（{{m.photoCount||0}}）</Button><Button @click="a.openPhotoBank(true)">本知识点错题</Button></div>
+     <p v-if="m.photoLoading" role="status">正在读取已核对的拍照题…</p><p v-if="m.photoLoadError" role="alert">{{m.photoLoadError}} <Button @click="a.loadPhotoPractice">重试</Button></p>
      <p v-if="m.practiceError" role="alert">{{m.practiceError}}</p><p v-if="uploadMessage" role="alert">{{uploadMessage}}</p>
      <article v-for="(q,i) in m.questions" :key="q.id" :id="'question-'+q.id" tabindex="-1" class="practice-question" :data-level="q.level" :data-question-id="q.id">
-      <h3 class="question-prompt preserve">{{i+1}}. {{q.prompt}}</h3>
+      <h3 v-if="q.promptHtml" class="question-prompt preserve"><span>{{i+1}}. </span><span v-html="q.promptHtml"/></h3><h3 v-else class="question-prompt preserve">{{i+1}}. {{q.prompt}}</h3>
+      <p v-if="q.sourcePhoto">{{q.sourcePhoto.paperTitle}} · 原卷第 {{q.sourcePhoto.number}} 题</p>
       <StudentGeometryGuidance v-if="q.guidance" :key="q.id" :guide="q.guidance"/>
       <div v-else-if="q.diagram" class="practice-figure" v-html="q.diagram"/>
       <RadioGroup v-if="q.type==='choice'" :model-value="m.practice.choices[q.id]" :disabled="m.practice.busy" :aria-label="'第'+(i+1)+'题答案'" @update:model-value="value=>a.practiceChoice(q.id,value)">
-       <Radio v-for="(option,j) in q.options" :key="j" :name="j"><span class="option-letter">{{'ABCD'[j]}}.</span> {{option}}</Radio>
+       <Radio v-for="(option,j) in q.options" :key="j" :name="j"><span class="option-letter">{{'ABCD'[j]}}.</span> {{q.sourcePhoto?'':option}}</Radio>
       </RadioGroup>
       <template v-else>
        <div class="course-actions"><Uploader :disabled="q.pending||m.practice.busy" accept="image/jpeg,image/png,image/webp" capture="environment" result-type="file" :max-size="20*1024*1024" :after-read="file=>photo(q,file)" @oversize="uploadMessage='照片不能超过20MB，请压缩后再试。'"><Button :disabled="q.pending||m.practice.busy" :loading="q.pending">{{q.photos.length?'重新拍照 / 上传答案':'拍照 / 上传答案'}}</Button></Uploader><Button v-if="q.unsaved" :disabled="q.pending||m.practice.busy" @click="a.uploadPhoto(q.id)">重试保存照片</Button></div>
        <p v-if="q.message" role="status">{{q.message}}</p><div class="photo-list"><Button v-for="(image,j) in q.photos" :key="j" aria-label="查看作答原稿" @click="showImagePreview({images:q.photos,startPosition:j})"><img :src="image" alt="作答原稿"/></Button></div>
       </template>
-      <section v-if="m.practice.result&&!m.practice.busy" class="question-result"><p>{{m.practice.result.items[i].unanswered?'未作答 · 0分':m.practice.result.items[i].passed?'✓ 答对 · 1分':m.practice.result.items[i].type==='solution'&&m.practice.result.items[i].score===null?'待复核 · 暂不计分':'未通过 · 0分'}}</p><p v-if="q.type==='choice'">正确答案：{{'ABCD'[q.answer]}} · {{q.explanation}}</p><p v-else-if="!m.practice.result.items[i].unanswered">{{q.history[0]?.feedback}}</p></section>
+      <section v-if="m.practice.result&&!m.practice.busy" class="question-result"><p>{{m.practice.result.items[i].unanswered?'未作答 · 0分':m.practice.result.items[i].passed?'✓ 答对 · 1分':m.practice.result.items[i].needsReview||m.practice.result.items[i].type==='solution'&&m.practice.result.items[i].score===null?'待复核 · 暂不计分':'未通过 · 0分'}}</p><p v-if="q.type==='choice'&&!q.sourcePhoto">正确答案：{{'ABCD'[q.answer]}} · {{q.explanation}}</p><p v-else-if="!m.practice.result.items[i].unanswered">{{q.type==='choice'?m.practice.result.items[i].feedback:q.history[0]?.feedback}}</p></section>
       <StudentUploadHistory :uploads="q.uploads"/><details v-if="q.history.length&&!m.practice.busy"><summary>查看批改记录</summary><article v-for="(g,j) in q.history" :key="j" class="grade-history"><h4>{{g.historical?'历史批改':'最近批改'}} · {{g.score}} 分 {{g.needsReview?'（待复核）':''}}</h4><p>{{gradeText(g)}}</p><p v-for="(correction,k) in g.corrections||[]" :key="k">{{correction.location}}：{{correction.issue}} {{correction.correction}}</p></article></details>
      </article>
      <div class="practice-submit"><p>已作答 {{m.practice.completed}} / {{m.practice.total}} 题</p><Button type="primary" :loading="m.practice.busy" :disabled="m.practice.busy||m.practice.uploading||!m.practice.completed||!!m.practiceError" @click="a.submitPractice">统一提交答案</Button><Button v-if="m.practice.busy" @click="a.cancelPractice">取消提交</Button><p v-if="m.practice.message" role="status">{{m.practice.message}}</p><p v-if="m.practice.result&&!m.practice.busy" class="round-score" role="status">本轮得分 {{m.practice.result.score}} / 10<span v-if="m.practice.result.pending"> · {{m.practice.result.pending}}题待复核</span><span v-if="!m.practice.result.saved"> · 尚未保存</span></p></div>

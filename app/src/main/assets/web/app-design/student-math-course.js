@@ -10,6 +10,7 @@
   const photoJobs=new Map(),photoMessages=new Map(),unsaved=new Map(),viewHistory=[];
   let practiceJob=null,practiceMessage='';
   const roundDrafts=new Map(),guidanceCache=new Map();
+  let photoContext=null,photoCandidates=[],photoCounts={},photoLoadError='',photoLoading=false,photoLoaded=false;
   const KEY=physics?'growing-physics-lessons-v1':'growing-math-lessons-v1';
   const valid=()=>{if(!alive)return false;try{return active()!==false;}catch{return false;}};
   function assertActive(){if(!valid())throw Error('学习会话已退出或变更，请重新打开课堂。');}
@@ -28,17 +29,49 @@
    catch(error){storageError='保存未完成：'+error.message+'。原已保存记录保留，请恢复存储后重试。';return false;}
   }
   function store(change,id=selected,event){if(!valid())return false;const next={...records,[id]:{...record(id),...change}},tools=T.restore(learning);if(event)T.log(tools,id,{...event,mastered:concept(next[id])&&P.result(next[id]).passed});return saveBundle(next,tools);}
-  function results(qs){return A.results(storeApi,subject,chapter.id,qs);}
-  function questions(n=node()){return A.questions(n,subject);}
+  function results(qs){
+   const found=A.results(storeApi,subject,chapter.id,qs);
+   for(const q of qs.filter(q=>q.sourceKey)){
+    const r=found[q.id],g=r?.doc.photoPracticeGrade;
+    if(!r)continue;
+    const checked=g&&g.sourceKey===q.sourceKey&&g.revision===r.doc.revision&&g.id===q.sourcePhoto.latestGrade?.id;
+    r.grade=checked?{at:g.at,score:g.score,feedback:g.feedback,needsReview:!['correct','incorrect','partial'].includes(g.verdict)}:null;
+    r.status=checked&&['correct','incorrect','partial'].includes(g.verdict)?'graded':'pending';r.passed=r.status==='graded'&&g.verdict==='correct';
+    r.history=checked?[{key:r.key,grade:{...r.grade,revision:r.doc.revision}}]:[];
+   }
+   return found;
+  }
+  function questions(n=node()){
+   const levels={};return A.questions(n,subject).map(q=>{
+    const offset=levels[q.level]||0;levels[q.level]=offset+1;
+    const source=photoCandidates.filter(p=>p.practice.nodeId===n.id&&p.practice.level===q.level&&p.questionType===(q.type==='choice'?'choice':'written'))[offset];
+    if(!source)return q;
+    return {...q,prompt:source.text,options:q.type==='choice'?['A','B','C','D']:q.options,answer:'',explanation:'',sourcePhoto:source,sourceKey:source.id+':'+source.revision+':'+source.figureVersion};
+   });
+  }
+  async function loadPhotoPractice(){
+   if(!valid()||!chapter||photoLoading||photoLoaded||practiceJob||photoJobs.size||unsaved.size)return;
+   photoLoading=true;notify();
+   try{
+    const target=await W.GrowingQuestionAttempts?.context();if(!valid())return;
+    if(!target)return;
+    const data=await target.api('/question-bank/practice-candidates?'+new URLSearchParams({studentId:target.studentId,unitId:chapter.id}),{cache:'reload'});
+    if(!valid())return;if(data.studentId!==target.studentId||data.unitId!==chapter.id||data.totalPerNode!==10||!Array.isArray(data.questions))throw Error('拍照练习范围不符');
+    if(practiceJob||photoJobs.size||unsaved.size)return;
+    photoContext=target;photoCandidates=data.questions;photoCounts=data.counts||{};photoLoadError='';photoLoaded=true;
+    for(const n of chapter.nodes){const set=questions(n).map(q=>q.sourceKey||'');if((set.some(Boolean)||record(n.id).practiceSet)&&JSON.stringify(set)!==JSON.stringify(record(n.id).practiceSet)){if(!store({practiceSet:set},n.id))throw Error('新题组尚未保存，请恢复存储后重试');}}
+   }catch(error){if(valid()){photoLoaded=false;photoCandidates=[];photoCounts={};photoLoadError='拍照题库读取失败：'+error.message+'。当前保留课程十题。';}}
+   finally{photoLoading=false;notify();}
+  }
   const hasAnswer=doc=>!!doc?.pages?.some((strokes,i)=>doc.photos?.[i]||strokes.some(s=>s.tool==='pen'&&s.points.length));
-  function guidance(q){const source=W.GrowingGeometryGuidance;if(subject!=='math'||!source?.get)return null;const key=JSON.stringify([q.id,q.question,q.prompt]);let entry=guidanceCache.get(key);if(!entry||entry.source!==source){entry={source,value:source.get(q)||null};guidanceCache.set(key,entry);}return entry.value;}
+  function guidance(q){const source=W.GrowingGeometryGuidance;if(q.sourceKey||subject!=='math'||!source?.get)return null;const key=JSON.stringify([q.id,q.question,q.prompt]);let entry=guidanceCache.get(key);if(!entry||entry.source!==source){entry={source,value:source.get(q)||null};guidanceCache.set(key,entry);}return entry.value;}
   function syncPhoto(id){if(!valid()||record(id).practiceMode==='round'||record(id).practiceRound!==undefined)return;try{const n=chapter.nodes.find(n=>n.id===id);if(!n)return;const qs=questions(n),found=results(qs),next=A.snapshot(qs,found);if((Object.keys(found).length||record(id).practicePhoto)&&JSON.stringify(record(id).practicePhoto)!==JSON.stringify(next))store({practicePhoto:next},id);}catch(error){storageError='批改成绩尚未保存：'+error.message;}}
-  function sameRound(round,qs,choices,found){return P.round(round)&&qs.every((q,i)=>{const item=round.items[i],r=found[q.id];return item.id===q.id&&(q.type==='choice'?item.choice===(choices[q.id]??null):item.unanswered===true?!hasAnswer(r?.doc):r?.key===item.key&&r.doc.revision===item.revision&&r.grade?.at===item.at);});}
+  function sameRound(round,qs,choices,found){return P.round(round)&&qs.every((q,i)=>{const item=round.items[i],r=found[q.id];return item.id===q.id&&(item.sourceKey||'')===(q.sourceKey||'')&&(q.type==='choice'?item.choice===(choices[q.id]??null)&&(!q.sourceKey||item.unanswered||item.gradeId===q.sourcePhoto.latestGrade?.id):item.unanswered===true?!hasAnswer(r?.doc):r?.key===item.key&&r.doc.revision===item.revision&&r.grade?.at===item.at);});}
   function practiceState(qs){
-   const found=results(qs),choices=P.choices(record().practiceChoices),candidate=roundDrafts.get(selected),saved=record().practiceRound;
+   const found=results(qs),choices=Object.fromEntries(Object.entries(P.choices(record().practiceChoices)).filter(([id])=>{const q=qs.find(q=>q.id===id);return q&&(record().practiceChoiceSources?.[id]||'')===(q.sourceKey||'');})),candidate=roundDrafts.get(selected),saved=record().practiceRound;
    const round=sameRound(candidate,qs,choices,found)?candidate:sameRound(saved,qs,choices,found)?saved:null;
    const completed=qs.filter(q=>q.type==='choice'?Number.isInteger(choices[q.id]):!unsaved.has(q.id)&&hasAnswer(found[q.id]?.doc)).length;
-   return {choices,completed,total:qs.length,busy:!!practiceJob,uploading:photoJobs.size>0,message:practiceMessage,result:round?{...P.result({practiceRound:round}),pending:round.items.filter(q=>q.type==='solution'&&!q.unanswered&&q.score===null).length,items:round.items,saved:round===saved}:null};
+   return {choices,completed,total:qs.length,busy:!!practiceJob,uploading:photoLoading||photoJobs.size>0,message:practiceMessage,result:round?{...P.result({practiceRound:round}),pending:round.items.filter(q=>q.needsReview||q.type==='solution'&&!q.unanswered&&q.score===null).length,items:round.items,saved:round===saved}:null};
   }
   function metrics(n){
    const r=record(n.id),rows=Object.values(learning.days).map(topics=>topics[n.id]).filter(Boolean),ms=rows.reduce((sum,row)=>sum+row.ms,0)+(n.id===timeTopic?pendingTime:0),quiz=P.result(r),practiced=quiz.score>0||rows.some(row=>row.practice>0),doubt=learning.doubts[n.id];
@@ -49,11 +82,11 @@
   function snapshot(){
    if(!chapter||!physics&&chapter.number===10)return {kind:'error',title:'请从'+name+'目录选择课程',backHref:'units.html?subject='+subject};
    const n=node(),r=record(),draft=learning.doubts[selected]||{draft:'',messages:[]};let qs=[],practiceError='';
-   try{qs=questions();const found=results(qs);qs=qs.map(q=>{const saved=unsaved.get(q.id)||found[q.id],doc=saved?.doc,history=[...(found[q.id]?.history||[])];if(unsaved.has(q.id))for(const grade of doc.grades)if(!history.some(row=>row.grade.at===grade.at))history.push({grade,key:saved.key});return {...q,guidance:guidance(q),diagram:W.GrowingPracticeFigures?.render(q)||'',levelLabel:A.labels[q.level],pending:photoJobs.has(q.id),message:photoMessages.get(q.id)||'',photos:doc?.photos?.filter(Boolean)||[],key:saved?.key,uploads:found[q.id]?.uploads||[],history:history.slice().reverse().map(({grade,key})=>({...grade,historical:key!==saved?.key||grade.revision!==doc?.revision})),unsaved:unsaved.has(q.id)};});}catch(error){practiceError='应用练习暂不可用：'+error.message;}
+   try{const original=questions(),found=results(original);qs=original.map(q=>{const saved=unsaved.get(q.id)||found[q.id],doc=saved?.doc,history=[...(found[q.id]?.history||[])];if(unsaved.has(q.id))for(const grade of doc.grades)if(!history.some(row=>row.grade.at===grade.at))history.push({grade,key:saved.key});return {...q,guidance:guidance(q),diagram:q.sourceKey?(q.sourcePhoto.drawing?(W.GrowingQuestionDrawing?.render(q.sourcePhoto.drawing)||[]).join(''):''):W.GrowingPracticeFigures?.render(q)||'',promptHtml:q.sourceKey?W.GrowingMathFormat?.questionHtml(q.prompt)||'':'',levelLabel:A.labels[q.level],pending:photoJobs.has(q.id),message:photoMessages.get(q.id)||'',photos:doc?.photos?.filter(Boolean)||[],key:saved?.key,uploads:found[q.id]?.uploads||[],history:history.slice().reverse().map(({grade,key})=>({...grade,historical:key!==saved?.key||grade.revision!==doc?.revision})),unsaved:unsaved.has(q.id)};});}catch(error){practiceError='应用练习暂不可用：'+error.message;}
    const ids=chapter.nodes.map(n=>n.id),dates=[...new Set(Object.entries(learning.mastery).filter(([id,date])=>ids.includes(id)&&date).map(([,date])=>date))].sort(),baseline=ids.filter(id=>Object.hasOwn(learning.mastery,id)&&!learning.mastery[id]).length;let total=baseline;
    const points=dates.map(date=>({date,total:total+=ids.filter(id=>learning.mastery[id]===date).length}));
    const toolFile=physics?'physics-knowledge.html':'knowledge.html';
-   return {kind:'course',subject,subjectName:name,chapter,node:n,selected,tab,view,message,busy,doubtBusy,doubtMessage,storageError,record:{...r,self:[...r.self],attempts:[...r.attempts]},metrics:chapter.nodes.map(metrics),read:chapter.nodes.filter(n=>record(n.id).seen).length,questions:qs,practice:practiceError?{choices:{},completed:0,total:0,busy:false,message:'',result:null}:practiceState(qs),practiceError,figure:(physics?W.GrowingPhysicsFigure:W.GrowingMathFigure)(n),feedback:!physics&&r.attempts.at(-1)?.schema==='math-four-part-v1'?F.render(r.attempts.at(-1)):'',doubt:{draft:draft.draft,messages:draft.messages.map(m=>({...m,html:!physics&&m.role==='assistant'?F.renderAnswer(m.text):null}))},calendar:{day:calendarDay,totals:T.totals(learning,calendarDay,ids),rows:chapter.nodes.filter(n=>learning.days[calendarDay]?.[n.id]).map(n=>({id:n.id,title:n.title,...learning.days[calendarDay][n.id]})),days:Object.keys(learning.days).filter(date=>ids.some(id=>learning.days[date][id])),baseline,points,total,maximum:ids.length},summaryHref:'unit-summary.html?'+new URLSearchParams({subject,unit:chapter.id}),graphHref:toolFile+'?'+new URLSearchParams({chapter:chapter.id,node:selected}),wrongHref:physics?null:'math-wrong-questions.html?'+new URLSearchParams({unit:chapter.id}),labHref:(physics?(chapter.number===1?'physics-sound-lab.html':'physics-explore-lab.html'):'math-explore-lab.html')+'?'+new URLSearchParams({chapter:chapter.id,node:selected}),backHref:'units.html?'+new URLSearchParams({subject,term:chapter.term})};
+   return {kind:'course',photoLoading,photoLoadError,photoCount:photoCounts[selected]||0,subject,subjectName:name,chapter,node:n,selected,tab,view,message,busy,doubtBusy,doubtMessage,storageError,record:{...r,self:[...r.self],attempts:[...r.attempts]},metrics:chapter.nodes.map(metrics),read:chapter.nodes.filter(n=>record(n.id).seen).length,questions:qs,practice:practiceError?{choices:{},completed:0,total:0,busy:false,message:'',result:null}:practiceState(qs),practiceError,figure:(physics?W.GrowingPhysicsFigure:W.GrowingMathFigure)(n),feedback:!physics&&r.attempts.at(-1)?.schema==='math-four-part-v1'?F.render(r.attempts.at(-1)):'',doubt:{draft:draft.draft,messages:draft.messages.map(m=>({...m,html:!physics&&m.role==='assistant'?F.renderAnswer(m.text):null}))},calendar:{day:calendarDay,totals:T.totals(learning,calendarDay,ids),rows:chapter.nodes.filter(n=>learning.days[calendarDay]?.[n.id]).map(n=>({id:n.id,title:n.title,...learning.days[calendarDay][n.id]})),days:Object.keys(learning.days).filter(date=>ids.some(id=>learning.days[date][id])),baseline,points,total,maximum:ids.length},summaryHref:'unit-summary.html?'+new URLSearchParams({subject,unit:chapter.id}),graphHref:toolFile+'?'+new URLSearchParams({chapter:chapter.id,node:selected}),wrongHref:physics?null:'math-wrong-questions.html?'+new URLSearchParams({unit:chapter.id}),labHref:(physics?(chapter.number===1?'physics-sound-lab.html':'physics-explore-lab.html'):'math-explore-lab.html')+'?'+new URLSearchParams({chapter:chapter.id,node:selected}),backHref:'units.html?'+new URLSearchParams({subject,term:chapter.term})};
   }
   function context(){if(!valid()||!chapter)return;const n=node(),exam=view==='home'&&tab!=='learn';W.GrowingDuckContext={id:subject+':'+chapter.id+':'+n.id,title:chapter.title+' · '+n.title,subject,mode:exam?'exam':'learn',segments:exam?[]:[n.review,...(n.steps||[]),n.example,n.pitfall?'易错提醒：'+n.pitfall:''].filter(Boolean)};W.dispatchEvent(new CustomEvent('duck:course-context',{detail:W.GrowingDuckContext}));}
   function route(){if(!valid()||!chapter)return;const search=new URLSearchParams({chapter:chapter.id,node:selected});for(const key of ['v','ui'])if(params.has(key))search.set(key,params.get(key));if(tab==='practice')search.set('practice','1');try{history.replaceState(null,'',(physics?'physics-course.html':'math-course.html')+'?'+search+(location.hash.startsWith('#question-'+selected+'-application-')?location.hash:''));}catch{}document.title=node().title+' · '+chapter.title+' · 逆流';context();}
@@ -96,18 +129,19 @@
   }
   function persistPhoto(key,doc){assertActive();if(!C.validate(doc))throw Error('原稿或批改格式无效');storeApi.setItem(key,JSON.stringify(doc));}
   function practiceChoice(id,value){
-   if(!valid()||practiceJob||!Number.isInteger(value)||value<0||value>3||!questions().some(q=>q.id===id&&q.type==='choice'))return;
-   const change={practiceMode:'round',practiceChoices:{...P.choices(record().practiceChoices),[id]:value}};
+   if(!valid()||photoLoading||practiceJob||!Number.isInteger(value)||value<0||value>3||!questions().some(q=>q.id===id&&q.type==='choice'))return;
+   const q=questions().find(q=>q.id===id);
+   const change={practiceMode:'round',practiceChoiceSources:{...record().practiceChoiceSources,[id]:q.sourceKey||''},practiceChoices:{...P.choices(record().practiceChoices),[id]:value}};
    if(!store(change))records[selected]={...record(),...change};roundDrafts.delete(selected);practiceMessage='';notify();
   }
   async function uploadPhoto(id,file){
-   if(!valid()||practiceJob||photoJobs.has(id))return;const q=questions().find(q=>q.id===id&&q.type==='solution');if(!q)return;
+   if(!valid()||photoLoading||practiceJob||photoJobs.has(id))return;const q=questions().find(q=>q.id===id&&q.type==='solution');if(!q)return;
    const controller=new AbortController();photoJobs.set(id,controller);photoMessages.set(id,'正在保存照片…');practiceMessage='';roundDrafts.delete(selected);notify();
    const current=()=>valid()&&photoJobs.get(id)===controller&&!controller.signal.aborted;
    try{
     if(!store({practiceMode:'round'},q.topic))throw Error('作答状态未保存，请恢复存储后重试');
     let saved=unsaved.get(id);
-    if(file){const data=await encodePhoto(file);if(!current())return;const previous=results([q])[id],doc=C.create(subject,chapter.id,A.prompt(q));C.change(doc);doc.updatedAt=new Date(Math.max(Date.now(),Date.parse(previous?.doc.updatedAt||0)+1)).toISOString();doc.pages=[[]];doc.photos=[data];saved={key:C.PREFIX+crypto.randomUUID(),doc};unsaved.set(id,saved);}
+    if(file){const data=await encodePhoto(file);if(!current())return;const previous=results([q])[id],doc=C.create(subject,chapter.id,A.prompt(q));C.change(doc);if(q.sourceKey)doc.practiceSource=q.sourceKey;doc.updatedAt=new Date(Math.max(Date.now(),Date.parse(previous?.doc.updatedAt||0)+1)).toISOString();doc.pages=[[]];doc.photos=[data];saved={key:C.PREFIX+crypto.randomUUID(),doc};unsaved.set(id,saved);}
     if(!saved?.doc.photos?.some(Boolean))throw Error('请拍照上传本题答案');
     if(!current())return;persistPhoto(saved.key,saved.doc);unsaved.delete(id);photoMessages.set(id,'照片已保存，可提交当前已作答题目。');
    }catch(error){if(current())photoMessages.set(id,error.message+'；照片尚未保存，请重试。');}
@@ -118,8 +152,20 @@
    if(!hasAnswer(doc)||unsaved.has(q.id))throw Error('第'+q.id.split('-').at(-1)+'题原稿尚未保存');
    const revision=doc.revision;
    const current=()=>valid()&&practiceJob===controller&&!controller.signal.aborted;
-   const pages=await Promise.all(doc.pages.map(async(strokes,i)=>{let image=null;if(doc.photos?.[i]){image=new Image();image.src=doc.photos[i];await image.decode();}assertActive();return W.GrowingHandwritingAI.pageImage(strokes,C.draw,C.WIDTH,C.HEIGHT,image);}));
+   const pages=await Promise.all(doc.pages.map(async(strokes,i)=>{let image=null;if(doc.photos?.[i]){image=new Image();image.src=doc.photos[i];await image.decode();}assertActive();return W.GrowingHandwritingAI.pageImage(strokes,C.draw,C.WIDTH,C.HEIGHT,image,q.sourceKey?Math.floor(580000/doc.pages.length):990000);}));
    if(!current())throw new DOMException('已取消','AbortError');
+   if(q.sourcePhoto){
+    if(!photoContext)throw Error('请登录后提交拍照题作答');
+    if(doc.practiceRequestRevision!==revision){doc.practiceRequestId=crypto.randomUUID();doc.practiceRequestRevision=revision;persistPhoto(key,doc);}
+    const response=await photoContext.api('/question-bank/questions/'+q.sourcePhoto.id+'/correct',{method:'POST',signal:controller.signal,body:JSON.stringify({studentId:photoContext.studentId,revision:q.sourcePhoto.revision,figureVersion:q.sourcePhoto.figureVersion,requestId:doc.practiceRequestId,answerPages:pages})});
+    if(!current())throw new DOMException('已取消','AbortError');
+    const latest=JSON.parse(storeApi.getItem(key)||'null');if(!C.validate(latest)||latest.revision!==revision||latest.practiceSource!==q.sourceKey||results([q])[q.id]?.key!==key)throw Error('原稿已更新，请按最新作答重新提交');
+    const g=response.grade;if(!g||g.revision!==q.sourcePhoto.revision||!['correct','incorrect','partial','review','unanswered'].includes(g.result?.verdict))throw Error('批改结果未通过校验');
+    latest.photoPracticeGrade={sourceKey:q.sourceKey,revision,id:g.id,at:g.at,score:g.result.score,verdict:g.result.verdict,feedback:g.result.feedback};latest.updatedAt=g.at;if(['review','unanswered'].includes(g.result.verdict)){delete latest.practiceRequestId;delete latest.practiceRequestRevision;}persistPhoto(key,latest);
+    q.sourcePhoto.latestGrade={id:g.id,at:g.at};
+    W.top.dispatchEvent(new CustomEvent('growing:knowledge-changed',{detail:{studentId:photoContext.studentId}}));
+    return {key,revision,at:g.at};
+   }
    const response=await W.GrowingHandwritingAI.request({subject,unitId:chapter.id,prompt:doc.prompt,nodeIds:[q.topic],pages},controller.signal);
    if(!current())throw new DOMException('已取消','AbortError');
    const latest=JSON.parse(storeApi.getItem(key)||'null');if(!C.validate(latest)||latest.revision!==revision||latest.prompt!==doc.prompt||latest.updatedAt!==doc.updatedAt||results([q])[q.id]?.key!==key)throw Error('原稿已更新，请按最新作答重新提交');
@@ -128,30 +174,39 @@
    return {key,revision,at:value.at};
   }
   async function submitPractice(){
-   if(!valid()||practiceJob||photoJobs.size)return;const id=selected,qs=questions(),state=practiceState(qs);
+   if(!valid()||photoLoading||practiceJob||photoJobs.size)return;const id=selected,qs=questions(),state=practiceState(qs);
    if(!state.completed||qs.length!==10){practiceMessage='请至少作答1题后提交，未作答题按未通过计。';notify();return;}
    if(state.result?.saved&&!state.result.pending){practiceMessage='本轮评分已保存；修改答案后可再次提交。';notify();return;}
    if(!store({practiceMode:'round',practiceChoices:state.choices})){practiceMessage='答案尚未保存，请恢复存储后重试提交。';notify();return;}
    const controller=new AbortController();practiceJob=controller;practiceMessage='正在统一批改，请稍候…';notify();const timer=setTimeout(()=>controller.abort(),235000);
    const current=()=>valid()&&practiceJob===controller&&!controller.signal.aborted&&selected===id;
    try{
-    let round=roundDrafts.get(id);
+    let round=roundDrafts.get(id);const gradedChoices={};
     if(!sameRound(round,qs,state.choices,results(qs))){
      const submitted=results(qs),graded={};for(const q of qs.filter(q=>q.type==='solution'&&hasAnswer(submitted[q.id]?.doc))){if(!current())throw new DOMException('已取消','AbortError');graded[q.id]=await gradePhoto(q,controller);}
+     for(const q of qs.filter(q=>q.type==='choice'&&q.sourcePhoto&&Number.isInteger(state.choices[q.id]))){
+      if(!current())return;const choice=state.choices[q.id];let entry=record(id).photoChoiceRequests?.[q.id];
+      if(!entry||entry.sourceKey!==q.sourceKey||entry.choice!==choice){entry={sourceKey:q.sourceKey,choice,requestId:crypto.randomUUID()};if(!store({photoChoiceRequests:{...record(id).photoChoiceRequests,[q.id]:entry}},id))throw Error('选项尚未保存，请重试');}
+      const response=await photoContext.api('/question-bank/questions/'+q.sourcePhoto.id+'/correct',{method:'POST',signal:controller.signal,body:JSON.stringify({studentId:photoContext.studentId,requestId:entry.requestId,revision:q.sourcePhoto.revision,figureVersion:q.sourcePhoto.figureVersion,choice})});
+      if(!current())return;const g=response.grade;if(!g||g.revision!==q.sourcePhoto.revision||!['correct','incorrect','partial','review','unanswered'].includes(g.result?.verdict))throw Error('选择题批改未完成');
+      if(['review','unanswered'].includes(g.result.verdict))store({photoChoiceRequests:{...record(id).photoChoiceRequests,[q.id]:null}},id);gradedChoices[q.id]=g;q.sourcePhoto.latestGrade={id:g.id,at:g.at};W.top.dispatchEvent(new CustomEvent('growing:knowledge-changed',{detail:{studentId:photoContext.studentId}}));
+     }
      if(!current())return;const found=results(qs);
      if(qs.some(q=>q.type==='solution'&&graded[q.id]&&(found[q.id]?.key!==graded[q.id].key||found[q.id]?.doc.revision!==graded[q.id].revision||found[q.id]?.grade?.at!==graded[q.id].at)))throw Error('原稿或批改已更新，请重新提交');
      round={version:1,total:10,at:new Date().toISOString(),items:qs.map(q=>{const r=found[q.id];if(q.type==='choice'&&!Number.isInteger(state.choices[q.id])||q.type==='solution'&&!graded[q.id])return {id:q.id,type:q.type,unanswered:true,choice:null,score:null,passed:false};return q.type==='choice'?{id:q.id,type:q.type,choice:state.choices[q.id],passed:state.choices[q.id]===q.answer}:{id:q.id,type:q.type,key:r.key,revision:r.doc.revision,at:r.grade.at,score:r.status==='graded'?r.grade.score:null,passed:r.passed};})};
+     round.items.forEach((item,i)=>{if(qs[i].sourceKey)item.sourceKey=qs[i].sourceKey;const g=gradedChoices[item.id];if(g){item.passed=g.result.verdict==='correct';item.gradeId=g.id;item.feedback=g.result.feedback;item.needsReview=['review','unanswered'].includes(g.result.verdict);}});
      if(!P.round(round))throw Error('本轮评分格式不完整，请重新提交');roundDrafts.set(id,round);
     }
     if(!current())return;const score=P.result({practiceRound:round}).score;
     const saved=store({practiceRound:round},id,{kind:'practice',correct:score,total:10});
-    if(saved)roundDrafts.delete(id);practiceMessage=saved?(round.items.some(q=>q.type==='solution'&&!q.unanswered&&q.score===null)?'统一评分已保存，待复核题暂不计分，请补充清晰照片后提交。':'统一评分已保存。'):'本轮评分未保存，答案保留；恢复存储后再次提交即可保存。';
+    if(saved)roundDrafts.delete(id);practiceMessage=saved?(round.items.some(q=>q.needsReview||q.type==='solution'&&!q.unanswered&&q.score===null)?'统一评分已保存，待复核题暂不计分，请补充清晰照片后提交。':'统一评分已保存。'):'本轮评分未保存，答案保留；恢复存储后再次提交即可保存。';
    }catch(error){if(valid()&&practiceJob===controller)practiceMessage=(error.name==='AbortError'?'提交已取消或批改超时':error.message)+'；本轮未完成评分，答案和已保存原稿保留，请重新提交。';}
    finally{clearTimeout(timer);if(practiceJob===controller){practiceJob=null;notify();}}
   }
   function configured(fn){assertActive();const previous=W.GrowingCourseAIStorage;W.GrowingCourseAIStorage=()=>storeApi;try{return fn();}finally{if(previous===undefined)delete W.GrowingCourseAIStorage;else W.GrowingCourseAIStorage=previous;}}
   const actions={
-   choose,open,navigate,grade,ask,uploadPhoto,practiceChoice,submitPractice,cancelPractice(){cancelPractice();notify();},
+   choose,open,navigate,grade,ask,uploadPhoto,practiceChoice,submitPractice,loadPhotoPractice,cancelPractice(){cancelPractice();notify();},
+   openPhotoBank(wrong=false){const route=new URLSearchParams({unit:chapter.id,nodeId:selected,...(wrong?{wrong:'1'}:{})});navigate((W.GrowingNative?'../cloud/index.html':'/')+'?'+route+'#question-bank');},
    tab(next){if(!valid()||!['learn','recall','practice'].includes(next))return;stop();tab=next;message='';route();notify();},
    draft(value){if(!valid())return;const draft=String(value);if(!store({draft}))records[selected]={...record(),draft};notify();},
    self(values){if(valid()){store({self:values.filter(Number.isInteger)});notify();}},
@@ -174,12 +229,12 @@
    try{const raw=storeApi.getItem(KEY);if(raw){const parsed=JSON.parse(raw);if(parsed.version!==1||!parsed.topics||typeof parsed.topics!=='object'||Array.isArray(parsed.topics))throw Error('格式不匹配');
     // A whole-archive save must never discard a damaged topic, including one in another chapter.
     if(Object.values(parsed.topics).some(r=>r!==null&&(typeof r!=='object'||Array.isArray(r)||typeof r.draft!=='string'||!Array.isArray(r.self)||!Array.isArray(r.attempts))))throw Error('知识点记录格式不匹配');
-    learning=T.restore(parsed.tools);for(const n of D.nodes){const r=parsed.topics[n.id];if(r&&typeof r==='object'&&typeof r.draft==='string'&&Array.isArray(r.self)&&Array.isArray(r.attempts))records[n.id]={draft:r.draft,seen:r.seen===true,self:r.self.filter(Number.isInteger),bestQuiz:Number.isInteger(r.bestQuiz)?Math.max(0,Math.min(3,r.bestQuiz)):0,practice10:r.practice10,practicePhoto:r.practicePhoto,practiceRound:r.practiceRound,practiceMode:r.practiceMode,practiceChoices:P.choices(r.practiceChoices),attempts:r.attempts.filter(validGrade).slice(-20)};}if(!parsed.tools)for(const n of D.nodes)for(const attempt of records[n.id]?.attempts||[])if(attempt.at&&Number.isFinite(new Date(attempt.at).getTime()))T.log(learning,n.id,{kind:'grade',score:attempt.score},attempt.at);}}
+    learning=T.restore(parsed.tools);for(const n of D.nodes){const r=parsed.topics[n.id];if(r&&typeof r==='object'&&typeof r.draft==='string'&&Array.isArray(r.self)&&Array.isArray(r.attempts))records[n.id]={draft:r.draft,seen:r.seen===true,self:r.self.filter(Number.isInteger),bestQuiz:Number.isInteger(r.bestQuiz)?Math.max(0,Math.min(3,r.bestQuiz)):0,practiceChoiceSources:r.practiceChoiceSources,photoChoiceRequests:r.photoChoiceRequests,practiceSet:r.practiceSet,practice10:r.practice10,practicePhoto:r.practicePhoto,practiceRound:r.practiceRound,practiceMode:r.practiceMode,practiceChoices:P.choices(r.practiceChoices),attempts:r.attempts.filter(validGrade).slice(-20)};}if(!parsed.tools)for(const n of D.nodes)for(const attempt of records[n.id]?.attempts||[])if(attempt.at&&Number.isFinite(new Date(attempt.at).getTime()))T.log(learning,n.id,{kind:'grade',score:attempt.score},attempt.at);}}
    catch{unreadable=true;storageError='本机微课记录暂时无法读取。旧记录未删除；请先备份并修复记录后再保存。';}
    for(const n of D.nodes)if(concept(record(n.id))&&P.result(record(n.id)).passed&&!Object.hasOwn(learning.mastery,n.id))learning.mastery[n.id]=null;
    if(valid())W.UnitRewards?.register(chapter.id,{title:chapter.title,rule:'每个知识点须有效AI解释评分≥8分且无核心错误，并通过10/10应用练习；解答题批改及关联知识点均须≥80分，待复核不计通过。旧版达标和已获得奖励保留。',progress:()=>({done:chapter.nodes.filter(n=>concept(record(n.id))&&P.result(record(n.id)).passed).length,total:chapter.nodes.length})});
    const previousAccount=W.GrowingCourseAccount,account={open,back(){if(!viewHistory.length)return false;open(viewHistory.pop(),true);return true;}};W.GrowingCourseAccount=account;cleanups.push(()=>{if(W.GrowingCourseAccount===account){if(previousAccount===undefined)delete W.GrowingCourseAccount;else W.GrowingCourseAccount=previousAccount;}});
-   const input=()=>{tickTime();lastInput=performance.now();};for(const event of ['pointerdown','keydown','input','wheel'])listen(document,event,input,{passive:true});listen(document,'visibilitychange',()=>{tickTime();flushTime();notify();});listen(W,'duck:stop-course-audio',stop);listen(W,'pagehide',()=>{tickTime();flushTime();destroy();});listen(W,'pageshow',()=>{if(valid()){for(const n of chapter.nodes)syncPhoto(n.id);notify();}});listen(W,'storage',event=>{if(valid()&&(event.key===null||C.KEY.test(event.key))){for(const n of chapter.nodes)syncPhoto(n.id);notify();}});const timer=setInterval(()=>{tickTime();notify();},1000);cleanups.push(()=>clearInterval(timer));for(const n of chapter.nodes)syncPhoto(n.id);route();
+   const input=()=>{tickTime();lastInput=performance.now();};for(const event of ['pointerdown','keydown','input','wheel'])listen(document,event,input,{passive:true});listen(document,'visibilitychange',()=>{tickTime();flushTime();notify();});listen(W,'duck:stop-course-audio',stop);listen(W,'pagehide',()=>{tickTime();flushTime();destroy();});listen(W,'pageshow',()=>{if(valid()){for(const n of chapter.nodes)syncPhoto(n.id);notify();}});listen(W,'storage',event=>{if(valid()&&(event.key===null||C.KEY.test(event.key))){for(const n of chapter.nodes)syncPhoto(n.id);notify();}});const timer=setInterval(()=>{tickTime();notify();},1000);cleanups.push(()=>clearInterval(timer));for(const n of chapter.nodes)syncPhoto(n.id);route();void loadPhotoPractice();
   }
   function destroy(){if(!alive)return;alive=false;cancel();for(const job of photoJobs.values())job.abort();photoJobs.clear();for(const cleanup of cleanups)cleanup();listeners.clear();}
   return {snapshot,actions,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);},beforeLeave(){tickTime();flushTime();},destroy};

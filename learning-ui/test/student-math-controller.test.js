@@ -4,10 +4,12 @@ import {readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {JSDOM} from 'jsdom';
 const require=createRequire(import.meta.url),folder='../../app/src/main/assets/web/app-design/';
-async function fixture({subject='math',data={},active=()=>true,request=async()=>''}={}){
+async function fixture({subject='math',data={},active=()=>true,request=async()=>'',photoApi}={}){
  const dom=new JSDOM('<main></main>',{url:'https://learn.test/math-course.html?chapter=math-8a-01',runScripts:'outside-only'}),w=dom.window;
  for(const [name,file] of Object.entries({GrowingMath:'math-data.js',GrowingPhysics:'physics-data.js',GrowingPracticeProgress:'practice-progress.js',GrowingApplicationPractice:'application-practice.js',GrowingHandwriting:'handwriting-core.js',GrowingCourseTools:'course-tools.js',GrowingMathFeedback:'math-feedback.js'}))w[name]=require(folder+file);
  w.GrowingMathFigure=w.GrowingPhysicsFigure=()=>'<svg></svg>';w.GrowingCourseSpeech={create:()=>({stop(){},play(){}})};w.UnitRewards={register(){},update(){}};w.GrowingCourseAI={request};w.GrowingHandwritingAI={request};
+ w.eval(await readFile(new URL('../../platform-web/question-drawing.js',import.meta.url),'utf8'));
+ if(photoApi)w.GrowingQuestionAttempts={context:async()=>({studentId:'student',api:photoApi})};
  for(const [key,value] of Object.entries(data))w.localStorage.setItem(key,JSON.stringify(value));
  w.eval(await readFile(new URL(folder+'student-math-course.js',import.meta.url),'utf8'));
  const chapter=subject==='physics'?'physics-8a-01':'math-8a-01';const controller=w.GrowingStudentMathCourse.create({subject,params:new URLSearchParams({chapter}),storage:w.localStorage,active});
@@ -164,4 +166,39 @@ test('real connection services clear keys only in the active account storage',as
  w.eval(await readFile(new URL(folder+'course-ai.js',import.meta.url),'utf8'));
  c.actions.saveSettings('deepseek',{apiKey:'test-only-key',model:'deepseek-flash'});assert.ok(w.localStorage.getItem('growing-course-ai-v1'));c.actions.clearSettings('deepseek');assert.equal(w.localStorage.getItem('growing-course-ai-v1'),null);
  c.actions.saveSettings('deepseek',{apiKey:'test-only-key',model:'deepseek-flash'});const before=w.localStorage.getItem('growing-course-ai-v1');active=false;assert.throws(()=>c.actions.clearSettings('deepseek'));assert.equal(w.localStorage.getItem('growing-course-ai-v1'),before);c.destroy();w.close();
+});
+
+test('reviewed photo candidates replace written slots without increasing ten or borrowing old answers',async t=>{
+ let posts=0;
+ const source={id:'12345678-1234-1234-1234-123456789abc',revision:2,figureVersion:3,practice:{nodeId:'tri-angles',level:'hard'},questionType:'written',text:'Photo triangle question',paperTitle:'Photo paper',number:'12',drawing:null,latestGrade:{id:'old-original'}};
+ const f=await fixture({photoApi:async(path,options)=>{
+  if(path.includes('practice-candidates'))return {studentId:'student',unitId:'math-8a-01',totalPerNode:10,counts:{'tri-angles':3},questions:[source]};
+  posts++;const body=JSON.parse(options.body);assert.equal(body.revision,2);assert.ok(body.answerPages.length);assert.equal(body.studentId,'student');
+  return {grade:{id:'grade-1',revision:2,at:'2026-11-21T01:00:00Z',result:{verdict:'incorrect',score:0,feedback:'Check the angle sum.'}}};
+ }});
+ t.after(()=>{f.controller.destroy();f.w.close();});
+ await new Promise(r=>setTimeout(r,0));const c=f.controller,w=f.w;c.actions.choose('tri-angles');let state=c.snapshot();
+ assert.equal(state.photoLoading,false);assert.equal(state.questions.length,10);assert.equal(state.questions.filter(q=>q.type==='choice').length,8);
+ assert.equal(state.questions[8].prompt,source.text);assert.equal(state.questions[8].sourceKey,source.id+':2:3');assert.equal(state.questions[9].sourcePhoto,undefined);
+ const C=w.GrowingHandwriting,A=w.GrowingApplicationPractice,q=state.questions[8],key=C.PREFIX+'12345678-1234-1234-1234-123456789aaa';
+ const old=C.create('math','math-8a-01',A.prompt(q));old.photos=['data:image/jpeg;base64,/9j/AAAA'];w.localStorage.setItem(key,JSON.stringify(old));
+ assert.equal(c.snapshot().practice.completed,0,'same prompt from another revision or original cannot supply an answer');
+ old.practiceSource=q.sourceKey;w.localStorage.setItem(key,JSON.stringify(old));w.Image=class{decode(){return Promise.resolve();}};w.GrowingHandwritingAI.pageImage=async()=> 'data:image/png;base64,iVBORw0KGgoAAAA';
+ await c.actions.submitPractice();state=c.snapshot();assert.equal(posts,1);assert.equal(state.practice.result.score,0);assert.equal(state.practice.result.total,10);assert.equal(state.practice.result.items[8].sourceKey,q.sourceKey);
+ const saved=JSON.parse(w.localStorage.getItem(key));assert.equal(saved.photoPracticeGrade.id,'grade-1');assert.equal(saved.grades.length,0,'source photo assessment stays separate from local handwriting grades');
+ assert.equal(state.questions[8].history[0].feedback,'Check the angle sum.');c.destroy();w.close();
+});
+
+test('photo choices use independent grading, retain exactly ten and never reuse a static answer',async t=>{
+ const source={id:'12345678-1234-1234-1234-123456789abc',revision:1,figureVersion:1,questionType:'choice',practice:{nodeId:'tri-angles',level:'basic'},text:'Choose: A. 30 B. 40 C. 50 D. 60',latestGrade:null};
+ let posts=0;
+ const f=await fixture({photoApi:async(path,options)=>{
+  if(path.includes('practice-candidates'))return {studentId:'student',unitId:'math-8a-01',totalPerNode:10,counts:{'tri-angles':1},questions:[source]};
+  posts++;const body=JSON.parse(options.body);assert.equal(body.choice,2);assert.equal(body.answerPages,undefined);
+  return {grade:{id:'choice-grade',revision:1,at:'2026-11-21T01:00:00Z',result:{verdict:'correct',score:100,feedback:'Correct option.'}}};
+ }});t.after(()=>{f.controller.destroy();f.w.close();});
+ await new Promise(r=>setTimeout(r,0));const c=f.controller;c.actions.choose('tri-angles');const q=c.snapshot().questions[0];
+ assert.equal(q.sourceKey,source.id+':1:1');assert.equal(c.snapshot().questions.length,10);assert.equal(c.snapshot().questions.filter(q=>q.type==='solution').length,2);
+ c.actions.practiceChoice(q.id,2);await c.actions.submitPractice();assert.equal(posts,1);assert.equal(c.snapshot().practice.result.score,1);assert.equal(c.snapshot().practice.result.items[0].gradeId,'choice-grade');
+ await c.actions.submitPractice();assert.equal(posts,1,'a saved round must not grade twice');
 });

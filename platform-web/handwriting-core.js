@@ -51,7 +51,14 @@
       (v.needsReview?v.score===null&&v.parts===null:integer(v.score,100)&&Array.isArray(v.parts)&&v.parts.length===4&&v.parts.every(x=>integer(x,100))&&v.parts.reduce((a,b)=>a+b,0)===v.score);
   }
   function validate(d){
-    if(!exact(d,['version','unitId','subject','mode','prompt','pages','revision','recognition','grades','updatedAt',...('photos' in (d||{})?['photos']:[])])||d.version!==1||!units(d.subject).includes(d.unitId)||d.mode!==(d.subject==='english'?'essay':'solution')||!str(d.prompt,6000)||!integer(d.revision,1e9)||!timestamp(d.updatedAt)||!Array.isArray(d.pages)||d.pages.length<1||d.pages.length>MAX_PAGES)return false;
+    const extra=['practiceSource','practiceRequestId','practiceRequestRevision','photoPracticeGrade'].filter(k=>k in (d||{}));
+    if(extra.length){
+      if(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}:[1-9]\d*:[1-9]\d*$/i.test(d.practiceSource||''))return false;
+      if(d.practiceRequestId!==undefined&&(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(d.practiceRequestId)||!integer(d.practiceRequestRevision,1e9)))return false;
+      const g=d.photoPracticeGrade;
+      if(g!==undefined&&(!exact(g,['sourceKey','revision','id','at','score','verdict','feedback'])||g.sourceKey!==d.practiceSource||!integer(g.revision,1e9)||!str(g.id,80)||!timestamp(g.at)||!str(g.feedback,2400)||!['correct','incorrect','partial','review','unanswered'].includes(g.verdict)||(g.score!==null&&(!integer(g.score,100)))))return false;
+    }
+    if(!exact(d,['version','unitId','subject','mode','prompt','pages','revision','recognition','grades','updatedAt',...extra,...('photos' in (d||{})?['photos']:[])])||d.version!==1||!units(d.subject).includes(d.unitId)||d.mode!==(d.subject==='english'?'essay':'solution')||!str(d.prompt,6000)||!integer(d.revision,1e9)||!timestamp(d.updatedAt)||!Array.isArray(d.pages)||d.pages.length<1||d.pages.length>MAX_PAGES)return false;
     if(d.photos!==undefined&&(!Array.isArray(d.photos)||d.photos.length!==d.pages.length||d.photos.some(p=>p!==null&&(typeof p!=='string'||p.length>650000||!/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(p)))||d.photos.reduce((n,p)=>n+(p?.length||0),0)>650000))return false;
     let points=0;
     for(const page of d.pages){

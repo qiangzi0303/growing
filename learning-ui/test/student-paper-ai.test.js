@@ -5,7 +5,7 @@ import {JSDOM} from 'jsdom';
 async function fixture(api=async()=>({}),request=async()=> '独立解答'){
  const dom=new JSDOM('',{runScripts:'outside-only'}),w=dom.window;let active=true;
  w.GrowingCourseAI={request};w.GrowingMathFormat={html:s=>s,solutionHtml:s=>s};
- w.eval(await readFile(new URL('../../app/src/main/assets/web/app-design/student-paper-ai.js',import.meta.url),'utf8'));
+ w.eval(await readFile(new URL('../../platform-web/student-paper-ai.js',import.meta.url),'utf8'));
  const q={id:'q1',number:11,revision:3,questionType:'written',pages:[2],text:'求解'},paper={subject:'math',pages:[{page:2,image:'original'}],questions:[q]};
  const c=w.GrowingStudentPaperAI.create({api,paper,question:q,studentId:7,active:()=>active});return {c,q,w,close(){active=false;c.destroy();w.close();}};
 }
@@ -24,3 +24,9 @@ test('type save changes revision response only after successful write',async()=>
 test('review failures never clear successful solution and timed-out solve rejects late content',async()=>{
  let deferred=false,finish,expire;const f=await fixture(async()=>{throw Error('照片服务暂不可用');},async()=>deferred?new Promise(r=>finish=r):'已完成解答');try{await f.c.actions.toggle('solve');await f.c.actions.toggle('review');assert.equal(f.c.snapshot().solve.result,'已完成解答');assert.match(f.c.snapshot().review.status,/照片服务/);deferred=true;const originalTimeout=f.w.setTimeout;f.w.setTimeout=(fn,ms)=>ms===220000?(expire=fn,123):originalTimeout(fn,ms);const task=f.c.actions.retry('solve');expire();finish('迟到解答');await task;assert.equal(f.c.snapshot().solve.result,'已完成解答');assert.match(f.c.snapshot().solve.status,/超时/);f.w.setTimeout=originalTimeout;}finally{f.close();}
 });
+test('AI cache is revision scoped; retry forces a new review request id',async()=>{
+ const calls=[],cacheCalls=[];const api=async(path,options)=>{calls.push(JSON.parse(options.body));return {verdict:'incorrect'};};
+ api.paperCache={async ai(student,q,kind,produce,options){cacheCalls.push({student,q,kind,force:options.force});return produce();}};
+ const f=await fixture(api);try{await f.c.actions.toggle('review');await f.c.actions.retry('review');assert.equal(cacheCalls[0].q.revision,3);assert.equal(cacheCalls[0].q.questionType,'written');assert.equal(cacheCalls[1].force,true);assert.equal(calls[0].force,false);assert.equal(calls[1].force,true);assert.match(calls[0].requestId,/^[a-f0-9-]{36}$/);assert.notEqual(calls[0].requestId,calls[1].requestId);}finally{f.close();}
+});
+test('changing question type clears displayed results from the prior revision',async()=>{const f=await fixture(async()=>({revision:4}));try{await f.c.actions.toggle('solve');await f.c.actions.questionType('fill');assert.equal(f.c.snapshot().solve.result,null);}finally{f.close();}});

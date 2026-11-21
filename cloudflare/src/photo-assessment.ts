@@ -5,6 +5,7 @@ export type PhotoAssessment={
   verdict:'correct'|'partial'|'incorrect'|'unanswered'|'review';score:number|null;
   studentAnswer:string;feedback:string;
   answerPages?:string[];
+  questionFigures?:string[];
   answerSource?:'handwriting-only';
   answerAnnotations?:AnswerAnnotation[];
   answerRegions?:PhotoRegion[];markedWrong?:boolean;

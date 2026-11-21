@@ -10,7 +10,7 @@
  window.GrowingStudentPages={registerLegacy(render){if(!enabled)return false;legacyRenders.push(render);if(failed)render();return true;}};
  if(!enabled)return;
  const base=new URL('./',document.currentScript.src),loads=new Map(),hidden=[];
- const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi','20261114-photo-history-1');return url;};
+ const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi','20261121-photo-practice-1');return url;};
  function load(name,css=false){
   if(loads.has(name))return loads.get(name);
   const promise=new Promise((resolve,reject)=>{const el=document.createElement(css?'link':'script');if(css){el.rel='stylesheet';el.href=assetUrl(name);}else el.src=assetUrl(name);el.onload=resolve;el.onerror=()=>{el.remove();loads.delete(name);reject(Error('新版学习页面资源暂不可用，已保留原页面。'));};document.head.append(el);});loads.set(name,promise);return promise;
@@ -40,6 +40,10 @@
     if(controllers[page]){
      const [script,global]=controllers[page];
      if(page==='math-course'&&!window.GrowingPracticeFigures)await load('practice-figures.js');
+     if(page==='math-course'){
+      await Promise.all([load('question-attempts.js'),load('../cloud/question-drawing.js'),window.katex||load('../cloud/vendor/katex/katex.min.js'),load('../cloud/vendor/katex/katex.min.css',true)]);
+      await load('../cloud/math-format.js');
+     }
      if(page==='unit3-course'){await load('course-ai.js');}
      if(page==='fraction-course'){
       await Promise.all(['handwriting-core.js','practice-progress.js','practice-math-upper.js','practice-math-lower.js','practice-physics.js'].map(name=>load(name)));

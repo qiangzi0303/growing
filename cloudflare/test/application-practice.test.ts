@@ -4,6 +4,17 @@ import {buildReport} from '../src/reports';
 import {masteryBoards} from '../src/rankings';
 import {buildUnitReports} from '../src/unit-reports';
 import {buildKnowledge} from '../src/student-knowledge';
+import practiceProgress from '../../app/src/main/assets/web/app-design/practice-progress.js';
+
+test('new photo question versions cannot inherit a historical ten-question pass',()=>{
+ const before={practice10:{version:1,total:10,best:10}};
+ assert.equal(practiceProgress.result(before).passed,true);
+ const set=Array.from({length:10},(_,i)=>i===8?'photo:2:1':'');
+ assert.equal(practiceProgress.result({...before,practiceSet:set}).passed,false);
+ assert.equal(before.practice10.best,10);
+ const round={version:1,total:10,at:'2026-11-21T01:00:00Z',items:Array.from({length:10},(_,i)=>({id:'tri-angles-application-'+(i+1),type:i<8?'choice':'solution',passed:false,unanswered:true,choice:null,score:null,sourceKey:i===8?'photo:1:1':''}))};
+ assert.equal(practiceProgress.result({practiceRound:round,practiceSet:set}).score,0);
+});
 import type {Document} from '../src/database';
 const record=(topic:any):Document=>({key:'growing-math-lessons-v1',value:JSON.stringify({version:1,topics:{pythagoras:{seen:true,draft:'',self:[],attempts:[{score:8,criticalErrors:[],feedback:'解释正确'}],...topic}}}),revision:1,updatedAt:'2026-11-05T00:00:00Z'});
 

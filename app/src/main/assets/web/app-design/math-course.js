@@ -17,7 +17,7 @@
     const raw=localStorage.getItem(KEY);
     if(raw){const parsed=JSON.parse(raw);if(parsed.version!==1||!parsed.topics||typeof parsed.topics!=='object'||Array.isArray(parsed.topics))throw Error('格式不匹配');
       learning=T.restore(parsed.tools);
-      for(const n of D.nodes){const r=parsed.topics[n.id];if(r&&typeof r==='object'&&typeof r.draft==='string'&&Array.isArray(r.self)&&Array.isArray(r.attempts))records[n.id]={draft:r.draft,seen:r.seen===true,self:r.self.filter(Number.isInteger),bestQuiz:Number.isInteger(r.bestQuiz)?Math.max(0,Math.min(3,r.bestQuiz)):0,practice10:r.practice10,practicePhoto:r.practicePhoto,practiceChoices:P.choices(r.practiceChoices),attempts:r.attempts.filter(validGrade).slice(-20)};}
+      for(const n of D.nodes){const r=parsed.topics[n.id];if(r&&typeof r==='object'&&typeof r.draft==='string'&&Array.isArray(r.self)&&Array.isArray(r.attempts))records[n.id]={draft:r.draft,seen:r.seen===true,self:r.self.filter(Number.isInteger),bestQuiz:Number.isInteger(r.bestQuiz)?Math.max(0,Math.min(3,r.bestQuiz)):0,practiceSet:r.practiceSet,practiceChoiceSources:r.practiceChoiceSources,photoChoiceRequests:r.photoChoiceRequests,practiceRound:r.practiceRound,practiceMode:r.practiceMode,practice10:r.practice10,practicePhoto:r.practicePhoto,practiceChoices:P.choices(r.practiceChoices),attempts:r.attempts.filter(validGrade).slice(-20)};}
       if(!parsed.tools)for(const n of D.nodes)for(const a of records[n.id]?.attempts||[])if(a.at&&Number.isFinite(new Date(a.at).getTime()))T.log(learning,n.id,{kind:'grade',score:a.score},a.at);
     }
   }catch(error){archiveUnreadable=true;storageError='本机微课记录暂时无法读取。旧记录未删除；请先备份并修复记录后再保存。';}

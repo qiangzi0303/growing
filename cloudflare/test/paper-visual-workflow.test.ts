@@ -45,6 +45,35 @@ test('blind review reads originals plus advisory crops without an OCR draft or a
  await assert.rejects(reviewQuestion(env,signal(),provider({number:task.number,complete:true,hasFigures:false,checks,warnings:['题设提及如图但未找到'],question:{...question,text:'如图，求面积。'}}),'math',task,pages,fragments));
 });
 
+test('missing figures report their actual review failure and never substitute an OCR success',async()=>{
+ await assert.rejects(reviewQuestion(env,signal(),provider({number:task.number,complete:false,hasFigures:false,checks:{...checks,figures:false},warnings:[],question},body=>{
+  assert.match(body.messages[0].content,/集中排在一组题目上方/);
+ }),'math',task,pages,fragments),/未能确认本题配图/);
+ await assert.rejects(reviewQuestion(env,signal(),provider({number:task.number,complete:true,hasFigures:false,checks,warnings:[],question:{...question,text:'求 x = 2。'}}),'math',task,pages,fragments),/公式排版格式/);
+ await assert.rejects(reviewQuestion(env,signal(),(async()=>new Response('',{status:503})) as typeof fetch,'math',task,pages,fragments),/HTTP 503/);
+ await assert.rejects(reviewQuestion(env,signal(),(async()=>Response.json({choices:[{finish_reason:'length',message:{content:'{}'}}]})) as typeof fetch,'math',task,pages,fragments),/输出被截断/);
+});
+
+test('review includes expanded search context while preserving source-page and figure coordinates',async()=>{
+ const contextRegion={page:2,x:.05,y:.1,width:.8,height:.8};
+ const withContext=[{...fragments[0],context:{image,region:contextRegion}}];
+ const result=await reviewQuestion(env,signal(),provider({number:task.number,complete:true,figureSpace:'context',hasFigures:true,checks,warnings:[],question:{...question,figures:[region]}},body=>{
+  const content=body.messages[1].content,source=JSON.parse(content[0].text).sourcePages[0];
+  assert.equal(content.filter((p:any)=>p.type==='image_url').length,3);
+  assert.equal(source.page,2);assert.equal(source.originalImage,1);assert.equal(source.contextImage,2);assert.equal(source.cropImage,3);
+  assert.deepEqual(source.contextRegion,contextRegion);assert.deepEqual(source.crop,region);
+  assert.match(content.filter((p:any)=>p.type==='text')[2].text,/放大查找图/);
+ }),'math',task,pages,withContext);
+ const actual=result.question.figures[0];assert.equal(actual.page,2);
+ for(const [key,value] of Object.entries({x:.11,y:.24,width:.44,height:.36}))assert.ok(Math.abs((actual as any)[key]-value)<1e-10);
+ await assert.rejects(reviewQuestion(env,signal(),provider({number:task.number,complete:true,hasFigures:true,checks,warnings:[],question:{...question,figures:[region]}}),'math',task,pages,withContext),/坐标未标明/);
+ let calls=0;
+ for(const context of [{image,region:{...contextRegion,page:1}},{image,region:{...contextRegion,y:.3}},{image:'data:image/jpeg;base64,/9j/'+'A'.repeat(300000),region:contextRegion}]){
+  await assert.rejects(reviewQuestion(env,signal(),provider({},()=>{calls++;}),'math',task,pages,[{...fragments[0],context}]),/查找区域/);
+ }
+ assert.equal(calls,0);
+});
+
 test('crop canonicalization accepts a returned region without trusting unrelated coordinates',async()=>{
  const canonical={...region,width:.1+.2};const cropped={page:2,image,region:canonical};
  await reviewQuestion(env,signal(),provider({number:task.number,complete:true,hasFigures:false,checks,warnings:[],question}),'math',{...task,regions:[canonical]},pages,[cropped]);

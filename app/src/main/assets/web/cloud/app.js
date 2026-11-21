@@ -75,7 +75,18 @@
     }
   }
   function read(key,fallback){try{return JSON.parse(raw.getItem(key)||'null')??fallback;}catch{throw Error('本机同步配置无法读取，请先备份原记录。');}}
+  const paperCache=window.GrowingPaperCache?.create({identity:()=>user?{id:user.id,role:user.role,base,generation}:null,request:networkApi});
   async function api(path,options={}){
+    const result=await (paperCache?paperCache.api(path,options):networkApi(path,options));
+    if(['POST','PUT','DELETE'].includes(options.method)&&path.startsWith('/question-bank/')){
+      let body={};try{body=JSON.parse(options.body||'{}');}catch{}
+      if(!path.endsWith('/paper-ai')||body.kind==='review')window.dispatchEvent(new CustomEvent('growing:knowledge-changed',{detail:{studentId:body.studentId}}));
+    }
+    return result;
+  }
+  api.paperCache=paperCache;
+  async function networkApi(path,options={}){
+    const requestGeneration=generation,requestUserId=user?.id,requestToken=token;
     const controller=new AbortController();let timeout;
     const abort=()=>controller.abort();if(options.signal?.aborted)abort();else options.signal?.addEventListener('abort',abort,{once:true});
     const deadline=new Promise((_,reject)=>{timeout=setTimeout(()=>{reject(Object.assign(Error('连接云服务超时，请检查网络后重试。'),{code:'REQUEST_TIMEOUT'}));controller.abort();},/^\/question-bank\/import-jobs\/[^/?]+\/step$/.test(path)?190000:path==='/question-bank/import'||/^\/question-bank\/questions\/[^/]+\/(format|followup|correct|drawing|paper-ai)$/.test(path)?110000:12000);});
@@ -83,11 +94,7 @@
     const response=await fetch(base+'/api'+path,{...options,keepalive:!options.body||new TextEncoder().encode(options.body).length<60000,signal:controller.signal,credentials:isNative?'omit':'same-origin',headers:{'Content-Type':'application/json','X-Growing-Client':'1',...(token?{Authorization:'Bearer '+token}:{}),...options.headers}});
     if(response.status===204)return null;
     const text=await response.text();let result;try{result=text?JSON.parse(text):null;}catch{throw Error('服务返回格式不正确，请检查站点地址。');}
-    if(!response.ok){const error=Error(result?.error||(response.status===401?'云登录已失效，请重新登录。':response.status===403?'当前账号没有权限。':'请求未完成（'+response.status+'）'));error.status=response.status;error.current=result?.current;if(response.status===401&&user){generation++;clearInterval(timer);clearTimeout(saveTimer);user=null;token='';raw.removeItem(sessionKey);auth();hint(error.message);}throw error;}
-    if(['POST','PUT'].includes(options.method)&&/^\/question-bank\/(import|attempts|import-jobs\/[a-f0-9-]{36}\/step|papers\/[a-f0-9-]{36}\/confirm|questions\/[a-f0-9-]{36}(?:\/(correct|format|paper-mark))?)$/.test(path)){
-      const studentId=JSON.parse(options.body||'{}').studentId;
-      window.dispatchEvent(new CustomEvent('growing:knowledge-changed',{detail:{studentId}}));
-    }
+    if(!response.ok){const error=Error(result?.error||(response.status===401?'云登录已失效，请重新登录。':response.status===403?'当前账号没有权限。':'请求未完成（'+response.status+'）'));error.status=response.status;error.current=result?.current;if(response.status===401&&user&&generation===requestGeneration&&user.id===requestUserId&&token===requestToken){generation++;clearInterval(timer);clearTimeout(saveTimer);user=null;token='';raw.removeItem(sessionKey);auth();hint(error.message);}throw error;}
     return result;
     })()]);}catch(error){if(error instanceof TypeError)throw Error('无法连接云服务，请检查网络后重试。');throw error;}
     finally{clearTimeout(timeout);options.signal?.removeEventListener('abort',abort);}
@@ -236,7 +243,7 @@
     if(push){const url=new URL(location.href);url.hash='question-bank';if(unitId)url.searchParams.set('unit',unitId);history.pushState({questionBankFrom:page.from},'',url);}
     updateShellNavigation();window.scrollTo(0,0);
     const alive=()=>questionBankPage===page&&generation===version&&root.isConnected;
-    try{await GrowingQuestionBank.mount(root,api,esc,alive,user,{unitId});
+    try{await GrowingQuestionBank.mount(root,api,esc,alive,user,{unitId,wrongOnly:new URLSearchParams(location.search).get('wrong')==='1'});
       if(alive()){const back=root.querySelector('#question-bank-home');if(back)back.textContent='← 返回上一级';const title=root.querySelector('h1');if(title){title.tabIndex=-1;title.focus({preventScroll:true});}}
     }catch(error){if(alive())root.innerHTML='<button id="question-bank-home">← 返回上一级</button><p role="status">'+esc(error.message)+'</p>';}
   }
@@ -269,13 +276,14 @@
   paperReviewContext(){
     if(!user||needsRole(user))throw Error('请先登录并选择身份。');
     const id=user.id,version=generation;
-    return {user:{id,role:user.role},api:async(path,options)=>{
+    const scopedApi=async(path,options)=>{
       if(user?.id!==id||generation!==version)throw Error('账号已切换，请重新打开试卷。');
       if(!path.startsWith('/question-bank/')&&path!=='/parent/children'&&!path.startsWith('/admin/members?'))throw Error('试卷接口无效。');
       const result=await api(path,options);
       if(user?.id!==id||generation!==version)throw Error('账号已切换，请重新打开试卷。');
       return result;
-    }};
+    };scopedApi.paperCache=paperCache;
+    return {user:{id,role:user.role},api:scopedApi,paperCache};
   },
   async studentKnowledge(unit='',query='',topic=''){
     if(!user||user.role!=='Student'||needsRole(user))throw Error('请使用学生账号进入学习中心。');

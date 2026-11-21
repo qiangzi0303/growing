@@ -201,7 +201,7 @@ export function createHandler(database: (env: Env) => Database = env => {
           return decorate(json(await bank.drawFigure(student,path.split('/').at(-2)!,data,env,request.signal,aiFetch)),request);
         }
         if(/^\/api\/question-bank\/questions\/[a-f0-9-]{36}\/(followup|correct)$/.test(path)&&request.method==='POST'){
-          const data=await body(request,path.endsWith('/correct')?640000:40000),student=await bank.authorize(data.studentId),review=new PhotoReview(db,current,id=>bank.authorize(id));
+          const data=await body(request,path.endsWith('/correct')?1140000:40000),student=await bank.authorize(data.studentId),review=new PhotoReview(db,current,id=>bank.authorize(id));
           return decorate(json(await review[path.endsWith('/followup')?'followup':'correct'](student,path.split('/').at(-2)!,data,env,request.signal,aiFetch)),request);
         }
         if(/^\/api\/question-bank\/questions\/[a-f0-9-]{36}\/review$/.test(path)&&request.method==='GET'){
@@ -226,7 +226,9 @@ export function createHandler(database: (env: Env) => Database = env => {
           if(!Number.isSafeInteger(page)||page<1||page>100000)error(400,'页码无效。');
           return decorate(json(await bank.unitWrongHistory(student,page)),request);
         }
-        if(path==='/api/question-bank/paper-graph'&&request.method==='GET')return decorate(json(await bank.paperGraph(student)),request);
+        if(path==='/api/question-bank/cache-access'&&request.method==='GET')return decorate(json({authorized:true}),request);
+        if(path==='/api/question-bank/unit-summary'&&request.method==='GET')return decorate(json(await bank.unitSummary(student,url.searchParams.get('subject')??'math')),request);
+        if(path==='/api/question-bank/paper-graph'&&request.method==='GET')return decorate(json(await bank.paperGraph(student,url.searchParams.get('subject')??'math',url.searchParams.get('paperId')??undefined)),request);
         if(path==='/api/question-bank/papers'&&request.method==='GET')return decorate(json(await bank.papers(student,url.searchParams.get('subject'))),request);
         if(path==='/api/question-bank/repeated'&&request.method==='GET'){
           const page=Number(url.searchParams.get('page')||1);
@@ -243,8 +245,9 @@ export function createHandler(database: (env: Env) => Database = env => {
         if(path==='/api/question-bank/questions'&&request.method==='GET'){
           const page=Number(url.searchParams.get('page')||1);
           if(!Number.isSafeInteger(page)||page<1||page>10000)error(400,'页码无效。');
-          return decorate(json(await bank.list(student,url.searchParams.get('unitId')??'all',page,url.searchParams.get('repeated')==='1',url.searchParams.get('wrong')==='1')),request);
+          return decorate(json(await bank.list(student,url.searchParams.get('unitId')??'all',page,url.searchParams.get('repeated')==='1',url.searchParams.get('wrong')==='1',url.searchParams.get('nodeId')||'')),request);
         }
+        if(path==='/api/question-bank/practice-candidates'&&request.method==='GET')return decorate(json(await bank.practiceCandidates(student,url.searchParams.get('unitId')||'')),request);
         if(/^\/api\/question-bank\/papers\/[a-f0-9-]{36}$/.test(path)&&request.method==='GET')
           return decorate(json(await bank.paper(student,path.split('/').at(-1)!)),request);
         error(404,'未找到题库接口。');

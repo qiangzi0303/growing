@@ -73,6 +73,18 @@
   }
   async function prepareImportStep(next,pages){
     if(!next||next.kind!=='question'||!next.stage||next.stage==='locate')return {};
+    if(next.stage==='review'){
+      const fragments=await importFragments(next,pages,200000);
+      for(const fragment of fragments){
+        // A stem-only crop can hide a diagram printed above a group of questions.
+        // This is search context, never a replacement for the question's source region.
+        const r=fragment.region,x=Math.max(0,r.x-.08),y=Math.max(0,r.y-.35);
+        const region={page:r.page,x,y,width:Math.min(1,r.x+r.width+.08)-x,height:Math.min(1,r.y+r.height+.15)-y};
+        const [context]=await importFragments({pages:[r.page],regions:[region]},pages,300000);
+        fragment.context={image:context.image,region};
+      }
+      return {fragments};
+    }
     if(next.stage!=='verify')return {fragments:await importFragments(next,pages)};
     const vector=window.GrowingQuestionDrawing?.normalize(next.drawing);
     if(!vector||typeof next.drawingHash!=='string')throw Error('本题重绘数据缺失，请刷新后继续。');

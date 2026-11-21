@@ -38,6 +38,47 @@ after(async()=>{await mf.dispose();});
 
 const vector=()=>({version:'question-svg-v1',figures:[{width:380,height:280,title:'题设三角形',elements:[{tag:'path',d:'M80 230 L180 30 L280 230 Z'},{tag:'text',x:180,y:22,text:'A'}]}],warnings:[]});
 
+test('photo practice choices are graded from the selected option without old answer images and are idempotent',async()=>{
+ const u=await register(),{data}=await importPaper(u),q=data.questions[1],path='/question-bank/questions/'+q.id+'/correct';
+ const input={studentId:u.user.id,revision:q.revision,figureVersion:q.figureVersion,requestId:crypto.randomUUID(),choice:2};
+ assert.equal((await call(path,'POST',input,u.token)).status,400,'written questions cannot submit an option');
+ await db.query('UPDATE "GrowingPhotoQuestions" SET "QuestionType"=\'choice\',"Practice"=?2,"Text"=?3 WHERE "Id"=?1',[q.id,JSON.stringify({nodeId:'angle-bisector',level:'basic'}),'Which statement is correct? A. one B. two C. three D. four']);
+ output=assessment({verdict:'incorrect',score:0,knowledge:[],corrections:[]});
+ const response=await call(path,'POST',input,u.token);assert.equal(response.status,200,await response.clone().text());
+ const saved=await response.json() as any;assert.equal(saved.grade.studentAnswer,'本次选择：C。');
+ assert.ok(!calls.at(-1).messages[1].content.some((p:any)=>p.type==='image_url'));
+ const before=calls.length;assert.equal((await call(path,'POST',input,u.token)).status,200);assert.equal(calls.length,before);
+ const wrong=await (await call('/question-bank/questions?studentId='+u.user.id+'&unitId=math-8a-01&nodeId=angle-bisector&wrong=1','GET',undefined,u.token)).json() as any;
+ assert.equal(wrong.total,1);assert.equal(wrong.rows[0].id,q.id);
+ assert.equal((await call(path,'POST',{...input,choice:4,requestId:crypto.randomUUID()},u.token)).status,400);
+ assert.equal((await call(path,'POST',{...input,figureVersion:999,requestId:crypto.randomUUID()},u.token)).status,409);
+});
+
+test('new math answers preserve source crop snapshots without changing figures or sending the old paper',async()=>{
+ const u=await register(),{data}=await importPaper(u),q=data.questions[0],path='/question-bank/questions/'+q.id;
+ await db.query('UPDATE "GrowingQuestionPapers" SET "Mode"=\'paper\' WHERE "Id"=?1',[q.paperId]);
+ const regions=[{page:1,x:.1,y:.1,width:.2,height:.2}];
+ await db.query('UPDATE "GrowingPhotoQuestions" SET "Figures"=?2,"Reviewed"=1 WHERE "Id"=?1',[q.id,JSON.stringify(regions)]);
+ const photo='data:image/png;base64,iVBORw0KGgoAAA==',figure='data:image/jpeg;base64,/9j/AQ==';
+ const input={studentId:u.user.id,revision:q.revision,requestId:crypto.randomUUID(),answerPages:[photo],questionFigure:figure,figureVersion:q.figureVersion};
+ await db.query('UPDATE "GrowingQuestionPapers" SET "Mode"=\'paper-draft\' WHERE "Id"=?1',[q.paperId]);
+ assert.equal((await call(path+'/correct','POST',input,u.token)).status,409);
+ await db.query('UPDATE "GrowingQuestionPapers" SET "Mode"=\'paper\' WHERE "Id"=?1',[q.paperId]);
+ assert.equal((await call(path+'/correct','POST',{...input,figureVersion:999},u.token)).status,409);
+ output=assessment({answerAnnotations:[],studentAnswer:'本次新作答'});
+ const response=await call(path+'/correct','POST',input,u.token);assert.equal(response.status,200,await response.clone().text());
+ const {grade}=await response.json() as any;
+ assert.notEqual(calls.at(-1).thinking?.type,'disabled','math answer grading preserves the visual model reasoning setting');
+ const images=()=>calls.at(-1).messages[1].content.filter((p:any)=>p.type==='image_url').map((p:any)=>p.image_url.url);
+ assert.deepEqual(images(),[photo,figure]);assert.deepEqual(grade.result.questionFigures,[figure]);
+ const [saved]=await db.query<any>('SELECT "Figures","Reviewed","FigureVersion" FROM "GrowingPhotoQuestions" WHERE "Id"=?1',[q.id]);
+ assert.deepEqual(JSON.parse(saved.Figures),regions);assert.equal(saved.Reviewed,1);assert.equal(saved.FigureVersion,q.figureVersion);
+ const before=calls.length;assert.equal((await call(path+'/correct','POST',input,u.token)).status,200);assert.equal(calls.length,before);
+ output={reply:'先检查本次作答的第一步。'};
+ assert.equal((await call(path+'/followup','POST',{studentId:u.user.id,gradeId:grade.id,requestId:crypto.randomUUID(),prompt:'只提示下一步'},u.token)).status,200);
+ assert.deepEqual(images(),[photo,figure]);
+});
+
 test('unit wrong questions save independent photo answers and immutable history in the student scope',async()=>{
   const u=await register(),other=await register(),parent=await register('Parent');
   const input={studentId:u.user.id,questionId:'1025141010-28'};
@@ -117,7 +158,9 @@ test('unit wrong filter includes checked originals and retains corrected history
   assert.ok((await wrong()).rows.some((row:any)=>row.id===q.id));
   output=assessment({verdict:'correct',score:100,corrections:[]});
   assert.equal((await call(path+'/correct','POST',{studentId:u.user.id,revision:1,requestId:crypto.randomUUID(),studentAnswer:'正确订正'},u.token)).status,200);
-  assert.equal((await wrong()).rows.find((row:any)=>row.id===q.id).grades.at(-1).result.verdict,'correct');
+  assert.equal((await wrong()).rows.some((row:any)=>row.id===q.id),false);
+  const correctedHistory=await (await call(path+'/review?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;
+  assert.equal(correctedHistory.question.grades.at(-1).result.verdict,'correct');
   output=assessment({verdict:'partial'});
   assert.equal((await call(path+'/correct','POST',{studentId:u.user.id,revision:1,requestId:crypto.randomUUID(),studentAnswer:'部分订正'},u.token)).status,200);
   assert.ok((await wrong()).rows.some((row:any)=>row.id===q.id));
@@ -543,7 +586,9 @@ test('photo mistakes are automatically collected once per student and unit, reta
   const corrected=await call('/question-bank/questions/'+q.id+'/correct','POST',{studentId:u.user.id,revision:q.revision,requestId:crypto.randomUUID(),studentAnswer:'正确订正'},u.token);
   assert.equal(corrected.status,200);
   const after=await (await query('math-8b-10')).json() as any;
-  assert.equal(after.total,1);assert.equal(after.rows[0].id,q.id);assert.equal(after.rows[0].grades.length,2);
+  assert.equal(after.total,0);
+  const history=await (await call('/question-bank/questions/'+q.id+'/review?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;
+  assert.equal(history.question.grades.length,2);
   await db.query('UPDATE "GrowingPhotoQuestions" SET "Revision"="Revision"+1 WHERE "Id"=?1',[q.id]);
   assert.equal((await (await query('all')).json() as any).total,0);
 });
