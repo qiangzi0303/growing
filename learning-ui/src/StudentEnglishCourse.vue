@@ -1,4 +1,5 @@
 <script setup>
+const cloudWrongHref=id=>(window.GrowingNative?'../cloud/index.html':'/')+'?'+new URLSearchParams({unit:id,wrong:'1'})+'#question-bank';
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { Button, Cell, CellGroup, Collapse, CollapseItem, Field, Form, Radio, RadioGroup, Search, Tab, Tabs, Tag,Popup,Picker } from 'vant';
 import StudentCourseSettings from './StudentCourseSettings.vue';
@@ -20,7 +21,7 @@ function submitRecall(){const before=m.value.stage;a.submitRecall(recallAnswer.v
 function switchUnit({selectedValues}){unitPicker.value=false;location.assign(new URL(selectedValues[0],location.href).href);}
 </script>
 <template>
- <nav class="course-return-nav"><Button tag="a" href="units.html?subject=english&term=upper" data-growing-back>← 返回上一级</Button></nav>
+ <nav class="course-return-nav"><Button v-if="m.unit?.id" tag="a" :href="cloudWrongHref(m.unit.id)">本单元错题</Button><Button tag="a" href="units.html?subject=english&term=upper" data-growing-back>← 返回上一级</Button></nav>
  <main class="student-english-course" :class="{'student-word-enabled':m.studyEnabled}">
   <template v-if="m.kind==='error'"><h1>{{ m.title }}</h1><p role="status">{{ m.message }}</p><a :href="m.backHref">返回英语目录</a></template>
   <template v-else>

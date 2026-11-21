@@ -16,7 +16,7 @@ if(!process.argv.includes('--stage-only')){
   execFileSync(process.execPath,[vite,'build'],{cwd:ui,stdio:'inherit'});
 }
 const course=join(repo,'app/src/main/assets/web/app-design');
-// Copy scene directories recursively without the native Windows cpSync fast-fail.
+// Node 22.18 on Windows can fast-fail (0xC0000409) in native cpSync for these asset directories.
 function copySceneAssets(source,target){
   mkdirSync(target,{recursive:true});
   for(const entry of readdirSync(source,{withFileTypes:true})){
@@ -38,7 +38,8 @@ function reviseHtml(path,names){
 const newModels=['student-pages.js','student-catalog-model.js','student-summary-model.js','student-resources-model.js','student-math-course.js','student-english-course.js','student-knowledge.js','student-handwriting.js','student-english-labs.js','student-math-resources.js','student-math-labs.js','student-physics-labs.js','student-triangle-centers.js','student-fraction-course.js','student-midterm.js','student-unit3-course.js','student-paper-ai.js','student-figure-editor.js'];
 newModels.push('student-duck-controls.js');
 newModels.push('application-practice.js','handwriting-ai.js','handwriting-core.js','practice-progress.js','math-figures.js','practice-figures.js','geometry-guidance.js');
-newModels.push('paper-photo-uploads.js','question-attempts.js');
+newModels.push('paper-photo-uploads.js');
+newModels.push('question-attempts.js');
 newModels.push('english-engine.js','english-word-pilot-data.js','english-word-pilot-core.js','student-word-pilot.js');
 newModels.push('english-word-review.js','english-word-study-data.js','english-word-study-units-245.js','english-word-study-units-3678.js');
 const migratedAssets=['catalog.js','unit-summary.js','math-course.js','english-course.js','knowledge.js','handwriting.js','index.html','units.html','study.html','unit-summary.html','math-resources.html','english-resources.html','physics-resources.html','math-course.html','physics-course.html','english-course.html','knowledge.html','physics-knowledge.html','handwriting.html','english-visual-lab.html','english-visual-quiz.html','english-sentence-demo.html','english-visual-lab.js','english-visual-quiz.js','english-sentence-demo.js','math-exam-practice.html','math-wrong-questions.html','math-exam-practice.js','math-wrong-questions.js','math-explore-lab.html','geometry-models.html','math-lab.js','geometry-models.js'];
@@ -56,24 +57,28 @@ for(const target of targets){
   writeFileSync(join(vendor,'LICENSES.txt'),licenses);
   if(target!==course)copyFileSync(join(course,'vant-home.js'),join(target,'vant-home.js'));
   if(target!==course)for(const name of newModels)copyFileSync(join(course,name),join(target,name));
-  if(target!==course)for(const folder of ['word-pilot-scenes','word-study-scenes'])copySceneAssets(join(course,folder),join(target,folder));
+  if(target!==course){
+   for(const folder of ['word-pilot-scenes','word-study-scenes']){
+    copySceneAssets(join(course,folder),join(target,folder));
+   }
+  }
   if(target!==course)for(const name of migratedAssets){
    if(target===join(project,'app-design')&&!['course-duck.js','english-course.html','english-course.js'].includes(name)&&!name.startsWith('companion-duck/'))continue;
    mkdirSync(dirname(join(target,name)),{recursive:true});copyFileSync(join(course,name),join(target,name));
   }
 }
-for(const target of ['platform-web','app/src/main/assets/web/cloud','cloudflare/public']){
+for(const target of ['platform-web','app/src/main/assets/web/cloud','cloudflare/public','cloudflare/public/learn/cloud','../cloud']){
   mkdirSync(join(repo,target),{recursive:true});copyFileSync(join(course,'vant-home.js'),join(repo,target,'vant-home.js'));
 }
 for(const name of ['fraction-ops/分式作战_一分钟学习版.html','word-ops-unit3/index.html']){
  const destination=join(repo,'cloudflare/public/learn',name);mkdirSync(dirname(destination),{recursive:true});
  copyFileSync(join(repo,'app/src/main/assets/web',name),destination);
 }
-for(const target of ['app/src/main/assets/web/cloud','cloudflare/public']){
+for(const target of ['app/src/main/assets/web/cloud','cloudflare/public','cloudflare/public/learn/cloud','../cloud']){
   for(const name of ['student-platform.js','student-photo-review.js','student-paper-pages.js','photo-review.js','my-papers.js','question-bank.js','question-figures.js','paper-cache.js','paper-ai.js','app.js','index.html','cloud-storage.js'])copyFileSync(join(repo,'platform-web',name),join(repo,target,name));
 }
 for(const target of [course,join(project,'app-design'),join(repo,'cloudflare/public/learn/app-design')])copyFileSync(join(repo,'platform-web/student-photo-review.js'),join(target,'student-photo-review.js'));
-for(const target of ['platform-web','app/src/main/assets/web/cloud','cloudflare/public']){
+for(const target of ['platform-web','app/src/main/assets/web/cloud','cloudflare/public','cloudflare/public/learn/cloud','../cloud']){
  for(const name of ['student-paper-ai.js','student-figure-editor.js'])copyFileSync(join(course,name),join(repo,target,name));
  const vendor=join(repo,target,'vendor/learning-ui');mkdirSync(vendor,{recursive:true});
  for(const name of ['learning-ui.js','learning-ui.css','LICENSES.txt'])copyFileSync(join(course,'vendor/learning-ui',name),join(vendor,name));

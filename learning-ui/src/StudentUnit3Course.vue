@@ -1,4 +1,5 @@
 <script setup>
+const windowNative=!!window.GrowingNative;
 import {computed,onBeforeUnmount,ref,shallowRef} from 'vue';
 import {Button,Calendar,Cell,CellGroup,Checkbox,CheckboxGroup,Collapse,CollapseItem,Dialog,DropdownItem,DropdownMenu,Field,Picker,Popup,Radio,RadioGroup,Search,Tab,Tabs,Tag} from 'vant';
 import StudentCourseSettings from './StudentCourseSettings.vue';
@@ -26,7 +27,7 @@ function selectUnit({selectedValues}){const u=m.value.units.find(u=>u.id===selec
 function doReset(){if(a.reset(confirmed.value)){reset.value=false;confirmed.value=false;}}
 </script>
 <template>
- <nav class="course-return-nav"><Button tag="a" href="../app-design/units.html?subject=english&term=upper" data-growing-back>← 返回上一级</Button></nav>
+ <nav class="course-return-nav"><Button tag="a" :href="(windowNative?'../cloud/index.html':'/')+'?unit=english-8a-03&amp;wrong=1#question-bank'">本单元错题</Button><Button tag="a" href="../app-design/units.html?subject=english&term=upper" data-growing-back>← 返回上一级</Button></nav>
  <main class="student-unit3-course">
   <header class="unit-header"><div><p class="eyebrow">译林版 · 2025秋新教材 · 八年级上册</p><h1>Unit 3<br>To be a good learner</h1><p class="muted">善于学习 · 副词比较级与最高级 · 反身代词</p><Button class="catalog-link" @click="a.navigate('../app-design/units.html?subject=english&term=upper')">← 英语目录</Button></div><div class="unit-select"><label>切换单元</label><Cell value="Unit 3 · To be a good learner" is-link clickable @click="unitPicker=true"/></div></header>
   <nav class="tabs" aria-label="课堂工具"><Button :aria-current="['library','card'].includes(m.view)?'page':undefined" @click="a.open('library')">单词与默写</Button><Button :aria-current="m.view==='knowledge'?'page':undefined" @click="a.open('knowledge')">阅读与语法</Button><Button :aria-current="m.view==='feynman'?'page':undefined" @click="a.feynman()">概念复述</Button><Button @click="a.navigate('../app-design/english-sentence-demo.html?unit=english-8a-03')">句子闯关</Button><Button @click="a.navigate('../app-design/english-resources.html?unit=english-8a-03')">试卷</Button></nav>

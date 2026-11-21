@@ -4,7 +4,7 @@
  const root=window,version='flat-classroom-2';
  const has=(object,key)=>object&&Object.hasOwn(object,key);
  const catalogHref=(subject,term)=>'units.html?'+new URLSearchParams({subject,term,v:version});
- function create({page='catalog',params=new URLSearchParams(),read=()=>null}={}){
+ function create({page='catalog',params=new URLSearchParams(),read=()=>null,wrongSummary=null,wrongError=''}={}){
   const subject=params.get('subject')||'math',term=params.get('term')||'upper';
   const course=has(root.GrowingCurriculum,subject)?root.GrowingCurriculum[subject]:null;
   const book=has(course?.terms,term)?course.terms[term]:null;
@@ -48,11 +48,11 @@
   }
   const units=book.units.map(unit=>{
    const available=!!book.verified&&!!unit.entry;
-   const result={id:unit.id,number:unit.number,label:label(unit),title:unit.title,summary:unit.summary,state:state(unit),available,href:studyHref(unit),summaryHref:available?'unit-summary.html?'+new URLSearchParams({subject,unit:unit.id}):null,mastery:null,masteryError:null};
+   const result={id:unit.id,number:unit.number,label:label(unit),title:unit.title,summary:unit.summary,state:state(unit),available,href:studyHref(unit),summaryHref:available?'unit-summary.html?'+new URLSearchParams({subject,unit:unit.id}):null,wrongCount:wrongSummary?.units?.find(u=>u.id===unit.id)?.wrongCount??null,mastery:null,masteryError:null};
    if(available)try{const score=mastery(unit);if(!Number.isFinite(score)||score<0||score>100)throw Error('掌握度记录无效');result.mastery=score;}catch{result.masteryError='进度暂不可用，原记录未改动。';}
    return result;
   });
-  return {...common,kind:'catalog',title:course.name+'单元目录',tagline:{math:'宇宙的语言。',english:'通往世界的钥匙。',physics:'现象是观察，发现规律才是智慧。'}[subject],subjects:Object.entries(root.GrowingCurriculum).map(([id,value])=>({id,name:value.name,href:catalogHref(id,'upper')})),terms:Object.entries(course.terms).map(([key,value])=>({key,name:value.name,href:catalogHref(subject,key)})),units,resources:{label:subject==='math'?'试卷和推导':'试卷',href:subject+'-resources.html?'+new URLSearchParams({term})},animationHref:subject==='english'?'english-visual-lab.html?'+new URLSearchParams({term}):null,notice:book.verified?'':subject==='physics'?'下册暂不开放，当前先学习上册。上册已按2025年第4版核对。':'下册教材目录待核对，目前预留 8 个单元位置，名称与数量以教材为准。',footnote:graph?(book.verified?'各章均可进入学习，并查看本章图谱与薄弱点诊断。':subject==='physics'?'下册暂不开放，当前先学习上册。':'下册内容待提供教材核对后开放。'):book.verified?'上册8个单元均可学习：单词、闭卷默写、阅读与语法练习、独立奖励进度。':'下册内容待教材核对后开放。'};
+  return {...common,kind:'catalog',wrongError,title:course.name+'单元目录',tagline:{math:'宇宙的语言。',english:'通往世界的钥匙。',physics:'现象是观察，发现规律才是智慧。'}[subject],subjects:Object.entries(root.GrowingCurriculum).map(([id,value])=>({id,name:value.name,href:catalogHref(id,'upper')})),terms:Object.entries(course.terms).map(([key,value])=>({key,name:value.name,href:catalogHref(subject,key)})),units,resources:{label:subject==='math'?'试卷和推导':'试卷',href:subject+'-resources.html?'+new URLSearchParams({term})},animationHref:subject==='english'?'english-visual-lab.html?'+new URLSearchParams({term}):null,notice:book.verified?'':subject==='physics'?'下册暂不开放，当前先学习上册。上册已按2025年第4版核对。':'下册教材目录待核对，目前预留 8 个单元位置，名称与数量以教材为准。',footnote:graph?(book.verified?'各章均可进入学习，并查看本章图谱与薄弱点诊断。':subject==='physics'?'下册暂不开放，当前先学习上册。':'下册内容待提供教材核对后开放。'):book.verified?'上册8个单元均可学习：单词、闭卷默写、阅读与语法练习、独立奖励进度。':'下册内容待教材核对后开放。'};
  }
  root.GrowingStudentCatalog={create};
 })();

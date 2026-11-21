@@ -29,8 +29,8 @@
   const run=++startup;
   const sessionActive=()=>{active();if(run!==startup)throw Error('学习页面已重新打开。');};
   const fail=error=>{if(run===startup)fallback(error);};
-  let storage,cloud;
-  try{cloud=window.top.GrowingCloud;storage=cloud?.storage?cloud.storage(window):localStorage;}catch(error){if(error.name!=='SecurityError'){fail(error);return;}storage=localStorage;}
+  let storage,cloud,eventHost=window;
+  try{cloud=window.top.GrowingCloud;storage=cloud?.storage?cloud.storage(window):localStorage;eventHost=window.top;}catch(error){if(error.name!=='SecurityError'){fail(error);return;}storage=localStorage;}
   const read=key=>{sessionActive();const raw=storage.getItem(key);return raw===null?null:JSON.parse(raw);};
   try{
    await Promise.all([window.GrowingVantHome||load('vendor/learning-ui/learning-ui.js'),load('vendor/learning-ui/learning-ui.css',true)]);sessionActive();
@@ -84,21 +84,27 @@
      actionError=document.createElement('p');actionError.dataset.studentActionError='';actionError.setAttribute('role','alert');actionError.textContent='学习日历打开失败，请重试。';actionError.style.cssText='margin:16px auto;max-width:960px;padding:16px;color:#9f3131';document.body.append(actionError);
     }
    }
-   async function refresh(){
+   async function refresh(reload=false){
     const request=++version;sessionActive();
     if(controller){controller.actions.refresh?.();return;}
-    let model;
+    let model,wrongSummary=null,wrongError='';
+    if(page==='catalog')try{
+     if(!window.GrowingQuestionAttempts)await load('question-attempts.js');
+     const target=await window.GrowingQuestionAttempts.context();sessionActive();
+     if(target){wrongSummary=await target.api('/question-bank/unit-summary?'+new URLSearchParams({studentId:target.studentId,subject:new URLSearchParams(location.search).get('subject')||'math'}),reload?{cache:'reload'}:undefined);if(wrongSummary.studentId!==target.studentId)throw Error('学生信息已变更');}
+     else wrongError='登录学生账号后显示个人错题提醒。';
+    }catch(error){wrongError='错题提醒暂不可用：'+error.message;}
     if(controllers[page]){
      controller=window[controllers[page][1]].create({subject:file.startsWith('physics')?'physics':file.startsWith('english')?'english':'math',params,storage,active:sessionActive,onNavigate:navigate});
      const state=controller.snapshot?controller.snapshot():controller.model;model={controller,title:state.title};
      if(['knowledge','english-labs','math-labs','physics-labs','midterm'].includes(page)){updateRoute(state);routeSubscription=controller.subscribe(updateRoute);}
      if(page.endsWith('-course')&&!window.GrowingCourseAccount){ownedAccount={open(view){sessionActive();if(view==='calendar')return openCalendar();if(controller.actions.open)controller.actions.open(view);else controller.actions.navigate?.(view);},back(){sessionActive();if(calendarApp?.isOpen()){calendarApp.close();return true;}const state=controller.snapshot?controller.snapshot():controller.model;const home=page==='unit3-course'?'library':page==='fraction-course'?'listen':'words';if(state?.view&&state.view!==home){if(controller.actions.open)controller.actions.open(home);else controller.actions.navigate(home);return true;}return false;}};window.GrowingCourseAccount=ownedAccount;}
     }
-    else model=page==='home'?{kind:'home',title:'逆流 · 数学、英语与物理',subjects:[{id:'math',name:'数学',description:'苏科版 · 八年级上下册',icon:'notes-o'},{id:'english',name:'英语',description:'译林版 · 八年级上下册',icon:'description'},{id:'physics',name:'物理',description:'苏科版 · 八年级上册',icon:'bulb-o'}]}:page==='summary'?await window.GrowingStudentSummary.create({params,storage,load,active:sessionActive}):page==='resources'?window.GrowingStudentResources.create({subject:file.split('-')[0],params,openPapers}):await window.GrowingStudentCatalog.create({params:page==='catalog'?new URLSearchParams(location.search):params,page,read});
+    else model=page==='home'?{kind:'home',title:'逆流 · 数学、英语与物理',subjects:[{id:'math',name:'数学',description:'苏科版 · 八年级上下册',icon:'notes-o'},{id:'english',name:'英语',description:'译林版 · 八年级上下册',icon:'description'},{id:'physics',name:'物理',description:'苏科版 · 八年级上册',icon:'bulb-o'}]}:page==='summary'?await window.GrowingStudentSummary.create({params,storage,load,active:sessionActive}):page==='resources'?window.GrowingStudentResources.create({subject:file.split('-')[0],params,openPapers}):await window.GrowingStudentCatalog.create({params:page==='catalog'?new URLSearchParams(location.search):params,page,read,wrongSummary,wrongError});
     sessionActive();if(request!==version)return;
     if(model.kind==='redirect'){
      const href=new URL(model.href,location.href).href;
-     if(window.top.GrowingCloud?.navigate)window.top.GrowingCloud.navigate(href,true);else location.replace(href);
+     if(cloud?.navigate)cloud.navigate(href,true);else location.replace(href);
      return;
     }
     if(app){app.update(model);return;}
@@ -128,11 +134,11 @@
    }
    await refresh();
    sessionActive();
-   const update=()=>{if(!disposed&&!failed&&run===startup)refresh().catch(fail);};
-   window.addEventListener('storage',update);window.addEventListener('pageshow',update);
+   const update=()=>{if(!disposed&&!failed&&run===startup)refresh(true).catch(fail);};
+   eventHost.addEventListener('growing:knowledge-changed',update);window.addEventListener('storage',update);window.addEventListener('pageshow',update);
    if(page==='catalog')window.addEventListener('popstate',update);
    const visible=()=>{if(!document.hidden)update();};document.addEventListener('visibilitychange',visible);
-   window.addEventListener('pagehide',()=>{window.removeEventListener('storage',update);window.removeEventListener('pageshow',update);window.removeEventListener('popstate',update);document.removeEventListener('visibilitychange',visible);},{once:true});
+   window.addEventListener('pagehide',()=>{eventHost.removeEventListener('growing:knowledge-changed',update);window.removeEventListener('storage',update);window.removeEventListener('pageshow',update);window.removeEventListener('popstate',update);document.removeEventListener('visibilitychange',visible);},{once:true});
   }catch(error){fail(error);}
  }
  window.addEventListener('pagehide',()=>{try{controller?.beforeLeave?.();}finally{disposed=true;startup++;cleanup();document.documentElement.classList.remove('student-vue-active');}});

@@ -1,9 +1,10 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {JSDOM}=require('../console-web/node_modules/jsdom');
 const tick=()=>new Promise(r=>setTimeout(r,20));
-async function setup({page='index.html',legacy=false,fail=false,delay=false,second=false,restoredClasses=false,deferScript=false,hosted=false}={}){
+async function setup({page='index.html',legacy=false,fail=false,delay=false,second=false,restoredClasses=false,deferScript=false,hosted=false,crossOrigin=false}={}){
  const dom=new JSDOM('<body><main class="home"><nav class="home-settings-entry"></nav><header class="welcome">legacy home</header><section class="subjects">legacy subjects</section></main><main class="catalog-shell"><div id="catalog"></div></main><main id="summary"></main><main id="english-course"></main></body>',{url:'https://learn.test/'+(hosted?'learn/':'')+'app-design/'+page+(legacy?'?ui=legacy':''),runScripts:'outside-only'}),w=dom.window,calls={mount:0,destroy:0,legacy:0};
- const storage={getItem:key=>key==='record'?'{"saved":true}':null,key:()=>null,length:0};
+ const storage=crossOrigin?w.localStorage:{getItem:key=>key==='record'?'{"saved":true}':null,key:()=>null,length:0};
+ if(crossOrigin){storage.setItem('record','{"saved":true}');dom.reconfigure({windowTop:new Proxy({},{get(){throw new w.DOMException('Cross-origin parent is not accessible','SecurityError');}})});}
  w.GrowingCloud={storage:()=>storage,activity(){}};w.GrowingCurriculum={};
  if(hosted)w.GrowingCloud.navigate=href=>{calls.navigations=(calls.navigations||0)+1;calls.href=href;};
  if(hosted)w.eval(fs.readFileSync(path.join(__dirname,'../platform-web/cloud-storage.js'),'utf8'));
@@ -31,6 +32,20 @@ test('restored legacy class names inside the Vue root remain visible',async()=>{
   assert.equal(s.calls.mount,1);
   assert.equal(s.w.document.querySelector('body>#english-course').style.display,'none');
   assert.notEqual(s.w.document.querySelector('[data-student-vue] #english-course').style.display,'none');
+ }finally{end(s);}
+});
+
+for(const page of ['english-course.html','units.html'])test('cross-origin preview retains the mounted '+page+' and restores after pagehide',async()=>{
+ const s=await setup({page,crossOrigin:true});try{
+  assert.equal(s.calls.mount,1);assert.equal(s.calls.destroy,0);assert.equal(s.calls.legacy,0);
+  assert.ok(s.w.document.querySelector('[data-student-vue]'));
+  assert.equal(s.w.document.querySelector('[data-student-fallback]'),null);
+  if(page==='english-course.html'){s.w.GrowingCourseAccount.open('pilot');assert.equal(s.calls.view,'pilot');}
+  else{const creates=s.calls.creates;s.w.dispatchEvent(new s.w.Event('growing:knowledge-changed'));await tick();assert.equal(s.calls.creates,creates+1);assert.equal(s.calls.read.saved,true);}
+  s.w.dispatchEvent(new s.w.PageTransitionEvent('pagehide',{persisted:true}));
+  s.w.dispatchEvent(new s.w.PageTransitionEvent('pageshow',{persisted:true}));await tick();
+  assert.equal(s.w.document.querySelectorAll('[data-student-vue]').length,1);
+  assert.equal(s.w.document.querySelector('[data-student-fallback]'),null);
  }finally{end(s);}
 });
 test('migrated home mounts by default and preserves the existing menu host',async()=>{
@@ -98,7 +113,7 @@ test('modified, download and new-tab term clicks keep native link behavior',asyn
 test('a slower previous term cannot replace the most recently selected term',async()=>{
  const s=await setup({page:'units.html'});try{
   const pending={};s.w.GrowingStudentCatalog.create=({params})=>new Promise(resolve=>pending[params.get('term')]=()=>resolve({kind:'catalog',term:params.get('term')}));
-  click(s,termLink('lower'));click(s,termLink('upper'));
+  click(s,termLink('lower'));await tick();click(s,termLink('upper'));await tick();
   pending.upper();await tick();pending.lower();await tick();
   assert.equal(s.calls.model.term,'upper');assert.equal(s.calls.mount,1);assert.equal(s.calls.updates,1);
  }finally{end(s);}

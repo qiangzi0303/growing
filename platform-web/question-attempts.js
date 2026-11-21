@@ -10,12 +10,15 @@
       const base=String(GrowingNative.cloudApiUrl?.()||'').replace(/\/$/,'');
       const session=JSON.parse(localStorage.getItem('growing-cloud-session-v1')||'null');
       if(!base||!session?.token||session.user?.role!=='Student'||localStorage.getItem('growing-cloud-binding-v1')!==session.user.id)return null;
-      return {studentId:session.user.id,api:async(path,options={})=>{
+      if(!window.GrowingPaperCache){try{await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=new URL('../cloud/paper-cache.js',document.currentScript?.src||location.href).href;script.onload=resolve;script.onerror=reject;document.head.append(script);});}catch{}}
+      const identity=()=>{const value=JSON.parse(localStorage.getItem('growing-cloud-session-v1')||'null');return value&&localStorage.getItem('growing-cloud-binding-v1')===value.user?.id?{id:value.user.id,role:value.user.role,base,generation:value.token}:null;};
+      const request=async(path,options={})=>{
         const current=JSON.parse(localStorage.getItem('growing-cloud-session-v1')||'null');
         if(current?.token!==session.token||current.user?.id!==session.user.id)throw Error('账号已切换，请重新打开错题。');
         const response=await fetch(base+'/api'+path,{...options,signal:AbortSignal.timeout(/\/questions\/[^/]+\/(correct|followup)$/.test(path)?110000:12000),credentials:'omit',headers:{'Content-Type':'application/json','X-Growing-Client':'1',Authorization:'Bearer '+session.token}});
-        const result=await response.json();if(!response.ok)throw Error(result.error||'记录未保存，请重试。');return result;
-      }};
+        const result=await response.json();if(identity()?.generation!==session.token||identity()?.id!==session.user.id)throw Error('账号已切换，请重新打开错题。');if(!response.ok)throw Object.assign(Error(result.error||'记录未保存，请重试。'),{status:response.status});return result;
+      };
+      const cache=window.GrowingPaperCache?.create({identity,request,ttl:60000});return {studentId:session.user.id,api:cache?cache.api:request};
     },
     create(root,api,studentId,alive=()=>true,onChange=()=>{},options={}){
       let disposed=false;const valid=()=>!disposed&&root.isConnected&&alive();
