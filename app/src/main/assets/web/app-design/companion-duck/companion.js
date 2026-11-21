@@ -84,7 +84,7 @@ input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey
 $('#interrupt').addEventListener('click',()=>{if(startingVoice){++voiceGeneration;wantsVoice=false;microphone.stop();startingVoice=false;updateVoiceButton();}interrupt(true);});
 $('#voice-toggle').addEventListener('click',async()=>{
   if(wantsVoice){++voiceGeneration;wantsVoice=false;microphone.stop();interrupt(false);updateVoiceButton();return;}
-  if(!window.GrowingCourseAI?.info().configured){showNotice('请先配置 AI 连接，再开启语音。');$('#settings-dialog').showModal();return;}
+  if(!window.GrowingCourseAI?.info().configured){showNotice('请先在共享设置中配置 AI 连接，再开启语音。');return;}
   if((config.engine==='cloud'&&!config.asrKey)||(usesCloudTTS(config)&&!config.ttsKey)){showNotice('请先在连接设置中填写所选语音服务的密钥。');$('#settings-dialog').showModal();return;}
   const attempt=++voiceGeneration;startingVoice=true;wantsVoice=true;updateVoiceButton();setState('listen');showNotice('');
   try{await speaker.unlock();if(attempt!==voiceGeneration)return;await microphone.start();if(attempt===voiceGeneration&&!microphone.active)wantsVoice=false;}
@@ -103,7 +103,6 @@ $('#clear-chat').addEventListener('click',()=>{interrupt(true);history=[];messag
 $('#appearance').addEventListener('click',()=>{const panel=$('.panel');panel.hidden=!panel.hidden;if(!panel.hidden)interrupt(true);else setState(wantsVoice?'listen':'idle');});
 
 const settings=$('#settings-dialog'),form=$('#voice-settings');
-$('#ai-settings').innerHTML=window.GrowingCourseAI?.settingsMarkup()||'<p>AI设置暂时无法载入。</p>';
 function updateSpeechFields(){const draft={engine:form.elements.engine.value,ttsEngine:form.elements.ttsEngine.value};$('#cloud-fields').hidden=draft.engine!=='cloud'&&!usesCloudTTS(draft);$('#asr-fields').hidden=draft.engine!=='cloud';$('#tts-fields').hidden=!usesCloudTTS(draft);}
 function fillSettings(){for(const key of Object.keys(defaults))if(form.elements[key])form.elements[key].value=config[key];form.elements.asrKey.value='';form.elements.ttsKey.value='';updateSpeechFields();}
 function voices(){

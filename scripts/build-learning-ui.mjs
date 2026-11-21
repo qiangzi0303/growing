@@ -26,13 +26,13 @@ function copySceneAssets(source,target){
     else throw Error('Unsupported scene asset: '+from);
   }
 }
-const assetRevision='20261121-photo-practice-1';
+const assetRevision='20261121-no-paper-tab-1';
 function reviseHtml(path,names){
  if(!existsSync(path))return;
  const before=readFileSync(path,'utf8'),after=before.replace(/<(?:script|link)\b[^>]*>/gi,tag=>tag.replace(/\b(src|href)=(['"])([^'"<>]+)\2/g,(all,attr,quote,value)=>{
   const name=value.split(/[?#]/)[0].split('/').pop();if(!names.has(name))return all;
   const hash=value.indexOf('#'),fragment=hash<0?'':value.slice(hash),url=hash<0?value:value.slice(0,hash),query=url.indexOf('?'),base=query<0?url:url.slice(0,query),params=new URLSearchParams(query<0?'':url.slice(query+1));
-  params.set('studentUi',path.endsWith('units.html')?'20261121-catalog-clean-1':path.endsWith('english-course.html')||path.endsWith(join('word-ops-unit3','index.html'))?'20261121-all-unit-study-1':assetRevision);return attr+'='+quote+base+'?'+params+fragment+quote;
+  params.set('studentUi',path.endsWith('math-wrong-questions.html')?'20261121-archive-clean-1':path.endsWith('units.html')?'20261121-catalog-clean-1':path.endsWith('english-course.html')||path.endsWith(join('word-ops-unit3','index.html'))?'20261121-no-paper-tab-1':assetRevision);return attr+'='+quote+base+'?'+params+fragment+quote;
  }));if(after!==before)writeFileSync(path,after);
 }
 const newModels=['student-pages.js','student-catalog-model.js','student-summary-model.js','student-resources-model.js','student-math-course.js','student-english-course.js','student-knowledge.js','student-handwriting.js','student-english-labs.js','student-math-resources.js','student-math-labs.js','student-physics-labs.js','student-triangle-centers.js','student-fraction-course.js','student-midterm.js','student-unit3-course.js','student-paper-ai.js','student-figure-editor.js'];

@@ -172,9 +172,8 @@ $('#chat-input').addEventListener('keydown',event=>{if(event.key==='Enter'&&!eve
 $('#clear-chat').addEventListener('click',()=>{stop();$('#messages').replaceChildren();add('assistant','新的一段，我们从哪里开始？');notice('');});
 $('#done-learning').addEventListener('click',()=>{pause();add('assistant','这一段先学到这里。讲解和答疑不会自动计入掌握度。');});
 $('#appearance').addEventListener('click',()=>{$('.panel').hidden=!$('.panel').hidden;});
-$('#open-settings').addEventListener('click',()=>{$('#settings-dialog').showModal();window.GrowingRealtime?.hydrate($('#ai-settings .realtime-settings'));});$('#close-settings').addEventListener('click',()=>$('#settings-dialog').close());
-$('#ai-settings').innerHTML=window.GrowingRealtime?.settingsMarkup()||'请更新应用后配置 Qwen 实时语音。';
-const legacyLink=document.createElement('a');legacyLink.href='?legacy=1';legacyLink.textContent='使用旧版语音体验页';legacyLink.style.display='block';legacyLink.style.marginTop='12px';$('#ai-settings').append(legacyLink);
+$('#open-settings').addEventListener('click',()=>$('#settings-dialog').showModal());$('#close-settings').addEventListener('click',()=>$('#settings-dialog').close());
+const legacyLink=document.createElement('a');legacyLink.href='?legacy=1';legacyLink.textContent='使用旧版语音体验页';legacyLink.style.display='block';legacyLink.style.marginTop='12px';$('#settings-dialog').append(legacyLink);
 $('#voice-settings').hidden=true;
 $('#settings-dialog .settings-note').textContent='开启语音后，可说“学习伙伴隐身”“学习伙伴出来”。隐身只隐藏界面，仍保留麦克风以便唤回；关闭学习伙伴或切到后台会释放麦克风。评分总结仅播放声音，不会自行开启麦克风。声音及课程材料用于阿里云实时会话，不开启摄像头；更改连接设置会结束当前语音。';
 $('#study-mode').addEventListener('change',()=>{const c=lesson.course;if(c)loadCourse({...c,mode:$('#study-mode').value==='exam'?'exam':'learn'});});

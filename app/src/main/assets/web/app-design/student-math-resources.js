@@ -62,7 +62,7 @@ function figure(kind){
    catch(e){if(alive){const text=e.name==='AbortError'?'解答已取消或超时，可重试。':e.message;if(archive)reviewRecords[id]={...reviewRecords[id],status:text};else status=text;}}
    finally{clearTimeout(timeout);if(jobs.get('ai:'+id)===c)jobs.delete('ai:'+id);emit();}
   }
-  async function refresh(){if(!archive)return;try{check();context=await window.GrowingQuestionAttempts.context();if(!context){status='登录学生云账号后，可查看原稿与统计反复错题。';emit();return;}check();const result=await context.api('/question-bank/attempt-stats?'+new URLSearchParams({studentId:context.studentId,kind:'math'}));if(!alive)return;check();stats=result;status='';emit();}catch(e){if(alive){status='统计读取失败，未将旧次数显示为零：'+e.message;emit();}}}
+  async function refresh(){if(!archive)return;try{check();context=await window.GrowingQuestionAttempts.context();if(!context){status='';emit();return;}check();const result=await context.api('/question-bank/attempt-stats?'+new URLSearchParams({studentId:context.studentId,kind:'math'}));if(!alive)return;check();stats=result;status='';emit();}catch(e){if(alive){status='统计读取失败，未将旧次数显示为零：'+e.message;emit();}}}
   async function history(id){
    if(busy)return;check();if(!archiveRows.some(q=>q.id===id))return;
    if(reviewController?.snapshot().locked)return;

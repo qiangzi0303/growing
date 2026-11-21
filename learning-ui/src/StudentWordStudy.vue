@@ -33,7 +33,6 @@ watch([()=>m.value.view,()=>m.value.word.id,()=>session.value?.index,()=>!!sessi
 
   <template v-if="m.view==='words'">
    <header class="study-overview">
-    <div><h2>今天，从记住一个词开始</h2><p>先复习到期单词，再学习新词。独立默写正确后，复习间隔逐步延长；答错或看过提示的词，明天再练。</p></div>
     <div class="study-actions">
      <button type="button" class="study-primary" data-action="review-due" :disabled="blocked||!resumable&&!due.size" @click="a.startReview()">{{ resumable?'继续上次复习':due.size?'复习到期词 · '+due.size:'今天暂无到期词' }}</button>
      <button type="button" :disabled="blocked||!m.reviewPlan?.freshIds.length" @click="a.startLearning">学习新词{{ m.reviewPlan?.freshIds.length?' · '+m.reviewPlan.freshIds.length:'' }}</button>

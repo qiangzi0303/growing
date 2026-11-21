@@ -299,7 +299,7 @@ nav{display:flex;gap:5px;align-items:center}nav button{background:none;border:1p
   <link rel="stylesheet" href="../app-design/unit3-classroom.css?v=2"><link rel="stylesheet" href="../app-design/learning-ui.css?v=workspace-20261111"></head>
 <body class="english-legacy">
 <main id="english-course">
-  <header class="legacy-course-header"><div class="unit-header"><div><p class="eyebrow">译林版 · 2025秋新教材 · 八年级上册</p><div class="unit-title"><h1>Unit 3<br>To be a good learner</h1></div><p class="muted">善于学习 · 副词比较级与最高级 · 反身代词</p><a href="../app-design/units.html?subject=english&term=upper&studentUi=20261112-vant-3">← 英语目录</a></div><label>切换单元<select id="legacy-unit-switch" aria-label="切换英语单元"></select></label></div><nav class="tabs" aria-label="学习内容"><button data-action="library" data-nav="library">单词与默写</button><button data-action="knowledge" data-nav="knowledge">阅读与语法</button><button data-action="feynman" data-nav="feynman">概念复述</button><a class="english-animation-button" href="../app-design/english-sentence-demo.html?unit=english-8a-03&studentUi=20261112-vant-3">句子闯关</a><a class="english-animation-button" href="../app-design/english-resources.html?unit=english-8a-03&studentUi=20261112-vant-3">试卷</a></nav><button type="button" data-action="settings" data-nav="settings" hidden>学习设置</button></header>
+  <header class="legacy-course-header"><div class="unit-header"><div><p class="eyebrow">译林版 · 2025秋新教材 · 八年级上册</p><div class="unit-title"><h1>Unit 3<br>To be a good learner</h1></div><p class="muted">善于学习 · 副词比较级与最高级 · 反身代词</p><a href="../app-design/units.html?subject=english&term=upper&studentUi=20261112-vant-3">← 英语目录</a></div><label>切换单元<select id="legacy-unit-switch" aria-label="切换英语单元"></select></label></div><nav class="tabs" aria-label="学习内容"><button data-action="library" data-nav="library">单词与默写</button><button data-action="knowledge" data-nav="knowledge">阅读与语法</button><button data-action="feynman" data-nav="feynman">概念复述</button><a class="english-animation-button" href="../app-design/english-sentence-demo.html?unit=english-8a-03&studentUi=20261112-vant-3">句子闯关</a></nav><button type="button" data-action="settings" data-nav="settings" hidden>学习设置</button></header>
   <p id="course-status" role="status" aria-live="polite"></p>
   <div id="main" tabindex="-1">
     <section id="homeScene" class="scene" aria-label="训练基地"></section>
@@ -315,7 +315,6 @@ nav{display:flex;gap:5px;align-items:center}nav button{background:none;border:1p
     <section id="settingsScene" class="scene hidden" aria-label="学习设置">
       <div id="settingsModal" class="panel hidden">
       <h2 id="settingsTitle">学习设置</h2>
-      <div id="sharedAiConnection"></div>
       <details><summary>本单元工具与学习偏好</summary>
       <div class="actions unit3-extra-tools"><button type="button" data-action="exam">综合考核</button><button type="button" data-action="realQuiz">真题与模拟题</button><button type="button" data-action="wrongbook">本单元错题 <span id="wrongCount">0</span></button></div>
       <form id="settingsForm">
@@ -1707,7 +1706,7 @@ window.ChapterRewards=(()=>{
   <script src="../app-design/english-sentence-data.js?v=english-score-50"></script>
   <script src="../app-design/english-sentence-progress.js?v=english-score-50"></script>
   <script src="../app-design/english-score.js?v=english-score-50"></script>
-  <script src="../app-design/student-pages.js?v=unit3-vant-1&studentUi=20261121-all-unit-study-1"></script>
+  <script src="../app-design/student-pages.js?v=unit3-vant-1&studentUi=20261121-no-paper-tab-1"></script>
   <script data-source="app.js">
 /* 分关学习、考核、错题与费曼复述；无需构建，直接打开 index.html。 */
 ((start)=>{if(window.GrowingStudentPages?.registerLegacy(start))return;start();})(()=>{
@@ -1759,7 +1758,7 @@ window.ChapterRewards=(()=>{
   function saveDoubt(next){if(doubtBlocked)return false;try{localStorage.setItem(doubtKey,JSON.stringify(next));doubt=next;return true;}catch{return false;}}
   function renderDoubts(){
     if(current!=='doubts')setScene('doubts');
-    $('doubtsScene').innerHTML=`<section class="panel"><h2>我有疑问 · Unit 3</h2>${button('AI连接设置','settings','','')}<p>可问词义、语法、阅读或其他问题。</p><div>${doubt.messages.map(m=>`<article class="english-doubt-message"><strong>${m.role==='user'?'我的问题':'老师的解释'}</strong><div>${esc(m.text)}</div></article>`).join('')}</div><form id="english-doubt-form"><label for="english-question">你的问题</label><textarea id="english-question" maxlength="2000" required ${doubtRequest?'disabled':''}>${esc(doubt.draft)}</textarea><div class="actions"><button type="submit" class="primary" ${doubtRequest?'disabled':''}>${doubtRequest?'正在思考…':'发送问题'}</button>${doubtRequest?button('取消等待','cancel-doubt','',''):''}</div></form><p id="english-doubt-status" role="status" aria-live="polite">${esc(doubtNotice)}</p></section>`;
+    $('doubtsScene').innerHTML=`<section class="panel"><h2>我有疑问 · Unit 3</h2><p>可问词义、语法、阅读或其他问题。</p><div>${doubt.messages.map(m=>`<article class="english-doubt-message"><strong>${m.role==='user'?'我的问题':'老师的解释'}</strong><div>${esc(m.text)}</div></article>`).join('')}</div><form id="english-doubt-form"><label for="english-question">你的问题</label><textarea id="english-question" maxlength="2000" required ${doubtRequest?'disabled':''}>${esc(doubt.draft)}</textarea><div class="actions"><button type="submit" class="primary" ${doubtRequest?'disabled':''}>${doubtRequest?'正在思考…':'发送问题'}</button>${doubtRequest?button('取消等待','cancel-doubt','',''):''}</div></form><p id="english-doubt-status" role="status" aria-live="polite">${esc(doubtNotice)}</p></section>`;
   }
   async function askDoubt(){
     const question=doubt.draft.trim();if(!question||doubtRequest)return;
@@ -2068,7 +2067,7 @@ window.ChapterRewards=(()=>{
     if(current==='feynman'){saveDraft();cancelAI();}
     if(id&&D.topics.some(t=>t.id===id))topicId=id;
     setScene('feynman');const t=D.topics.find(t=>t.id===topicId);
-    $('feynmanScene').innerHTML=`<section class="panel"><h2>用自己的话，讲明白一个概念</h2><label>选择概念<select id="feynman-lesson">${D.topics.map(t=>`<option value="${t.id}" ${t.id===topicId?'selected':''}>${esc(t.title)}</option>`).join('')}</select></label><p>${esc(t.ask)}</p><label for="feyInput">你的复述</label><textarea id="feyInput" maxlength="5000" placeholder="用中文解释也可以，例句尽量用英文。先说规则，再举例子…">${esc(state.drafts[topicId]||'')}</textarea><div class="actions">${button('提交AI评分','askAI')}${button('按清单自查','selfCheck','','')}</div><div id="selfCheck"></div><div id="feyReply" aria-live="polite"></div></section>`;
+    $('feynmanScene').innerHTML=`<section class="panel"><p>${esc(t.ask)}</p><textarea id="feyInput" aria-label="你的复述" maxlength="5000" placeholder="用中文解释也可以，例句尽量用英文。先说规则，再举例子…">${esc(state.drafts[topicId]||'')}</textarea><div class="actions">${button('提交AI评分','askAI')}${button('按清单自查','selfCheck','','')}</div><div id="selfCheck"></div><div id="feyReply" aria-live="polite"></div></section>`;
   }
   function selfCheck(){
     saveDraft();if(($('feyInput').value||'').trim().length<5){toast('先写下几句自己的理解，再对照清单。');$('feyInput').focus();return;}
@@ -2108,7 +2107,6 @@ window.ChapterRewards=(()=>{
     if(current!=='settings')settingsReturn=current;
     setScene('settings');
     Rewards.update(state);$('rewardSettings').innerHTML=Rewards.settings(state);
-    if(!$('sharedAiConnection'))$('rewardSettings').insertAdjacentHTML('beforebegin','<div id="sharedAiConnection"></div>');$('sharedAiConnection').innerHTML=window.GrowingCourseAI.settingsMarkup();
     modalFocus=document.activeElement;$('autoSpeak').checked=state.settings.autoSpeak;$('speechRate').value=state.settings.rate;$('resetConfirm').classList.add('hidden');$('settingsModal').classList.remove('hidden');syncQuizClock();save();
   }
   function closeSettings(){$('settingsModal').classList.add('hidden');if(settingsReturn==='card'&&deck)renderCard();else setScene(settingsReturn);modalFocus?.focus();}
