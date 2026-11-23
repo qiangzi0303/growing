@@ -90,8 +90,7 @@ try:
                 for c in e['controls']:
                     value = float(page.locator('#value-' + c['key']).inner_text())
                     check(c['min'] <= value <= c['max'], e['id'] + ': random within bounds')
-            entry = (base + '/fraction-ops/分式作战_一分钟学习版.html' if chapter['number'] == 10 else
-                     base + '/app-design/math-course.html?chapter=' + chapter['id'])
+            entry = (base + '/app-design/math-course.html?chapter=' + chapter['id'])
             page.goto(entry)
             anchor = page.locator('a[href*="math-explore-lab.html"]').first
             check(anchor.is_visible(), chapter['id'] + ': classroom entry visible')

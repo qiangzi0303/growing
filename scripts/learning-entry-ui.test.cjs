@@ -14,10 +14,26 @@ async function mount({native=true,login=true,role='Student',confirmed=true,bound
  w.GrowingRankings={mount:async()=>{rankingsOpened++;}};
  w.GrowingManagement={create:()=>({dispose(){},admin:async root=>{root.textContent='Management';}})};
  if(native){w.GrowingNative={cloudApiUrl:()=> 'https://learn.test',identityAccount:()=>profile.id,openLearning:()=>{opened++;return '{"ok":true}';}};if(login){w.localStorage.setItem('growing-cloud-session-v1',JSON.stringify({token:'test-only',user:profile}));if(bound)w.localStorage.setItem('growing-cloud-binding-v1',profile.id);}}
- w.fetch=async(url,options)=>{const p=new URL(url,w.location.href).pathname;calls.push(p);if(p==='/api/auth/me')return login?me(profile):Response.json({error:'Login required'},{status:401});if(p.startsWith('/api/student/state'))return state(options,p);if(p==='/api/parent/children')return Response.json([]);throw Error('Unexpected request: '+p);};
+ w.fetch=async(url,options)=>{const p=new URL(url,w.location.href).pathname;calls.push(p);if(p==='/api/auth/me')return login?me(profile):Response.json({error:'Login required'},{status:401});if(p==='/api/auth/logout')return Response.json({ok:true});if(p==='/api/ai/config')return Response.json({models:[]});if(p.startsWith('/api/student/state'))return state(options,p);if(p==='/api/parent/children')return Response.json([]);throw Error('Unexpected request: '+p);};
  for(const name of ['sync-core.js','legacy-navigation.js','app.js'])w.eval(source(name));await tick();
  return {dom,w,calls,profile,get opened(){return opened;},get rankingsOpened(){return rankingsOpened;},setState:fn=>{state=fn;}};
 }
+test('AI context requires a confirmed login and invalidates old callers on logout',async()=>{
+ for(const options of [{native:false,login:false},{native:false,confirmed:false}]){
+  const s=await mount(options);try{assert.throws(()=>s.w.GrowingCloud.aiContext(),/登录/);}finally{s.dom.window.close();}
+ }
+ const s=await mount({native:false,role:'Parent'});
+ try{
+  const context=s.w.GrowingCloud.aiContext();assert.equal(context.current(),true);
+  assert.equal((await context.api('/ai/config')).models.length,0);
+  await assert.rejects(context.api('/admin/ai/models'),/无效/);
+  let cleared=0;s.w.GrowingCourseAI={clear(){cleared++;}};
+  s.w.document.querySelector('#logout').click();await until(()=>s.w.document.querySelector('#auth'));
+  assert.equal(context.current(),false);assert.equal(cleared,1);
+  await assert.rejects(context.api('/ai/config'),/切换/);
+ }finally{s.dom.window.close();}
+});
+
 test('home rankings deep link opens only for an authenticated confirmed student',async()=>{
  for(const options of [{},{role:'Parent'},{confirmed:false},{login:false}]){
   const s=await mount({native:false,hash:'#my-rankings',...options});

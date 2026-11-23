@@ -6,7 +6,7 @@
   const D=physics?window.GrowingPhysics:window.GrowingMath,params=new URLSearchParams(location.search),root=document.getElementById('math-course');
   const chapter=D.chapters.find(c=>c.id===params.get('chapter'));
   const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  if(!chapter||(!physics&&chapter.number===10)){root.innerHTML=`<main class="course-error"><h1>请从${subjectName}目录选择课程</h1><a href="units.html?subject=${subject}" target="_top">返回${subjectName}目录 →</a></main>`;return;}
+  if(!chapter){root.innerHTML=`<main class="course-error"><h1>请从${subjectName}目录选择课程</h1><a href="units.html?subject=${subject}" target="_top">返回${subjectName}目录 →</a></main>`;return;}
   const KEY=physics?'growing-physics-lessons-v1':'growing-math-lessons-v1',T=window.GrowingCourseTools;
   let learning=T.empty(),view='home',calendarDay=T.day(),calendarMonth=calendarDay.slice(0,7),doubtBusy=false,doubtRequest=null,doubtMessage='',resetConfirm=false,archiveUnreadable=false;
   const P=window.GrowingPracticeProgress,A=window.GrowingApplicationPractice;

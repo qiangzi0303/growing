@@ -17,7 +17,7 @@
     state.lessons=current?.nodes.map(id=>{const n=D.nodes.find(n=>n.id===id),c=D.chapters.find(c=>c.id===n.chapter);return {id,title:c.title+' · '+n.title,href:'math-course.html?'+new URLSearchParams({chapter:n.chapter,node:id})};})||[];
     state.backHref='units.html?subject=math&term=upper';
    }else{
-    const result=M.evaluate(current,values);Object.assign(state,{svg:result.svg,stats:result.stats,conclusion:result.conclusion,title:current.name,experiments:M.experiments.filter(e=>e.chapter===chapter.number),route:'math-explore-lab.html?'+new URLSearchParams({chapter:chapter.id,experiment:current.id}),backHref:chapter.number===10?'../fraction-ops/分式作战_一分钟学习版.html':'math-course.html?'+new URLSearchParams({chapter:chapter.id,node:current.nodes[0]})});
+    const result=M.evaluate(current,values);Object.assign(state,{svg:result.svg,stats:result.stats,conclusion:result.conclusion,title:current.name,experiments:M.experiments.filter(e=>e.chapter===chapter.number),route:'math-explore-lab.html?'+new URLSearchParams({chapter:chapter.id,experiment:current.id}),backHref:'math-course.html?'+new URLSearchParams({chapter:chapter.id,node:current.nodes[0]})});
    }
    emit();
   }

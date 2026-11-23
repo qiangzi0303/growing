@@ -1,76 +1,46 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync(require.resolve('../app/src/main/assets/web/app-design/course-ai.js'),'utf8');
-function setup(native,respond){
-  const data=new Map(),calls=[],events=[];
-  const localStorage={getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)};
-  const window={GrowingNative:native,dispatchEvent:e=>events.push(e.type)};window.top=window;
-  vm.runInNewContext(source,{window,localStorage,location:{hostname:'127.0.0.1',port:'8793'},document:{addEventListener(){}},URL,Event,AbortController,setTimeout,clearTimeout,
-    fetch:async(url,options)=>{calls.push({url,options});if(respond)return respond(url,options);return Response.json(options.method==='POST'?{sdp:'v=0\r\nanswer'}:{configured:true,voice:'Tina',base:'https://workspace.cn-beijing.maas.aliyuncs.com'});}});
-  return {api:window.GrowingRealtime,window,data,calls,events};
+function setup({native=false}={}){
+ const data=new Map(),calls=[];let account='a';
+ const localStorage={getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)};
+ const config={id:'realtime',purpose:'realtime',model:'managed-voice',endpoint:'https://voice.example/realtime',apiKey:'test-managed-key',revision:2,voice:'Tina'};
+ const window={};window.top=window;
+ const setAccount=id=>{account=id;data.set('growing-cloud-session-v1',JSON.stringify({token:'session-'+id,user:{id}}));};setAccount('a');
+ if(native)window.GrowingNative={cloudApiUrl:()=> 'https://learn.example',realtimeSettings(){throw Error('old config read');},aiKey(){throw Error('old key read');}};
+ else window.GrowingCloud={aiContext(){const captured=account;return {key:captured,current:()=>account===captured,async api(path,options){calls.push({url:path,options});return {models:[config]};}};}};
+ vm.runInNewContext(source,{window,localStorage,URL,Event,AbortController,DOMException,crypto:require('node:crypto').webcrypto,setTimeout,clearTimeout,
+  fetch:async(url,options)=>{calls.push({url,options});return url.endsWith('/api/ai/config')?Response.json({models:[config]}):new Response('v=0\r\nanswer');}});
+ return {api:window.GrowingRealtime,window,data,calls,setAccount};
 }
-test('personal key and selected voice survive blank-key saves and reach the SDP proxy only',async()=>{
-  const t=setup();t.api.save({apiKey:'test-personal-key',voice:'Cherry',base:'https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1'});
-  t.api.save({apiKey:'',voice:'Tina',base:'https://workspace.cn-beijing.maas.aliyuncs.com'});
-  assert.equal(t.api.info().voice,'Tina');assert.equal(t.api.info().configured,true);
-  assert(!JSON.stringify(t.api.info()).includes('test-personal-key'));assert(!t.api.settingsMarkup().includes('test-personal-key'));
-  const signal=new AbortController().signal,config=await t.api.connectionInfo({signal});assert.equal(config.apiKey,undefined);assert.equal(t.calls.length,0);
-  assert.equal((await t.api.connect('v=0\r\noffer',{signal})).sdp,'v=0\r\nanswer');
-  const call=t.calls[0],body=JSON.parse(call.options.body);assert.equal(body.apiKey,'test-personal-key');assert.equal(body.voice,'Tina');assert.equal(call.url,'./api/realtime/connect');assert.equal(call.options.signal,signal);
+test('realtime fetches managed configuration once and sends SDP directly to supplier',async()=>{
+ const t=setup(),info=await t.api.settingsInfo();assert.equal(info.voice,'Tina');assert.equal(info.apiKey,undefined);
+ const connection=await t.api.connectionInfo();const signal=new AbortController().signal;
+ assert.equal((await t.api.connect('v=0\r\noffer',{handle:connection.handle,signal})).sdp,'v=0\r\nanswer');
+ assert.equal(t.calls.filter(c=>c.url==='/ai/config').length,1);
+ const direct=t.calls.at(-1);assert.equal(direct.url,'https://voice.example/realtime?model=managed-voice');
+ assert.equal(direct.options.body,'v=0\r\noffer');assert.equal(direct.options.headers.Authorization,'Bearer test-managed-key');assert.equal(direct.options.signal,signal);
+ assert(!JSON.stringify([...t.data]).includes('test-managed-key'));
 });
-test('invalid edits do not replace saved config; clearing does not touch learning records',()=>{
-  const t=setup();t.api.save({apiKey:'test-existing-key'});const before=t.data.get('growing-realtime-settings-v1');
-  for(const base of ['http://dashscope.aliyuncs.com','https://unrelated.example','https://dashscope.aliyuncs.com.evil.example','https://secret@dashscope.aliyuncs.com'])assert.throws(()=>t.api.save({base}),/地址/);
-  assert.equal(t.data.get('growing-realtime-settings-v1'),before);
-  t.data.set('growing-math-lessons-v1','learning');t.api.clear();assert.equal(t.api.info().configured,false);assert.equal(t.data.get('growing-math-lessons-v1'),'learning');
+test('personal realtime settings cannot be saved and clearing keeps learning records',async()=>{
+ const t=setup();t.data.set('growing-math-lessons-v1','learning');
+ assert.throws(()=>t.api.save({apiKey:'old-personal'}),/管理员/);assert.equal(t.api.settingsMarkup(),'');
+ await t.api.connectionInfo();t.api.clear();await t.api.connectionInfo();
+ assert.equal(t.calls.filter(c=>c.url==='/ai/config').length,2);assert.equal(t.data.get('growing-math-lessons-v1'),'learning');
 });
-test('voice-only configuration uses server credentials without copying them into settings',async()=>{
-  const t=setup();t.api.save({voice:'Ethan'});assert.equal((await t.api.connectionInfo()).voice,'Ethan');
-  await t.api.connect('v=0\r\noffer');const body=JSON.parse(t.calls.at(-1).options.body);assert.equal(body.voice,'Ethan');assert.equal(body.apiKey,undefined);
+test('account switch invalidates captured realtime handle before supplier request',async()=>{
+ const t=setup(),connection=await t.api.connectionInfo();t.setAccount('b');
+ await assert.rejects(t.api.connect('offer',{handle:connection.handle}),/切换/);
+ await t.api.connectionInfo();assert.equal(t.calls.length,2);assert(t.calls.every(c=>c.url==='/ai/config'));
 });
-test('accounts are isolated and stale account adapters do not fall back to global storage',()=>{
-  const t=setup(),accounts=new Map();let account='a';
-  t.window.GrowingCourseAIStorage=()=>({getItem:k=>accounts.get(account+':'+k)||null,setItem:(k,v)=>accounts.set(account+':'+k,v),removeItem:k=>accounts.delete(account+':'+k)});
-  t.api.save({apiKey:'test-account-a'});account='b';assert.equal(t.api.info().configured,false);t.api.save({apiKey:'test-account-b'});
-  account='a';assert.equal(t.api.info().configured,true);assert.equal(t.data.size,0);
-  t.window.GrowingCourseAIStorage=()=>{throw Error('expired');};assert.throws(()=>t.api.save({apiKey:'replacement-key'}),/无法读取/);
+test('native uses authenticated cloud config without reading old personal voice key',async()=>{
+ const t=setup({native:true});await t.api.connectionInfo();await t.api.connect('offer');
+ assert.equal(t.calls[0].url,'https://learn.example/api/ai/config');assert.equal(t.calls[0].options.headers.Authorization,'Bearer session-a');
+ assert.equal(t.calls[1].url,'https://voice.example/realtime?model=managed-voice');
+ t.setAccount('b');await t.api.connectionInfo();assert.equal(t.calls[2].options.headers.Authorization,'Bearer session-b');
+ assert(!JSON.stringify([...t.data]).includes('test-managed-key'));
 });
-test('Android keeps voice credentials in account settings and uses its authenticated cloud origin',async()=>{
-  let config={apiKey:'',voice:'Tina',base:'https://dashscope.aliyuncs.com'};
-  const native={realtimeSettings:()=>JSON.stringify({ok:true,value:config}),saveRealtimeSettings:json=>{config=JSON.parse(json)||{};return '{"ok":true}';},cloudApiUrl:()=> 'https://learn.example'};
-  const t=setup(native);t.api.save({apiKey:'test-native-key',voice:'Cherry'});t.data.set('growing-cloud-session-v1',JSON.stringify({token:'session-token'}));
-  await t.api.connect('v=0\r\noffer');assert.equal(t.calls[0].url,'https://learn.example/api/realtime/connect');assert.equal(t.calls[0].options.headers.Authorization,'Bearer session-token');assert.equal(config.voice,'Cherry');assert.equal(t.data.has('growing-realtime-settings-v1'),false);
-});
-
-test('a delayed server default never overwrites edits already made in the settings form',async()=>{
-  let finish;const response=new Promise(resolve=>finish=resolve),t=setup(undefined,()=>response);
-  const form={dataset:{},elements:{base:{value:'https://dashscope.aliyuncs.com'},voice:{value:'Tina'},customVoice:{value:''}},querySelector:()=>({hidden:true})};
-  const panel={isConnected:true,querySelector:selector=>selector==='form'?form:{textContent:''}};
-  const pending=t.api.hydrate(panel);
-  form.elements.voice.value='Ethan';form.dataset.realtimeDirty='1';
-  finish(Response.json({configured:true,voice:'Tina',base:'https://workspace.cn-beijing.maas.aliyuncs.com'}));
-  await pending;assert.equal(form.elements.voice.value,'Ethan');assert.equal(form.elements.base.value,'https://dashscope.aliyuncs.com');
-});
-
-test('sample settings prefill server defaults without passing credentials or rereading another account',async()=>{
-  let finish;const t=setup(undefined,()=>new Promise(resolve=>finish=resolve));
-  const signal=new AbortController().signal,pending=t.api.settingsInfo({signal});
-  t.window.GrowingCourseAIStorage=()=>{throw Error('another account must not be read');};
-  finish(Response.json({configured:true,voice:'ServerCustom',base:'https://dashscope-intl.aliyuncs.com',apiKey:'must-not-reach-ui',unexpected:'ignored'}));
-  const info=await pending;
-  assert.equal(info.voice,'ServerCustom');assert.equal(info.base,'https://dashscope-intl.aliyuncs.com');
-  assert.equal(info.configured,false);assert.equal(info.serverConfigured,true);
-  assert.equal(info.apiKey,undefined);assert.equal(info.unexpected,undefined);assert.equal(t.calls[0].options.signal,signal);
-});
-
-test('sample settings preserve saved personal choices and remain editable offline',async()=>{
-  const t=setup(undefined,()=>{throw Error('offline');});
-  assert.equal((await t.api.settingsInfo()).voice,'Tina');
-  t.api.save({voice:'PersonalVoice',base:'https://dashscope-intl.aliyuncs.com'});
-  const before=t.calls.length,info=await t.api.settingsInfo();
-  assert.equal(info.voice,'PersonalVoice');assert.equal(info.base,'https://dashscope-intl.aliyuncs.com');assert.equal(t.calls.length,before);
-});
-
-test('sample settings propagate cancellation instead of displaying a stale fallback',async()=>{
-  const t=setup(undefined,()=>{throw new DOMException('cancelled','AbortError');});
-  await assert.rejects(t.api.settingsInfo(),{name:'AbortError'});
+test('a late SDP response is discarded after the account changes',async()=>{
+ const t=setup(),connection=await t.api.connectionInfo();
+ const pending=t.api.connect('offer',{handle:connection.handle});t.setAccount('b');
+ await assert.rejects(pending,/切换/);
 });

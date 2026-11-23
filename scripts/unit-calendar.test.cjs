@@ -16,10 +16,6 @@ test('physics uses its own store and filters chapter topics',()=>{
   const data=C.collect('physics-8a-01',key=>{assert.equal(key,'growing-physics-lessons-v1');return {tools:{days:{[today]:{sound:{ms:60000,grades:1}}}}};},[{id:'sound',title:'声音',unitId:'physics-8a-01'}]);
   assert.equal(data.days[today].ms,60000);assert.equal(data.days[today].grades,1);
 });
-test('fraction calendar preserves its original daily grades, practice, time and mastery',()=>{
-  const data=C.collect('math-8b-10',key=>{assert.equal(key,'fraction-minute-v1');return {learning:{days:{[today]:{definition:{attempts:2,exams:3}}},mastery:{definition:today}},activity:{days:{[today]:120000}}};});
-  assert.equal(data.days[today].grades,2);assert.equal(data.days[today].practice,3);assert.equal(data.days[today].ms,120000);assert.equal(data.days[today].newCount,1);
-});
 test('English unit calendars display saved records without inferring new mastery dates',()=>{
   const data=C.collect('english-8a-02',key=>{assert.equal(key,'growing-english-course-v1:english-8a-02');return {learningTime:{days:{[today]:70000}},words:{a:{at:today+'T12:00:00'},b:{}},lessons:{a:{at:today+'T12:30:00'}},feynman:{a:{attempts:[{at:today+'T13:00:00'}]}}};});
   assert.equal(data.days[today].words,1);assert.equal(data.days[today].lessons,1);assert.equal(data.days[today].grades,1);assert.equal(data.days[today].ms,70000);assert.equal(data.datedMastery,false);

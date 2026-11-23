@@ -20,9 +20,8 @@ test('unverified semester never opens entries or summaries and study stays pendi
  const catalog=create('catalog','subject=english&term=lower');assert.equal(catalog.verified,false);assert.equal(catalog.units[0].available,false);assert.equal(catalog.units[0].summaryHref,null);
  assert.equal(create('study','subject=english&term=lower&unit=english-8b-01').kind,'pending');assert.equal(create('catalog','subject=__proto__').kind,'error');assert.equal(create('study','subject=math&unit=missing').kind,'error');
 });
-test('study redirects to the real entry and preserves node; fraction evidence uses original keys',async()=>{
- const w=await fixture();let readKey;const result=w.GrowingStudentCatalog.create({page:'study',params:new URLSearchParams('subject=math&term=lower&unit=math-8b-10&node=meaning'),read:()=>null});assert.equal(result.kind,'redirect');assert.match(result.href,/分式作战_一分钟学习版.html/);assert.equal(new URLSearchParams(result.href.split('?')[1]).get('node'),'meaning');
- const model=w.GrowingStudentCatalog.create({page:'catalog',params:new URLSearchParams('subject=math&term=lower'),read:key=>{if(key==='fraction-minute-v1')readKey=key;return key==='fraction-minute-v1'?{topics:{domain:{bestQuiz:3}},learning:{mastery:{domain:'2026-01-01'}}}:null;}});assert.equal(model.units.find(u=>u.id==='math-8b-10').mastery,100);assert.equal(readKey,'fraction-minute-v1');
+test('study redirects to the real entry and preserves node',async()=>{
+ const w=await fixture();const result=w.GrowingStudentCatalog.create({page:'study',params:new URLSearchParams('subject=math&term=lower&unit=math-8b-10&node=meaning'),read:()=>null});assert.equal(result.kind,'redirect');assert.match(result.href,/math-course\.html/);assert.equal(new URLSearchParams(result.href.split('?')[1]).get('node'),'meaning');assert.equal(new URLSearchParams(result.href.split('?')[1]).get('chapter'),'math-8b-10');
 });
 test('English delegates to original score algorithm and record failures stay visible',async()=>{
  const w=await fixture();let args;w.SentenceDemo={units:Object.fromEntries(w.GrowingCurriculum.english.terms.upper.units.map(u=>[u.id,{topics:[{sentences:['sentence']}]}]))};w.GrowingEnglishVocabulary={1:['word']};w.GrowingSummaryLegacy={words:['legacy']};w.GrowingEnglishScore={summary:(...values)=>{args=values;return {score:42};}};

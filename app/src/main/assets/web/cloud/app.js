@@ -20,13 +20,14 @@
   const ui=()=>window.GrowingStudentPlatform;
   function paperCanLeave(root){const handle=root?.__studentPapers;if(!handle?.canLeave||handle.canLeave())return true;hint('本次原稿尚未保存，请先在工作台保存后再返回。');return false;}
   function papersCanLeave(){return ['#photo-content','#photo-bank-page','#question-bank-page'].every(selector=>paperCanLeave($(selector)));}
+  function clearAiConfig(){window.GrowingCourseAI?.clear?.();try{$('#course')?.contentWindow?.GrowingCourseAI?.clear?.();}catch{}}
   function disposeMain(){ui()?.dispose($('#app'));}
   async function authenticate(values){
     const attempt=++authAttempt,mode=authMode;
     const operation=authPending.catch(()=>{}).then(async()=>{if(attempt!==authAttempt)return;const result=await api('/auth/'+mode,{method:'POST',body:JSON.stringify(values)});if(attempt!==authAttempt){await api('/auth/logout',{method:'POST'});return;}if(isNative)token=result.token;await enter(result.user);});authPending=operation;return operation;
   }
   async function confirmRole(values){const version=generation;if(!['Student','Parent'].includes(values.role))throw Error('请选择学生或家长。');if(!native?.confirmCloudSession)checkNativeBinding({...user,role:values.role});const profile=await api('/auth/role',{method:'POST',body:JSON.stringify({role:values.role})});if(version===generation)await enter(profile);}
-  async function logout(){if(!papersCanLeave())return;authAttempt++;if(user?.role==='Student'&&!await sync())throw Error('暂时无法退出，请检查网络后重试。');await api('/auth/logout',{method:'POST'});generation++;clearInterval(timer);clearTimeout(saveTimer);user=null;token='';raw.removeItem(sessionKey);if(native?.logout){native.logout();return;}auth();hint('已退出云账号。');}
+  async function logout(){if(!papersCanLeave())return;authAttempt++;if(user?.role==='Student'&&!await sync())throw Error('暂时无法退出，请检查网络后重试。');await api('/auth/logout',{method:'POST'});generation++;clearAiConfig();clearInterval(timer);clearTimeout(saveTimer);user=null;token='';raw.removeItem(sessionKey);if(native?.logout){native.logout();return;}auth();hint('已退出云账号。');}
   function removeStudentNav(){if(studentNav){ui()?.dispose(studentNav);studentNav.remove();studentNav=null;studentNavModel=null;}if(ui())ui().navigationActive=false;const bar=$('.bar');if(bar)bar.style.display='';}
   async function showStudentNav(){
     if(user?.role!=='Student'||needsRole(user)||!ui())return;const version=generation,id=user.id;removeStudentNav();const active=()=>{if(user?.id!==id||generation!==version)throw Error('账号已切换，请重新打开菜单。');};
@@ -94,7 +95,7 @@
     const response=await fetch(base+'/api'+path,{...options,keepalive:!options.body||new TextEncoder().encode(options.body).length<60000,signal:controller.signal,credentials:isNative?'omit':'same-origin',headers:{'Content-Type':'application/json','X-Growing-Client':'1',...(token?{Authorization:'Bearer '+token}:{}),...options.headers}});
     if(response.status===204)return null;
     const text=await response.text();let result;try{result=text?JSON.parse(text):null;}catch{throw Error('服务返回格式不正确，请检查站点地址。');}
-    if(!response.ok){const error=Error(result?.error||(response.status===401?'云登录已失效，请重新登录。':response.status===403?'当前账号没有权限。':'请求未完成（'+response.status+'）'));error.status=response.status;error.current=result?.current;if(response.status===401&&user&&generation===requestGeneration&&user.id===requestUserId&&token===requestToken){generation++;clearInterval(timer);clearTimeout(saveTimer);user=null;token='';raw.removeItem(sessionKey);auth();hint(error.message);}throw error;}
+    if(!response.ok){const error=Error(result?.error||(response.status===401?'云登录已失效，请重新登录。':response.status===403?'当前账号没有权限。':'请求未完成（'+response.status+'）'));error.status=response.status;error.current=result?.current;if(response.status===401&&user&&generation===requestGeneration&&user.id===requestUserId&&token===requestToken){generation++;clearAiConfig();clearInterval(timer);clearTimeout(saveTimer);user=null;token='';raw.removeItem(sessionKey);auth();hint(error.message);}throw error;}
     return result;
     })()]);}catch(error){if(error instanceof TypeError)throw Error('无法连接云服务，请检查网络后重试。');throw error;}
     finally{clearTimeout(timeout);options.signal?.removeEventListener('abort',abort);}
@@ -273,6 +274,18 @@
   document.addEventListener('click',event=>{if(!event.target.closest('#account-menu'))$('#account-menu').open=false;});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&$('#account-menu').open){$('#account-menu').open=false;$('#account-menu>summary').focus();}});
   window.GrowingCloud={storage,activity,back:courseBack,pageReady:courseReady,openQuestionBank,openPapers,
+  aiContext(){
+    if(!user||needsRole(user))throw Error('请先登录并选择身份后使用 AI。');
+    const id=user.id,version=generation,sessionToken=token;
+    const current=()=>user?.id===id&&generation===version&&token===sessionToken;
+    return {key:id+':'+version,current,async api(path,options={}){
+      if(!current())throw Error('账号已切换，请重新发起 AI 请求。');
+      if(path!=='/ai/config'&&path!=='/ai/usage')throw Error('AI 接口无效。');
+      const result=await api(path,options);
+      if(!current())throw Error('账号已切换，请重新发起 AI 请求。');
+      return result;
+    }};
+  },
   paperReviewContext(){
     if(!user||needsRole(user))throw Error('请先登录并选择身份。');
     const id=user.id,version=generation;
@@ -332,7 +345,7 @@
     const context=legacyContext(),destination=window.GrowingLegacy.destination(profile,isNative,context);
     if(destination){location.replace(destination);return;}
     view=view||(context.action==='classroom'?'student':context.action==='settings'||context.action==='voice-settings'?'settings':context.action||'management');
-    management?.dispose();clearInterval(timer);clearTimeout(saveTimer);cloudReady=false;hideRankings();courseTrail.length=0;$('#photo-dialog').close();user=null;generation++;const version=generation;if(await rememberNativeSession(profile)===false||version!==generation)return;user=profile;$('#account-menu').hidden=false;$('#account-menu').open=false;$('#account-identity').textContent=user.username||'当前账号';$('#logout').hidden=false;$('#learning-reports').hidden=true;$('#question-bank').hidden=needsRole(user)||user.role==='Student';hint('');
+    management?.dispose();clearInterval(timer);clearTimeout(saveTimer);cloudReady=false;hideRankings();courseTrail.length=0;$('#photo-dialog').close();user=null;generation++;clearAiConfig();const version=generation;if(await rememberNativeSession(profile)===false||version!==generation)return;user=profile;$('#account-menu').hidden=false;$('#account-menu').open=false;$('#account-identity').textContent=user.username||'当前账号';$('#logout').hidden=false;$('#learning-reports').hidden=true;$('#question-bank').hidden=needsRole(user)||user.role==='Student';hint('');
     const back=$('#console-return');back.hidden=isNative||!context.legacy||!!context.error;back.href=context.returnTo||'/console/home';
     questionBankPage=null;document.body.classList.toggle('admin-console',user.role==='Admin'&&view==='management');
     window.GrowingDuckCourse?.reset();
@@ -343,7 +356,7 @@
     }
     if(context.error){$('#app').innerHTML='<section class="panel"><h1>无法打开兼容入口</h1><p>'+esc(context.error)+'</p><a href="/console/home">返回后台</a></section>';return;}
     if(context.action==='classroom'&&user.role==='Parent'){hint('当前账号没有课堂试用权限。');$('#app').textContent='家长请从后台查看孩子概况。';return;}
-    management=GrowingManagement.create(api,esc,()=>generation===version,()=>{management?.dispose();generation++;clearInterval(timer);user=null;token='';raw.removeItem(sessionKey);auth();hint('密码已修改，请使用新密码重新登录。');});$('#settings').hidden=!['Parent','Admin'].includes(user.role);$('#admin-navigation').hidden=user.role!=='Admin';$('#identity').textContent=user.displayName+' · '+({Parent:'家长',Student:'学生',Admin:'管理员'}[user.role]);
+    management=GrowingManagement.create(api,esc,()=>generation===version,()=>{management?.dispose();generation++;clearAiConfig();clearInterval(timer);user=null;token='';raw.removeItem(sessionKey);auth();hint('密码已修改，请使用新密码重新登录。');});$('#settings').hidden=!['Parent','Admin'].includes(user.role);$('#admin-navigation').hidden=user.role!=='Admin';$('#identity').textContent=user.displayName+' · '+({Parent:'家长',Student:'学生',Admin:'管理员'}[user.role]);
     $('#my-rankings').hidden=user.role!=='Student';
     $('#learning-reports').hidden=!['Parent','Admin'].includes(user.role);
     $('#learning-reports').setAttribute('aria-pressed',String(view==='reports'));

@@ -41,7 +41,7 @@
   function knowledgeLink(id){const unit=nodeUnit(id);if(!unit)return null;
     if(unit==='english-8a-03')return '../word-ops-unit3/index.html';
     if(unit.startsWith('english'))return 'english-course.html?unit='+unit+'&node='+encodeURIComponent('lesson:'+id.replace(/^eng\d+-/,''));
-    return (unit==='math-8b-10'?'knowledge.html':unit.startsWith('physics')?'physics-course.html':'math-course.html')+'?chapter='+unit+'&node='+encodeURIComponent(id);
+    return (unit.startsWith('physics')?'physics-course.html':'math-course.html')+'?chapter='+unit+'&node='+encodeURIComponent(id);
   }
   const knowledgeStatus=score=>score===null?'未判定':score<60?'薄弱':score<80?'不稳':'本题通过';
   function knowledge(v){return Array.isArray(v)&&v.length>0&&v.length<=20&&new Set(v.map(k=>k?.nodeId)).size===v.length&&v.every(k=>exact(k,['nodeId','score','feedback'])&&Object.hasOwn(knowledgeNodes,k.nodeId)&&(k.score===null||integer(k.score,100))&&str(k.feedback,1200)&&k.feedback.trim().length>0);}

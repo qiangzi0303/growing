@@ -13,13 +13,15 @@ import { PhotoReview } from './photo-review';
 import { paperAI } from './paper-ai';
 import { QuestionAttempts } from './question-attempts';
 import { StudentKnowledge } from './student-knowledge';
-import { connectRealtime, realtimeInfo, type RealtimeEnv } from './realtime';
+import { type RealtimeEnv } from './realtime';
 import { consoleAssets } from './console-assets';
+import { ManagedAI, type ManagedAIEnv } from './managed-ai';
 
-export interface Env extends ReleaseEnv, VisionEnv, RealtimeEnv {
+export interface Env extends ReleaseEnv, VisionEnv, RealtimeEnv, ManagedAIEnv {
   ASSETS: Fetcher;
   DB?: D1Database;
   AUTH_LIMITER: { limit(options: { key: string }): Promise<{ success: boolean }> };
+  AI_USAGE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
 const nativeOrigin = "https://appassets.androidplatform.net";
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -136,11 +138,22 @@ export function createHandler(database: (env: Env) => Database = env => {
       if (path.startsWith("/learn/") && current.role !== "Student" && current.role !== "Admin") error(403, "当前账号没有权限。");
       if (path.startsWith("/api/parent/") && current.role !== "Parent" && !(current.role === "Admin" && (request.method === "GET" || ["/api/parent/children", "/api/parent/children/account"].includes(path) && request.method === "POST"))) error(403, "当前账号没有权限。");
       let result: Response;
-      if(path==='/api/realtime/config'&&request.method==='GET')return decorate(realtimeInfo(env),request);
-      if(path==='/api/realtime/connect'&&request.method==='POST'){
-        if(!(await env.AI_LIMITER.limit({key:'realtime:'+current.id})).success)error(429,'实时语音连接过于频繁，请稍后重试。');
-        return decorate(await connectRealtime(await body(request,150000),env,request.signal,aiFetch),request);
+      // Request-scoped identity is carried only to existing server-side vision workflows.
+      env={...env,MANAGED_AI_CONTEXT:{db,userId:current.id,feature:path}};
+      if (path === '/api/ai/config' && request.method === 'GET') {
+        if (!(await env.AI_LIMITER.limit({key:'ai-config:'+current.id})).success) error(429,'请求过于频繁。');
+        return decorate(json(await new ManagedAI(db,env).config(),200,{'Cache-Control':'no-store, private'}),request);
       }
+      if (path === '/api/ai/usage' && request.method === 'POST') {
+        // Reporting is much more frequent than paid model calls, especially realtime responses.
+        if (env.AI_USAGE_LIMITER && !(await env.AI_USAGE_LIMITER.limit({key:current.id})).success) error(429,'用量上报过于频繁。');
+        return decorate(json(await new ManagedAI(db,env).usage(current.id,await body(request,8000))),request);
+      }
+      if (path === '/api/admin/ai/models' && request.method === 'GET') return decorate(json(await new ManagedAI(db,env).list()),request);
+      if (/^\/api\/admin\/ai\/models\/[^/]+$/.test(path) && request.method === 'PUT') return decorate(json(await new ManagedAI(db,env).save(path.split('/').at(-1)!,await body(request,12000))),request);
+      if (path === '/api/admin/ai/usage' && request.method === 'GET') return decorate(json(await new ManagedAI(db,env).stats(url.searchParams)),request);
+      if ((path==='/api/realtime/config'&&request.method==='GET') || (path==='/api/realtime/connect'&&request.method==='POST'))
+        error(410,'实时语音已改为统一配置后直连，请刷新网页或升级应用。');
       if (path === '/api/handwriting/ai' && request.method === 'POST') {
         if (current.role !== 'Student' && current.role !== 'Admin') error(403,'当前账号没有识别权限。');
         return decorate(await assess(await body(request,9_100_000),env,current.id,request.signal,aiFetch),request);

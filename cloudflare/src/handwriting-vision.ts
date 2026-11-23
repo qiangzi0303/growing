@@ -1,14 +1,16 @@
-import { HttpError } from './database';
+import { HttpError, type Database } from './database';
+import { resolveManagedModel, recordManagedUsage, type ManagedAIEnv, type ManagedModel } from './managed-ai';
 import handwriting from '../../app/src/main/assets/web/app-design/handwriting-core.js';
 import { validateAnswerAnnotations } from './photo-assessment';
 
-export interface VisionEnv {
+export interface VisionEnv extends ManagedAIEnv {
+  MANAGED_AI_CONTEXT?: {db:Database;userId:string;feature:string};
   HANDWRITING_VISION_MODELS?: string;
   PAPER_RECOGNITION_MODELS?: string;
   PAPER_FIGURE_MODELS?: string;
   AI_LIMITER: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
-type Model = { name: string; model: string; endpoint: string; apiKey: string; customHeaders?: Record<string,string>; additionalConfig?: string };
+type Model = { name: string; model: string; endpoint: string; apiKey: string; customHeaders?: Record<string,string>; additionalConfig?: string; managed?:Pick<ManagedModel,'id'|'revision'>; fullEndpoint?:boolean };
 const fail = (status: number, message: string): never => { throw new HttpError(status, message); };
 const validRecognition = (value: any) => value && typeof value.text === 'string' && value.text.trim() && value.text.length <= 18000 && Array.isArray(value.uncertain) && value.uncertain.length <= 100 && value.uncertain.every((s: unknown) => typeof s === 'string' && s.length <= 500);
 const png = (p: unknown) => typeof p === 'string' && p.length <= 1_000_000 && /^data:image\/png;base64,iVBORw0KGgo[A-Za-z0-9+/]*={0,2}$/.test(p);
@@ -85,10 +87,17 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
   const deadline=Date.now()+100000;
   let reviewFailure='视觉服务未返回可用结果。';
   let models: Model[];
+  const managedContext=env.MANAGED_AI_CONTEXT;
+  const purpose=options.paperReview||options.paperFigures&&!grading?'paperFigure':options.paperRecognition&&!grading?'paperRecognition':'vision';
+  let managed:ManagedModel|undefined;
+  if(managedContext){
+    const existing=(await managedContext.db.query<{Enabled:number}>('SELECT Enabled FROM GrowingAIModels WHERE Id=?',[purpose]))[0];
+    if(existing){if(!existing.Enabled)fail(503,'该视觉模型已由管理员停用。');managed=await resolveManagedModel(managedContext.db,env,purpose);if(!managed)fail(503,'该视觉模型已由管理员停用，请重试。')}
+  }
   try {
     // Reviewed paper stages use the visual provider; other grading keeps its existing model.
     const config=options.paperReview?(env.PAPER_FIGURE_MODELS??env.HANDWRITING_VISION_MODELS):options.paperFigures&&!grading?env.PAPER_FIGURE_MODELS:options.paperRecognition&&!grading?(env.PAPER_RECOGNITION_MODELS??env.HANDWRITING_VISION_MODELS):env.HANDWRITING_VISION_MODELS;
-    models = JSON.parse(config || '[]');
+    models = managed?[{name:managed.id,model:managed.model,endpoint:managed.endpoint,apiKey:managed.apiKey,managed,fullEndpoint:true}]:JSON.parse(config || '[]');
     if (!Array.isArray(models) || !models.length || models.length > 4 || models.some(m => !m.model || !m.apiKey || !m.endpoint || new URL(m.endpoint).protocol !== 'https:')) throw Error();
   } catch { return fail(503,options.paperFigures?'题图识别尚未配置，请联系管理员；原卷与整理进度已保留。':paper?'试卷识别尚未配置，请联系管理员配置视觉模型。':grading?'手写原稿批改尚未配置视觉模型，请联系管理员；原稿已保留。':'手写图片识别尚未配置，请联系管理员；原稿已保留。'); }
   for (const model of models) {
@@ -96,10 +105,19 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
     if (signal.aborted) return fail(499,'请求已取消，原稿已保留。');
     const controller = new AbortController(), abort = () => controller.abort();
     signal.addEventListener('abort',abort,{once:true});
+    let attempted=false,status='error',inputTokens:number|null=null,outputTokens:number|null=null,totalTokens:number|null=null,providerRequestId:string|undefined;
+    let config=model.managed;
+    if(managedContext&&!config){
+      const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(model.model)));
+      const revision=1_000_000_000_000+parseInt(Array.from(digest.slice(0,6),b=>b.toString(16).padStart(2,'0')).join(''),16);
+      config={id:purpose,revision};
+      await managedContext.db.query('INSERT INTO GrowingAIModelHistory(ConfigId,Revision,Model) VALUES(?,?,?) ON CONFLICT(ConfigId,Revision) DO NOTHING',[purpose,revision,model.model]);
+    }
     const timer = setTimeout(abort,Math.min(options.paperReview||options.reasoning?90000:45000,deadline-Date.now()));
     try {
       const additional = JSON.parse(model.additionalConfig || '{}');
-      const response = await upstream(model.endpoint.replace(/\/+$/,'')+'/chat/completions', {
+      attempted=true;
+      const response = await upstream(model.fullEndpoint?model.endpoint:model.endpoint.replace(/\/+$/,'')+'/chat/completions', {
         method:'POST', redirect:'manual', signal:controller.signal,
         headers:{...model.customHeaders,'Content-Type':'application/json',Authorization:'Bearer '+model.apiKey},
         body:JSON.stringify({...additional,model:model.model,stream:false,temperature:0.1,max_tokens:options.maxTokens??(paper?12000:grading?8192:4096),...(!options.paperReview&&!options.reasoning?{thinking:{type:'disabled'}}:{}),response_format:{type:'json_object'},messages:[
@@ -116,6 +134,9 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
       const reader=response.body.getReader(); let size=0,raw='';const decoder=new TextDecoder();
       while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>256000){await reader.cancel();throw Error();}raw+=decoder.decode(value,{stream:true});}
       const result=JSON.parse(raw+decoder.decode()),choice=result.choices?.[0],content=choice?.message?.content;
+      const usage=result.usage,input=usage?.prompt_tokens??usage?.input_tokens,outputCount=usage?.completion_tokens??usage?.output_tokens,total=usage?.total_tokens??(Number.isSafeInteger(input)&&Number.isSafeInteger(outputCount)?input+outputCount:undefined);
+      if([input,outputCount,total].every(n=>Number.isSafeInteger(n)&&n>=0&&n<=1_000_000_000)&&total===input+outputCount){inputTokens=input;outputTokens=outputCount;totalTokens=total}
+      if(typeof result.id==='string'&&result.id.length<=200&&!/[\x00-\x1f\x7f]/.test(result.id))providerRequestId=result.id;
       if(result.error || !['stop','end_turn'].includes(choice?.finish_reason) || typeof content!=='string'){reviewFailure=choice?.finish_reason==='length'?'视觉结果输出被截断。':'视觉服务返回的内容不完整。';console.warn('Handwriting vision invalid completion',model.name,String(choice?.finish_reason||'missing').slice(0,40));continue;}
       const text=content.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
       let recognition;
@@ -129,14 +150,17 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
       const output=validate(recognition);
       if(!output){reviewFailure=options.validationIssue?.()||'视觉结果未通过内容完整性校验。';console.warn('Handwriting vision invalid result',model.name,reviewFailure);continue;}
       if(signal.aborted || controller.signal.aborted)throw Error();
-      return Response.json(output);
+      status='success';return Response.json(output);
     } catch (cause) {
       if(cause instanceof HttpError)throw cause;
       reviewFailure=controller.signal.aborted?'视觉服务响应超时。':cause instanceof SyntaxError?'视觉服务返回的内容格式无法读取。':'视觉服务连接中断。';
       const reason=cause instanceof Error?cause.message.split(model.apiKey).join('[secret]').replace(/data:[\s\S]*/gi,'[image]').replace(/[A-Za-z0-9+/=]{40,}/g,'[redacted]').slice(0,200):'Error';
       console.warn('Handwriting vision request failed',model.name,reason);
     }
-    finally { clearTimeout(timer);signal.removeEventListener('abort',abort); }
+    finally {
+      clearTimeout(timer);signal.removeEventListener('abort',abort);
+      if(attempted&&managedContext&&config)await recordManagedUsage(managedContext.db,managedContext.userId,config,{requestId:crypto.randomUUID(),feature:managedContext.feature,status:signal.aborted?'cancelled':status,inputTokens,outputTokens,totalTokens,providerRequestId});
+    }
   }
   if(signal.aborted)return fail(499,'请求已取消，原稿已保留。');
   return fail(502,options.paperReview?reviewFailure+' 当前阶段已保存，可重试。':options.paperFigures?'本题题图识别失败、超时或结果不完整，已保存进度，请重试。':paper?'试卷识别失败或结果不完整，未录入题库。照片仍保留在当前页面，可重试或分批上传。':grading?'手写原稿批改失败、超时或结果不完整，本次不计分。原稿已保留，请稍后重试。':'手写图片识别失败或超时，原稿已保留，请稍后重试；仍失败请联系管理员检查视觉模型。');

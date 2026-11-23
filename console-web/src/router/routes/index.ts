@@ -42,6 +42,8 @@ export function createConsoleRoutes(): RouteRecordRaw[] {
           : page.name === 'member-detail' ? () => import('@/views/members/[id].vue')
           : page.name === 'rewards' ? () => import('@/views/rewards/index.vue')
           : page.name === 'account' ? () => import('@/views/account/index.vue')
+          : page.name === 'ai-models' ? () => import('@/views/ai-models/index.vue')
+          : page.name === 'ai-usage' ? () => import('@/views/ai-usage/index.vue')
           : () => import('@/views/console/pending.vue'),
         meta: {
           title: page.title,

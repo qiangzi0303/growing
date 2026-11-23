@@ -1,10 +1,9 @@
 /* One back link; course tools live beside the lesson navigation. */
 (()=>{
   'use strict';
-  const params=new URLSearchParams(location.search),path=decodeURIComponent(location.pathname),legacy=path.includes('/fraction-ops/')||path.includes('/word-ops-unit3/');
+  const params=new URLSearchParams(location.search),path=decodeURIComponent(location.pathname),legacy=path.includes('/word-ops-unit3/');
   let subject=document.body.dataset.subject==='physics'?'physics':'math',id=params.get('chapter')||params.get('unit')||'';
   if(path.includes('english-course')||path.includes('/word-ops-unit3/'))subject='english';
-  if(path.includes('/fraction-ops/'))id='math-8b-10';
   if(path.includes('/word-ops-unit3/'))id='english-8a-03';
   const prefix=legacy?'../app-design/':'',term=id.includes('-8b-')?'lower':'upper';
   document.querySelectorAll('.course-return-nav').forEach(nav=>nav.remove());

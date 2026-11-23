@@ -10,6 +10,8 @@ export const businessPages = [
   { name: 'members', path: '/members', title: '注册会员', adminOnly: true },
   { name: 'member-detail', path: '/members/:id', title: '会员详情', adminOnly: true, hidden: true },
   { name: 'rewards', path: '/rewards', title: '奖励记录', adminOnly: false },
+  { name: 'ai-models', path: '/ai-models', title: 'AI 模型配置', adminOnly: true },
+  { name: 'ai-usage', path: '/ai-usage', title: 'AI 用量统计', adminOnly: true },
   { name: 'account', path: '/account', title: '账号与设置', adminOnly: false }
 ] as const;
 export function landing(profile: EntryProfile | null): string {

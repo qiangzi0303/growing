@@ -133,7 +133,7 @@ public final class MainActivity extends Activity {
         RadioGroup roles=new RadioGroup(this);roles.setContentDescription("账号身份");
         RadioButton student=new RadioButton(this);student.setId(View.generateViewId());student.setText("我是学生");roles.addView(student);
         RadioButton parent=new RadioButton(this);parent.setId(View.generateViewId());parent.setText("我是家长");roles.addView(parent);
-        CheckBox consent=new CheckBox(this);consent.setText("同意联网注册并将身份保存到后台；学生学习记录将同步，AI 密钥不上传。");consent.setContentDescription("同意云账号注册");
+        CheckBox consent=new CheckBox(this);consent.setText("同意联网注册并将身份保存到后台；学生学习记录将同步，AI 模型由管理员统一配置。");consent.setContentDescription("同意云账号注册");
         if(registering){form.addView(text("请选择身份（必选）",16,Color.rgb(80,110,70)));form.addView(roles);form.addView(consent);}
         TextView error=text("",14,Color.rgb(160,90,60));error.setPadding(0,dp(12),0,dp(8));form.addView(error);
         Button submit=button(registering?"注册并保存身份":"登录");form.addView(submit);

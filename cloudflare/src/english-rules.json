@@ -2718,19 +2718,7 @@
     ]
   },
   "__legacy": {
-    "fractionTopics": [
-      "definition",
-      "domain",
-      "zero",
-      "property",
-      "reduce",
-      "common",
-      "sign",
-      "add",
-      "multiply",
-      "equation",
-      "extra"
-    ],
+    "fractionTopics": [],
     "words": [
       {
         "id": "w1",

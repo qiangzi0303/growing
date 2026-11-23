@@ -1,4 +1,4 @@
-// Browser WebRTC media goes to Qwen; only SDP goes through our local credential proxy.
+// Browser WebRTC signalling and media go directly to the configured provider.
 export class RealtimeConnection {
   constructor({instructions,onEvent=()=>{},onState=()=>{},onError=()=>{}}){Object.assign(this,{instructions,onEvent,onState,onError});this.generation=0;this.ready=false;this.cancelled=new Set();this.sources=[];}
   async start({microphone=true}={}){
@@ -6,8 +6,11 @@ export class RealtimeConnection {
     const alive=()=>generation===this.generation;
     try{
       const api=window.GrowingRealtime;
-      const config=api?await api.connectionInfo({signal:this.abort.signal}):await (await fetch('./api/realtime/config',{signal:this.abort.signal})).json();
-      if(!config.configured)throw Error('请在连接设置中填写 Qwen 实时语音密钥。');
+      if(!api)throw Error('AI 服务尚未加载，请重新打开页面。');
+      const config=await api.connectionInfo({signal:this.abort.signal});
+      if(!alive())return;
+      if(!config.configured)throw Error('请联系管理员配置实时语音服务。');
+      this.aiHandle=config.handle;this.meters=new Map();this.failedResponses=new Set();
       if(!navigator.mediaDevices?.getUserMedia||!window.RTCPeerConnection)throw Error('当前系统 WebView 或浏览器不支持实时语音，请更新后重试。');
       const stream=microphone?await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false}):null;
       if(!alive()){stream?.getTracks().forEach(t=>t.stop());return;}
@@ -33,6 +36,7 @@ export class RealtimeConnection {
       const bind=channel=>{
         channel.onmessage=async message=>{
           if(!alive())return;
+          if(!config.handle.current()){this.stop();this.onError('账号已切换，请重新开启语音。');return;}
           let event;try{event=JSON.parse(message.data);}catch{return;}
           this.events.push(event.type||event.code||'unknown');if(this.events.length>30)this.events.shift();
           if(event.type==='session.created'){
@@ -44,16 +48,23 @@ export class RealtimeConnection {
           }
           if(event.type==='error'||(!event.type&&event.code)){
             const code=event.error?.code||event.code||'';
-            const reason=/Unpurchased|AccessDenied/.test(code)?'当前业务空间未开通 Qwen3.8 Omni Realtime，请在百炼开通后重试。':'实时服务返回错误（'+String(code).slice(0,80)+'）。';
+            const reason=/Unpurchased|AccessDenied/.test(code)?'当前实时语音模型尚未开通，请联系管理员。':'实时服务返回错误，请稍后重试或联系管理员。';
+            if(this.responseId)this.failedResponses.add(this.responseId);
             if(!this.ready){rejectReady(Error(reason));return;}
             this.onError(reason);this.interrupt();return;
           }
           if(event.type==='input_audio_buffer.speech_started'){this.interrupt();this.onState('listen');}
           if(event.type==='input_audio_buffer.speech_stopped')this.onState('think');
           if(event.type==='response.created'){
+            const responseId=event.response?.id;if(responseId&&!this.meters.has(responseId))this.meters.set(responseId,window.GrowingCourseAI.begin(config.handle,'realtime'));
             this.responseId=event.response?.id;this.responseItem=null;this.busy=true;this.done=false;this.heardAudio=false;this.lastSound=performance.now();this.audio.muted=false;this.onState('think');
           }
           const id=event.response_id||event.response?.id;
+          if(event.type==='response.done'&&id){
+            if(!this.meters.has(id))this.meters.set(id,window.GrowingCourseAI.begin(config.handle,'realtime'));
+            const status=event.response?.status;
+            void this.meters.get(id).report({usage:event.response?.usage,status:status==='failed'||status==='incomplete'||this.failedResponses.has(id)?'error':status==='cancelled'?'cancelled':'success',providerRequestId:id});
+          }
           if(id&&this.cancelled.has(id))return;
           if(event.type==='response.output_item.added')this.responseItem=event.item?.id;
           if(event.type==='response.done'){this.busy=false;this.done=true;this.doneAt=performance.now();}
@@ -61,7 +72,7 @@ export class RealtimeConnection {
         };
       };
       this.channel=pc.createDataChannel('oai-events');bind(this.channel);pc.ondatachannel=e=>bind(e.channel);
-      pc.onconnectionstatechange=()=>{if(alive()&&['failed','closed'].includes(pc.connectionState)){rejectReady(Error('实时语音连接已断开。'));if(this.ready){this.stop();this.onError('实时语音连接已断开，请重新开启。');}}};
+      pc.onconnectionstatechange=()=>{if(alive()&&['failed','closed'].includes(pc.connectionState)){rejectReady(Error('实时语音连接已断开。'));if(this.ready){this.stop('error');this.onError('实时语音连接已断开，请重新开启。');}}};
       await pc.setLocalDescription(await pc.createOffer());
       if(pc.iceGatheringState!=='complete')await new Promise((resolve,reject)=>{
         const timer=setTimeout(()=>{pc.removeEventListener('icegatheringstatechange',check);reject(Error('网络候选收集超时。'));},12000);
@@ -71,16 +82,14 @@ export class RealtimeConnection {
       // Attach rejection handler before the signalling request can fail.
       ready.catch(()=>{});
       let payload;
-      if(api)payload=await api.connect(pc.localDescription.sdp,{signal:this.abort.signal});
-      else{
-        const answer=await fetch('./api/realtime/connect',{method:'POST',signal:this.abort.signal,headers:{'Content-Type':'application/json','X-Duck-Client':'1'},body:JSON.stringify({sdp:pc.localDescription.sdp})});
-        payload=await answer.json();if(!answer.ok)throw Error(payload.error||'实时连接失败。');
-      }
+      this.connectionMeter=window.GrowingCourseAI.begin(config.handle,'realtime-connect');
+      payload=await api.connect(pc.localDescription.sdp,{signal:this.abort.signal,handle:config.handle});
+      this.connectionMeter=null;
       if(!alive())return;
       await pc.setRemoteDescription({type:'answer',sdp:payload.sdp.trim().replace(/\r?\n/g,'\r\n')+'\r\n'});
       this.watch(generation);await ready;
     }catch(error){if(alive()){
-      this.stop();
+      this.stop(error.name==='AbortError'?'cancelled':'error');
       if(error.name==='NotAllowedError'||error.name==='SecurityError')throw Error('麦克风未获授权。请在系统设置中允许本应用使用麦克风，再重新开启语音。');
       if(error.name==='NotFoundError')throw Error('未找到可用麦克风，请检查设备。');
       if(error.name==='NotReadableError')throw Error('麦克风暂不可用，可能正被其他应用占用。');
@@ -113,7 +122,10 @@ export class RealtimeConnection {
     if(generation===this.generation)this.watchTimer=setTimeout(()=>this.watch(generation),70);
   }
   mouth(){return this.level||0;}
-  stop(){
+  stop(status='cancelled'){
+    void this.connectionMeter?.report({status});this.connectionMeter=null;
+    for(const [id,meter] of this.meters||[])void meter.report({status:this.failedResponses?.has(id)?'error':status,providerRequestId:id});
+    this.meters=null;this.aiHandle=null;
     ++this.generation;this.abort?.abort();clearTimeout(this.readyTimer);this.rejectReady?.(new DOMException('Aborted','AbortError'));this.rejectReady=null;clearTimeout(this.watchTimer);
     this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;
     if(this.pc){this.pc.onconnectionstatechange=null;this.pc.close();this.pc=null;}

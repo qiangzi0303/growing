@@ -14,7 +14,7 @@ function fixture() {
   return { calls, assets };
 }
 test('bounded console pages fall back to the console index', async () => {
-  for (const route of ['', 'home', 'students', 'students/a', 'reports', 'members', 'members/a', 'rewards', 'account', 'login', 'session-error', '403', '500']) {
+  for (const route of ['', 'home', 'students', 'students/a', 'reports', 'members', 'members/a', 'rewards', 'account', 'ai-models', 'ai-usage', 'login', 'session-error', '403', '500']) {
     const path = '/console/' + route;
     const { calls, assets } = fixture();
     const response = await consoleAssets(new Request('https://test'+path), path, assets);

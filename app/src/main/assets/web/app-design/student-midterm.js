@@ -4,7 +4,7 @@
  window.GrowingStudentMidterm={create({params=new URLSearchParams(),active=()=>{}}={}){
   const graph=params.get('kind')==='graph',D=window.GrowingMidtermGraphData,math=window.GrowingMathFormat,listeners=new Set(),jobs=new Map(),ai={};let alive=true,concept='all',original=null,profile=null,bridge,studentId='',students=[],query='',page=1,total=0,pageSize=20,selected='all',busy=false,message='',sequence=0;
   const check=()=>{if(!alive)throw Error('页面已关闭');active();},emit=()=>{if(alive)for(const fn of listeners)fn(snapshot());};
-  const image=number=>'math-midterm-answers/q'+number+'.jpg',unitName=id=>D?.groups.find(g=>g[1]===id)?.[0]||id,unitHref=id=>(id==='math-8b-10'?'knowledge.html':'math-course.html')+'?'+new URLSearchParams({chapter:id}),links=id=>(D.links[id]?.targets||[]).map(t=>({...t,href:(t.chapter==='math-8b-10'?'knowledge.html':'math-course.html')+'?'+new URLSearchParams({chapter:t.chapter,node:t.node}),label:unitName(t.chapter)+' · '+t.title}));
+  const image=number=>'math-midterm-answers/q'+number+'.jpg',unitName=id=>D?.groups.find(g=>g[1]===id)?.[0]||id,unitHref=id=>'math-course.html'+'?'+new URLSearchParams({chapter:id}),links=id=>(D.links[id]?.targets||[]).map(t=>({...t,href:'math-course.html'+'?'+new URLSearchParams({chapter:t.chapter,node:t.node}),label:unitName(t.chapter)+' · '+t.title}));
   const questions=graph?[]:window.GrowingMidterm.questions.map(q=>{
    const section=[...document.querySelectorAll('#paper .q')].find(el=>el.dataset.number===String(q.number));
    if(!section)throw Error('原卷第'+q.number+'题缺失');

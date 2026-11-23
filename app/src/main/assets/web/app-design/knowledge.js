@@ -28,7 +28,7 @@
   const labels={untested:'未测',pending:'待复测',screened:'初筛通过',shaky:'不稳',weak:'薄弱'};
   const title=id=>g.byId.get(id).title;
   const chip=(id,status)=>`<span class="chip ${status}">${esc(labels[status])}</span>`;
-  let selected=g.byId.has(params.get('node'))?params.get('node'):!physics&&chapter.number===10?'add':chapter.nodes[0].id;
+  let selected=g.byId.has(params.get('node'))?params.get('node'):chapter.nodes[0].id;
   let mode=['diagnosis','panorama'].includes(params.get('mode'))?params.get('mode'):'graph';
   let panoramaRange=params.get('range')==='year'?'year':'chapter';
   const panorama=window.GrowingPanorama.create(g);

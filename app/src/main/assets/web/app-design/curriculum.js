@@ -15,7 +15,7 @@ window.GrowingCurriculum={
         {id:'math-8b-07',number:7,title:'认识概率',summary:'随机事件 · 概率 · 频率与概率',outline:['随机事件','概率','频率与概率']},
         {id:'math-8b-08',number:8,title:'四边形',summary:'平行四边形 · 中位线 · 梯形',outline:['平行四边形','特殊的平行四边形','三角形的中位线','梯形']},
         {id:'math-8b-09',number:9,title:'因式分解',summary:'因式分解概念 · 提公因式法 · 公式法',outline:['因式分解的概念','提公因式法','公式法']},
-        {id:'math-8b-10',number:10,title:'分式',summary:'概念与性质 · 分式运算 · 分式方程',outline:['分式的概念','分式的基本性质','分式的加减','分式的乘除','分式方程'],entry:'../fraction-ops/分式作战_一分钟学习版.html'},
+        {id:'math-8b-10',number:10,title:'分式',summary:'概念与性质 · 分式运算 · 分式方程',outline:['分式的概念','分式的基本性质','分式的加减','分式的乘除','分式方程']},
         {id:'math-8b-11',number:11,title:'二次根式',summary:'二次根式概念 · 乘除 · 加减',outline:['二次根式的概念','二次根式的乘除','二次根式的加减']},
       ]},
     },
@@ -50,7 +50,6 @@ window.GrowingCurriculum={
   },
 };
 for(const book of Object.values(window.GrowingCurriculum.physics.terms))for(const unit of book.units)unit.entry='physics-course.html?chapter='+unit.id;
-// The original fraction classroom remains the entry for chapter 10.
 for(const book of Object.values(window.GrowingCurriculum.math.terms)){
   for(const unit of book.units)if(!unit.entry)unit.entry='math-course.html?chapter='+unit.id;
 }

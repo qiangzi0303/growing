@@ -47,9 +47,9 @@
       window.UnitRewards.register(u.id,{title:u.title,readOnly:true,mastery:()=>{
         if(subject==='english'&&u.entry){const legacy=u.number===3,raw=JSON.parse(localStorage.getItem(legacy?'wordops_8A_unit3':'growing-english-course-v1:'+u.id)||'null'),sentences=window.SentenceDemo.units[u.id].topics.flatMap(t=>t.sentences);return window.GrowingEnglishScore.summary(legacy?window.GrowingSummaryLegacy.words:window.GrowingEnglishVocabulary[u.number],legacy?raw?.mastered:raw?.words,sentences,JSON.parse(localStorage.getItem('growing-english-sentences-v1:'+u.id)||'null'),legacy).score;}
         const ids=Object.keys(window.GrowingHandwriting.knowledgeUnits[u.id]||{});if(!hasGraph||!ids.length)return null;
-        const fraction=u.id==='math-8b-10',raw=localStorage.getItem(fraction?'fraction-minute-v1':'growing-'+subject+'-lessons-v1'),saved=raw?JSON.parse(raw):null;
-        if(saved&&(!fraction&&saved.version!==1||!saved.topics||typeof saved.topics!=='object'))throw Error('课程记录不可用');
-        return Math.round(ids.reduce((sum,id)=>{const legacyId=fraction?({meaning:'domain',extraneous:'extra'})[id]||id:id;return sum+(fraction?window.GrowingPracticeProgress.fraction(saved?.topics[legacyId],Object.hasOwn(saved?.learning?.mastery||{},legacyId)):window.GrowingPracticeProgress.mastery(saved?.topics[id])).score;},0)/ids.length*10)/10;
+        const raw=localStorage.getItem('growing-'+subject+'-lessons-v1'),saved=raw?JSON.parse(raw):null;
+        if(saved&&(saved.version!==1||!saved.topics||typeof saved.topics!=='object'))throw Error('课程记录不可用');
+        return Math.round(ids.reduce((sum,id)=>sum+window.GrowingPracticeProgress.mastery(saved?.topics[id]).score,0)/ids.length*10)/10;
       },entry:studyLink(u),rule:u.entry?'此处展示最近保存的掌握记录；进入课堂学习后同步。':'课程内容筹备中，有正式达标记录后开始累计。'});
     }
     window.addEventListener('storage',e=>{if(subject==='english'&&(e.key===null||e.key?.startsWith('growing-english-')||e.key==='wordops_8A_unit3'))for(const u of book.units)window.UnitRewards.update(u.id);});

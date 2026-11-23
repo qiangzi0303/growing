@@ -29,11 +29,6 @@ test('real course evidence requires both concept and practice; reading is untest
 test('unreadable course data is not silently marked untested and no writes occur',()=>{
   const c=M.chapters[0],out=summarize(c,M,{'growing-math-lessons-v1':{version:99}});assert.ok(out.rows.every(n=>n.status==='unknown'));assert.ok(out.warnings.length);
 });
-test('fraction graph aliases read the existing domain and extra classroom records',()=>{
-  const c=M.chapters.find(c=>c.id==='math-8b-10'),r={attempts:[{valid:true,score:9,criticalErrors:[]}],exams:[{real:false,correct:3,total:3}]};
-  const rows=summarize(c,M,{'fraction-minute-v1':{topics:{domain:r,extra:r}}}).rows;
-  assert.equal(rows.find(n=>n.id==='meaning').status,'passed');assert.equal(rows.find(n=>n.id==='extraneous').status,'passed');
-});
 test('English validates answers and excludes optional words',()=>{
   const words=C.GrowingEnglishVocabulary[1],lessons=C.GrowingEnglishLessons[1],w=words.find(w=>!w.optional),l=lessons[0];
   const raw={version:1,words:{[w.id]:{protocol:'seven-recalls',answers:Array(7).fill(w.word)}},lessons:{[l.id]:{protocol:'three-correct',answers:l.questions.map(q=>q.answer)}}};

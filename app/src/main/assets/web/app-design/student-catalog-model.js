@@ -28,11 +28,10 @@
     if(!Number.isInteger(saved.done)||!Number.isInteger(saved.total)||saved.done<0||saved.total<0||saved.done>saved.total)throw Error('课程记录不可用');
     return saved.total?Math.floor(saved.done/saved.total*1000+1e-8)/10:0;
    }
-   const fraction=unit.id==='math-8b-10',saved=read(fraction?'fraction-minute-v1':'growing-'+subject+'-lessons-v1');
-   if(saved&&(!fraction&&saved.version!==1||!saved.topics||typeof saved.topics!=='object'))throw Error('课程记录不可用');
+   const saved=read('growing-'+subject+'-lessons-v1');
+   if(saved&&(saved.version!==1||!saved.topics||typeof saved.topics!=='object'))throw Error('课程记录不可用');
    return Math.round(ids.reduce((sum,id)=>{
-    const legacyId=fraction?({meaning:'domain',extraneous:'extra'})[id]||id:id;
-    return sum+(fraction?root.GrowingPracticeProgress.fraction(saved?.topics[legacyId],Object.hasOwn(saved?.learning?.mastery||{},legacyId)):root.GrowingPracticeProgress.mastery(saved?.topics[id])).score;
+    return sum+root.GrowingPracticeProgress.mastery(saved?.topics[id]).score;
    },0)/ids.length*10)/10;
   }
   if(page==='study'){

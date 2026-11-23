@@ -40,21 +40,17 @@ public final class LearningBridge {
         try { authorize(); return new JSONObject().put("ok",true).put("value",new JSONArray(learning.getAll().keySet())).toString(); }
         catch(Exception e) { return error(e); }
     }
-    @JavascriptInterface public String aiKey() { try{authorize();return settings.getString("ai.key","");}catch(Exception e){return "";} }
+    /** Compatibility only: model credentials now come from the authenticated cloud configuration. */
+    @JavascriptInterface public String aiKey() { return ""; }
     @JavascriptInterface public String saveAiKey(String value) {
-        try{authorize();String key=value.trim();
-            if(!key.isEmpty()&&(key.length()<8||key.length()>512||key.chars().anyMatch(Character::isWhitespace)))throw new IllegalArgumentException();
-            SharedPreferences.Editor edit=settings.edit();if(key.isEmpty())edit.remove("ai.key");else edit.putString("ai.key",key);
-            if(!edit.commit())throw new IllegalStateException();return "{\"ok\":true}";
-        }catch(Exception e){return "{\"ok\":false,\"error\":\"密钥未保存，请检查格式和当前账号。\"}";}
+        return "{\"ok\":false,\"error\":\"AI 模型由管理后台统一配置，无需设置个人密钥。\"}";
     }
     @JavascriptInterface public String realtimeSettings() {
-        try{authorize();return new JSONObject().put("ok",true).put("value",RealtimeSettings.read(settings)).toString();}
+        try{authorize();return new JSONObject().put("ok",true).put("value",new JSONObject().put("voice",settings.getString("realtime.voice","Tina"))).toString();}
         catch(Exception e){return error(e);}
     }
     @JavascriptInterface public String saveRealtimeSettings(String json) {
-        try{authorize();RealtimeSettings.save(settings,json);return "{\"ok\":true}";}
-        catch(Exception e){return "{\"ok\":false,\"error\":\"实时语音设置未保存，请检查配置和账号。\"}";}
+        return "{\"ok\":false,\"error\":\"语音模型由管理后台统一配置。\"}";
     }
     @JavascriptInterface public String cloudApiUrl() { try{authorize();return BuildConfig.CLOUD_API_URL;}catch(Exception e){return "";} }
     @JavascriptInterface public String takeRegistration() { try{authorize();return activity.takeRegistration(accountId,session);}catch(Exception e){return "";} }

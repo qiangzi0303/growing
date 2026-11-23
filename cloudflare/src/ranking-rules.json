@@ -229,19 +229,19 @@
     "subjectName": "数学",
     "term": "lower",
     "termName": "八年级下册",
-    "kind": "fraction",
+    "kind": "math",
     "topics": [
       "definition",
-      "domain",
+      "meaning",
       "zero",
       "property",
+      "sign",
       "reduce",
       "common",
-      "sign",
       "add",
       "multiply",
       "equation",
-      "extra"
+      "extraneous"
     ],
     "diagnosisTopics": [
       "definition",

@@ -8,7 +8,7 @@
   const $=s=>host.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let bridge,studentId='',profile=null,selected='all',sequence=0,studentSequence=0,page=1,query='',disposed=false;
   const clear=()=>{profile=null;$('[data-tree]').replaceChildren();$('[data-questions]').replaceChildren();$('[data-selection]').textContent='';};
-  const unitUrl=id=>(id==='math-8b-10'?'knowledge.html':'math-course.html')+'?'+new URLSearchParams({chapter:id});
+  const unitUrl=id=>'math-course.html'+'?'+new URLSearchParams({chapter:id});
   function show(key='all'){
     if(!profile)return;selected=key;
     const questions=profile.questions.filter(q=>key==='all'||key==='pending'&&(q.pending||!q.unitIds.length)||key.startsWith('u:')&&q.unitIds.includes(key.slice(2))||key.startsWith('n:')&&q.nodeIds.includes(key.slice(2)));

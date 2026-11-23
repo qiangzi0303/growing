@@ -20,7 +20,7 @@ for name in sorted(deferred):
         backup=project/'.nmai/tmp/physics-lower-deferred-assets'/name
         backup.parent.mkdir(parents=True,exist_ok=True)
         if not backup.exists():previous.rename(backup)
-files += [Path('word-ops-unit3/index.html'),Path('fraction-ops/分式作战_一分钟学习版.html')]
+files += [Path('word-ops-unit3/index.html')]
 for page in range(1,9):
     name='geometry-source-'+str(page)+'.webp'
     shutil.copyfile(project/'app-design'/name,web/'app-design'/name)
@@ -30,7 +30,7 @@ for relative in sorted(files):
     text,count=re.subn(r'sk-[a-zA-Z0-9_-]{12,}','GROWING_CONFIGURED_ON_DEVICE',source.read_text(encoding='utf-8'))
     removed+=count
     if relative.as_posix()=='app-design/math-course.js':
-        text=text.replace('AI检查在 NumaAI 网页预览中联网使用。','AI检查需联网，请在账号设置中配置自己的DeepSeek API Key。')
+        text=text.replace('AI检查在 NumaAI 网页预览中联网使用。','AI检查需联网，模型由管理后台统一配置。')
     target=web/relative
     target.parent.mkdir(parents=True,exist_ok=True)
     target.write_text(text,encoding='utf-8',newline='\n')

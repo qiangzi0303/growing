@@ -1,94 +1,20 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const source=fs.readFileSync(require.resolve('../app/src/main/assets/web/app-design/course-ai.js'),'utf8');
-function setup(native){
-  const data=new Map(),calls=[];let mode='ok',blocked=false;
-  const localStorage={getItem:k=>data.get(k)??null,setItem:(k,v)=>{if(blocked)throw Error('storage blocked');data.set(k,v);},removeItem:k=>data.delete(k)};
-  const window={GrowingNative:native};
-  const context={window,localStorage,document:{addEventListener(){}},setTimeout,clearTimeout,AbortController,fetch:async(url,options)=>{
-    calls.push({url,options});if(mode==='network')throw new TypeError('network error');
-    return {ok:!Number.isInteger(mode),status:mode,json:async()=>{if(mode==='bad-json')throw SyntaxError();return mode==='empty'?{}:{choices:[{finish_reason:mode==='length'?'length':'stop',message:{content:'解释内容'}}]};}};
-  }};
-  vm.runInNewContext(source,context);
-  return {api:window.GrowingCourseAI,window,data,calls,setMode:m=>{mode=m;},blockSave:()=>{blocked=true;}};
+function setup(){let account='a',failReport=false,hangReport=false,resolveConfig;const calls=[];
+ const config={models:[{id:'chat',purpose:'chat',model:'configured-model',endpoint:'https://provider.test/chat',apiKey:'test-secret',revision:1},{id:'realtime',purpose:'realtime',model:'voice-model',endpoint:'https://provider.test/realtime',apiKey:'voice-secret',revision:2}]};
+ const window={GrowingCloud:{aiContext(){const key=account;if(!key)throw Error('登录');return {key,current:()=>account===key,api:async(path,options)=>{calls.push({path,options});if(path==='/ai/config')return resolveConfig?await new Promise(r=>resolveConfig=r):config;if(hangReport)return new Promise(()=>{});if(failReport)throw Error('offline');return {ok:true};}};}}};window.top=window;
+ vm.runInNewContext(fs.readFileSync(require.resolve('../app/src/main/assets/web/app-design/course-ai.js'),'utf8'),{window,localStorage:{getItem(){return null;}},document:{addEventListener(){}},crypto:require('node:crypto').webcrypto,URL,AbortController,DOMException,setTimeout,clearTimeout,fetch:async(url,options)=>{calls.push({url,options});return {ok:true,text:async()=>'v=0\r\n',json:async()=>({usage:{prompt_tokens:12,completion_tokens:3,total_tokens:15},choices:[{message:{content:'answer'}}]})};}});
+ return {api:window.GrowingCourseAI,realtime:window.GrowingRealtime,calls,change:v=>account=v,fail:()=>failReport=true,hang:()=>hangReport=true,delay:()=>resolveConfig=true,release:()=>resolveConfig(config)};
 }
-test('no credentials means no network request; saved config supplies direct auth and format',async()=>{
-  const t=setup();await assert.rejects(t.api.request({task:'问题'}),/设置.*API Key/);assert.equal(t.calls.length,0);
-  t.api.save({apiKey:'fake-test-key',model:'deepseek-flash'});const signal=new AbortController().signal;
-  assert.equal(await t.api.request({task:'问题',signal}),'解释内容');
-  const call=t.calls[0],body=JSON.parse(call.options.body);assert.equal(call.url,'https://api.deepseek.com/chat/completions');assert.equal(call.options.headers.Authorization,'Bearer fake-test-key');assert.equal(call.options.signal,signal);assert.equal(body.response_format.type,'text');
-  await t.api.request({task:'评分',format:'json_object'});assert.equal(JSON.parse(t.calls[1].options.body).response_format.type,'json_object');
-  assert(!JSON.stringify(t.api.info()).includes('fake-test-key'));assert(!t.api.settingsMarkup().includes('fake-test-key'));
-});
-test('saved DeepSeek model names use the requested model without changing the saved key',async()=>{
-  const t=setup();
-  t.data.set('growing-course-ai-v1',JSON.stringify({model:'deepseek-flash',apiKey:'fake-test-key'}));
-  await t.api.request({task:'test'});
-  assert.equal(JSON.parse(t.calls[0].options.body).model,'DeepSeek-V4.1-Flash-1017');
-  assert.equal(t.calls[0].options.headers.Authorization,'Bearer fake-test-key');
-  const native=setup({aiKey:()=> 'fake-native-key'});
-  await native.api.request({task:'test'});
-  assert.equal(JSON.parse(native.calls[0].options.body).model,'DeepSeek-V4.1-Flash-1017');
-});
-
-test('connection updates are atomic and clear affects only shared key',()=>{
-  const t=setup();t.api.save({apiKey:'fake-test-key'});t.api.save({model:'another-model',apiKey:''});assert.equal(t.api.info().model,'another-model');
-  const before=t.data.get('growing-course-ai-v1');t.blockSave();assert.throws(()=>t.api.save({apiKey:'fake-replacement'}),/保存失败/);assert.equal(t.data.get('growing-course-ai-v1'),before);
-  t.data.set('growing-physics-lessons-v1','learning');t.api.clear();assert.equal(t.data.get('growing-physics-lessons-v1'),'learning');assert.equal(t.api.info().configured,false);
-});
-test('HTTP, invalid JSON, empty, truncated and network replies cannot count as answers',async()=>{
-  const t=setup();t.api.save({apiKey:'fake-test-key'});
-  for(const [mode,error] of [[401,/密钥无效/],[402,/余额不足/],[429,/频繁/],['bad-json',/无法读取/],['empty',/空内容/],['length',/未完整/],['network',/检查网络/]]){t.setMode(mode);await assert.rejects(t.api.request({task:'问题'}),error);}
-});
-test('Android uses its current account key without storing a browser key',async()=>{
-  const t=setup({aiKey:()=> 'fake-native-key',configureAi(){}});assert.equal(t.api.info().native,true);await t.api.request({task:'问题'});assert.equal(t.calls[0].options.headers.Authorization,'Bearer fake-native-key');assert.equal(t.data.size,0);assert(t.api.settingsMarkup().includes('打开账号AI设置'));
-});
-
-test('Android menu saves, retains and clears its account key without touching learning storage',()=>{
-  let key='',fail=false,legacyOpened=0;
-  const t=setup({aiKey:()=>key,configureAi:()=>legacyOpened++,saveAiKey:value=>{
-    if(fail)return JSON.stringify({ok:false,error:'native save failed'});
-    key=value;return JSON.stringify({ok:true});
-  }});
-  t.data.set('growing-physics-lessons-v1','learning');
-  assert(t.api.settingsMarkup().includes('id="course-ai-config"'));
-  assert(!t.api.settingsMarkup().includes('data-course-ai-native'));
-  assert.throws(()=>t.api.save({apiKey:''}),/API Key/);
-  assert.throws(()=>t.api.save({apiKey:'bad key'}),/格式/);
-  t.api.save({apiKey:'fake-new-native-key'});
-  assert.equal(t.api.info().configured,true);
-  t.api.save({apiKey:''});assert.equal(key,'fake-new-native-key');
-  fail=true;
-  assert.throws(()=>t.api.save({apiKey:'fake-replacement'}),/native save failed/);
-  assert.throws(()=>t.api.clear(),/native save failed/);
-  assert.equal(key,'fake-new-native-key');
-  fail=false;t.api.clear();assert.equal(t.api.info().configured,false);
-  assert.equal(legacyOpened,0);
-  assert.deepEqual([...t.data],[['growing-physics-lessons-v1','learning']]);
-});
-
-test('shell settings use the classroom account storage and never fall back to another account',async()=>{
-  const t=setup(),accounts=new Map();let account='student-a';
-  t.window.GrowingCourseAIStorage=()=>({getItem:k=>accounts.get(account+':'+k)||null,setItem:(k,v)=>accounts.set(account+':'+k,v),removeItem:k=>accounts.delete(account+':'+k)});
-  t.api.save({apiKey:'fake-account-a-key'});assert.equal(t.data.size,0);
-  account='student-b';assert.equal(t.api.info().configured,false);await assert.rejects(t.api.request({task:'问题'}),/API Key/);
-  t.api.save({apiKey:'fake-account-b-key'});await t.api.request({task:'问题'});assert.equal(t.calls[0].options.headers.Authorization,'Bearer fake-account-b-key');
-  t.api.clear();account='student-a';assert.equal(t.api.info().configured,true);
-  t.window.GrowingCourseAIStorage=()=>{throw Error('session expired');};await assert.rejects(t.api.request({task:'问题'}),/无法读取/);
-});
-
-test('embedded course uses the account menu settings and never falls back after logout',async()=>{
-  const t=setup(),accounts=new Map();let account='student-a';
-  t.window.top={GrowingCloud:{storage:()=>{
-    if(!account)throw Error('session expired');
-    return {getItem:k=>accounts.get(account+':'+k)||null,setItem:(k,v)=>accounts.set(account+':'+k,v),removeItem:k=>accounts.delete(account+':'+k)};
-  }}};
-  t.api.save({apiKey:'fake-account-a-key'});assert.equal(t.data.size,0);
-  assert.equal(await t.api.request({task:'问题'}),'解释内容');
-  assert.equal(t.calls.at(-1).options.headers.Authorization,'Bearer fake-account-a-key');
-  account='student-b';assert.equal(t.api.info().configured,false);
-  await assert.rejects(t.api.request({task:'问题'}),/API Key/);
-  t.data.set('growing-course-ai-v1',JSON.stringify({apiKey:'fake-unscoped-key'}));
-  account=null;await assert.rejects(t.api.request({task:'问题'}),/无法读取/);
-  assert.equal(t.calls.length,1);
+test('config cached; provider direct; usage attributed; safe metadata',async()=>{const t=setup();assert.equal(await t.api.request({task:'q'}),'answer');await t.api.request({task:'q'});assert.equal(t.calls.filter(c=>c.path==='/ai/config').length,1);assert.equal(t.calls.find(c=>c.url).options.headers.Authorization,'Bearer test-secret');const r=JSON.parse(t.calls.find(c=>c.path==='/ai/usage').options.body);assert.equal(r.totalTokens,15);assert.equal(r.configId,'chat');assert(!JSON.stringify(t.api.info()).includes('secret'));assert(!t.api.settingsMarkup().includes('name="apiKey"'));});
+test('report failure preserves answer and account change resets config',async()=>{const t=setup();t.fail();assert.equal(await t.api.request({task:'q'}),'answer');t.change('b');await t.api.prepare();assert.equal(t.calls.filter(c=>c.path==='/ai/config').length,2);t.change(null);await assert.rejects(t.api.request({task:'q'}));});
+test('a report that never responds times out and preserves the provider answer',{timeout:8000},async()=>{const t=setup();t.hang();const started=Date.now();assert.equal(await t.api.request({task:'q'}),'answer');assert(Date.now()-started>=4900);assert(Date.now()-started<7500);assert.equal(t.calls.find(c=>c.path==='/ai/usage').options.signal.aborted,true);});
+test('late config cannot start request under different account',async()=>{const t=setup();t.delay();const pending=t.api.request({task:'q'});t.change('b');t.release();await assert.rejects(pending);assert.equal(t.calls.filter(c=>c.url).length,0);});
+test('concurrent configuration callers share one load',async()=>{const t=setup();t.delay();const one=t.api.prepare(),two=t.api.prepare();t.release();await Promise.all([one,two]);assert.equal(t.calls.filter(c=>c.path==='/ai/config').length,1);});
+test('usage handles deduplicate and normalize missing or malformed usage',async()=>{const t=setup(),h=await t.api.prepare(),meter=t.api.begin(h,'realtime');await meter.report({usage:{input_tokens:9},status:'cancelled'});await meter.report({usage:{input_tokens:9,output_tokens:2,total_tokens:11}});const reports=t.calls.filter(c=>c.path==='/ai/usage');assert.equal(reports.length,1);const body=JSON.parse(reports[0].options.body);assert.equal(body.status,'cancelled');assert.equal(body.inputTokens,null);assert.equal(body.totalTokens,null);});
+test('captured usage cannot be charged to the next account',async()=>{const t=setup(),h=await t.api.prepare(),meter=t.api.begin(h,'course');t.change('b');assert.equal(await meter.report({usage:{prompt_tokens:2,completion_tokens:3,total_tokens:5}}),false);assert.equal(t.calls.filter(c=>c.path==='/ai/usage').length,0);});
+test('realtime SDP goes directly to configured provider with captured key',async()=>{const t=setup(),c=await t.realtime.connectionInfo();const result=await t.realtime.connect('offer',{handle:c.handle});assert.equal(result.sdp,'v=0\r\n');const call=t.calls.find(c=>c.url);assert.equal(call.url,'https://provider.test/realtime?model=voice-model');assert.equal(call.options.body,'offer');assert.equal(call.options.headers.Authorization,'Bearer voice-secret');assert.equal(call.options.headers['Content-Type'],'application/sdp');t.change('b');await assert.rejects(t.realtime.connect('offer',{handle:c.handle}));});
+test('native uses only current login token and never reads a personal key',async()=>{let token='session-a';const calls=[];const window={GrowingNative:{cloudApiUrl:()=> 'https://app.test',aiKey(){throw Error('must not read');}}};window.top=window;
+ vm.runInNewContext(fs.readFileSync(require.resolve('../app/src/main/assets/web/app-design/course-ai.js'),'utf8'),{window,localStorage:{getItem(key){assert.equal(key,'growing-cloud-session-v1');return JSON.stringify({token});}},crypto:require('node:crypto').webcrypto,URL,fetch:async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>({models:[{id:'chat',purpose:'chat',endpoint:'https://provider.test/chat',model:'native-managed',apiKey:'managed-key',revision:1}]})};}});
+ const h=await window.GrowingCourseAI.prepare();assert.equal(h.config.model,'native-managed');assert.equal(calls[0].url,'https://app.test/api/ai/config');assert.equal(calls[0].options.headers.Authorization,'Bearer session-a');token='session-b';assert.equal(h.current(),false);await window.GrowingCourseAI.prepare();assert.equal(calls[1].options.headers.Authorization,'Bearer session-b');
 });

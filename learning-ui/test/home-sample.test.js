@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 import { createServer } from 'vite';
 
-test('compiled sample mounts real menu, saves blank key, cancels late tests, and reads calendar', async()=>{
+test('compiled menu retains calendar navigation and ignores stale calendar loads', async()=>{
  const server=await createServer({server:{middlewareMode:true}});
  let bundle;
  try { await readFile(new URL('../src/HomeSample.vue',import.meta.url)); } finally { await server.close(); }
@@ -22,24 +22,12 @@ test('compiled sample mounts real menu, saves blank key, cancels late tests, and
  const tick=()=>new Promise(r=>setTimeout(r,60));
  const click=async selector=>{const el=w.document.querySelector(selector);assert.ok(el,selector);el.click();await tick();};
  await tick();assert.ok(w.document.querySelector('#vant-menu-trigger .van-icon'));
- await click('#vant-menu-trigger');await click('[data-vant-action="deepseek"]');
- assert.equal(w.document.querySelector('input[type="password"]').value,'');
- await click('[data-vant-save]');assert.equal(saved.apiKey,'');
- await click('[data-vant-test]');assert.ok(signal);
- app.close();await tick();assert.equal(signal.aborted,true);resolveTest('迟到成功');await tick();assert.equal(w.document.body.textContent.includes('迟到成功'),false);
- await click('#vant-menu-trigger');await click('[data-vant-action="deepseek"]');
- const secret=w.document.querySelector('input[type="password"]');secret.value='temporary-draft';secret.dispatchEvent(new w.Event('input',{bubbles:true}));
- await click('[data-vant-test]');const popSignal=signal;w.dispatchEvent(new w.PopStateEvent('popstate'));await tick();assert.equal(popSignal.aborted,true,'history return aborts the active connection test');
- resolveTest('历史返回后的迟到结果');await click('#vant-menu-trigger');await click('[data-vant-action="deepseek"]');assert.equal(w.document.querySelector('input[type="password"]').value,'');app.close();await tick();
  await click('#vant-menu-trigger');await click('[data-vant-action="calendar"]');assert.equal(reads,1);assert.match(w.document.body.textContent,/2 项历史/);
  assert.equal(w.document.querySelectorAll('button[aria-label="上个月"]').length,1,'calendar has exactly one keyboard reachable previous-month control');
  const beforeMonth=w.document.querySelector('.van-calendar__header-subtitle').textContent;await click('button[aria-label="上个月"]');assert.notEqual(w.document.querySelector('.van-calendar__header-subtitle').textContent,beforeMonth);
- app.close();await tick();await click('#vant-menu-trigger');await click('[data-vant-action="deepseek"]');
- rejectSave=true;await click('[data-vant-save]');assert.match(w.document.querySelector('[role="alert"]').textContent,/保存失败/);
  app.close();await tick();lateCalendar=true;await click('#vant-menu-trigger');await click('[data-vant-action="calendar"]');
  await click('[data-vant-unit]');
  const second=[...w.document.querySelectorAll('.van-picker-column__item')].find(el=>el.textContent==='数学 第二单元');assert.ok(second);second.click();await tick();await click('.van-picker__confirm');
  assert.match(w.document.body.textContent,/7 项历史/);resolveCalendar({days:{},baseline:99,datedMastery:true});await tick();assert.doesNotMatch(w.document.body.textContent,/99 项历史/);
- app.close();await tick();delayInfo=true;await click('#vant-menu-trigger');await click('[data-vant-action="deepseek"]');app.close();await tick();assert.equal(infoSignal.aborted,true,'closing cancels async configuration read');resolveInfo({model:'stale-model',serverConfigured:true});await tick();
  app.destroy();await tick();assert.equal(w.document.querySelector('#vant-menu-trigger'),null);dom.window.close();
 });

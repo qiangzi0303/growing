@@ -81,21 +81,19 @@ test('one completed target contributes only its two-question fraction, without d
   const rows=masteryBoards([record,record]);
   assert.equal(rows[0].diagnosisDone,.5);assert.equal(rows[0].diagnosisTotal,12);assert.equal(rows[0].score,0);
 });
-test('fraction diagnostic and semester denominators use the actual graph independently of legacy concept counts',()=>{
-  const fraction=catalog.find(u=>u.kind==='fraction')!;
+test('fraction diagnostic and semester denominators use the actual graph',()=>{
+  const fraction=catalog.find(u=>u.id==='math-8b-10')!;
+  assert.equal(fraction.kind,'math');assert.equal(fraction.topics!.length,11);
   const rows=masteryBoards([diagnosticDoc(fraction,assessment(fraction.diagnosisTopics!))]);
   const unit=rows.find(r=>r.id===fraction.id)!,course=rows.find(r=>r.id==='math:lower')!;
   assert.equal(unit.diagnosisTotal,11);assert.equal(unit.diagnosisDone,11);assert.equal(unit.score,0);
   assert.equal(course.diagnosisTotal,36);assert.equal(course.score,0);
 });
-test('legacy fraction and Unit 3 keep valid records; bonus exams cannot inflate the test denominator',()=>{
-  const fraction=catalog.find(u=>u.kind==='fraction')!,english=catalog.find(u=>u.kind==='legacy-english')!;
+test('legacy Unit 3 keeps valid records; bonus exams cannot inflate the test denominator',()=>{
+  const english=catalog.find(u=>u.kind==='legacy-english')!;
   const rows=masteryBoards([
-    doc('fraction-minute-v1',{topics:{[fraction.topics![0]]:{attempts:[{valid:true,score:8}],exams:[{real:false,correct:2,total:3},{real:true,correct:99,total:99}]}}}),
     doc('wordops_8A_unit3',{studyHistory:{days:{'2026-10-22':{feynman:{[english.topics![0]]:{attempts:1,best:80}}}}},best:{[english.tests![0]]:100,unknown:100}}),
   ]);
-  assert.equal(rows.find(r=>r.id===fraction.id)!.conceptDone,.8);
-  assert.ok(Math.abs(rows.find(r=>r.id===fraction.id)!.testDone-2/3)<1e-12);
   assert.equal(rows.find(r=>r.id===english.id)!.conceptDone,0);
   assert.equal(rows.find(r=>r.id===english.id)!.testDone,0);
 });
@@ -114,7 +112,7 @@ test('all eight English units and their semester use fixed 50/50 denominators, i
   assert.equal(semester.score,10000);assert.equal(semester.conceptDone,semester.conceptTotal);assert.equal(semester.testDone,semester.testTotal);
 });
 test('initial empty classroom records do not enroll; tombstones remove enrollment; terms stay separate',()=>{
-  assert.deepEqual(masteryBoards([doc('fraction-minute-v1',{topics:{}}),doc('growing-english-course-v1:english-8a-01',{words:{},lessons:{}})]),[]);
+  assert.deepEqual(masteryBoards([doc('growing-math-lessons-v1',{version:1,topics:{}}),doc('growing-english-course-v1:english-8a-01',{words:{},lessons:{}})]),[]);
   const lower=catalog.find(u=>u.id==='math-8b-06')!;
   const rows=masteryBoards([doc('growing-math-lessons-v1',{topics:{[math.topics![0]]:{seen:true},[lower.topics![0]]:{seen:true}}})]);
   assert.deepEqual(rows.filter(r=>r.kind==='course').map(r=>r.id),['math:upper','math:lower']);

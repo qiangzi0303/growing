@@ -65,7 +65,7 @@ const normalize=s=>String(s).normalize('NFKC').trim().replace(/[\s$。]/g,'').re
 function correct(q){const v=normalize(state.answers[q.n]||'');return q.type==='choice'?v===q.answer:q.accept.some(x=>normalize(x)===v);}
 function reviewTools(q){
  const mapping=GrowingParallelLinks[q.n];
- const links=mapping.targets.map(t=>{const file=t.chapter==='math-8b-10'?'knowledge.html':'math-course.html';return `<a class="lesson-link" data-course-node="${escape(t.node)}" href="${file}?${new URLSearchParams({chapter:t.chapter,node:t.node})}">${escape(t.unit)} · ${escape(t.title)} →</a>`;}).join('');
+ const links=mapping.targets.map(t=>{const file='math-course.html';return `<a class="lesson-link" data-course-node="${escape(t.node)}" href="${file}?${new URLSearchParams({chapter:t.chapter,node:t.node})}">${escape(t.unit)} · ${escape(t.title)} →</a>`;}).join('');
  return `<section class="wrong-review" data-review="${q.n}" aria-label="第${q.n}题错题讲解"><h4>错题讲解与单元知识点</h4><p class="lesson-links">${links}</p>${mapping.note?`<p class="muted">关联基础：${escape(mapping.note)}</p>`:''}<button data-ai-question="${q.n}">AI 解答 · 分析错因</button><button data-ai-cancel="${q.n}" hidden>取消解答</button><p data-ai-status role="status" aria-live="polite"></p><div data-ai-output class="ai-explanation"></div></section>`;
 }
 function paintAI(n){const host=$('[data-review="'+n+'"]');if(!host)return;const busy=aiJobs.has(String(n));host.querySelector('[data-ai-question]').disabled=busy;host.querySelector('[data-ai-cancel]').hidden=!busy;host.querySelector('[data-ai-status]').textContent=busy?'AI 正在讲解本题…':state.ai[n]?'AI 解答供学习参考，请对照题设与参考过程核对。':'';host.querySelector('[data-ai-output]').innerHTML=(GrowingMathFormat.solutionHtml||GrowingMathFormat.html)(state.ai[n]?.text||'');}

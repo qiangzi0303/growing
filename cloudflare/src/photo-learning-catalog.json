@@ -483,99 +483,99 @@
       "title": "分式的定义",
       "unitId": "math-8b-10",
       "subject": "math",
-      "href": "app-design/knowledge.html?chapter=math-8b-10&node=definition",
-      "criterion": "能依据分母含字母判断分式，不把 π 当变量。",
-      "review": "A、B都是整式，B中含字母，A/B叫分式。"
+      "href": "app-design/math-course.html?chapter=math-8b-10&node=definition",
+      "criterion": "先确认分子、分母都是整式；再看分母中是否含有字母，π等常数不算字母。",
+      "review": "A、B都是整式，B中含有字母，A/B叫作分式，A是分子，B是分母。判断关键在分母是否含字母，而不是有没有分数线。"
     },
     {
       "id": "meaning",
       "title": "分式有意义",
       "unitId": "math-8b-10",
       "subject": "math",
-      "href": "app-design/knowledge.html?chapter=math-8b-10&node=meaning",
-      "criterion": "能列出原式全部分母不为0的限制。",
-      "review": "分式有意义的条件是分母不为0。多个因式都要检查。"
+      "href": "app-design/math-course.html?chapter=math-8b-10&node=meaning",
+      "criterion": "找出原分式的全部分母，令其不等于0；分母是乘积时，每个因式都不能为0。",
+      "review": "分式本质上是除法，零不能做除数，所以分式有意义的条件是分母不为0；分母为0时分式无意义。"
     },
     {
       "id": "zero",
       "title": "分式的值为零",
       "unitId": "math-8b-10",
       "subject": "math",
-      "href": "app-design/knowledge.html?chapter=math-8b-10&node=zero",
-      "criterion": "能同时检查分子为0、分母不为0，识别无解情形。",
-      "review": "分子为0是必要条件，还要排除使分母为0的值。"
+      "href": "app-design/math-course.html?chapter=math-8b-10&node=zero",
+      "criterion": "先令分子为0，求出候选值；把候选值代回原分母，排除使分母为0的值。",
+      "review": "分式的值为0，必须同时满足两个条件：分子等于0，并且分母不等于0。"
     },
     {
       "id": "property",
       "title": "分式基本性质",
       "unitId": "math-8b-10",
       "subject": "math",
-      "href": "app-design/knowledge.html?chapter=math-8b-10&node=property",
-      "criterion": "能说出同时、同一个、乘或除、非零四项条件。",
-      "review": "分子分母同乘或同除同一个非零整式，值不变；限制仍以原式为准。"
+      "href": "app-design/math-course.html?chapter=math-8b-10&node=property",
+      "criterion": "分子分母一起变，乘或除的是同一个整式；确认所乘或所除的整式不为0，原分母限制保留。",
+      "review": "分式的分子与分母同时乘（或除以）同一个不等于0的整式，分式的值不变。四个关键：同时、同一个、乘或除、不为0。"
     },
     {
       "id": "sign",
       "title": "分式符号变化",
       "unitId": "math-8b-10",
       "subject": "math",
-      "href": "app-design/knowledge.html?chapter=math-8b-10&node=sign",
-      "criterion": "能处理分式内外负号以及 a−b 与 b−a 的关系。",
-      "review": "分式前、分子前、分母前三个位置中，同时改变任意两处符号，值不变。"
+      "href": "app-design/math-course.html?chapter=math-8b-10&node=sign",
+      "criterion": "把相反式写成同一形式，提出负号；只改变一处符号时，整体要加负号。",
+      "review": "分式本身、分子、分母三处的符号，同时改变其中任意两处，分式的值不变；a−b与b−a互为相反式，b−a=−(a−b)。"
     },
     {
       "id": "reduce",
       "title": "分式约分",
       "unitId": "math-8b-10",
       "subject": "math",
-      "href": "app-design/knowledge.html?chapter=math-8b-10&node=reduce",
-      "criterion": "能先分解因式再约去公因式，并保留原式限制。",
-      "review": "只能约去公因式，不能把加减式中的一项约掉。"
+      "href": "app-design/math-course.html?chapter=math-8b-10&node=reduce",
+      "criterion": "先把分子、分母分解因式；约去公因式，并保留原分母的限制。",
+      "review": "约分是把分子与分母的公因式约去，依据是分式基本性质。分子、分母是多项式时，先分解因式，再约去公因式；没有公因式的分式叫最简分式。"
     },
     {
       "id": "common",
       "title": "通分与公分母",
       "unitId": "math-8b-10",
       "subject": "math",
-      "href": "app-design/knowledge.html?chapter=math-8b-10&node=common",
-      "criterion": "能分解分母，取各因式最高次幂并同步改写分子。",
-      "review": "系数取最小公倍数，每种因式取出现的最高次幂。"
+      "href": "app-design/math-course.html?chapter=math-8b-10&node=common",
+      "criterion": "先把各分母分解因式，确定最简公分母；分母乘什么，分子就同乘什么。",
+      "review": "通分是把几个异分母分式化成同分母分式，各分式的值不变。最简公分母：系数取最小公倍数，各因式都要取到，相同因式取最高次幂。"
     },
     {
       "id": "add",
       "title": "分式加减",
       "unitId": "math-8b-10",
       "subject": "math",
-      "href": "app-design/knowledge.html?chapter=math-8b-10&node=add",
-      "criterion": "能先通分再合并分子，并正确处理减号与括号。",
-      "review": "同分母时分母不变，分子相加减；异分母先通分。"
+      "href": "app-design/math-course.html?chapter=math-8b-10&node=add",
+      "criterion": "异分母先通分，同分母直接合并分子；减号后面的分子整体加括号，最后约分。",
+      "review": "同分母分式相加减，分母不变，分子相加减；异分母分式相加减，先通分，再按同分母法则计算，结果化为最简分式。"
     },
     {
       "id": "multiply",
       "title": "分式乘除",
       "unitId": "math-8b-10",
       "subject": "math",
-      "href": "app-design/knowledge.html?chapter=math-8b-10&node=multiply",
-      "criterion": "能把除法改成乘倒数，约分并保留除式不为0的条件。",
-      "review": "乘法分子分母分别相乘；除法乘倒数；原分母和除式都不能为0。"
+      "href": "app-design/math-course.html?chapter=math-8b-10&node=multiply",
+      "criterion": "除法先改成乘除式的倒数；分子分母分解因式后约分，保留原分母与除式不为0的条件。",
+      "review": "分式乘分式，分子乘分子、分母乘分母；分式除以分式，把除式的分子分母颠倒后与被除式相乘。能约分的先约分。"
     },
     {
       "id": "equation",
       "title": "分式方程",
       "unitId": "math-8b-10",
       "subject": "math",
-      "href": "app-design/knowledge.html?chapter=math-8b-10&node=equation",
-      "criterion": "能找公分母、去分母、解整式方程，再检验原分母。",
-      "review": "乘公分母时每一项都要乘，解出后回到原式检查。"
+      "href": "app-design/math-course.html?chapter=math-8b-10&node=equation",
+      "criterion": "找最简公分母，方程两边每一项都乘它；解整式方程后代入最简公分母检验。",
+      "review": "分母中含有未知数的方程叫分式方程。解法：两边同乘最简公分母，化为整式方程求解，最后必须检验。"
     },
     {
       "id": "extraneous",
       "title": "增根与检验",
       "unitId": "math-8b-10",
       "subject": "math",
-      "href": "app-design/knowledge.html?chapter=math-8b-10&node=extraneous",
-      "criterion": "能识别使原分母为0的候选解并舍去。",
-      "review": "去分母可能扩大允许范围；使原分母为0的候选解是增根。"
+      "href": "app-design/math-course.html?chapter=math-8b-10&node=extraneous",
+      "criterion": "求出整式方程的根；代入最简公分母，等于0的是增根，应舍去。",
+      "review": "去分母时两边乘了含未知数的整式，可能扩大未知数的取值范围，产生使原分母为0的根，叫增根。增根必须舍去；全部舍去时原方程无解。"
     },
     {
       "id": "radical-domain",

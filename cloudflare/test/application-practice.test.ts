@@ -51,10 +51,10 @@ test('photo marks and actual latest Feynman scores use 30/70 across the entire c
   assert.equal(buildUnitReports([d]).units.find(u=>u.id===unit.id)?.masteryPercent,25.33);
 });
 
-test('fraction photo results replace old exam credit and reach summaries and knowledge reports',()=>{
+test('fraction photo results use the shared math record and reach summaries and knowledge reports',()=>{
   const items=Array.from({length:3},(_,i)=>({id:'definition-application-'+(i+1),key:'growing-handwriting-v1:12345678-1234-1234-1234-123456789abc',revision:1,at:'2026-11-09T00:00:00Z',score:70,passed:false}));
-  const state={topics:{definition:{attempts:[{valid:true,score:9,criticalErrors:[],comment:'有效解释'}],exams:[{real:false,correct:3,total:3}],practicePhoto:{version:2,total:3,items}}}};
-  const d:Document={key:'fraction-minute-v1',value:JSON.stringify(state),revision:1,updatedAt:'2026-11-09T00:00:00Z'};
+  const state={version:1,topics:{definition:{seen:true,attempts:[{score:9,criticalErrors:[],feedback:'有效解释'}],practicePhoto:{version:2,total:3,items}}}};
+  const d:Document={key:'growing-math-lessons-v1',value:JSON.stringify(state),revision:1,updatedAt:'2026-11-09T00:00:00Z'};
   const unit=masteryBoards([d]).find(u=>u.id==='math-8b-10')!;
   assert.equal(unit.conceptDone,.9);assert.equal(unit.testDone,.7);assert.equal(unit.score,691);
   assert.equal(buildUnitReports([d]).units.find(u=>u.id===unit.id)?.mastered,0);

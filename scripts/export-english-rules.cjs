@@ -5,10 +5,7 @@ for(const file of ['english-vocabulary.js','english-lessons.js'])vm.runInContext
 const rules=Object.fromEntries(Object.entries(context.window.GrowingEnglishVocabulary).map(([number,words])=>['english-8a-'+number.padStart(2,'0'),{
   wordCount:words.length,words:words.filter(w=>!w.optional).map(w=>wordRules.describe(w)),lessons:(context.window.GrowingEnglishLessons[number]||[]).map(l=>({id:l.id,answers:l.questions.map(q=>q.answer)}))
 }]));
-const legacy=vm.createContext({window:{}}),fraction=fs.readFileSync(path.join(root,'app/src/main/assets/web/fraction-ops/分式作战_一分钟学习版.html'),'utf8');
-const fractionScript=[...fraction.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(match=>match[1]).find(script=>script.includes('window.MINUTE_DATA='));
-if(!fractionScript)throw Error('Fraction course data script was not found');
-vm.runInContext(fractionScript.slice(0,fractionScript.indexOf('window.MINUTE_LESSONS')),legacy);
+const legacy=vm.createContext({window:{}});
 const wordHtml=fs.readFileSync(path.join(root,'app/src/main/assets/web/word-ops-unit3/index.html'),'utf8');
 const wordScript=[...wordHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map(match=>match[1]).find(script=>/window\.UNIT3\s*=/.test(script));
 if(!wordScript)throw Error('Unit 3 course data script was not found');
@@ -21,7 +18,7 @@ if(!fs.existsSync(sentenceTarget)||fs.readFileSync(sentenceTarget,'utf8')!==sent
 const summaryLegacy={words:unit.words.map(({id,en,cn,pos})=>({id,en,cn,pos})),lessons:unit.lessons.map(({id,title})=>({id,title}))};
 const summaryTarget=path.join(web,'unit-summary-legacy.js'),summaryOutput='/* Generated from the original Unit 3 classroom. */\nwindow.GrowingSummaryLegacy='+JSON.stringify(summaryLegacy)+';\n';
 if(!fs.existsSync(summaryTarget)||fs.readFileSync(summaryTarget,'utf8')!==summaryOutput)fs.writeFileSync(summaryTarget,summaryOutput);
-rules.__legacy={fractionTopics:legacy.window.MINUTE_DATA.topics.map(t=>t.id),words:unit.words.map(w=>wordRules.describe(w)),
+rules.__legacy={fractionTopics:[],words:unit.words.map(w=>wordRules.describe(w)),
   seenIds:[...unit.words.map(w=>w.id),...unit.lessons.flatMap(l=>l.cards.map(c=>c.id))],tests:[...unit.groups,...unit.lessons].map(l=>l.id)};
 const math=require(path.join(web,'math-data.js')),physics=require(path.join(web,'physics-data.js'));
 const diagnosis=Object.fromEntries(Object.entries({math,physics}).map(([name,data])=>[name,{
@@ -38,7 +35,6 @@ for(const [subject,course] of Object.entries(curriculum))for(const [term,book] o
     questionUnits.push({id:u.id,title:u.title,subject,subjectName:course.name,termName:book.name,summary:u.summary,outline:u.outline});
     const row={id:u.id,title:u.title,subject,subjectName:course.name,term,termName:book.name};
     if(subject==='english')Object.assign(row,u.number===3?{kind:'legacy-english',topics:unit.topics.map(t=>t.id),tests:rules.__legacy.tests}:{kind:'english',rules:rules[u.id]});
-    else if(u.id==='math-8b-10')Object.assign(row,{kind:'fraction',topics:rules.__legacy.fractionTopics});
     else Object.assign(row,{kind:subject,topics:(subject==='math'?math:physics).chapters.find(c=>c.id===u.id).nodes.map(n=>n.id)});
     ranking.push(row);
     if(subject!=='english')row.diagnosisTopics=(subject==='math'?math:physics).chapters.find(c=>c.id===u.id).nodes.map(n=>n.id);
@@ -59,7 +55,6 @@ if(!fs.existsSync(wrongTarget)||fs.readFileSync(wrongTarget,'utf8')!==wrongOutpu
 const titles={};
 for(const data of [math,physics])for(const n of data.nodes)titles[n.id]=n.title;
 for(const [number,lessons] of Object.entries(context.window.GrowingEnglishLessons))for(const l of lessons)titles['english-8a-'+number.padStart(2,'0')+':'+l.id]=l.title;
-for(const t of legacy.window.MINUTE_DATA.topics)titles['fraction:'+t.id]=t.title;
 const titleTarget=path.join(root,'cloudflare/src/knowledge-titles.json'),titleOutput=JSON.stringify(titles,null,2)+'\n';
 if(!fs.existsSync(titleTarget)||fs.readFileSync(titleTarget,'utf8')!==titleOutput)fs.writeFileSync(titleTarget,titleOutput);
 console.log('English reporting rules and knowledge topic titles exported from packaged lessons.');

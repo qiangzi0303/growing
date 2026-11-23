@@ -1,9 +1,9 @@
 import {streamReply} from './ai-client.js';
-import {Speaker,Microphone,usesCloudTTS,preferredVoice} from './voice-engine.js';
+import {Speaker,Microphone,preferredVoice} from './voice-engine.js';
 
 const $=s=>window.GrowingStudentDuckControls?.node(s)||document.querySelector(s);
-const defaults={engine:'browser',ttsEngine:'auto',speakingStyle:'warm',speechRate:'1',ttsInstructions:'',language:'zh-CN',browserVoice:'',silence:'2500',asrBase:'',asrModel:'',ttsBase:'',ttsModel:'',ttsVoice:''};
-let config={...defaults,asrKey:'',ttsKey:''};
+const defaults={speakingStyle:'warm',speechRate:'1',language:'zh-CN',browserVoice:'',silence:'2500'};
+let config={...defaults,engine:'browser',ttsEngine:'browser'};
 try{const stored=JSON.parse(localStorage.getItem('duck-voice-prefs-v1')||'{}');for(const key of Object.keys(defaults))if(typeof stored[key]==='string')config[key]=stored[key];}catch{}
 // Never silently reopen the microphone or persist conversations/provider speech keys.
 let history=[],job=null,serial=0,voiceGeneration=0,wantsVoice=false,startingVoice=false,state='idle',celebrationTimer;
@@ -24,7 +24,7 @@ const microphone=new Microphone({getConfig:()=>config,onTranscript:text=>send(te
 function addMessage(role,text){const node=document.createElement('div');node.className='message '+role;node.textContent=text;messages.appendChild(node);messages.scrollTop=messages.scrollHeight;return node;}
 function updateVoiceButton(){
   $('#voice-toggle').textContent=startingVoice?'正在开启…':wantsVoice?'结束语音':'开启语音';$('#voice-toggle').setAttribute('aria-pressed',String(wantsVoice));$('#voice-toggle').disabled=startingVoice;
-  $('#voice-source').textContent=(usesCloudTTS(config)?'云端朗读':'设备朗读')+(wantsVoice?' · 麦克风已开启':' · 开启后才使用麦克风');
+  $('#voice-source').textContent='设备朗读'+(wantsVoice?' · 麦克风已开启':' · 开启后才使用麦克风');
 }
 function finish(current){
   if(job!==current||!current.networkDone||current.pumping||current.queue.length)return;
@@ -62,7 +62,7 @@ function interrupt(resume=true){
 async function send(text){
   text=String(text||'').trim();if(!text)return;
   if(text.length>4000){showNotice('请把问题缩短到 4000 字以内。');return;}
-  if(!window.GrowingCourseAI?.info().configured){showNotice('先在“连接设置”保存 AI 密钥，就可以开始聊天。');$('#settings-dialog').showModal();return;}
+  if(!window.GrowingCourseAI?.info().configured){showNotice('请先登录；AI 服务由管理员统一配置。');$('#settings-dialog').showModal();return;}
   interrupt(false);showNotice('');input.value='';speaker.unlock().catch(()=>{});
   const id=++serial;addMessage('user',text);history.push({role:'user',content:text});history=history.slice(-16);
   const current={id,abort:new AbortController(),voice:new AbortController(),queue:[],text:'',consumed:0,networkDone:false,pumping:false,node:addMessage('assistant','正在想…')};job=current;
@@ -84,8 +84,7 @@ input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey
 $('#interrupt').addEventListener('click',()=>{if(startingVoice){++voiceGeneration;wantsVoice=false;microphone.stop();startingVoice=false;updateVoiceButton();}interrupt(true);});
 $('#voice-toggle').addEventListener('click',async()=>{
   if(wantsVoice){++voiceGeneration;wantsVoice=false;microphone.stop();interrupt(false);updateVoiceButton();return;}
-  if(!window.GrowingCourseAI?.info().configured){showNotice('请先在共享设置中配置 AI 连接，再开启语音。');return;}
-  if((config.engine==='cloud'&&!config.asrKey)||(usesCloudTTS(config)&&!config.ttsKey)){showNotice('请先在连接设置中填写所选语音服务的密钥。');$('#settings-dialog').showModal();return;}
+  if(!window.GrowingCourseAI?.info().configured){showNotice('请先登录，或联系管理员配置 AI 服务。');return;}
   const attempt=++voiceGeneration;startingVoice=true;wantsVoice=true;updateVoiceButton();setState('listen');showNotice('');
   try{await speaker.unlock();if(attempt!==voiceGeneration)return;await microphone.start();if(attempt===voiceGeneration&&!microphone.active)wantsVoice=false;}
   catch(error){if(attempt===voiceGeneration){wantsVoice=false;microphone.stop();showNotice(error.message);}}
@@ -103,45 +102,37 @@ $('#clear-chat').addEventListener('click',()=>{interrupt(true);history=[];messag
 $('#appearance').addEventListener('click',()=>{const panel=$('.panel');panel.hidden=!panel.hidden;if(!panel.hidden)interrupt(true);else setState(wantsVoice?'listen':'idle');});
 
 const settings=$('#settings-dialog'),form=$('#voice-settings');
-function updateSpeechFields(){const draft={engine:form.elements.engine.value,ttsEngine:form.elements.ttsEngine.value};$('#cloud-fields').hidden=draft.engine!=='cloud'&&!usesCloudTTS(draft);$('#asr-fields').hidden=draft.engine!=='cloud';$('#tts-fields').hidden=!usesCloudTTS(draft);}
-function fillSettings(){for(const key of Object.keys(defaults))if(form.elements[key])form.elements[key].value=config[key];form.elements.asrKey.value='';form.elements.ttsKey.value='';updateSpeechFields();}
+function fillSettings(){for(const key of Object.keys(defaults))if(form.elements[key])form.elements[key].value=config[key];}
 function voices(){
   const select=$('#browser-voices'),previous=select.value||config.browserVoice;select.replaceChildren(new Option('自动优选自然音色（同语言）',''));
   for(const voice of window.speechSynthesis?.getVoices()||[])select.add(new Option(voice.name+' · '+voice.lang,voice.voiceURI));select.value=previous;
 }
 voices();window.speechSynthesis?.addEventListener('voiceschanged',voices);
 $('#open-settings').addEventListener('click',()=>{fillSettings();settings.showModal();});$('#close-settings').addEventListener('click',()=>settings.close());
-form.elements.engine.addEventListener('change',updateSpeechFields);
-form.elements.ttsEngine.addEventListener('change',updateSpeechFields);
 let previewController=null;
 function stopPreview(){previewController?.abort();previewController=null;$('#preview-voice').textContent='试听声音';}
 settings.addEventListener('close',stopPreview);
 $('#preview-voice').addEventListener('click',async()=>{
   if(previewController){stopPreview();return;}
   interrupt(false);
-  const draft={...config};for(const key of Object.keys(defaults))draft[key]=form.elements[key].value.trim();draft.ttsKey=form.elements.ttsKey.value.trim()||config.ttsKey;
-  if(usesCloudTTS(draft)&&(!draft.ttsBase||!draft.ttsModel||!draft.ttsVoice||!draft.ttsKey)){$('#settings-status').textContent='请先填写 TTS 地址、模型、音色和密钥，再试听。';return;}
+  const draft={...config};for(const key of Object.keys(defaults))draft[key]=form.elements[key].value.trim();
   const controller=new AbortController();previewController=controller;$('#preview-voice').textContent='停止试听';
   const preview=new Speaker(()=>draft,playing=>{setState(playing?'speak':'idle');});
   window.duckPreview?.setMouthSource(()=>preview.mouth());
   const selected=preferredVoice(window.speechSynthesis?.getVoices()||[],draft);
-  $('#settings-status').textContent=usesCloudTTS(draft)?'正在试听云端声音…':'试听音色：'+(selected?.name||'系统默认')+'。设备朗读的情感表现取决于系统音色。';
+  $('#settings-status').textContent='试听音色：'+(selected?.name||'系统默认')+'。设备朗读的情感表现取决于系统音色。';
   try{await preview.speak(draft.language==='en-US'?"I'm here. Take your time. Shall we try the next step together?":'别着急，我在呢。我们先看这一步，好不好？对，就是这个思路！',controller.signal);}
   catch(error){if(error.name!=='AbortError')$('#settings-status').textContent=error.message;}
   finally{if(previewController===controller)stopPreview();connectDuck();if(wantsVoice)microphone.resume();}
 });
 form.addEventListener('submit',event=>{
   event.preventDefault();const next={...config};for(const key of Object.keys(defaults))next[key]=form.elements[key].value.trim();
-  next.asrKey=form.elements.asrKey.value.trim()||config.asrKey;next.ttsKey=form.elements.ttsKey.value.trim()||config.ttsKey;
   try{
-    const required=[...(next.engine==='cloud'?['asr']:[]),...(usesCloudTTS(next)?['tts']:[])];
-    for(const kind of required){const url=new URL(next[kind+'Base']);if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)throw Error('接口根地址需使用 HTTPS，不要包含密钥或查询参数。');if(!next[kind+'Key']||!next[kind+'Model'])throw Error('请填写所选语音接口的模型和密钥。');}
-    if(usesCloudTTS(next)&&!next.ttsVoice)throw Error('请填写 TTS 音色 ID。');
     const prefs={};for(const key of Object.keys(defaults))prefs[key]=next[key];localStorage.setItem('duck-voice-prefs-v1',JSON.stringify(prefs));
-    stopPreview();++voiceGeneration;startingVoice=false;wantsVoice=false;microphone.stop();interrupt(false);config=next;fillSettings();updateVoiceButton();$('#settings-status').textContent='已保存。请重新开启语音；接口密钥只在当前页暂存。';
+    stopPreview();++voiceGeneration;startingVoice=false;wantsVoice=false;microphone.stop();interrupt(false);config=next;fillSettings();updateVoiceButton();$('#settings-status').textContent='已保存设备语音偏好，请重新开启语音。';
   }catch(error){$('#settings-status').textContent=error.message;}
 });
-settings.addEventListener('close',()=>{$('#connection-summary').textContent=window.GrowingCourseAI?.info().configured?'连接已就绪，随时可以和学习伙伴聊聊。':'先在连接设置中保存 AI 密钥，即可开始。';});
+settings.addEventListener('close',()=>{$('#connection-summary').textContent=window.GrowingCourseAI?.info().configured?'连接已就绪，随时可以和学习伙伴聊聊。':'请先登录，AI 服务由管理员统一配置。';});
 fillSettings();updateVoiceButton();
 function connectDuck(){window.duckPreview?.setMouthSource(()=>speaker.mouth());setState(state);}
 window.addEventListener('duck:ready',connectDuck);if(window.duckPreview)connectDuck();

@@ -28,9 +28,7 @@
       }
     };
     const times=values=>{for(const [date,ms] of entries(values)){const row=add(date);if(row)row.ms+=count(ms);}};
-    if(unitId==='math-8b-10'){
-      const raw=read('fraction-minute-v1');logs(raw?.learning?.days,()=>true,true);mastery(raw?.learning?.mastery);times(raw?.activity?.days);
-    }else if(unitId.startsWith('math-')||unitId.startsWith('physics-')){
+    if(unitId.startsWith('math-')||unitId.startsWith('physics-')){
       const raw=read(unitId.startsWith('physics-')?'growing-physics-lessons-v1':'growing-math-lessons-v1');
       const ids=new Set(topics.filter(t=>t.unitId===unitId).map(t=>t.id)),allowed=id=>ids.has(id);
       logs(raw?.tools?.days,allowed);mastery(raw?.tools?.mastery,allowed);

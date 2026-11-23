@@ -30,28 +30,29 @@ watch([()=>m.value.stage,()=>m.value.word.id,()=>blocked.value],focusInput,{imme
 <template>
  <section v-if="m.run" class="formal-study student-english-panel" :data-stage="m.stage" aria-label="正式单词默写">
   <div v-if="blocked" class="formal-alert" role="alert"><p>{{ m.reviewError||'本次答案尚未保存，请重试保存后继续。' }}</p><div class="formal-actions"><button v-if="m.reviewUnsaved" type="button" @click="a.retryReviewSave()">重试保存</button><button type="button" @click="reload">重新读取记录</button></div></div>
-  <p class="formal-muted">正式默写 · 连续正确 {{ m.run.answers.length }}/7</p>
   <template v-if="m.stage!=='oral'">
    <h2>{{ m.stage==='recall'?m.word.meaning:m.word.word }}</h2>
-   <p>{{ m.stage==='recall'?'连续正确默写七次，答错后重新累计。':'请默写这个词的复数形式。中文释义已隐藏。' }}</p>
+   <p v-if="m.stage!=='recall'">请默写这个词的复数形式。中文释义已隐藏。</p>
    <form @submit.prevent="submit">
-    <label for="formal-answer">{{ m.stage==='recall'?'第 '+(m.run.answers.length+1)+'/7 次':'复数形式' }}</label>
+    <label for="formal-answer" :style="m.stage==='recall'?{color:'hsl(145,'+Math.min(m.run.answers.length*14,85)+'%,'+(40-Math.min(m.run.answers.length,6)*2)+'%)',fontWeight:m.run.answers.length?700:400,fontSize:(16+Math.min(m.run.answers.length,6))+'px'}:null">{{ m.stage==='recall'?'第 '+(m.run.answers.length+1)+'/7 次':'复数形式' }}</label>
     <input id="formal-answer" ref="input" data-formal-answer :value="m.recallDraft||''" :aria-label="m.stage==='recall'?'英文默写':'复数形式'" autocomplete="off" autocapitalize="off" autocorrect="off" :spellcheck="false" maxlength="140" required :disabled="blocked" @input="a.recallInput($event.target.value)" @keydown="keydown" @compositionstart="composing=true" @compositionend="composing=false">
     <div class="formal-actions"><button class="formal-primary" type="submit" :disabled="blocked||!m.recallDraft?.trim()">{{ m.stage==='recall'?'提交默写':'确认复数' }}</button></div>
    </form>
   </template>
   <template v-else>
-   <h2 lang="en">{{ m.word.word }}</h2><p>拼写已完成，请说出这个词的词类和中文意思。</p>
+   <h2 lang="en">{{ m.word.word }}</h2>
    <form @submit.prevent="a.gradeOral()">
-    <label for="formal-oral">词义和词类口述</label><textarea id="formal-oral" :value="m.run.draft" rows="4" maxlength="2000" required :disabled="m.busy||blocked" :readonly="m.completed" @input="a.oralDraft($event.target.value)"></textarea>
+    <label for="formal-oral">词义和词类描述</label><textarea id="formal-oral" :value="m.run.draft" rows="4" maxlength="2000" required :disabled="m.busy||blocked" :readonly="m.completed" @input="a.oralDraft($event.target.value)"></textarea>
     <div class="formal-actions"><button class="formal-primary" type="submit" :disabled="m.busy||m.completed||blocked">{{ m.busy?'正在评阅…':'提交' }}</button><button v-if="m.busy" type="button" @click="a.cancel()">取消等待</button></div>
    </form>
-   <section v-if="m.run.oral" aria-label="批改结果"><p>拼写：✓　词义：{{ m.run.oral.meaningPassed?'✓':'✗' }}　词类：{{ m.run.oral.posPassed?'✓':'✗' }}</p><p>{{ m.run.oral.feedback }}</p><ul><li v-for="(error,i) in m.run.oral.errors" :key="i">{{ error }}</li></ul><div class="formal-actions"><button v-if="!m.oralSaved||oralPassed&&!m.completed" type="button" @click="a.retryOralSave()">重试保存</button><button type="button" :disabled="m.busy||blocked||!m.oralSaved||oralPassed&&!m.completed" @click="a.nextWord()">{{ nextLabel }}</button></div></section>
+   <section v-if="m.run.oral" aria-label="批改结果"><p>拼写：<span class="mark-ok">✓</span> 词义：<span :class="m.run.oral.meaningPassed?'mark-ok':'mark-bad'">{{ m.run.oral.meaningPassed?'✓':'✗' }}</span> 词类：<span :class="m.run.oral.posPassed?'mark-ok':'mark-bad'">{{ m.run.oral.posPassed?'✓':'✗' }}</span></p><p v-if="m.run.oral.feedback&&!(m.run.oral.meaningPassed&&m.run.oral.posPassed)" class="mark-bad">{{ m.run.oral.feedback }}</p><ul><li v-for="(error,i) in m.run.oral.errors" :key="i" class="mark-bad">{{ error }}</li></ul><div class="formal-actions"><button v-if="!m.oralSaved||oralPassed&&!m.completed" type="button" @click="a.retryOralSave()">重试保存</button><button type="button" :disabled="m.busy||blocked||!m.oralSaved||oralPassed&&!m.completed" @click="a.nextWord()">{{ nextLabel }}</button><button type="button" :disabled="blocked" @click="a.navigate('word')">返回词条</button></div></section>
   </template>
-  <div class="formal-actions"><button type="button" :disabled="blocked" @click="a.navigate('word')">返回词条</button></div>
+  <div v-if="m.stage!=='oral'||!m.run.oral" class="formal-actions"><button type="button" :disabled="blocked" @click="a.navigate('word')">返回词条</button></div>
  </section>
 </template>
 <style scoped>
+.mark-ok{color:#16a34a;font-weight:700}
+.mark-bad{color:#dc2626}
 .formal-study{max-width:760px;margin:20px auto;overflow-wrap:anywhere}.formal-study button,.formal-study input,.formal-study textarea{font:inherit;box-sizing:border-box}.formal-study button{min-height:44px;padding:10px 16px;background:white;border:1px solid #b9c6b9;border-radius:8px;color:inherit;cursor:pointer;line-height:1.5}.formal-study button:disabled{opacity:.55;cursor:default}.formal-study .formal-primary{background:#22634b;border-color:#22634b;color:white}.formal-study form{display:flex;flex-direction:column;gap:12px}.formal-study input,.formal-study textarea{width:100%;padding:12px;border:1px solid #8b9f8e;border-radius:8px;color:inherit;background:white;min-height:52px}.formal-study input{font-size:22px}.formal-actions{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0 0}.formal-muted{color:#596b60;font-size:14px}.formal-feedback{padding:20px;background:#eff6ee;border-radius:10px}.formal-feedback h3{margin-top:0}.formal-feedback .study-art{max-width:340px;margin:16px auto}.formal-answer{font-size:28px;font-weight:600}.formal-alert{padding:16px;background:#fff2e3;border:1px solid #d4a678;border-radius:8px}.formal-study :focus-visible{outline:3px solid #327958;outline-offset:3px}
 @media(max-width:650px){.formal-feedback{padding:16px}.formal-actions .formal-primary{flex-grow:1}}
 </style>

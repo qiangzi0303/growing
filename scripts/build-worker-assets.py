@@ -14,11 +14,12 @@ subprocess.run(['node', str(repo / 'scripts/build-photo-learning-catalog.cjs')],
 runpy.run_path(str(repo / 'scripts/sync-duck.py'))
 target = repo / 'cloudflare/public'
 shutil.copyfile(repo / 'app/src/main/assets/web/app-design/handwriting-core.js', repo / 'platform-web/handwriting-core.js')
-# The shell must load connection settings for parents as well as students.
+# Share the authenticated managed configuration client across every shell.
 for name in ('course-ai.js', 'course-ai.css'):
     shared = repo / 'app/src/main/assets/web/app-design' / name
     shutil.copyfile(shared, repo / 'platform-web' / name)
     shutil.copyfile(shared, repo / 'app/src/main/assets/web/cloud' / name)
+    shutil.copyfile(shared, repo.parent / 'cloud' / name)
 subprocess.run(['node', str(repo / 'scripts/export-english-rules.cjs')], check=True)
 subprocess.run(['node', str(repo / 'scripts/build-english-visual-atlas.cjs')], check=True)
 subprocess.run(['node', str(repo / 'scripts/vendor-math-format.cjs')], check=True)

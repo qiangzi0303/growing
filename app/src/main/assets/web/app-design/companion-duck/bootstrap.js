@@ -1,6 +1,6 @@
 const params=new URLSearchParams(location.search);
 let realtime=params.get('realtime')==='1';
-if(!params.has('legacy')&&!realtime){try{realtime=(await (await fetch('./api/health')).json()).realtimeConfigured===true;}catch{}}
+if(!params.has('legacy')&&!realtime){try{realtime=(await window.GrowingRealtime.settingsInfo()).configured===true;}catch{}}
 try {
   if(realtime)await import('./classroom.js?studentUi=20261121-shared-ai-only-1');else await import('./companion.js?studentUi=20261121-shared-ai-only-1');
 } catch(error) {

@@ -34,6 +34,6 @@ test('partial rubric items and explicit gaps are marked while full-score feedbac
  const d={score:8.5,comment:'还可补充',criticalErrors:[],good:['已理解概念'],gaps:['补充使用条件'],followup:'再举例',criteria:[{id:'core',score:4,evidence:'原话',feedback:'概念正确'},{id:'condition',score:.5,evidence:'部分条件',feedback:'少了条件'},{id:'example',score:2,evidence:'例子',feedback:'例子正确'},{id:'boundary',score:2,evidence:'边界',feedback:'边界正确'}]};
  const html=F.render(d);assert(html.includes('class="assessment-gap assessment-gap-note">待巩固：少了条件'));assert(html.includes('<li class="assessment-gap">补充使用条件'));assert(html.includes('<p class="">概念正确</p>'));
 });
-for(const file of ['../fraction-ops/分式作战_一分钟学习版.html','../word-ops-unit3/index.html'])test('legacy inline scripts compile: '+file,()=>{
+for(const file of ['../word-ops-unit3/index.html'])test('legacy inline scripts compile: '+file,()=>{
  const html=fs.readFileSync(path.join(dir,file),'utf8');for(const m of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g))if(m[1].trim())new vm.Script(m[1]);
 });

@@ -36,7 +36,7 @@
     }
     document.getElementById('count').textContent=`${id==='all'?'全部单元':unitName(id)} · 共 ${rows.length} 题`;
     const back=document.getElementById('back');
-    back.href=id==='all'?'units.html?subject=math':id==='math-8b-10'?'../fraction-ops/分式作战_一分钟学习版.html':'math-course.html?'+new URLSearchParams({chapter:id});
+    back.href=id==='all'?'units.html?subject=math':'math-course.html?'+new URLSearchParams({chapter:id});
     back.textContent=id==='all'?'← 数学目录':'← 返回本单元';
     host.innerHTML=rows.map(q=>`<article class="question" id="${q.sourceId?q.id:'q'+q.number}"><p class="meta">${esc(unitName(q.unitId))} · ${esc(q.sourceLabel||'1025141010.pdf')} · 第 ${q.page} 页 · 第 ${q.number} 题</p><h2>${esc(q.title)}</h2>${q.note?`<p class="note">${esc(q.note)}</p>`:''}${q.review?`<p class="${q.priority?'note':'notice'}">${esc(q.review)}</p>`:''}<div class="question-text math-prose">${GrowingMathFormat.html(q.text)}</div>${figureMarkup(q)}</article>`).join('')||'<p>没有符合条件的题目。</p>';
     for(const q of rows){const card=document.getElementById(q.sourceId?q.id:'q'+q.number);card.dataset.archiveQuestion=q.id;card.insertAdjacentHTML('beforeend',GrowingWrongReview.markup(q));}GrowingWrongReview.hydrate();

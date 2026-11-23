@@ -9,7 +9,7 @@
   if(!chapter)return {model:{kind:'error',title:'没有找到这个'+subjectName+'章节',backHref:'units.html?subject='+subject},subscribe(){return ()=>{};},actions:{},destroy(){}};
   const KEY=(physics?'growing-diagnosis-physics-v1:':'growing-diagnosis-year8-v1:')+chapter.id,RESULT_KEY='growing-diagnosis-v1:'+chapter.id;
   const available=new Set(chapter.nodes.map(n=>n.id));function pre(id){for(const e of g.pre.get(id))if(!available.has(e.from)){available.add(e.from);pre(e.from);}}chapter.nodes.forEach(n=>pre(n.id));
-  let selected=g.byId.has(params.get('node'))?params.get('node'):!physics&&chapter.number===10?'add':chapter.nodes[0].id;
+  let selected=g.byId.has(params.get('node'))?params.get('node'):chapter.nodes[0].id;
   let mode=['diagnosis','panorama'].includes(params.get('mode'))?params.get('mode'):'graph',range=params.get('range')==='year'?'year':'chapter',scope='1',target=params.has('chapter')&&!params.has('node')?'chapter':selected;
   let session=null,running=false,setup=false,notice='',feedback='',searchNote='',dead=false,model,handwriting=new Map();const listeners=new Set();
   const guard=()=>{if(dead)throw Error('学习页面已销毁');active();};

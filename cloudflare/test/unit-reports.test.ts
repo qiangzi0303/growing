@@ -26,9 +26,8 @@ test('English mandatory recalls count but lesson answers do not; saved unit time
   const [r]=buildUnitReports([doc('growing-english-course-v1:english-8a-01',{words:{friendship:{protocol:'seven-recalls',answers:Array(7).fill('friendship'),at:Date.now()},honest:{protocol:'seven-recalls',answers:Array(6).fill('honest')},unknown:{protocol:'seven-recalls',answers:Array(7).fill('unknown')}},lessons:{[lesson.id]:{protocol:'three-correct',answers:lesson.answers}},learningTime:{version:1,days:{'2026-10-24':90000}}})]).units;
   assert.equal(r.mastered,1);assert.equal(r.total,english['english-8a-01'].words.length+sentences['english-8a-01'].length);assert.equal(r.activeMinutes,1.5);assert.equal(r.diagnostic.total,0);
 });
-test('legacy fraction retains historical concepts but needs application verification for course mastery',()=>{
-  const [r]=buildUnitReports([doc('fraction-minute-v1',{topics:{definition:{exams:[{real:false,correct:3,total:3,at:Date.now()}]},domain:{draft:'解释草稿'}},learning:{mastery:{definition:null}},activity:{days:{'2026-10-23':60000}}})]).units;
-  assert.equal(r.mastered,1);assert.equal(r.total,11);assert.equal(r.activeMinutes,1);
+test('legacy Unit 3 keeps time without inferring mastery; fraction has 11 shared-course topics',()=>{
+  assert.equal(buildUnitReports([doc('growing-math-lessons-v1',{version:1,topics:{definition:{seen:true}}})]).units.find(u=>u.id==='math-8b-10')?.total,11);
   const [u]=buildUnitReports([doc('wordops_8A_unit3',{seen:['w1'],best:{[english.__legacy.tests[0]]:80},learningTime:{days:{'2026-10-23':120000}}})]).units;
   assert.equal(u.mastered,0);assert.equal(u.activeMinutes,2);
 });

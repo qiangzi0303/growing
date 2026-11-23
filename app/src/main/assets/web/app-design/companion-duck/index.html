@@ -55,38 +55,20 @@
   <dialog id="settings-dialog"><div class="settings-heading"><h2>语音设置</h2><button id="close-settings" aria-label="关闭设置">✕</button></div>
     <form id="voice-settings">
       <h3>语音服务</h3>
-      <label>语音识别<select name="engine"><option value="browser">浏览器识别（无需语音密钥）</option><option value="cloud">兼容接口识别</option></select></label>
       <label>识别语言<select name="language"><option value="zh-CN">中文</option><option value="en-US">English</option></select></label>
-      <label>朗读来源<select name="ttsEngine"><option value="auto">跟随语音识别设置</option><option value="browser">设备朗读</option><option value="cloud">云端自然声音（单独配置 TTS）</option></select></label>
       <label>说话节奏<select name="speakingStyle"><option value="warm">温柔陪伴</option><option value="calm">耐心讲解</option><option value="bright">轻快鼓励</option><option value="neutral">平稳自然</option></select></label>
       <label>语速<select name="speechRate"><option value="0.85">慢一点</option><option value="1">正常</option><option value="1.1">快一点</option></select></label>
-      <p>设备模式调整语速与音高，表现力取决于音色；云端情感需模型支持语气指令。</p>
+      <p>此处仅设置设备语音偏好。AI 模型由管理员统一配置。</p>
       <label>设备朗读音色<select name="browserVoice" id="browser-voices"><option value="">自动优选自然音色（同语言）</option></select></label>
-      <div id="cloud-fields" hidden>
-        <p>填写服务商提供的兼容接口。密钥仅在本页暂存，刷新后需重新填写。</p>
-        <div id="asr-fields">
-          <label>ASR 接口根地址<input name="asrBase" type="url" placeholder="https://服务商地址/v1"></label>
-          <label>ASR 模型<input name="asrModel" placeholder="服务商的语音识别模型名称"></label>
-          <label>ASR API Key<input name="asrKey" type="password" autocomplete="new-password" placeholder="留空沿用本页已填写的密钥"></label>
-        </div>
-        <div id="tts-fields">
-          <label>TTS 接口根地址<input name="ttsBase" type="url" placeholder="https://服务商地址/v1"></label>
-          <label>TTS 模型<input name="ttsModel" placeholder="服务商的语音合成模型名称"></label>
-          <label>TTS 音色<input name="ttsVoice" placeholder="服务商提供的音色 ID"></label>
-          <label>TTS API Key<input name="ttsKey" type="password" autocomplete="new-password" placeholder="留空沿用本页已填写的密钥"></label>
-          <label>语气指令（可选，仅限支持 instructions 的模型）<textarea name="ttsInstructions" maxlength="1000" rows="3" placeholder="像耐心的学习伙伴一样自然交谈。声音温暖放松，疑问句轻柔上扬，鼓励时轻快，避免播音腔和夸张卖萌。"></textarea></label>
-          <p>不支持语气指令的服务请留空；语速通过 speed 参数传递。</p>
-        </div>
-      </div>
       <button id="preview-voice" type="button">试听声音</button>
       <label>停顿后发送<select name="silence"><option value="1500">1.5 秒</option><option value="2500">2.5 秒（留出思考时间）</option><option value="4000">4 秒</option></select></label>
       <button type="submit">保存语音设置</button><p id="settings-status" role="status"></p>
     </form>
     <p class="settings-note">对话仅保留在本页，关闭页面后不保存。语音开启时会发送声音至所选识别服务；设备识别也可能使用浏览器厂商的在线服务。使用耳机有助于减少回声误触发。</p>
   </dialog>
-  <script src="../student-duck-controls.js?studentUi=20261121-no-paper-tab-1"></script>
-  <script src="../course-ai.js"></script>
+  <script src="../student-duck-controls.js?studentUi=20261123-managed-ai-1"></script>
+  <script src="../course-ai.js?studentUi=20261123-managed-ai-1"></script>
   <script type="module" src="./girl-view.js?v=20261113-girl-1"></script>
-  <script type="module" src="./bootstrap.js?studentUi=20261121-no-paper-tab-1"></script>
+  <script type="module" src="./bootstrap.js?studentUi=20261123-managed-ai-1"></script>
 </body>
 </html>

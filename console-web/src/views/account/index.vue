@@ -32,11 +32,10 @@ watch(() => [auth.profile?.id, auth.profile?.role, auth.sessionRevision], clear,
     <BindChild @refresh="refresh" />
     <NAlert v-if="error" type="error" role="alert">{{ error }}</NAlert>
     <NList v-if="children.length"><NListItem v-for="child in children" :key="child.id"><RouterLink v-slot="{ href, navigate }" :to="`/students/${encodeURIComponent(child.id)}`" custom><NButton tag="a" text type="primary" :href="href" @click="navigate">{{ child.displayName }}</NButton></RouterLink></NListItem></NList>
-    <NCard title="本机连接设置" size="small">
-      <p>连接设置按当前账号隔离，密钥只保存在本机。</p>
+    <NCard title="AI 服务" size="small">
+      <p>模型连接由管理员统一配置，无需单独设置 Key。</p>
       <div class="actions">
-        <NButton tag="a" :href="legacy.link('settings', '/console/account')">DeepSeek 密钥设置</NButton>
-        <NButton tag="a" :href="legacy.link('voice-settings', '/console/account')">语音 Key 设置</NButton>
+        <RouterLink v-if="auth.profile?.role === 'Admin'" to="/ai-models">管理 AI 模型</RouterLink>
         <NButton v-if="auth.profile?.role === 'Admin'" tag="a" :href="legacy.link('classroom', '/console/account')">管理员课堂试用</NButton>
       </div>
     </NCard>

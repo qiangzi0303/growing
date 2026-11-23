@@ -105,19 +105,18 @@ async function register(role = "Student") {
   assert.equal(response.status, 200, await response.clone().text());
   return { ...await response.json() as any, name, response };
 }
-test('realtime signalling requires login and uses transient personal credentials with native CORS',async()=>{
+test('legacy realtime signalling requires login then requests upgrade without forwarding credentials',async()=>{
   assert.equal((await call('/api/realtime/config')).status,401);
   const account=await register();
-  const info=await (await call('/api/realtime/config','GET',undefined,account.token)).json() as any;
-  assert.equal(info.model,'qwen3.8-omni-flash-realtime');assert.equal(info.configured,false);
+  assert.equal((await call('/api/realtime/config','GET',undefined,account.token)).status,410);
   let forwarded=false;
   const proxy=createHandler(()=>db,(async(url,options)=>{
     forwarded=true;assert.equal(new Headers(options?.headers).get('Authorization'),'Bearer test-qwen-session-key');assert.equal(options?.body,'v=0\r\noffer');
     return new Response('v=0\r\nanswer');
   }) as typeof fetch);
   const request=()=>new Request('https://learn.test/api/realtime/connect',{method:'POST',headers:{'Content-Type':'application/json','X-Growing-Client':'1','X-Duck-Client':'1',Authorization:'Bearer '+account.token,Origin:'https://appassets.androidplatform.net'},body:JSON.stringify({apiKey:'test-qwen-session-key',sdp:'v=0\r\noffer',voice:'Tina'})});
-  const response=await proxy(request(),env,context);assert.equal(response.status,200);assert.equal(forwarded,true);assert.equal(response.headers.get('Access-Control-Allow-Origin'),'https://appassets.androidplatform.net');assert.deepEqual(await response.json(),{sdp:'v=0\r\nanswer'});
-  const limitedEnv={...env,AI_LIMITER:{limit:async()=>({success:false})}};forwarded=false;assert.equal((await proxy(request(),limitedEnv,context)).status,429);assert.equal(forwarded,false);
+  const response=await proxy(request(),env,context);assert.equal(response.status,410);assert.equal(forwarded,false);assert.equal(response.headers.get('Access-Control-Allow-Origin'),'https://appassets.androidplatform.net');assert.match(await response.text(),/升级/);
+  const limitedEnv={...env,AI_LIMITER:{limit:async()=>({success:false})}};forwarded=false;assert.equal((await proxy(request(),limitedEnv,context)).status,410);assert.equal(forwarded,false);
 });
 const invite = async (token: string) => (await (await call("/api/student/invitations", "POST", undefined, token)).json() as any).code;
 before(async () => {
@@ -166,7 +165,7 @@ before(async () => {
   await db.batch(subjectMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
   const classificationMigration=await readFile(new URL('../migrations/0016_paper_classification.sql',import.meta.url),'utf8');
   await db.batch(classificationMigration.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
-  for(const migration of ['0017_paper_import_jobs.sql','0018_photo_question_type.sql','0019_photo_practice.sql']){
+  for(const migration of ['0017_paper_import_jobs.sql','0018_photo_question_type.sql','0019_photo_practice.sql','0020_managed_ai.sql']){
     const sql=await readFile(new URL('../migrations/'+migration,import.meta.url),'utf8');
     await db.batch(sql.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
   }

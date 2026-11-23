@@ -26,7 +26,7 @@
     if(chapter.number===1)$('experiments').insertAdjacentHTML('beforeend','<a class="center-lab-link" href="triangle-centers.html">三角形的四心<small>内心 · 外心 · 重心 · 垂心 / 拖拽与动画</small></a>');
     $('chapter-label').textContent=`苏科版 · 八年级${chapter.term==='upper'?'上':'下'}册 / 第${chapter.number}章 ${chapter.title}`;
     $('lab-title').textContent=experiment.name;$('goal').textContent=experiment.goal;
-    $('course-back').href=chapter.number===10?'../fraction-ops/分式作战_一分钟学习版.html':'math-course.html?'+new URLSearchParams({chapter:chapter.id,node:experiment.nodes[0]});
+    $('course-back').href='math-course.html?'+new URLSearchParams({chapter:chapter.id,node:experiment.nodes[0]});
     $('controls').innerHTML=experiment.controls.map(c=>`<div class="control"><label for="input-${c.key}"><span>${esc(c.label)}</span><output id="value-${c.key}" for="input-${c.key}">${c.value}</output></label><input id="input-${c.key}" data-key="${c.key}" type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.value}"></div>`).join('');
     $('animate-key').innerHTML=experiment.controls.map(c=>`<option value="${c.key}">${esc(c.label)}</option>`).join('');
     $('question').textContent=experiment.question;

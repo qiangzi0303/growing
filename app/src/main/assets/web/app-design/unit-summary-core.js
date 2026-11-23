@@ -27,17 +27,10 @@
   }
   function math({subject,chapter,data,read,diagnosis,handwriting=[]}){
     const warnings=[],get=key=>{try{return read(key);}catch{warnings.push('部分记录无法读取，原记录未改动。');return undefined;}};
-    const fraction=chapter.id==='math-8b-10',raw=get(fraction?'fraction-minute-v1':subject==='physics'?'growing-physics-lessons-v1':'growing-math-lessons-v1');
-    const valid=raw===null||raw&&raw.topics&&typeof raw.topics==='object'&&!Array.isArray(raw.topics)&&(fraction||raw.version===1);
+    const raw=get(subject==='physics'?'growing-physics-lessons-v1':'growing-math-lessons-v1');
+    const valid=raw===null||raw&&raw.topics&&typeof raw.topics==='object'&&!Array.isArray(raw.topics)&&raw.version===1;
     const rows=chapter.nodes.map(n=>{
       let evidence=valid?course(raw?.topics?.[n.id]):result('unknown','课程记录暂时无法读取');
-      if(fraction&&valid){
-        const legacyId=({meaning:'domain',extraneous:'extra'})[n.id]||n.id;
-        const r=raw?.topics?.[legacyId],c=concept(r,true),exams=(Array.isArray(r?.exams)?r.exams:[]).filter(e=>e&&!e.real&&Number.isInteger(e.total)&&e.total>0&&Number.isInteger(e.correct)&&e.correct>=0&&e.correct<=e.total);
-        const conceptPassed=c.passed||raw?.learning?.version===1&&Object.hasOwn(raw.learning.mastery||{},legacyId);
-        const quiz=practice.result(r);
-        evidence=conceptPassed&&quiz.passed?result('passed','课程达标 · 概念与应用验证通过'):conceptPassed||quiz.score>0?result('shaky','概念解释或应用验证仍需补齐'):c.attempts.length||exams.length||r?.practicePhoto?result('weak','概念解释或应用验证尚未通过'):result();
-      }
       return {id:n.id,title:n.title,section:n.section,...evidence};
     });
     if(!valid)warnings.push('课程记录格式无法识别，未将其当作未测或已通过。');

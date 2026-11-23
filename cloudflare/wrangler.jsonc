@@ -11,6 +11,7 @@
     "binding": "DB",
     "database_name": "growing-db",
     "database_id": "4c05083b-7ab5-4175-b3d6-9ac944b61716",
+    "remote": true,
     "migrations_dir": "migrations"
   }],
   "build": { "command": "python ../scripts/build-worker-assets.py" },
@@ -21,5 +22,5 @@
     "html_handling": "none",
     "not_found_handling": "none"
   },
-  "ratelimits": [{ "name": "AUTH_LIMITER", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } }, { "name": "AI_LIMITER", "namespace_id": "1002", "simple": { "limit": 6, "period": 60 } }]
+  "ratelimits": [{ "name": "AUTH_LIMITER", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } }, { "name": "AI_LIMITER", "namespace_id": "1002", "simple": { "limit": 6, "period": 60 } }, { "name": "AI_USAGE_LIMITER", "namespace_id": "1003", "simple": { "limit": 120, "period": 60 } }]
 }

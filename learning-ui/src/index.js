@@ -13,7 +13,6 @@ import StudentMathResources from './StudentMathResources.vue';
 import StudentMathLabs from './StudentMathLabs.vue';
 import StudentPhysicsLabs from './StudentPhysicsLabs.vue';
 import StudentTriangleCenters from './StudentTriangleCenters.vue';
-import StudentFractionCourse from './StudentFractionCourse.vue';
 import StudentUnit3Course from './StudentUnit3Course.vue';
 import StudentPaperPages from './StudentPaperPages.vue';
 import StudentPlatform from './StudentPlatform.vue';
@@ -27,7 +26,7 @@ export function mount(target,adapter,options={}){
  return {close(){if(!destroyed)instance.close();},openCalendar(){if(!destroyed)return instance.openCalendar();},isOpen(){return !destroyed&&instance.isOpen();},destroy(){if(destroyed)return;destroyed=true;instance.close();app.unmount();}};
 }
 export function mountStudent(target,page,model){
- const components={home:StudentHome,catalog:StudentCatalog,study:StudentCatalog,summary:StudentSummary,resources:StudentResources,'english-course':StudentEnglishCourse,'math-course':StudentMathCourse,knowledge:StudentKnowledge,handwriting:StudentHandwriting,'english-labs':StudentEnglishLabs,'math-resources-workbench':StudentMathResources,'math-labs':StudentMathLabs,'physics-labs':StudentPhysicsLabs,'triangle-centers':StudentTriangleCenters,'fraction-course':StudentFractionCourse,'unit3-course':StudentUnit3Course,midterm:StudentMidterm,'platform-auth':StudentPlatform,'platform-navigation':StudentPlatform,'platform-rankings':StudentPlatform,'photo-review':StudentPhotoReview,'paper-pages':StudentPaperPages};
+ const components={home:StudentHome,catalog:StudentCatalog,study:StudentCatalog,summary:StudentSummary,resources:StudentResources,'english-course':StudentEnglishCourse,'math-course':StudentMathCourse,knowledge:StudentKnowledge,handwriting:StudentHandwriting,'english-labs':StudentEnglishLabs,'math-resources-workbench':StudentMathResources,'math-labs':StudentMathLabs,'physics-labs':StudentPhysicsLabs,'triangle-centers':StudentTriangleCenters,'unit3-course':StudentUnit3Course,midterm:StudentMidterm,'platform-auth':StudentPlatform,'platform-navigation':StudentPlatform,'platform-rankings':StudentPlatform,'photo-review':StudentPhotoReview,'paper-pages':StudentPaperPages};
  components['duck-control']=StudentDuckControl;
  const component=components[page];if(!component)throw Error('学习页面尚未迁移');
  const state=shallowReactive({model}),app=createApp({render:()=>h(component,state.model.controller?{controller:state.model.controller}:{model:state.model})});try{app.mount(target);}catch(error){try{app.unmount();}catch{}throw error;}let destroyed=false;
