@@ -4,7 +4,7 @@
   if(new URLSearchParams(location.search).get('ui')==='legacy')return;
   const source=new URL(document.currentScript.src),resources=source.pathname.includes('/app-design/')?new URL('./',source):window.GrowingNative?new URL('../app-design/',source):new URL('/learn/app-design/',source);
   const loads=new Map();let current,pending,failed,generation=0,disposed=false;
-  const assetUrl=name=>{const url=new URL(name,resources);url.searchParams.set('studentUi','20261121-paper-svg-1');if(name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261123-managed-ai-1');return url;};
+  const assetUrl=name=>{const url=new URL(name,resources);url.searchParams.set('studentUi','20261121-paper-svg-1');if(name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261123-course-heading-1');return url;};
   function load(name,kind='script'){
     if(loads.has(name))return loads.get(name);
     const promise=new Promise((resolve,reject)=>{

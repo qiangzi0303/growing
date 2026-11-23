@@ -30,7 +30,7 @@ function resetProgress(){if(a.reset(confirmed.value)){reset.value=false;confirme
  <main class="student-math-course course-shell">
   <template v-if="m.kind==='error'"><h1>{{m.title}}</h1><Button :url="m.backHref">返回目录</Button></template>
   <template v-else>
-   <header class="course-heading"><div><p class="eyebrow">苏科版 · 八年级{{m.chapter.term==='upper'?'上':'下'}}册 · 第{{m.chapter.number}}章</p><h1>{{m.chapter.title}}课堂</h1></div><div class="progress-ring"><strong>{{m.read}}/{{m.chapter.nodes.length}}</strong></div></header>
+   <header class="course-heading"><div><h1>{{m.chapter.title}}课堂</h1></div><div class="progress-ring"><strong>{{m.read}}/{{m.chapter.nodes.length}}</strong></div></header>
    <nav class="course-tools-nav" aria-label="课堂工具"><Button tag="a" :href="cloudWrongHref(m.chapter.id)">拍照错题</Button><Button v-if="m.wrongHref" @click="a.navigate(m.wrongHref)">本单元错题</Button><Button @click="a.open('interactive')">交互</Button></nav>
    <p v-if="m.message" role="status">{{m.message}}</p><p v-if="m.storageError" role="alert">{{m.storageError}}</p>
    <div v-if="m.view==='home'" class="course-layout">
