@@ -54,7 +54,6 @@ jobs:
         if: env.FAST_RELEASE != 'true'
         run: node --test scripts/test-platform.cjs scripts/handwriting.test.cjs scripts/unit-summary.test.cjs scripts/math-format.test.cjs scripts/fraction-grading.test.cjs
       - name: Verify Android AI and storage adapter
-        if: env.FAST_RELEASE != 'true'
         run: node scripts/test-ai.cjs
       - name: Verify Qwen account settings and signalling
         if: env.FAST_RELEASE != 'true'
