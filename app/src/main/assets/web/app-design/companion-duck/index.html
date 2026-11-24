@@ -10,20 +10,19 @@
   <link rel="stylesheet" href="../course-ai.css">
   <link rel="stylesheet" href="./companion.css">
   <link rel="stylesheet" href="../learning-ui.css?v=workspace-20261111">
-  <link rel="stylesheet" href="./girl.css?v=20261113-girl-1">
-  <script type="importmap">{"imports":{"three":"./vendor/girl/build/three.module.js"}}</script>
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
-<body class="companion-mode girl-mode">
+<body class="companion-mode">
   <main class="studio">
     <header class="header">
       <a class="brand" href="../units.html?studentUi=20261112-vant-3" aria-label="返回课程目录"><span class="brand-mark">g.</span><span>学习伙伴<span class="brand-sub">CHARACTER STUDIO</span></span></a>
       <button class="settings-toggle" id="open-settings">语音设置</button>
     </header>
     <section class="intro"><div class="eyebrow">YOUR STUDY COMPANION</div><h1>学习伙伴在这里<span>。</span></h1><p id="connection-summary">可以打字聊天，也可以开启语音。</p></section>
-    <div id="viewport" role="img" aria-label="女孩3D模型。拖动旋转，滚轮或双指缩放。"></div>
+    <div id="viewport" role="img" aria-label="小鸭3D模型。拖动旋转，滚轮或双指缩放。"></div>
     <div class="loading" id="loading">正在唤醒学习伙伴…</div>
     <aside class="panel" aria-label="形象与动作设置" hidden>
-      <div class="panel-title"><div><span class="eyebrow">YOUR COMPANION</span><h2>学习伙伴 <span>GIRL / 01</span></h2></div><span class="online-dot" title="本地动作预览"></span></div>
+      <div class="panel-title"><div><span class="eyebrow">YOUR COMPANION</span><h2>学习伙伴 <span>DUCK / 01</span></h2></div><span class="online-dot" title="本地动作预览"></span></div>
       <div class="divider"></div>
       <fieldset><legend>看看它的反应</legend><div class="actions">
         <button data-action="idle" class="active" aria-pressed="true"><span>◌</span>安静陪伴</button>
@@ -32,7 +31,6 @@
         <button data-action="speak" aria-pressed="false"><span>≋</span>开口说话</button>
         <button data-action="greet" aria-pressed="false"><span>✦</span>打个招呼</button>
         <button data-action="celebrate" aria-pressed="false"><span>↗</span>开心一下</button>
-        <button data-action="walk" aria-pressed="false"><span>↔</span>原地走路</button>
       </div></fieldset>
       <div class="status" aria-live="polite"><span class="status-mark">◌</span><div><strong id="state-name">安静陪伴</strong><p id="state-description">我在这里，你慢慢来。</p></div></div>
       <p class="demo-note">形象与动作预览</p>
@@ -50,7 +48,7 @@
     </section>
     <div class="speech" id="speech" aria-live="polite"><span class="speech-dot"></span><span id="speech-text">你好呀，我是学习伙伴。</span></div>
     <footer class="toolbar"><span class="hint"><span class="drag-icon">↔</span> 拖动旋转 <i>·</i> 滚轮缩放</span><div class="tools"><button id="appearance">形象预览</button><button id="rotate" aria-pressed="false">自动旋转</button><button id="reset">重置视角</button><button id="export" class="export">下载模型 <span>↗</span></button></div></footer>
-    <div class="model-label"><span>01 — GIRL COMPANION</span><span>轻轻陪伴，慢慢学会</span></div>
+    <div class="model-label"><span>01 — DUCK COMPANION</span><span>轻轻陪伴，慢慢学会</span></div>
   </main>
   <dialog id="settings-dialog"><div class="settings-heading"><h2>语音设置</h2><button id="close-settings" aria-label="关闭设置">✕</button></div>
     <form id="voice-settings">
@@ -68,7 +66,7 @@
   </dialog>
   <script src="../student-duck-controls.js?studentUi=20261123-managed-ai-1"></script>
   <script src="../course-ai.js?studentUi=20261123-managed-ai-1"></script>
-  <script type="module" src="./girl-view.js?v=20261113-girl-1"></script>
+  <script type="module" src="./duck.js?v=20261124-duck-1"></script>
   <script type="module" src="./bootstrap.js?studentUi=20261123-managed-ai-1"></script>
 </body>
 </html>

@@ -22,21 +22,14 @@
   navigation.catch(()=>{});actions.catch(()=>{});
   let context=window.GrowingDuckContext||null,frame=null,open=false,ready=false,pendingTeach=false,invisible=false,pendingSummary=null,lastSummary=null,summarySequence=0;
   const seenAssessments=new Set();
-  const endpoint=new URL('companion-duck/index.html?realtime=1&embed=1&character=shared&studentUi=20261113-girl-1',new URL(courseSource));
+  const endpoint=new URL('companion-duck/index.html?realtime=1&embed=1&studentUi=20261124-duck-1',new URL(courseSource));
   if(['localhost','127.0.0.1'].includes(location.hostname)){endpoint.port='8793';endpoint.pathname='/app-design/companion-duck/index.html';}
   const host=make('aside');host.id='course-duck-host';host.setAttribute('aria-label','学习伙伴互动课堂');
   const launch=make('button');launch.type='button';launch.className='course-duck-launch';launch.setAttribute('aria-label','学习伙伴，可拖动位置，双击打开语音面板');launch.title='拖动调整位置，双击和我说话；方向键也可移动';launch.setAttribute('aria-expanded','false');launch.setAttribute('aria-controls','course-duck-panel');
-  const portrait=make('img');portrait.src=new URL('companion-duck/launcher-girl.png',courseBase).href;portrait.alt='';portrait.width=104;portrait.height=120;portrait.draggable=false;launch.append(portrait);
-  const avatarFrame=make('iframe');avatarFrame.className='course-girl-avatar';avatarFrame.title='女孩学习伙伴';avatarFrame.tabIndex=-1;avatarFrame.setAttribute('aria-hidden','true');avatarFrame.src=new URL('companion-duck/girl-avatar.html?compact=1&v=20261113-girl-1',courseBase).href;
-  const sendCharacter=data=>avatarFrame.contentWindow?.postMessage(data,courseBase.origin);
-  let characterState={type:'girl:state',action:'idle',mouth:0};
-  function characterVisibility(){sendCharacter({type:'girl:active',value:!document.hidden&&!invisible});}
-  document.addEventListener('visibilitychange',characterVisibility);
-  window.addEventListener('message',event=>{if(event.source!==avatarFrame.contentWindow||event.origin!==courseBase.origin)return;if(event.data?.type==='girl:ready'){host.classList.add('girl-ready');characterVisibility();sendCharacter(characterState);}if(event.data?.type==='girl:error')host.classList.remove('girl-ready');});
-  window.addEventListener('message',event=>{if(event.source!==frame?.contentWindow||event.origin!==endpoint.origin||event.data?.type!=='girl:state')return;if(!['idle','listen','think','speak','greet','celebrate'].includes(event.data.action))return;characterState={type:'girl:state',action:event.data.action,mouth:Math.max(0,Math.min(1,Number(event.data.mouth)||0))};sendCharacter(characterState);});
+  const portrait=make('img');portrait.src=new URL('companion-duck/launcher.png',courseBase).href;portrait.alt='';portrait.width=104;portrait.height=120;portrait.draggable=false;launch.append(portrait);
   const panel=make('section');panel.id='course-duck-panel';panel.className='course-duck-panel';panel.hidden=true;
-  const heading=make('header'),label=make('strong'),close=make('button');label.textContent='学习伙伴';close.type='button';close.textContent='×';close.setAttribute('aria-label','关闭');close.title='关闭';close.style.cssText='width:44px;height:44px;padding:0;font-size:28px;line-height:1;flex:0 0 44px';heading.append(label,close);panel.append(heading);host.append(launch,avatarFrame,panel);document.body.append(raw(host));
-  const style=make('link');style.rel='stylesheet';style.href=new URL('course-duck.css?v=20261113-girl-1',courseBase).href;document.head.append(raw(style));
+  const heading=make('header'),label=make('strong'),close=make('button');label.textContent='学习伙伴';close.type='button';close.textContent='×';close.setAttribute('aria-label','关闭');close.title='关闭';close.style.cssText='width:44px;height:44px;padding:0;font-size:28px;line-height:1;flex:0 0 44px';heading.append(label,close);panel.append(heading);host.append(launch,panel);document.body.append(raw(host));
+  const style=make('link');style.rel='stylesheet';style.href=new URL('course-duck.css?v=20261124-duck-1',courseBase).href;document.head.append(raw(style));
   const announcement=make('span');announcement.className='duck-announcement';announcement.setAttribute('role','status');host.append(announcement);
   const summary=make('section');summary.className='course-duck-summary';summary.hidden=true;summary.setAttribute('aria-label','学习伙伴评分总结');
   summary.innerHTML='<strong>学习伙伴总结</strong><button type="button" data-summary-dismiss aria-label="收起学习伙伴总结">×</button><p data-summary-text></p><p data-summary-status role="status"></p><button type="button" data-summary-play>播放总结</button><button type="button" data-summary-stop>停止播报</button>';host.prepend(summary);
@@ -59,7 +52,7 @@
       const rect=element.getBoundingClientRect(),left=Math.max(12,Math.min(width-rect.width-12,anchor.right-rect.width));
       const above=anchor.top-rect.height-10,top=above>=12?above:Math.max(12,Math.min(height-rect.height-12,anchor.bottom+10));
       element.style.left=left+'px';element.style.top=top+'px';
-      if(element===panel){host.style.setProperty('--girl-panel-left',(left+4)+'px');host.style.setProperty('--girl-panel-top',top+'px');}
+      if(element===panel){host.style.setProperty('--duck-panel-left',(left+4)+'px');host.style.setProperty('--duck-panel-top',top+'px');}
     }
   }
   function fit(){if(position){const {width,height}=viewport(),rect=launch.getBoundingClientRect();place(position.x*Math.max(0,width-rect.width),position.y*Math.max(0,height-rect.height));}else layoutOverlays();}
@@ -92,11 +85,11 @@
   }
   function send(){if(frame&&open)frame.contentWindow?.postMessage({type:'duck:course-context',context:context||fallback()},endpoint.origin);}
   function startTeaching(){if(open&&ready&&pendingTeach){pendingTeach=false;send();frame.contentWindow?.postMessage({type:'duck:teach'},endpoint.origin);}}
-  function visible(){invisible=false;host.classList.remove('duck-invisible');host.inert=false;host.removeAttribute('aria-hidden');characterVisibility();}
-  function hide(){visible();sendCharacter({type:'girl:state',action:'idle',mouth:0});++summarySequence;pendingSummary=null;pendingTeach=false;if(frame)frame.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);open=false;panel.hidden=true;launch.hidden=false;launch.setAttribute('aria-expanded','false');launch.focus();}
+  function visible(){invisible=false;host.classList.remove('duck-invisible');host.inert=false;host.removeAttribute('aria-hidden');}
+  function hide(){visible();++summarySequence;pendingSummary=null;pendingTeach=false;if(frame)frame.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);open=false;panel.hidden=true;launch.hidden=false;launch.setAttribute('aria-expanded','false');launch.focus();}
   function ensureFrame(){if(!frame){frame=make('iframe');frame.title='学习伙伴实时语音课堂';frame.src=endpoint.href;frame.allow='microphone; autoplay';frame.addEventListener('load',()=>{send();flushSummary();});panel.append(frame);}}
   function setVisibility(value){
-    if(value==='hide'&&open){invisible=true;host.classList.add('duck-invisible');host.inert=true;host.setAttribute('aria-hidden','true');characterVisibility();announcement.textContent='伙伴已隐身，语音仍在倾听。说“伙伴出来”可唤回。';}
+    if(value==='hide'&&open){invisible=true;host.classList.add('duck-invisible');host.inert=true;host.setAttribute('aria-hidden','true');announcement.textContent='伙伴已隐身，语音仍在倾听。说“伙伴出来”可唤回。';}
     else if(value==='show'){visible();announcement.textContent='学习伙伴回来了。';if(open)close.focus();}
   }
   function show(teach=false){

@@ -3,6 +3,12 @@ import re
 
 root=Path(__file__).resolve().parents[1]
 web=root/'app/src/main/assets/web'
+launcher=(web/'app-design/course-duck.js').read_text(encoding='utf-8')
+companion=(web/'app-design/companion-duck/index.html').read_text(encoding='utf-8')
+if 'launcher.png' not in launcher or any(value in launcher for value in ('launcher-girl.png','girl-avatar.html','character=shared')):
+    raise SystemExit('Companion must use the duck launcher without a girl preview iframe.')
+if './duck.js?' not in companion or any(value in companion for value in ('girl-view.js','girl-mode','vendor/girl/')):
+    raise SystemExit('Companion page must load the duck renderer and matching Three.js dependency.')
 for name in ['course-duck.js','companion-duck/index.html','companion-duck/bootstrap.js','companion-duck/duck.js','companion-duck/classroom.js','companion-duck/realtime-client.js','companion-duck/lesson-session.js']:
     if not (web/'app-design'/name).is_file():raise SystemExit('Missing duck classroom asset: '+name)
 for name in ['girl-avatar.html','girl-view.js','girl-renderer.js','girl.css','launcher-girl.png','vendor/girl/build/three.module.js','vendor/girl/build/three.core.js','vendor/girl/addons/loaders/GLTFLoader.js','vendor/girl/LICENSE','characters/girl/girl1_face.glb','characters/girl/girl1_walk.glb']:
