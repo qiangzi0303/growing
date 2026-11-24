@@ -10,7 +10,7 @@
  window.GrowingStudentPages={registerLegacy(render){if(!enabled)return false;legacyRenders.push(render);if(failed)render();return true;}};
  if(!enabled)return;
  const base=new URL('./',document.currentScript.src),loads=new Map(),hidden=[];
- const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi',page==='math-wrong-questions'?'20261121-archive-clean-1':page==='catalog'?'20261121-catalog-clean-1':['english-course','unit3-course'].includes(page)?'20261121-no-paper-tab-1':'20261121-no-paper-tab-1');if(name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261124-unit-row-1');return url;};
+ const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi',page==='math-wrong-questions'?'20261121-archive-clean-1':page==='catalog'?'20261121-catalog-clean-1':['english-course','unit3-course'].includes(page)?'20261121-no-paper-tab-1':'20261121-no-paper-tab-1');if(name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261124-radical-math-1');return url;};
  function load(name,css=false){
   if(loads.has(name))return loads.get(name);
   const promise=new Promise((resolve,reject)=>{const el=document.createElement(css?'link':'script');if(css){el.rel='stylesheet';el.href=assetUrl(name);}else el.src=assetUrl(name);el.onload=resolve;el.onerror=()=>{el.remove();loads.delete(name);reject(Error('新版学习页面资源暂不可用，已保留原页面。'));};document.head.append(el);});loads.set(name,promise);return promise;

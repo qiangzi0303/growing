@@ -13,7 +13,7 @@ const add=(role,text)=>{const node=document.createElement('div');node.className=
 function update(){
   if(window.GrowingStudentDuckControls?.active===false)return;
   const progress=lesson.snapshot();$('#lesson-title').textContent=progress.title||'从课程页面打开学习伙伴，即可同步当前知识点';
-  if(inlineTeaching&&parent!==window)parent.postMessage({type:'duck:teaching-state',courseId:progress.courseId,state:teachingError?'error':starting||preparingTeach||progress.phase==='teaching'?'playing':['paused','between','question'].includes(progress.phase)?'paused':'idle',message:teachingError},'*');
+  if(inlineTeaching&&parent!==window)parent.postMessage({type:'duck:teaching-state',courseId:progress.courseId,state:teachingError?'error':starting||preparingTeach?'connecting':progress.phase==='teaching'?'playing':['paused','between','question'].includes(progress.phase)?'paused':'idle',message:teachingError},'*');
   $('#lesson-progress').textContent=progress.total?(Math.min(progress.index+1,progress.total)+' / '+progress.total+' 段 · '+({idle:'待开始',teaching:'正在讲解',paused:'已暂停',question:'答疑中',between:'本段结束',finished:'本节讲解结束'}[progress.phase]||'')):(progress.mode==='exam'?'测验中 · 仅澄清题意':'尚未选择课程');
   $('#lesson-start').disabled=starting||preparingTeach||!progress.total||progress.mode==='exam';$('#lesson-start').textContent=['paused','question'].includes(progress.phase)?'从本段继续':progress.phase==='between'?'讲下一段':progress.phase==='finished'?'重新讲解':'开始讲解';
   $('#lesson-pause').disabled=!connection.ready||progress.phase!=='teaching';

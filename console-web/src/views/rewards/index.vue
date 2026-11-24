@@ -65,7 +65,7 @@ onUnmounted(() => { version++; controller?.abort(); reset(); });
     <header><h1>奖励记录</h1><p class="page-description">设备累计与云端确认分开查看；确认代表已实际兑现。</p></header>
     <section v-if="auth.profile?.role === 'Admin'" aria-label="筛选确认账本">
       <NCard class="search-card" size="small" :bordered="false">
-        <template #header><h2>筛选确认账本</h2></template>
+        <template #header>筛选确认账本</template>
         <NForm class="list-filters" :show-feedback="false" label-placement="top" @submit.prevent="search(1)">
           <NFormItem label="账号类型"><NSelect v-model:value="searchRole" aria-label="搜索账号类型" :options="[{ label: '学生', value: 'Student' }, { label: '家长', value: 'Parent' }]" /></NFormItem>
           <NFormItem label="账号或姓名"><NInput v-model:value="searchText" :input-props="{ 'aria-label': '搜索学生或家长', maxlength: 40 }" placeholder="账号或姓名" /></NFormItem>
@@ -87,7 +87,7 @@ onUnmounted(() => { version++; controller?.abort(); reset(); });
     <RewardLedger v-else-if="student && rewards" :key="student.id" :student="student" :rewards="rewards" @refresh="load" />
     <section v-else-if="ledger" aria-label="云端确认账本">
       <NCard class="table-card" size="small" :bordered="false">
-        <template #header><h2>云端确认账本</h2></template>
+        <template #header>云端确认账本</template>
         <template #header-extra><TableToolbar v-model:columns="ledgerChecks" :loading="loading" @refresh="load" /></template>
         <p class="list-total">{{ filterNames }} · 共 {{ ledger.total }} 条 · 第 {{ ledger.page }} 页</p>
         <NDataTable v-if="ledger.rows.length" aria-label="奖励确认账本表" size="small" :bordered="false" :columns="ledgerTableColumns" :data="ledger.rows" :row-key="row => row.id" :scroll-x="ledgerScrollX" />

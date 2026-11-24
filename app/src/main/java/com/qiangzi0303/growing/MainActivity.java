@@ -176,7 +176,8 @@ public final class MainActivity extends Activity {
             @Override public void onPermissionRequest(PermissionRequest request){runOnUiThread(()->requestMicrophone(request));}
             @Override public void onPermissionRequestCanceled(PermissionRequest request){runOnUiThread(()->{if(microphoneRequest==request)microphoneRequest=null;});}
             @Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params){
-                if(view.getUrl()==null||!view.getUrl().startsWith(ORIGIN+"/assets/web/cloud/"))return false;
+                // Lessons open directly under app-design; both lessons and cloud pages are packaged UI.
+                if(view.getUrl()==null||!view.getUrl().startsWith(ORIGIN+"/assets/web/"))return false;
                 cancelPhoto();
                 photoCallback=callback;photoAccount=currentId;photoEpoch=epoch;
                 try{

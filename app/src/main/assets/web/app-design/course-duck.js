@@ -35,6 +35,7 @@
   }
   function toggleTeaching(){
     if((context||fallback()).mode==='exam')return;
+    if(inlineTeaching&&teachingState==='connecting')return;
     if(inlineTeaching&&teachingState==='playing'){
       pendingTeach=false;clearTimeout(teachingTimer);
       frame?.contentWindow?.postMessage({type:'duck:pause'},endpoint.origin);
@@ -42,7 +43,7 @@
     }
     if(open)hide();
     inlineTeaching=true;pendingTeach=true;panel.hidden=true;
-    teachingStatus('playing');ensureFrame();send();startTeaching();
+    teachingStatus('connecting');ensureFrame();send();startTeaching();
     clearTimeout(teachingTimer);
     if(pendingTeach)teachingTimer=setTimeout(()=>{if(pendingTeach){stopTeaching();teachingStatus('error','小鸭讲课暂未连接，请重试。');}},20000);
   }
@@ -111,7 +112,7 @@
   function startTeaching(){if((open||inlineTeaching)&&ready&&pendingTeach){pendingTeach=false;clearTimeout(teachingTimer);send();frame.contentWindow?.postMessage({type:'duck:teach',inline:inlineTeaching},endpoint.origin);}}
   window.addEventListener('message',event=>{
     if(!inlineTeaching||event.origin!==endpoint.origin||event.source!==frame?.contentWindow)return;
-    if(event.data?.type==='duck:teaching-state'&&event.data.courseId===context?.id&&['playing','paused','idle','error'].includes(event.data.state))teachingStatus(event.data.state,String(event.data.message||'').slice(0,200));
+    if(event.data?.type==='duck:teaching-state'&&event.data.courseId===context?.id&&['connecting','playing','paused','idle','error'].includes(event.data.state))teachingStatus(event.data.state,String(event.data.message||'').slice(0,200));
   });
   function visible(){invisible=false;host.classList.remove('duck-invisible');host.inert=false;host.removeAttribute('aria-hidden');}
   function hide(){visible();++summarySequence;pendingSummary=null;pendingTeach=false;if(frame)frame.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);open=false;panel.hidden=true;launch.hidden=false;launch.setAttribute('aria-expanded','false');launch.focus();}

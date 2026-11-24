@@ -14,7 +14,8 @@ html {
 .list-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
 .list-page > header { min-width: 0; }
 .list-page .n-card { min-width: 0; }
-.list-page .n-card-header h2 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.5; }
+/* Naive already marks the card header as role="heading"; no nested <h2>, or headings are announced twice. */
+.list-page .n-card-header__main { font-size: 16px; font-weight: 600; line-height: 1.5; }
 .list-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; }
 .list-filters .n-form-item { width: 220px; max-width: 100%; min-width: 0; }
 .list-filters .n-form-item.list-filters-actions { width: auto; }

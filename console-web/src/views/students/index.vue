@@ -48,7 +48,7 @@ onUnmounted(() => { generation++; controller?.abort(); });
       </NForm>
     </NCard>
     <NCard class="table-card" size="small" :bordered="false">
-      <template #header><h2>{{ parent ? '孩子列表' : '学生列表' }}</h2></template>
+      <template #header>{{ parent ? '孩子列表' : '学生列表' }}</template>
       <template #header-extra><TableToolbar v-model:columns="checks" :loading="loading" @refresh="load" /></template>
       <NSpin v-if="loading" class="list-state" size="small"><span role="status">正在加载学生列表…</span></NSpin>
       <NAlert v-else-if="error" title="加载失败" type="error"><p>{{ error }}</p><NButton data-testid="retry-list" @click="load">重试</NButton></NAlert>

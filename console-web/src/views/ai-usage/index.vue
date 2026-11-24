@@ -64,7 +64,7 @@ onUnmounted(clear);
     <NSpin v-if="loading && !result" class="list-state" size="small"><span role="status">正在加载用量…</span></NSpin>
     <template v-if="result">
       <NCard size="small" :bordered="false">
-        <template #header><h2>筛选范围汇总</h2></template>
+        <template #header>筛选范围汇总</template>
         <div class="usage-summary">
           <div><span>输入</span><strong>{{ tokens(result.summary.inputTokens) }}</strong></div>
           <div><span>输出</span><strong>{{ tokens(result.summary.outputTokens) }}</strong></div>
@@ -75,13 +75,13 @@ onUnmounted(clear);
         </div>
       </NCard>
       <NCard class="table-card" size="small" :bordered="false">
-        <template #header><h2>按账户统计</h2></template>
+        <template #header>按账户统计</template>
         <template #header-extra><TableToolbar v-model:columns="accountChecks" :loading="loading" @refresh="load()" /></template>
         <NEmpty v-if="!result.accounts.length" class="list-state" description="此范围内暂无用量" />
         <NDataTable v-else size="small" :bordered="false" :columns="accountTableColumns" :data="result.accounts" :row-key="row => row.userId" :scroll-x="accountScrollX" />
       </NCard>
       <NCard class="table-card" size="small" :bordered="false">
-        <template #header><h2>调用明细</h2></template>
+        <template #header>调用明细</template>
         <template #header-extra><TableToolbar v-model:columns="callChecks" :loading="loading" @refresh="load()" /></template>
         <p class="list-total">共 {{ result.total }} 次调用 · 第 {{ result.page }} 页</p>
         <NEmpty v-if="!result.calls.length" class="list-state" description="此范围内暂无调用" />
