@@ -27,6 +27,22 @@ test('critical concept errors cap a seemingly high rubric score below passing',(
  const d=F.parse({...sample(),criticalErrors:['概念中仍有核心错误']},answer);
  assert.equal(d.score,7.5);assert(F.validGrade({...d,answer}));
 });
+
+test('quote formatting is tolerated but stored evidence is original text',()=>{
+ const raw=sample();raw.criteria[0].evidence='“三角形的 内角和是180度”';
+ const input=answer.replace('内角和','内角\n和');
+ const grade=F.parse(raw,input);assert.equal(grade.criteria[0].evidence,'三角形的内角\n和是180度');assert(F.validGrade({...grade,answer:input}));
+ for(const evidence of ['三角形的内角和是190度','三角形内角和是180度','三角形的内角和不是180度']){
+  const bad=sample();bad.criteria[0].evidence=evidence;assert.throws(()=>F.parse(bad,answer),{code:'EVIDENCE_MISMATCH'});
+ }
+});
+test('unmatched evidence gets one repair, still rejects fabrications and propagates cancellation',async()=>{
+ const bad=sample();bad.criteria[0].evidence='编造的原话';let calls=0;
+ const fixed=await F.parseWithRetry(bad,answer,async()=>{calls++;return sample();});assert.equal(calls,1);assert.equal(fixed.score,8.5);
+ calls=0;await assert.rejects(F.parseWithRetry(bad,answer,async()=>{calls++;return bad;}),{code:'EVIDENCE_MISMATCH'});assert.equal(calls,1);
+ await assert.rejects(F.parseWithRetry(bad,answer,async()=>{throw Object.assign(Error('cancelled'),{name:'AbortError'});}),{name:'AbortError'});
+ await F.parseWithRetry(sample(),answer,()=>assert.fail('valid response must not retry'));
+});
 test('teacher answers use the same concept, steps, example and check fields as the lower classroom',()=>{
  const a=F.parseAnswer({answer:'内角和是180度。',steps:['用平行线说明角的关系。'],example:'50度加60度加70度等于180度。',checkQuestion:'一个外角等于哪两个内角之和？'});
  const html=F.renderAnswer(JSON.stringify(a));

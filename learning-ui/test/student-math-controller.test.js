@@ -49,6 +49,12 @@ test('math rubric verifies quoted evidence and rejects fabricated high marks',as
  c.actions.draft(answer);await c.actions.grade();assert.equal(c.snapshot().record.attempts.at(-1).score,10);good=false;await c.actions.grade();assert.equal(c.snapshot().record.attempts.length,1);assert.match(c.snapshot().message,/证据/);c.destroy();f.w.close();
 });
 
+test('a cancelled evidence repair cannot save its late response',async()=>{
+ const answer='这是我的完整解释，包含概念条件例子和边界。';let count=0,resolve;
+ const result={criteria:['core','condition','example','boundary'].map((id,i)=>({id,score:[4,2,2,2][i],evidence:answer,feedback:'准确'})),good:[],gaps:[],criticalErrors:[],followup:'为什么？',comment:'概念正确'};
+ const f=await fixture({request:async()=>{if(++count===1)return JSON.stringify({...result,criteria:result.criteria.map(c=>({...c,evidence:'改写的原话'}))});return new Promise(r=>resolve=r);}}),c=f.controller;
+ try{c.actions.draft(answer);const job=c.actions.grade();await new Promise(r=>setTimeout(r,0));assert.equal(count,2);c.actions.cancelGrade();resolve(JSON.stringify(result));await job;assert.equal(c.snapshot().record.attempts.length,0);assert.equal(c.snapshot().record.draft,answer);}finally{c.destroy();f.w.close();}
+});
 test('changing knowledge cancels late grades and answer drafts survive cancellation',async()=>{
  let resolve;const f=await fixture({request:()=>new Promise(r=>resolve=r)}),c=f.controller;
  c.actions.draft('我的解释包括概念、条件、方法和一个完整例子。');const grading=c.actions.grade();const original=c.snapshot().node.id;c.actions.choose(c.snapshot().chapter.nodes[1].id);resolve('{}');await grading;assert.equal(JSON.parse(f.w.localStorage.getItem('growing-math-lessons-v1')).topics[original].attempts.length,0);
