@@ -22,8 +22,32 @@
   navigation.catch(()=>{});actions.catch(()=>{});
   let context=window.GrowingDuckContext||null,frame=null,open=false,ready=false,pendingTeach=false,invisible=false,pendingSummary=null,lastSummary=null,summarySequence=0;
   const seenAssessments=new Set();
+  let inlineTeaching=false,teachingState='idle',teachingTimer;
+  function teachingStatus(state,message=''){
+    teachingState=state;
+    courseWindow.dispatchEvent(new courseWindow.CustomEvent('duck:teaching-state',{detail:{courseId:context?.id,state,message}}));
+  }
+  function stopTeaching(){
+    if(!inlineTeaching)return;
+    inlineTeaching=false;pendingTeach=false;clearTimeout(teachingTimer);
+    frame?.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);
+    teachingStatus('idle');
+  }
+  function toggleTeaching(){
+    if((context||fallback()).mode==='exam')return;
+    if(inlineTeaching&&teachingState==='playing'){
+      pendingTeach=false;clearTimeout(teachingTimer);
+      frame?.contentWindow?.postMessage({type:'duck:pause'},endpoint.origin);
+      teachingStatus('paused');return;
+    }
+    if(open)hide();
+    inlineTeaching=true;pendingTeach=true;panel.hidden=true;
+    teachingStatus('playing');ensureFrame();send();startTeaching();
+    clearTimeout(teachingTimer);
+    if(pendingTeach)teachingTimer=setTimeout(()=>{if(pendingTeach){stopTeaching();teachingStatus('error','小鸭讲课暂未连接，请重试。');}},20000);
+  }
   const endpoint=new URL('companion-duck/index.html?realtime=1&embed=1&studentUi=20261124-duck-1',new URL(courseSource));
-  if(['localhost','127.0.0.1'].includes(location.hostname)){endpoint.port='8793';endpoint.pathname='/app-design/companion-duck/index.html';}
+  // Keep the companion on the course origin so it can reuse managed account configuration.
   const host=make('aside');host.id='course-duck-host';host.setAttribute('aria-label','学习伙伴互动课堂');
   const launch=make('button');launch.type='button';launch.className='course-duck-launch';launch.setAttribute('aria-label','学习伙伴，可拖动位置，双击打开语音面板');launch.title='拖动调整位置，双击和我说话；方向键也可移动';launch.setAttribute('aria-expanded','false');launch.setAttribute('aria-controls','course-duck-panel');
   const portrait=make('img');portrait.src=new URL('companion-duck/launcher.png',courseBase).href;portrait.alt='';portrait.width=104;portrait.height=120;portrait.draggable=false;launch.append(portrait);
@@ -83,8 +107,12 @@
     const visible=doc.querySelector('.lesson-points,.lesson-content,.learn-content');
     return {id:url.pathname+url.search,title,subject:'',mode:exam?'exam':'learn',segments:exam?[]:[visible?.textContent?.trim()].filter(Boolean)};
   }
-  function send(){if(frame&&open)frame.contentWindow?.postMessage({type:'duck:course-context',context:context||fallback()},endpoint.origin);}
-  function startTeaching(){if(open&&ready&&pendingTeach){pendingTeach=false;send();frame.contentWindow?.postMessage({type:'duck:teach'},endpoint.origin);}}
+  function send(){if(frame&&(open||inlineTeaching))frame.contentWindow?.postMessage({type:'duck:course-context',context:context||fallback()},endpoint.origin);}
+  function startTeaching(){if((open||inlineTeaching)&&ready&&pendingTeach){pendingTeach=false;clearTimeout(teachingTimer);send();frame.contentWindow?.postMessage({type:'duck:teach',inline:inlineTeaching},endpoint.origin);}}
+  window.addEventListener('message',event=>{
+    if(!inlineTeaching||event.origin!==endpoint.origin||event.source!==frame?.contentWindow)return;
+    if(event.data?.type==='duck:teaching-state'&&event.data.courseId===context?.id&&['playing','paused','idle','error'].includes(event.data.state))teachingStatus(event.data.state,String(event.data.message||'').slice(0,200));
+  });
   function visible(){invisible=false;host.classList.remove('duck-invisible');host.inert=false;host.removeAttribute('aria-hidden');}
   function hide(){visible();++summarySequence;pendingSummary=null;pendingTeach=false;if(frame)frame.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);open=false;panel.hidden=true;launch.hidden=false;launch.setAttribute('aria-expanded','false');launch.focus();}
   function ensureFrame(){if(!frame){frame=make('iframe');frame.title='学习伙伴实时语音课堂';frame.src=endpoint.href;frame.allow='microphone; autoplay';frame.addEventListener('load',()=>{send();flushSummary();});panel.append(frame);}}
@@ -93,6 +121,7 @@
     else if(value==='show'){visible();announcement.textContent='学习伙伴回来了。';if(open)close.focus();}
   }
   function show(teach=false){
+    stopTeaching();
     visible();
     if(!open)panelAnchor=launch.getBoundingClientRect();
     pendingTeach=teach;
@@ -128,9 +157,9 @@
   close.addEventListener('click',hide);host.addEventListener('keydown',event=>{if(event.key==='Escape')hide();});
   function restoreNavigation(){navigation.then(api=>{const pending=api.consumeNavigation((context||fallback()).id);if(pending)show(pending.teach);}).catch(()=>{});}
   restoreNavigation();
-  window.addEventListener('duck:course-context',event=>{context=event.detail;send();drawArchive();reminder.hidden=true;if(open&&ready)refreshKnowledge();restoreNavigation();});
+  window.addEventListener('duck:course-context',event=>{if(inlineTeaching&&(context?.id!==event.detail?.id||event.detail?.mode==='exam'))stopTeaching();context=event.detail;send();drawArchive();reminder.hidden=true;if(open&&ready)refreshKnowledge();restoreNavigation();});
   window.addEventListener('duck:course-audio-start',()=>{if(frame)frame.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);});
-  window.addEventListener('message',event=>{if(event.origin!==endpoint.origin||event.source!==frame?.contentWindow)return;if(event.data?.type==='duck:ready'){ready=true;send();flushSummary();if(pendingTeach)startTeaching();else if(open)refreshKnowledge();}if(event.data?.type==='duck:knowledge-query'&&open)refreshKnowledge(String(event.data.query||'').slice(0,150),String(event.data.requestId||'').slice(0,80));if(event.data?.type==='duck:audio-start')stopCourseAudio();if(event.data?.type==='duck:visibility')setVisibility(event.data.value);if(event.data?.type==='duck:voice-stopped'&&invisible){visible();open=false;panel.hidden=true;launch.hidden=false;launch.setAttribute('aria-expanded','false');}if(event.data?.type==='duck:summary-status'&&event.data.id===lastSummary?.id)summary.querySelector('[data-summary-status]').textContent=String(event.data.message||'').slice(0,200);});
+  window.addEventListener('message',event=>{if(event.origin!==endpoint.origin||event.source!==frame?.contentWindow)return;if(event.data?.type==='duck:ready'){ready=true;send();flushSummary();if(pendingTeach)startTeaching();else if(open)refreshKnowledge();}if(event.data?.type==='duck:knowledge-query'&&(open||inlineTeaching))refreshKnowledge(String(event.data.query||'').slice(0,150),String(event.data.requestId||'').slice(0,80));if(event.data?.type==='duck:audio-start')stopCourseAudio();if(event.data?.type==='duck:visibility')setVisibility(event.data.value);if(event.data?.type==='duck:voice-stopped'&&invisible){visible();open=false;panel.hidden=true;launch.hidden=false;launch.setAttribute('aria-expanded','false');}if(event.data?.type==='duck:summary-status'&&event.data.id===lastSummary?.id)summary.querySelector('[data-summary-status]').textContent=String(event.data.message||'').slice(0,200);});
   function flushSummary(){if(pendingSummary&&ready&&frame){frame.contentWindow?.postMessage({type:'duck:assessment-summary',summary:pendingSummary,context:context||fallback()},endpoint.origin);pendingSummary=null;}}
   async function playSummary(){if(!lastSummary||lastSummary.courseId!==(context||fallback()).id)return;pendingSummary=lastSummary;summary.querySelector('[data-summary-status]').textContent='正在准备学习伙伴语音…';stopCourseAudio();ensureFrame();flushSummary();}
   window.addEventListener('duck:assessment',async event=>{
@@ -160,7 +189,7 @@
     }catch(error){reply(error.message||'页面暂时无法打开，请重试。');}
   });
   document.addEventListener('visibilitychange',()=>{if(document.hidden){++summarySequence;pendingSummary=null;pendingTeach=false;if(frame)frame.contentWindow?.postMessage({type:'duck:close'},endpoint.origin);}});
-  window.GrowingDuckCourse={getContext:()=>context||fallback(),close:hide,attach,show,reset(){hide();++knowledgeSeq;frame?.remove();frame=null;ready=false;context=null;profile=null;profileIdentity='';noteDrafts.clear();summary.hidden=true;lastSummary=null;drawArchive();}};
+  window.GrowingDuckCourse={getContext:()=>context||fallback(),toggleTeaching,stopTeaching,close:hide,attach,show,reset(){stopTeaching();hide();++knowledgeSeq;frame?.remove();frame=null;ready=false;context=null;profile=null;profileIdentity='';noteDrafts.clear();summary.hidden=true;lastSummary=null;drawArchive();}};
   // The authenticated portal owns identity; standalone preview never guesses a student.
   const knowledgeButton=make('button');knowledgeButton.type='button';knowledgeButton.textContent='学习档案';heading.insertBefore(knowledgeButton,close);
   const archive=make('section');archive.className='duck-knowledge';archive.hidden=true;archive.setAttribute('aria-label','个人学习知识库');panel.append(archive);
@@ -175,7 +204,7 @@ const archiveStyle=make('style');archiveStyle.textContent='.duck-knowledge{posit
   function topic(){return String((context||fallback()).id||'').split(':').at(-1);}
   function sendKnowledge(requestId=''){
     const current=profile?.context?.unitId===unit()&&(!profile.context.topicId||profile.context.topicId===topic());
-    if(frame&&open)frame.contentWindow?.postMessage({type:'duck:student-knowledge',requestId,courseId:(context||fallback()).id,student:profile?.student||null,context:current?profile.context:null,error:knowledgeError},endpoint.origin);
+    if(frame&&(open||inlineTeaching))frame.contentWindow?.postMessage({type:'duck:student-knowledge',requestId,courseId:(context||fallback()).id,student:profile?.student||null,context:current?profile.context:null,error:knowledgeError},endpoint.origin);
   }
   async function refreshKnowledge(query='',requestId=''){
     const seq=++knowledgeSeq;

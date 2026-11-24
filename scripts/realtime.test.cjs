@@ -7,18 +7,18 @@ function setup({native=false}={}){
  const window={};window.top=window;
  const setAccount=id=>{account=id;data.set('growing-cloud-session-v1',JSON.stringify({token:'session-'+id,user:{id}}));};setAccount('a');
  if(native)window.GrowingNative={cloudApiUrl:()=> 'https://learn.example',realtimeSettings(){throw Error('old config read');},aiKey(){throw Error('old key read');}};
- else window.GrowingCloud={aiContext(){const captured=account;return {key:captured,current:()=>account===captured,async api(path,options){calls.push({url:path,options});return {models:[config]};}};}};
+ else window.GrowingCloud={aiContext(){const captured=account;return {key:captured,current:()=>account===captured,async api(path,options){calls.push({url:path,options});return path==='/ai/config'?{models:[config]}:{sdp:'v=0\r\nanswer'};}};}};
  vm.runInNewContext(source,{window,localStorage,URL,Event,AbortController,DOMException,crypto:require('node:crypto').webcrypto,setTimeout,clearTimeout,
-  fetch:async(url,options)=>{calls.push({url,options});return url.endsWith('/api/ai/config')?Response.json({models:[config]}):new Response('v=0\r\nanswer');}});
+  fetch:async(url,options)=>{calls.push({url,options});return url.endsWith('/api/ai/config')?Response.json({models:[config]}):Response.json({sdp:'v=0\r\nanswer'});}});
  return {api:window.GrowingRealtime,window,data,calls,setAccount};
 }
-test('realtime fetches managed configuration once and sends SDP directly to supplier',async()=>{
+test('realtime fetches managed configuration once and relays SDP through the account',async()=>{
  const t=setup(),info=await t.api.settingsInfo();assert.equal(info.voice,'Tina');assert.equal(info.apiKey,undefined);
  const connection=await t.api.connectionInfo();const signal=new AbortController().signal;
  assert.equal((await t.api.connect('v=0\r\noffer',{handle:connection.handle,signal})).sdp,'v=0\r\nanswer');
  assert.equal(t.calls.filter(c=>c.url==='/ai/config').length,1);
- const direct=t.calls.at(-1);assert.equal(direct.url,'https://voice.example/realtime?model=managed-voice');
- assert.equal(direct.options.body,'v=0\r\noffer');assert.equal(direct.options.headers.Authorization,'Bearer test-managed-key');assert.equal(direct.options.signal,signal);
+ const relay=t.calls.at(-1);assert.equal(relay.url,'/realtime/connect');
+ assert.deepEqual(JSON.parse(relay.options.body),{sdp:'v=0\r\noffer',configRevision:2});assert.equal(relay.options.headers.Authorization,undefined);assert.equal(relay.options.signal,signal);
  assert(!JSON.stringify([...t.data]).includes('test-managed-key'));
 });
 test('personal realtime settings cannot be saved and clearing keeps learning records',async()=>{
@@ -35,7 +35,8 @@ test('account switch invalidates captured realtime handle before supplier reques
 test('native uses authenticated cloud config without reading old personal voice key',async()=>{
  const t=setup({native:true});await t.api.connectionInfo();await t.api.connect('offer');
  assert.equal(t.calls[0].url,'https://learn.example/api/ai/config');assert.equal(t.calls[0].options.headers.Authorization,'Bearer session-a');
- assert.equal(t.calls[1].url,'https://voice.example/realtime?model=managed-voice');
+ assert.equal(t.calls[1].url,'https://learn.example/api/realtime/connect');
+ assert.equal(t.calls[1].options.headers.Authorization,'Bearer session-a');
  t.setAccount('b');await t.api.connectionInfo();assert.equal(t.calls[2].options.headers.Authorization,'Bearer session-b');
  assert(!JSON.stringify([...t.data]).includes('test-managed-key'));
 });

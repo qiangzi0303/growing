@@ -1,5 +1,5 @@
 import { Store, HttpError, profile, nowSql, type Database, type User } from "./database";
-import { buildReport } from "./reports";
+import { buildReport, shanghaiDay } from "./reports";
 import { rewardEntries } from "./analytics";
 import { studyReport } from './study-time';
 
@@ -7,17 +7,38 @@ const roleSql = `CASE WHEN a."UserId" IS NOT NULL THEN 'Admin' ELSE u."Role" END
 const memberFields = `u."Id" AS id,u."Username" AS username,u."DisplayName" AS "displayName",${roleSql} AS role,u."CreatedAt" AS "createdAt"`;
 export class Administration {
   constructor(public db: Database) {}
-  async overview() {
+  async overview(now = new Date()) {
     const [counts] = await this.db.query(`SELECT count(*) AS members,
       count(*) FILTER (WHERE ${roleSql}='Student') AS students,
       count(*) FILTER (WHERE ${roleSql}='Parent') AS parents,
       count(*) FILTER (WHERE ${roleSql}='Admin') AS admins
       FROM "GrowingUsers" u LEFT JOIN "GrowingAdministrators" a ON a."UserId"=u."Id"`);
-    const [activity] = await this.db.query(`SELECT count(DISTINCT "StudentId") AS "syncedThisWeek" FROM "GrowingDocuments" WHERE "UpdatedAt">strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days')`);
+    // Same source and Beijing calendar window as trend(): daily snapshots from the last 7 days, today included.
+    const end = shanghaiDay(now);
+    const begin = new Date(Date.parse(end + "T00:00:00Z") - 6 * 86400000).toISOString().slice(0, 10);
+    const [activity] = await this.db.query(`SELECT count(DISTINCT "StudentId") AS "syncedThisWeek" FROM "GrowingDailySnapshots" WHERE "Day" BETWEEN ?1 AND ?2`, [begin, end]);
     const [rewards] = await this.db.query(`SELECT count(*) AS confirmations,
       COALESCE(sum("Amount") FILTER (WHERE "Kind"='game'),0) AS "gameMinutes",
       COALESCE(sum("Amount") FILTER (WHERE "Kind"='cash'),0) AS "cashCents" FROM "GrowingRewardConfirmations"`);
     return { ...counts, ...activity, ...rewards };
+  }
+  async trend(days: number, now = new Date()) {
+    // Calendar days follow Beijing time, matching snapshot and study-time days.
+    const end = shanghaiDay(now);
+    const begin = new Date(Date.parse(end + "T00:00:00Z") - (days - 1) * 86400000).toISOString().slice(0, 10);
+    const local = (column: string) => `date(${column},'+8 hours')`;
+    const daily = (table: string, day: string, value: string) => ({ sql: `SELECT ${day} AS day,${value} AS n FROM "${table}" WHERE ${day} BETWEEN ?1 AND ?2 GROUP BY 1`, params: [begin, end] });
+    const results = await this.db.batch([
+      daily("GrowingDailySnapshots", '"Day"', 'count(DISTINCT "StudentId")'),
+      daily("GrowingUsers", local('"CreatedAt"'), "count(*)"),
+      daily("GrowingRewardConfirmations", local('"ConfirmedAt"'), "count(*)"),
+    ]);
+    const [synced, registered, confirmed] = results.map(rows => new Map((rows as { day: string; n: number }[]).map(r => [r.day, Number(r.n)])));
+    const points = Array.from({ length: days }, (_, i) => {
+      const day = new Date(Date.parse(begin + "T00:00:00Z") + i * 86400000).toISOString().slice(0, 10);
+      return { day, syncedStudents: synced.get(day) ?? 0, newMembers: registered.get(day) ?? 0, confirmations: confirmed.get(day) ?? 0 };
+    });
+    return { timezone: "Asia/Shanghai", days, points, note: "按北京时间逐日统计。同步学生为当天上传过学习记录的学生人数，新注册会员按注册时间，奖励确认按家长确认时间。" };
   }
   async members(search: string, role: string, page: number) {
     const filter = `FROM "GrowingUsers" u LEFT JOIN "GrowingAdministrators" a ON a."UserId"=u."Id"

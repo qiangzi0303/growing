@@ -736,6 +736,48 @@ test("admin grants are private, effective on existing sessions and revoked immed
   assert.equal((await call('/learn/app-design/index.html','GET',undefined,a.token)).status,403);
 });
 
+test('admin trend fills Beijing calendar days and requires admin', async () => {
+  const a = await administrator(), s = await register(), p = await register('Parent');
+  assert.equal((await call('/api/admin/trend?days=7', 'GET', undefined, s.token)).status, 403);
+  assert.equal((await call('/api/admin/trend?days=8', 'GET', undefined, a.token)).status, 400);
+  const live = await (await call('/api/admin/trend?days=30', 'GET', undefined, a.token)).json() as any;
+  assert.equal(live.points.length, 30); assert.equal(live.timezone, 'Asia/Shanghai'); assert.ok(live.points.at(-1).newMembers >= 3);
+  // Fixed future days keep the exact counts independent of rows written by other tests.
+  const user = crypto.randomUUID(), key = 'growing-unit-rewards-v1:trend-' + user.slice(0, 8);
+  await db.query(`INSERT INTO "GrowingUsers" ("Id","Username","NormalizedName","DisplayName","Role","PasswordHash","CreatedAt") VALUES (?1,?2,?2,'trend','Student','test-only','2030-01-09T16:30:00.000Z')`, [user, 'trend_' + user.slice(0, 8)]);
+  for (const [day, subject] of [['2030-01-03', '数学'], ['2030-01-04', '数学'], ['2030-01-04', '英语'], ['2030-01-09', '数学']])
+    await db.query('INSERT INTO "GrowingDailySnapshots" ("StudentId","Day","Subject","Read","Mastered","Practice") VALUES (?1,?2,?3,0,0,0)', [s.user.id, day, subject]);
+  for (const [entry, at] of [['early', '2030-01-03T15:30:00.000Z'], ['first', '2030-01-03T16:30:00.000Z']])
+    await db.query(`INSERT INTO "GrowingRewardConfirmations" ("Id","StudentId","ParentId","DocumentKey","EntryHash","Kind","Amount","ClaimedParent","ClaimedAt","ConfirmedAt") VALUES (?1,?2,?3,?4,?5,'cash',1,'trend',?6,?6)`, [crypto.randomUUID(), s.user.id, p.user.id, key, entry, at]);
+  try {
+    const trend = await new Administration(db).trend(7, new Date('2030-01-10T04:00:00Z'));
+    assert.deepEqual(trend.points.map(point => point.day), ['2030-01-04', '2030-01-05', '2030-01-06', '2030-01-07', '2030-01-08', '2030-01-09', '2030-01-10']);
+    assert.deepEqual(trend.points.map(point => [point.syncedStudents, point.newMembers, point.confirmations]), [[1, 0, 1], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [1, 0, 0], [0, 1, 0]]);
+  } finally {
+    await db.query('DELETE FROM "GrowingRewardConfirmations" WHERE "StudentId"=?1 AND "DocumentKey"=?2', [s.user.id, key]);
+    await db.query('DELETE FROM "GrowingDailySnapshots" WHERE "StudentId"=?1', [s.user.id]);
+    await db.query('DELETE FROM "GrowingUsers" WHERE "Id"=?1', [user]);
+  }
+});
+
+test('admin overview counts synced students from Beijing-day snapshots like trend', async () => {
+  const s = await register(), t = await register();
+  const rows = [[s.user.id, '2031-01-03', '数学'], [s.user.id, '2031-01-04', '数学'], [s.user.id, '2031-01-04', '英语'], [t.user.id, '2031-01-10', '数学'], [t.user.id, '2031-01-11', '数学']];
+  for (const [student, day, subject] of rows)
+    await db.query('INSERT INTO "GrowingDailySnapshots" ("StudentId","Day","Subject","Read","Mastered","Practice") VALUES (?1,?2,?3,0,0,0)', [student, day, subject]);
+  try {
+    const admin = new Administration(db);
+    // 2031-01-10 12:00 Beijing: window 01-04..01-10 holds both students; several subjects on one day count once.
+    assert.equal(Number((await admin.overview(new Date('2031-01-10T04:00:00Z'))).syncedThisWeek), 2);
+    // 2031-01-10T16:30Z is already 01-11 in Beijing: window 01-05..01-11 drops s.
+    assert.equal(Number((await admin.overview(new Date('2031-01-10T16:30:00Z'))).syncedThisWeek), 1);
+    const trend = await admin.trend(7, new Date('2031-01-10T16:30:00Z'));
+    assert.equal(trend.points.at(-1)!.syncedStudents, 1);
+  } finally {
+    await db.query('DELETE FROM "GrowingDailySnapshots" WHERE "StudentId" IN (?1,?2)', [s.user.id, t.user.id]);
+  }
+});
+
 test('admins view all courses and unbound student reports without impersonating students or parents',async()=>{
   const a=await administrator(),s=await register(),p=await register('Parent');
   for(const path of ['/learn/app-design/index.html','/%6cearn/app-design/index.html','/learn%2fapp-design/index.html']){

@@ -34,6 +34,30 @@ test('AI context requires a confirmed login and invalidates old callers on logou
  }finally{s.dom.window.close();}
 });
 
+test('classroom realtime SDK reaches signalling through the authenticated learning shell',async()=>{
+ const s=await mount({native:false});
+ try{
+  const network=s.w.fetch,requests=[];
+  s.w.fetch=async(url,options)=>{
+   if(url==='/api/ai/config')return Response.json({models:[{id:'realtime',purpose:'realtime',model:'managed-voice',endpoint:'https://dashscope.aliyuncs.com/api/v1/webrtc/realtime',apiKey:'test-only-provider-key',revision:3}]});
+   if(url==='/api/realtime/connect'){requests.push(options);return Response.json({sdp:'v=0\r\nanswer'});}
+   return network(url,options);
+  };
+  s.w.eval(source('course-ai.js'));
+  const controller=new s.w.AbortController(),info=await s.w.GrowingRealtime.connectionInfo();
+  const answer=await s.w.GrowingRealtime.connect('v=0\r\noffer',{handle:info.handle,signal:controller.signal});
+  assert.equal(answer.sdp,'v=0\r\nanswer');assert.equal(requests.length,1);
+  assert.equal(requests[0].method,'POST');assert.equal(requests[0].credentials,'same-origin');
+  assert.deepEqual(JSON.parse(requests[0].body),{sdp:'v=0\r\noffer',configRevision:3});
+  assert(!JSON.stringify(requests).includes('test-only-provider-key'));
+  await assert.rejects(info.handle.account.api('/admin/ai/models'),/无效/);
+  await assert.rejects(info.handle.account.api('/realtime/connect'),/无效/);
+  s.w.document.querySelector('#logout').click();await until(()=>s.w.document.querySelector('#auth'));
+  await assert.rejects(s.w.GrowingRealtime.connect('offer',{handle:info.handle}),/切换/);
+  assert.equal(requests.length,1);
+ }finally{s.dom.window.close();}
+});
+
 test('home rankings deep link opens only for an authenticated confirmed student',async()=>{
  for(const options of [{},{role:'Parent'},{confirmed:false},{login:false}]){
   const s=await mount({native:false,hash:'#my-rankings',...options});

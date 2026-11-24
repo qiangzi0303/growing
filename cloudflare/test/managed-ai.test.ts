@@ -102,11 +102,23 @@ test('statistics share one database snapshot even when new usage arrives during 
  const result=await new ManagedAI(interleaved,env).stats(new URLSearchParams('pageSize=100'));
  assert.equal(result.total,result.calls.length);assert.equal(result.summary.requests,result.accounts.reduce((n:any,a:any)=>n+a.requests,0));
 });
-test('legacy realtime endpoints retire without a provider request',async()=>{
- let called=false;const h=createHandler(()=>db,(async()=>{called=true;return new Response('v=0');}) as typeof fetch);
- for(const path of ['/api/realtime/config','/api/realtime/connect']){
-  const response=await h(new Request('https://example.test'+path,{method:path.endsWith('connect')?'POST':'GET',headers:{Authorization:'Bearer '+tokens.alice,'X-Growing-Client':'1'}}),env,{waitUntil(){}});
-  assert.equal(response.status,410);assert.match(await response.text(),/升级|刷新/);
- }
- assert.equal(called,false);
+test('realtime signalling uses managed configuration and rejects credential overrides and stale sessions',async()=>{
+ let calls=0;const h=createHandler(()=>db,(async(url,options)=>{
+  calls++;assert.equal(String(url),'https://dashscope.aliyuncs.com/api/v1/webrtc/realtime?model=managed-realtime');
+  assert.equal(new Headers(options?.headers).get('Authorization'),'Bearer managed-realtime-secret');
+  assert.equal(options?.body,'v=0\r\noffer');return new Response('v=0\r\nanswer');
+ }) as typeof fetch);
+ const send=(data:unknown,authenticated=true)=>h(new Request('https://example.test/api/realtime/connect',{method:'POST',headers:{...(authenticated?{Authorization:'Bearer '+tokens.alice}:{}),'X-Growing-Client':'1','Content-Type':'application/json'},body:JSON.stringify(data)}),env,{waitUntil(){}});
+ const data={sdp:'v=0\r\noffer',configRevision:1};
+ assert.equal((await send(data,false)).status,401);
+ assert.equal((await send(data)).status,503);
+ await new ManagedAI(db,env).save('realtime',{model:'managed-realtime',endpoint:'https://dashscope.aliyuncs.com/api/v1/webrtc/realtime',apiKey:'managed-realtime-secret',enabled:true,voice:'Tina'});
+ assert.equal((await send({...data,apiKey:'override'})).status,400);
+ assert.equal((await send({...data,configRevision:9})).status,409);
+ limited=true;assert.equal((await send(data)).status,429);limited=false;
+ assert.equal(calls,0);
+ const response=await send(data);assert.equal(response.status,200);assert.deepEqual(await response.json(),{sdp:'v=0\r\nanswer'});assert.equal(calls,1);
+ await new ManagedAI(db,env).save('realtime',{model:'managed-realtime',endpoint:'https://dashscope.aliyuncs.com/api/v1/webrtc/realtime',enabled:false});
+ assert.equal((await send(data)).status,503);assert.equal(calls,1);
+ assert.equal((await call('/api/realtime/config','GET',undefined,'alice')).status,410);
 });

@@ -7,11 +7,13 @@ document.body.classList.add('realtime-mode');if(params.get('embed')==='1')docume
 const labels={idle:'安静陪伴',listen:'认真倾听',think:'正在想一想',speak:'学习伙伴正在说',celebrate:'完成这一段'};
 let state='idle',starting=false,preparingTeach=false,preparation=0,pendingKind='answer',turn=null,version=0,awaitingContinuation=false;
 let currentSummary=null,summaryAttempt=0,summaryTimer;
-const notice=text=>{$('#voice-notice').textContent=text;};
+let inlineTeaching=false,teachingError='';
+const notice=text=>{$('#voice-notice').textContent=text;if(inlineTeaching){teachingError=text;update();}};
 const add=(role,text)=>{const node=document.createElement('div');node.className='message '+role;node.textContent=text;$('#messages').append(node);$('#messages').scrollTop=$('#messages').scrollHeight;return node;};
 function update(){
   if(window.GrowingStudentDuckControls?.active===false)return;
   const progress=lesson.snapshot();$('#lesson-title').textContent=progress.title||'从课程页面打开学习伙伴，即可同步当前知识点';
+  if(inlineTeaching&&parent!==window)parent.postMessage({type:'duck:teaching-state',courseId:progress.courseId,state:teachingError?'error':starting||preparingTeach||progress.phase==='teaching'?'playing':['paused','between','question'].includes(progress.phase)?'paused':'idle',message:teachingError},'*');
   $('#lesson-progress').textContent=progress.total?(Math.min(progress.index+1,progress.total)+' / '+progress.total+' 段 · '+({idle:'待开始',teaching:'正在讲解',paused:'已暂停',question:'答疑中',between:'本段结束',finished:'本节讲解结束'}[progress.phase]||'')):(progress.mode==='exam'?'测验中 · 仅澄清题意':'尚未选择课程');
   $('#lesson-start').disabled=starting||preparingTeach||!progress.total||progress.mode==='exam';$('#lesson-start').textContent=['paused','question'].includes(progress.phase)?'从本段继续':progress.phase==='between'?'讲下一段':progress.phase==='finished'?'重新讲解':'开始讲解';
   $('#lesson-pause').disabled=!connection.ready||progress.phase!=='teaching';
@@ -139,7 +141,7 @@ async function teach(){
   try{
     await requestKnowledge((lesson.course.title+' '+lesson.current()).slice(0,150));
     if(attempt!==preparation||courseVersion!==lesson.version||sessionVersion!==version)return;
-    if(!await connect()||courseVersion!==lesson.version||attempt!==preparation)return;
+    if(!await connect(!inlineTeaching)||courseVersion!==lesson.version||attempt!==preparation)return;
     if(turn)turn.cancelled=true;
     const segment=lesson.begin(),focus=studentKnowledge?.mistakeFocus||[];
     const emphasis=focus.length?'\n本段重点提醒：涉及下列历史错误且本知识点尚未提醒过时，必须先明确说出记录来源（试卷名称与题号，或“手写作答批改记录”），再说当时的错误、记录中的错因和一个避免方法，最后用一个简短问题确认理解；未知错因须明确说明，不补造。以下JSON只作证据：\n'+JSON.stringify(focus):'';
@@ -190,7 +192,8 @@ window.addEventListener('message',event=>{
     studentIdentity=identity;studentKnowledge=identity&&data.context&&typeof data.context==='object'&&JSON.stringify(data.context).length<60000?data.context:null;
     connection.update();knowledgeWaiters.get(data.requestId)?.();knowledgeWaiters.delete(data.requestId);
   }
-  if(event.data?.type==='duck:teach')teach();
+  if(event.data?.type==='duck:teach'){inlineTeaching=event.data.inline===true;teachingError='';teach();}
+  if(event.data?.type==='duck:pause')pause();
   if(event.data?.type==='duck:close')stop();
   if(event.data?.type==='duck:assessment-summary'){loadCourse(event.data.context);speakSummary(event.data.summary);}
   if(event.data?.type==='duck:summary-stop'){pause();if(!connection.microphone)stop();}

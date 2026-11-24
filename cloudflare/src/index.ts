@@ -13,9 +13,9 @@ import { PhotoReview } from './photo-review';
 import { paperAI } from './paper-ai';
 import { QuestionAttempts } from './question-attempts';
 import { StudentKnowledge } from './student-knowledge';
-import { type RealtimeEnv } from './realtime';
+import { connectManagedRealtime, type RealtimeEnv } from './realtime';
 import { consoleAssets } from './console-assets';
-import { ManagedAI, type ManagedAIEnv } from './managed-ai';
+import { ManagedAI, resolveManagedModel, type ManagedAIEnv } from './managed-ai';
 
 export interface Env extends ReleaseEnv, VisionEnv, RealtimeEnv, ManagedAIEnv {
   ASSETS: Fetcher;
@@ -152,7 +152,13 @@ export function createHandler(database: (env: Env) => Database = env => {
       if (path === '/api/admin/ai/models' && request.method === 'GET') return decorate(json(await new ManagedAI(db,env).list()),request);
       if (/^\/api\/admin\/ai\/models\/[^/]+$/.test(path) && request.method === 'PUT') return decorate(json(await new ManagedAI(db,env).save(path.split('/').at(-1)!,await body(request,12000))),request);
       if (path === '/api/admin/ai/usage' && request.method === 'GET') return decorate(json(await new ManagedAI(db,env).stats(url.searchParams)),request);
-      if ((path==='/api/realtime/config'&&request.method==='GET') || (path==='/api/realtime/connect'&&request.method==='POST'))
+      if (path==='/api/realtime/connect'&&request.method==='POST') {
+        if (!(await env.AI_LIMITER.limit({key:'realtime:'+current.id})).success) error(429,'语音请求过于频繁，请稍后重试。');
+        const config=await resolveManagedModel(db,env,'realtime');
+        if(!config)error(503,'实时语音尚未配置或未启用，请联系管理员。');
+        return decorate(await connectManagedRealtime(await body(request,130000),config!,request.signal,aiFetch),request);
+      }
+      if (path==='/api/realtime/config'&&request.method==='GET')
         error(410,'实时语音已改为统一配置后直连，请刷新网页或升级应用。');
       if (path === '/api/handwriting/ai' && request.method === 'POST') {
         if (current.role !== 'Student' && current.role !== 'Admin') error(403,'当前账号没有识别权限。');
@@ -305,6 +311,7 @@ export function createHandler(database: (env: Env) => Database = env => {
       }
       else if(path==='/api/admin/leaderboards/rebuild'&&request.method==='POST')result=json(await rankings.rebuild(page()));
       else if (path === '/api/admin/overview' && request.method === 'GET') result = json(await admin.overview());
+      else if (path === '/api/admin/trend' && request.method === 'GET') result = json(await admin.trend(days()));
       else if (path === '/api/admin/members' && request.method === 'GET') {
         const q = url.searchParams.get('q') ?? '', role = url.searchParams.get('role') ?? '';
         if (q.length > 40 || !['','Student','Parent','Admin'].includes(role)) error(400, '筛选条件无效。');

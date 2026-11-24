@@ -15,6 +15,22 @@ async function fixture({subject='math',data={},active=()=>true,request=async()=>
  const chapter=subject==='physics'?'physics-8a-01':'math-8a-01';const controller=w.GrowingStudentMathCourse.create({subject,params:new URLSearchParams({chapter}),storage:w.localStorage,active});
  return {dom,w,controller};
 }
+test('duck lecture uses realtime, tracks pause and stops on topic changes without opening a panel',async()=>{
+ for(const subject of ['math','physics']){
+  const f=await fixture({subject}),c=f.controller,w=f.w;let toggles=0,stops=0;
+  const emit=state=>w.dispatchEvent(new w.CustomEvent('duck:teaching-state',{detail:{courseId:w.GrowingDuckContext.id,state}}));
+  w.Audio=class{constructor(){assert.fail('must not use packaged audio');}};
+  w.GrowingDuckCourse={toggleTeaching(){toggles++;emit(c.snapshot().teachingState==='playing'?'paused':'playing');},stopTeaching(){stops++;emit('idle');},show(){assert.fail('must not open a panel');}};
+  try{
+   c.actions.teach();assert.equal(c.snapshot().teachingState,'playing');c.actions.teach();assert.equal(c.snapshot().teachingState,'paused');c.actions.teach();assert.equal(toggles,3);
+   const oldId=w.GrowingDuckContext.id;c.actions.next();assert.equal(stops,1);assert.equal(c.snapshot().teachingState,'idle');
+   w.dispatchEvent(new w.CustomEvent('duck:teaching-state',{detail:{courseId:oldId,state:'playing'}}));assert.equal(c.snapshot().teachingState,'idle');
+   c.actions.teach();c.actions.markRead();assert.equal(c.snapshot().tab,'recall');assert.equal(stops,2);
+   c.actions.tab('learn');c.actions.teach();c.destroy();assert.equal(stops,4);
+  }finally{c.destroy();w.close();}
+ }
+});
+
 test('math controller retains original records and ten exact practice IDs, drafts and self-checks',async()=>{
  const f=await fixture();const c=f.controller,s=c.snapshot();assert.equal(s.kind,'course');assert.equal(s.questions.length,10);assert.ok(s.questions.every(q=>q.id.startsWith(s.node.id+'-application-')));c.actions.draft('自己的解释需要写完整，举出一个具体例子。');c.actions.self([0,1]);c.actions.markRead();const saved=JSON.parse(f.w.localStorage.getItem('growing-math-lessons-v1'));assert.equal(saved.topics[s.node.id].seen,true);assert.equal(saved.topics[s.node.id].self.length,2);assert.match(saved.topics[s.node.id].draft,/自己的解释/);assert.equal(c.snapshot().tab,'recall');c.destroy();f.dom.window.close();
 });

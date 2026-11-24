@@ -76,6 +76,7 @@ for (const width of [1280, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     const verify = trackProblems(page);
     await authenticate(page, 'admin');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/console/home');
     await expect(page.getByRole('heading', { name: '工作台', exact: true })).toBeVisible();
     await capture(page, `admin-${width}-home`);

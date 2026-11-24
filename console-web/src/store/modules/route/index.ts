@@ -4,23 +4,40 @@ import type { RouteKey, LastLevelRouteKey } from '@elegant-router/types';
 import { router } from '@/router';
 import { SetupStoreId } from '@/enum';
 import { localStg } from '@/utils/storage';
-import { businessPages, canVisit } from '@/features/session/policy';
+import type { MenuOption } from 'naive-ui';
+import { businessPages, canVisit, menuGroups } from '@/features/session/policy';
+import { useSvgIcon } from '@/hooks/common/icon';
 import { useAuthStore } from '../auth';
 import { useTabStore } from '../tab';
 import { getBreadcrumbsByRoute, getSelectedMenuKeyPathByKey, transformMenuToSearchMenus } from './shared';
 export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   const routeHome = ref<LastLevelRouteKey>('home');
   const isInitAuthRoute = ref(false);
+  const { SvgIconVNode } = useSvgIcon();
+  const visiblePages = computed(() =>
+    businessPages.filter(p => !('hidden' in p) && canVisit(useAuthStore().profile, p.path))
+  );
+  /** Flat menu list: breadcrumbs, search and non-vertical layouts use it. */
   const menus = computed<App.Global.Menu[]>(() =>
-    businessPages
-      .filter(p => !('hidden' in p) && canVisit(useAuthStore().profile, p.path))
-      .map(p => ({
-        key: p.name,
-        label: useAuthStore().profile?.role === 'Parent' && p.name === 'home' ? '孩子概况'
-          : useAuthStore().profile?.role === 'Parent' && p.name === 'students' ? '我的孩子' : p.title,
-        routeKey: p.name as RouteKey,
-        routePath: p.path as App.Global.Menu['routePath']
+    visiblePages.value.map(p => ({
+      key: p.name,
+      label: useAuthStore().profile?.role === 'Parent' && p.name === 'home' ? '孩子概况'
+        : useAuthStore().profile?.role === 'Parent' && p.name === 'students' ? '我的孩子' : p.title,
+      routeKey: p.name as RouteKey,
+      routePath: p.path as App.Global.Menu['routePath'],
+      icon: SvgIconVNode({ localIcon: p.icon, fontSize: 18 })
+    }))
+  );
+  /** Sidebar menu: the same items under labelled groups; empty groups are dropped. */
+  const groupedMenus = computed<MenuOption[]>(() =>
+    menuGroups
+      .map(group => ({
+        type: 'group' as const,
+        key: group.key,
+        label: group.label,
+        children: menus.value.filter(menu => visiblePages.value.find(p => p.name === menu.key)?.group === group.key)
       }))
+      .filter(group => group.children.length > 0)
   );
   const searchMenus = computed(() => transformMenuToSearchMenus(menus.value));
   const cacheRoutes = ref<RouteKey[]>([]);
@@ -42,6 +59,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   return {
     routeHome,
     menus,
+    groupedMenus,
     searchMenus,
     cacheRoutes,
     excludeCacheRoutes,

@@ -15,6 +15,11 @@ vi.mock('@/store/modules/auth', () => ({ useAuthStore: () => auth }));
 vi.mock('@/router', () => ({ router: { currentRoute: { value: { meta: {}, matched: [] } } } }));
 vi.mock('@/store/modules/tab', () => ({ useTabStore: () => ({ resetStore: vi.fn(), initHomeTab: vi.fn() }) }));
 vi.mock('@/service/request', () => ({ api: mocks.api }));
+// jsdom has no canvas; the dashboard chart is covered in the browser suite.
+vi.mock('@/hooks/common/echarts', async () => {
+  const { shallowRef } = await import('vue');
+  return { useEcharts: () => ({ domRef: shallowRef(null), updateOptions: vi.fn() }) };
+});
 vi.mock('@/features/students/api', async original => ({ ...await original<object>(), listStudents: mocks.list, getStudentDetail: mocks.detail }));
 const children = [{ id: 'a', displayName: '小安' }, { id: 'b', displayName: '小北' }];
 const bundle = (id = 'a') => ({ student: children.find(c => c.id === id), report: { subjects: [{ subject: '数学', mastered: 3, read: 4, practice: 5, todayMinutes: 8, totalMinutes: 20 }], warnings: [], lastSyncedAt: null }, growth: { points: [] }, rewards: { entries: [{ confirmation: null }, { confirmation: {} }] } });
@@ -76,9 +81,14 @@ it('distinguishes loading, error, retry and empty without turning failure into e
   await page.get('[data-testid="retry-list"]').trigger('click'); await flushPromises(); expect(page.text()).toContain('小安'); page.unmount();
 });
 it('shows real admin overview fields and no demo or invented trends', async () => {
-  auth.profile.role = 'Admin'; mocks.api.mockResolvedValue({ members: 41, students: 25, parents: 15, admins: 1, syncedThisWeek: 9, confirmations: 4, gameMinutes: 30, cashCents: 1234 });
+  auth.profile.role = 'Admin';
+  const overview = { members: 41, students: 25, parents: 15, admins: 1, syncedThisWeek: 9, confirmations: 4, gameMinutes: 30, cashCents: 1234 };
+  const trend = { days: 7, points: [{ day: '2026-11-23', syncedStudents: 3, newMembers: 2, confirmations: 1 }, { day: '2026-11-24', syncedStudents: 4, newMembers: 0, confirmations: 0 }] };
+  mocks.api.mockImplementation((path: string) => Promise.resolve(path.startsWith('/admin/trend') ? trend : overview));
   const page = await render(Home); expect(mocks.api).toHaveBeenCalledWith('/admin/overview', expect.anything());
-  expect(page.text()).toContain('41'); expect(page.text()).toContain('12.34'); expect(page.text()).not.toContain('Soybean'); expect(page.text()).not.toContain('增长'); page.unmount();
+  expect(mocks.api).toHaveBeenCalledWith('/admin/trend?days=7', expect.anything());
+  expect(page.get('[data-testid="trend-total-syncedStudents"]').text()).toContain('7'); expect(page.get('[data-testid="trend-total-newMembers"]').text()).toContain('2');
+  expect(page.text()).toContain('41'); expect(page.text()).toContain('12.34'); expect(page.text()).toContain('占全部学生 36%'); expect(page.text()).not.toContain('Soybean'); expect(page.text()).not.toContain('增长'); page.unmount();
 });
 it('clears the previous child immediately and ignores a late failure', async () => {
   const page = await render(Home); expect(page.text()).toContain('待确认奖励'); expect(page.text()).toContain('数学');

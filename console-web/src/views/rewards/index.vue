@@ -1,17 +1,21 @@
 <script setup lang="ts">
 import { h, onUnmounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { NAlert, NButton, NDataTable, NEmpty, NForm, NFormItem, NInput, NPagination, NSelect, NSpin } from 'naive-ui';
+import { NAlert, NButton, NCard, NDataTable, NEmpty, NForm, NFormItem, NInput, NPagination, NSelect, NSpin, NTag } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { useAuthStore } from '@/store/modules/auth';
 import { listStudents } from '@/features/students/api';
 import type { RewardReport, StudentIdentity } from '@/features/students/api';
 import { listMembers, getMember } from '@/features/members/api';
 import type { MemberRow, Page } from '@/features/members/api';
+import { renderRoleTag } from '@/features/members/role-tag';
 import { api } from '@/service/request';
 import { getLedger, rewardAmount } from '@/features/rewards/api';
 import type { LedgerRow } from '@/features/rewards/api';
 import RewardLedger from '@/features/rewards/components/reward-ledger.vue';
+import TableToolbar from '@/components/advanced/table-toolbar.vue';
+import { useColumnChecks } from '@/hooks/common/table-columns';
+import { formatBeijingTime } from '@/utils/datetime';
 const auth = useAuthStore(); const route = useRoute(); const router = useRouter();
 const children = ref<StudentIdentity[]>([]); const student = ref<StudentIdentity | null>(null); const rewards = ref<RewardReport | null>(null); const ledger = ref<Page<LedgerRow> | null>(null); const loading = ref(false); const error = ref('');
 const searchText = ref(''); const searchRole = ref<'Student' | 'Parent'>('Student'); const found = ref<MemberRow[]>([]); const searchPage = ref(1); const searchTotal = ref(0); const searching = ref(false); const searchError = ref(''); const filterNames = ref('');
@@ -36,50 +40,65 @@ async function load() {
 function reset() { searchVersion++; searchController?.abort(); searchText.value = ''; found.value = []; searchError.value = ''; searching.value = false; searchPage.value = 1; searchTotal.value = 0; }
 async function search(page = 1) { if (auth.profile?.role !== 'Admin') return; const current = ++searchVersion; searchController?.abort(); searchController = new AbortController(); searching.value = true; searchError.value = ''; found.value = []; try { const result = await listMembers({ q: searchText.value.trim(), role: searchRole.value, page, signal: searchController.signal }); if (current === searchVersion) { found.value = result.rows; searchPage.value = result.page; searchTotal.value = result.total; } } catch (cause) { if (current === searchVersion) searchError.value = cause instanceof Error ? cause.message : '搜索失败'; } finally { if (current === searchVersion) searching.value = false; } }
 function selectMember(row: MemberRow) { void router.replace({ query: { ...route.query, [row.role === 'Student' ? 'student' : 'parent']: row.id, page: '1' } }); }
+const kindTag = (kind: LedgerRow['kind']) => h(NTag, { size: 'small', bordered: false, type: kind === 'cash' ? 'warning' : 'success' }, { default: () => kind === 'cash' ? '现金' : '游戏时间' });
 const accountColumns: DataTableColumns<MemberRow> = [
   { title: '姓名', key: 'displayName', width: 160 },
   { title: '账号', key: 'username', width: 180 },
-  { title: '身份', key: 'role', width: 120, render: row => row.role === 'Student' ? '学生' : '家长' },
-  { title: '操作', key: 'actions', width: 180, fixed: 'right', render: row => h(NButton, { size: 'small', onClick: () => selectMember(row) }, { default: () => '按此账号筛选' }) }
+  { title: '身份', key: 'role', width: 100, render: row => renderRoleTag(row.role) },
+  { title: '操作', key: 'actions', width: 160, fixed: 'right', render: row => h(NButton, { size: 'small', onClick: () => selectMember(row) }, { default: () => '按此账号筛选' }) }
 ];
 const ledgerColumns: DataTableColumns<LedgerRow> = [
   { title: '学生', key: 'studentName', width: 160, render: row => h(RouterLink, { to: `/students/${encodeURIComponent(row.studentId)}`, custom: true }, { default: ({ href, navigate }: { href: string; navigate: (event: MouseEvent) => void }) => h(NButton, { tag: 'a', href, text: true, type: 'primary', onClick: navigate }, { default: () => row.studentName }) }) },
-  { title: '奖励类型', key: 'kind', width: 140, render: row => row.kind === 'cash' ? '现金' : '游戏时间' },
-  { title: '奖励数额', key: 'amount', width: 150, render: row => rewardAmount(row.kind, row.amount) },
-  { title: '确认家长', key: 'parentName', width: 150 },
-  { title: '家长账号', key: 'parentUsername', width: 180 },
-  { title: '确认时间', key: 'confirmedAt', width: 220 }
+  { title: '奖励类型', key: 'kind', width: 100, render: row => kindTag(row.kind) },
+  { title: '奖励数额', key: 'amount', width: 120, render: row => rewardAmount(row.kind, row.amount) },
+  { title: '确认家长', key: 'parentName', width: 140 },
+  { title: '家长账号', key: 'parentUsername', width: 160 },
+  { title: '确认时间', key: 'confirmedAt', width: 150, render: row => formatBeijingTime(row.confirmedAt) }
 ];
+const { checks: ledgerChecks, columns: ledgerTableColumns, scrollX: ledgerScrollX } = useColumnChecks(() => ledgerColumns);
 watch(() => [route.query.student, route.query.parent, route.query.page, auth.profile?.id, auth.profile?.role, auth.sessionRevision], load, { immediate: true, flush: 'sync' });
 watch(() => [auth.profile?.id, auth.profile?.role, auth.sessionRevision, searchRole.value], reset, { flush: 'sync' });
 onUnmounted(() => { version++; controller?.abort(); reset(); });
 </script>
 <template>
-  <section class="rewards-page">
-    <header><h1>奖励记录</h1><p>设备累计与云端确认分开查看；确认代表已实际兑现。</p></header>
-    <section v-if="auth.profile?.role === 'Admin'" aria-label="筛选确认账本"><h2>筛选确认账本</h2>
-      <NForm class="search-form" :show-feedback="false" label-placement="top" @submit.prevent="search(1)"><NFormItem label="账号类型"><NSelect v-model:value="searchRole" aria-label="搜索账号类型" :options="[{ label: '学生', value: 'Student' }, { label: '家长', value: 'Parent' }]" /></NFormItem><NFormItem label="账号或姓名"><NInput v-model:value="searchText" :input-props="{ 'aria-label': '搜索学生或家长', maxlength: 40 }" placeholder="账号或姓名" /></NFormItem><NButton attr-type="submit" :disabled="searching">搜索账号</NButton><NButton @click="router.replace({ query: {} })">清除筛选</NButton></NForm>
-      <NSpin v-if="searching" size="small" role="status"><span>正在搜索…</span></NSpin><NAlert v-if="searchError" type="error">{{ searchError }}</NAlert>
-      <NDataTable v-if="found.length" aria-label="奖励筛选账号表" size="small" :columns="accountColumns" :data="found" :row-key="row => row.id" :scroll-x="640" />
-      <NPagination v-if="searchTotal" aria-label="账号搜索分页" :disabled="searching" :page="searchPage" :page-size="20" :item-count="searchTotal" :page-slot="5" @update:page="search" />
+  <main class="console-page list-page rewards-page">
+    <header><h1>奖励记录</h1><p class="page-description">设备累计与云端确认分开查看；确认代表已实际兑现。</p></header>
+    <section v-if="auth.profile?.role === 'Admin'" aria-label="筛选确认账本">
+      <NCard class="search-card" size="small" :bordered="false">
+        <template #header><h2>筛选确认账本</h2></template>
+        <NForm class="list-filters" :show-feedback="false" label-placement="top" @submit.prevent="search(1)">
+          <NFormItem label="账号类型"><NSelect v-model:value="searchRole" aria-label="搜索账号类型" :options="[{ label: '学生', value: 'Student' }, { label: '家长', value: 'Parent' }]" /></NFormItem>
+          <NFormItem label="账号或姓名"><NInput v-model:value="searchText" :input-props="{ 'aria-label': '搜索学生或家长', maxlength: 40 }" placeholder="账号或姓名" /></NFormItem>
+          <NFormItem class="list-filters-actions" :show-label="false"><NButton attr-type="submit" type="primary" :disabled="searching">搜索账号</NButton><NButton @click="router.replace({ query: {} })">清除筛选</NButton></NFormItem>
+        </NForm>
+        <NSpin v-if="searching" class="search-result" size="small" role="status"><span>正在搜索…</span></NSpin>
+        <NAlert v-if="searchError" class="search-result" type="error">{{ searchError }}</NAlert>
+        <template v-if="found.length">
+          <NDataTable class="search-result" aria-label="奖励筛选账号表" size="small" :bordered="false" :columns="accountColumns" :data="found" :row-key="row => row.id" :scroll-x="600" />
+          <nav v-if="searchTotal > 20" class="list-pagination" aria-label="账号搜索结果分页"><NPagination aria-label="账号搜索分页" :disabled="searching" :page="searchPage" :page-size="20" :item-count="searchTotal" :page-slot="5" @update:page="search" /></nav>
+        </template>
+      </NCard>
     </section>
-    <NForm v-if="auth.profile?.role === 'Parent' && children.length" :show-feedback="false"><NFormItem label="选择孩子"><NSelect aria-label="选择奖励孩子" :value="student?.id ?? ''" :options="children.map(child => ({value: child.id, label: child.displayName}))" @update:value="router.replace({ query: { student: $event } })" /></NFormItem></NForm>
-    <NSpin v-if="loading" size="small" role="status"><span>正在加载奖励…</span></NSpin>
+    <NCard v-if="auth.profile?.role === 'Parent' && children.length" class="search-card" size="small" :bordered="false">
+      <NForm class="list-filters" :show-feedback="false"><NFormItem label="选择孩子"><NSelect aria-label="选择奖励孩子" :value="student?.id ?? ''" :options="children.map(child => ({value: child.id, label: child.displayName}))" @update:value="router.replace({ query: { student: $event } })" /></NFormItem></NForm>
+    </NCard>
+    <NSpin v-if="loading" class="list-state" size="small" role="status"><span>正在加载奖励…</span></NSpin>
     <NAlert v-else-if="error" type="error" title="奖励加载失败"><p>{{ error }}</p><NButton @click="load">重试</NButton></NAlert>
     <RewardLedger v-else-if="student && rewards" :key="student.id" :student="student" :rewards="rewards" @refresh="load" />
-    <section v-else-if="ledger" aria-label="云端确认账本"><h2>云端确认账本</h2><p>{{ filterNames }}</p>
-      <NDataTable v-if="ledger.rows.length" aria-label="奖励确认账本表" size="small" :columns="ledgerColumns" :data="ledger.rows" :row-key="row => row.id" :scroll-x="1000" /><NEmpty v-else description="此筛选下暂无确认记录" />
-      <NPagination aria-label="奖励账本分页" :page="ledger.page" :page-size="ledger.pageSize" :item-count="ledger.total" :page-slot="5" @update:page="router.replace({ query: { ...route.query, page: String($event) } })" />
+    <section v-else-if="ledger" aria-label="云端确认账本">
+      <NCard class="table-card" size="small" :bordered="false">
+        <template #header><h2>云端确认账本</h2></template>
+        <template #header-extra><TableToolbar v-model:columns="ledgerChecks" :loading="loading" @refresh="load" /></template>
+        <p class="list-total">{{ filterNames }} · 共 {{ ledger.total }} 条 · 第 {{ ledger.page }} 页</p>
+        <NDataTable v-if="ledger.rows.length" aria-label="奖励确认账本表" size="small" :bordered="false" :columns="ledgerTableColumns" :data="ledger.rows" :row-key="row => row.id" :scroll-x="ledgerScrollX" />
+        <NEmpty v-else class="list-state" description="此筛选下暂无确认记录" />
+        <nav v-if="ledger.total > ledger.pageSize" class="list-pagination" aria-label="奖励账本分页导航"><NPagination aria-label="奖励账本分页" :page="ledger.page" :page-size="ledger.pageSize" :item-count="ledger.total" :page-slot="5" @update:page="router.replace({ query: { ...route.query, page: String($event) } })" /></nav>
+      </NCard>
     </section>
-    <NEmpty v-else-if="auth.profile?.role === 'Parent'" description="尚未添加孩子，请到账号页添加。" />
-  </section>
+    <NCard v-else-if="auth.profile?.role === 'Parent'" size="small" :bordered="false"><NEmpty class="list-state" description="尚未添加孩子，请到账号页添加。" /></NCard>
+  </main>
 </template>
 <style scoped>
-.rewards-page { display: grid; align-content: start; gap: 20px; min-width: 0; }
-h1 { font-size: 24px; } h2 { margin: 0 0 12px; font-size: 20px; }
-.rewards-page > section { min-width: 0; }
-.search-form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 16px; }
-.search-form :deep(.n-form-item) { width: 240px; max-width: 100%; }
-.n-pagination { margin-top: 12px; }
-p { overflow-wrap: anywhere; }
+.search-result { margin-top: 16px; }
+.list-total { overflow-wrap: anywhere; }
 </style>

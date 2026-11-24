@@ -16,6 +16,10 @@ test('compiled mathematics classroom uses Vant tabs, fields and uploader with co
  const controller={snapshot:()=>state,actions,subscribe:fn=>(listener=fn,()=>{}),destroy:()=>destroyed=true};
  const app=w.MathClassTest.mount(null,controller);app.mount(w.document.querySelector('#root'));await new Promise(r=>setTimeout(r,30));
  assert.equal(w.document.querySelectorAll('.lesson-tabs .van-button').length,3);assert.equal(w.document.querySelectorAll('select').length,0);
+ const controls=()=>[...w.document.querySelectorAll('.course-panel .course-actions button')];
+ assert.deepEqual(controls().map(el=>el.textContent),['小鸭讲课','开始复述']);
+ state.teachingState='playing';listener({...state});await new Promise(r=>setTimeout(r,30));assert.equal(controls()[0].textContent,'暂停讲课');assert.equal(controls()[0].getAttribute('aria-pressed'),'true');
+ state.teachingState='paused';listener({...state});await new Promise(r=>setTimeout(r,30));assert.equal(controls()[0].textContent,'继续讲课');
  const recall=[...w.document.querySelectorAll('.lesson-tabs button')].find(el=>el.textContent.includes('闭卷复述'));recall.click();await new Promise(r=>setTimeout(r,30));assert.equal(tab,'recall');
  const textarea=w.document.querySelector('textarea');textarea.value='这是我的解释';textarea.dispatchEvent(new w.Event('input',{bubbles:true}));assert.equal(draft,'这是我的解释');
  actions.tab('practice');await new Promise(r=>setTimeout(r,30));assert.equal(w.document.querySelectorAll('input[type=file]').length,1);assert.equal(w.document.querySelectorAll('[role=radio]').length,4);assert.equal(w.document.querySelectorAll('[aria-checked=true]').length,0);assert.doesNotMatch(w.document.body.textContent,/基础题|难题|手写作答|重新批改/);w.document.querySelectorAll('[role=radio]')[2].click();await new Promise(r=>setTimeout(r,30));assert.deepEqual(choice,{id:'q0',value:2});assert.equal(w.document.querySelectorAll('[role=radio]')[2].getAttribute('aria-checked'),'true');

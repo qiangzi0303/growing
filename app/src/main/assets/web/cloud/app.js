@@ -90,7 +90,7 @@
     const requestGeneration=generation,requestUserId=user?.id,requestToken=token;
     const controller=new AbortController();let timeout;
     const abort=()=>controller.abort();if(options.signal?.aborted)abort();else options.signal?.addEventListener('abort',abort,{once:true});
-    const deadline=new Promise((_,reject)=>{timeout=setTimeout(()=>{reject(Object.assign(Error('连接云服务超时，请检查网络后重试。'),{code:'REQUEST_TIMEOUT'}));controller.abort();},/^\/question-bank\/import-jobs\/[^/?]+\/step$/.test(path)?190000:path==='/question-bank/import'||/^\/question-bank\/questions\/[^/]+\/(format|followup|correct|drawing|paper-ai)$/.test(path)?110000:12000);});
+    const deadline=new Promise((_,reject)=>{timeout=setTimeout(()=>{reject(Object.assign(Error('连接云服务超时，请检查网络后重试。'),{code:'REQUEST_TIMEOUT'}));controller.abort();},/^\/question-bank\/import-jobs\/[^/?]+\/step$/.test(path)?190000:path==='/question-bank/import'||/^\/question-bank\/questions\/[^/]+\/(format|followup|correct|drawing|paper-ai)$/.test(path)?110000:path==='/realtime/connect'?45000:12000);});
     try{return await Promise.race([deadline,(async()=>{
     const response=await fetch(base+'/api'+path,{...options,keepalive:!options.body||new TextEncoder().encode(options.body).length<60000,signal:controller.signal,credentials:isNative?'omit':'same-origin',headers:{'Content-Type':'application/json','X-Growing-Client':'1',...(token?{Authorization:'Bearer '+token}:{}),...options.headers}});
     if(response.status===204)return null;
@@ -280,7 +280,7 @@
     const current=()=>user?.id===id&&generation===version&&token===sessionToken;
     return {key:id+':'+version,current,async api(path,options={}){
       if(!current())throw Error('账号已切换，请重新发起 AI 请求。');
-      if(path!=='/ai/config'&&path!=='/ai/usage')throw Error('AI 接口无效。');
+      if(path!=='/ai/config'&&path!=='/ai/usage'&&!(path==='/realtime/connect'&&options.method==='POST'))throw Error('AI 接口无效。');
       const result=await api(path,options);
       if(!current())throw Error('账号已切换，请重新发起 AI 请求。');
       return result;

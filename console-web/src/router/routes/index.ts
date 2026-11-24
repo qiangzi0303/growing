@@ -47,7 +47,7 @@ export function createConsoleRoutes(): RouteRecordRaw[] {
           : () => import('@/views/console/pending.vue'),
         meta: {
           title: page.title,
-          localIcon: 'activity',
+          localIcon: page.icon,
           adminOnly: page.adminOnly,
           ...('hidden' in page ? { hideInMenu: true, activeMenu: (page.path.startsWith('/students/') ? 'students' : 'members') as RouteKey } : {})
         }

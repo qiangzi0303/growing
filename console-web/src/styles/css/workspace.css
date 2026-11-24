@@ -1,52 +1,38 @@
-/* One quiet frame for family records, reports and administration. */
+/* Brand layer on top of Soybean Admin defaults: font, brand green, page rhythm. */
 html {
   font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
   font-synthesis: none;
   font-variant-numeric: tabular-nums;
 }
-html:not(.dark) {
-  --layout-bg-color: 245, 247, 245;
-  --base-text-color: 37, 51, 44;
-  --header-box-shadow: none;
-  --sider-box-shadow: none;
-  --tab-box-shadow: none;
-}
-.console-page, .account-settings { max-width: 1200px; margin-inline: auto; padding-block: 8px 24px; }
-.console-page > header { padding-bottom: 16px; border-bottom: 1px solid #e0e6e1; }
-.console-page h1, .account-settings h1 { font-size: 24px; font-weight: 600; line-height: 1.4; }
+.console-page, .account-settings { max-width: 1280px; margin-inline: auto; padding-block: 4px 24px; }
+.console-page h1, .account-settings h1 { font-size: 22px; font-weight: 600; line-height: 1.4; }
 .account-settings > h1 + p { color: #5e6b63; }
-#app .console-page .overview-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-#app .console-page .overview-number { color: inherit; font-size: 28px; font-weight: 400; }
-.console-page .n-card, .account-settings .n-card { border-radius: 12px; box-shadow: none; }
-.console-page .n-card-header { font-size: 15px; font-weight: 500; }
-.console-page .overview-grid .n-card { background: #eef2ef; border-color: transparent; }
-.console-page .n-card__content, .account-settings .n-card__content { line-height: 1.8; }
-.console-page .n-data-table-th { background: #fff; font-weight: 500; }
-.console-page .n-data-table-td { padding-block: 14px; }
-.console-page :is(.overview-links, .actions) { gap: 10px; }
-.console-page .n-button, .account-settings .n-button { border-radius: 8px; }
-.console-page .n-button:not(.n-button--text-type), .account-settings .n-button:not(.n-button--text-type) { min-height: 40px; }
-.n-menu .n-menu-item-content--selected::before { background-color: #e8eeea; }
-.n-menu .n-menu-item-content--selected .n-menu-item-content-header,
-.n-menu .n-menu-item-content--selected .n-menu-item-content__icon { color: #25332c; }
-.n-card:has(form) { border-radius: 12px; box-shadow: none; }
-.n-card:has(form) .n-card-header { font-size: 22px; font-weight: 600; padding-top: 28px; }
-.n-card:has(form) .n-card__content { padding-bottom: 28px; }
-html.dark .console-page .overview-grid .n-card { background: #262c28; }
-html.dark .console-page > header { border-color: #3a443d; }
-html.dark .console-page .n-data-table-th { background: #202622; }
-html.dark .n-menu .n-menu-item-content--selected::before { background: #354139; }
-html.dark .n-menu .n-menu-item-content--selected .n-menu-item-content-header,
-html.dark .n-menu .n-menu-item-content--selected .n-menu-item-content__icon { color: #eef2ef; }
-@media (max-width: 1000px) {
-  #app .console-page .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+.console-page .n-button:not(.n-button--text-type), .account-settings .n-button:not(.n-button--text-type) { min-height: 36px; }
+.console-page .n-data-table-th { font-weight: 500; }
+.console-page .page-description { margin-top: 4px; color: #5e6b63; font-size: 13px; }
+/* List pages: search card + table card */
+.list-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
+.list-page > header { min-width: 0; }
+.list-page .n-card { min-width: 0; }
+.list-page .n-card-header h2 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.5; }
+.list-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; }
+.list-filters .n-form-item { width: 220px; max-width: 100%; min-width: 0; }
+.list-filters .n-form-item.list-filters-actions { width: auto; }
+.list-filters-actions .n-form-item-blank { gap: 8px; flex-wrap: wrap; }
+.table-toolbar { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.list-total { margin: 0 0 12px; color: #5e6b63; font-size: 13px; }
+.list-state { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 120px; }
+.list-pagination { display: flex; justify-content: flex-end; margin-top: 16px; }
+.list-muted { color: #8a978f; }
+html.dark .list-total, html.dark .list-muted, html.dark .console-page .page-description { color: #9aa59f; }
+/* Sidebar group captions */
+.n-menu .n-menu-item-group-title { font-size: 12px; letter-spacing: 0.04em; color: #8a978f; padding-top: 6px; }
+html.dark .n-menu .n-menu-item-group-title { color: #7f8b84; }
 @media (max-width: 600px) {
   .console-page, .account-settings { padding-top: 0; padding-bottom: 20px; }
-  .console-page h1, .account-settings h1 { font-size: 22px; }
-  #app .console-page .overview-grid { gap: 12px; }
-  #app .console-page .overview-number { font-size: 25px; }
+  .console-page h1, .account-settings h1 { font-size: 20px; }
+  .list-filters .n-form-item { width: 100%; }
+  .list-filters .n-form-item.list-filters-actions { width: 100%; }
+  .list-pagination { justify-content: center; }
   .console-page .n-button:not(.n-button--text-type), .account-settings .n-button:not(.n-button--text-type) { min-height: 44px; }
-  .console-page .n-card > .n-card-header { padding: 18px 18px 12px; }
-  .console-page .n-card > .n-card__content { padding-inline: 18px; }
 }

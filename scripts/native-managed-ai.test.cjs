@@ -9,7 +9,8 @@ function setup(endpoint='https://api.deepseek.com/chat/completions'){
  const window={GrowingNative:native,document:{addEventListener(){}},location:{href:'https://appassets.androidplatform.net/assets/web/app-design/english-course.html',origin:'https://appassets.androidplatform.net',pathname:'/assets/web/app-design/english-course.html'},URL,URLSearchParams,Request,Response,Headers,AbortController,DOMException,crypto:require('node:crypto').webcrypto,setTimeout,clearTimeout,
   fetch:async(input,options={})=>{
    const url=input instanceof Request?input.url:String(input);calls.push({input,url,options});
-   if(url==='https://learn.test/api/ai/config')return Response.json({models:[{id:'chat',purpose:'chat',endpoint,model:'managed-model',apiKey:'managed-test-key',revision:6}]});
+   if(url==='https://learn.test/api/ai/config')return Response.json({models:[{id:'chat',purpose:'chat',endpoint,model:'managed-model',apiKey:'managed-test-key',revision:6},{id:'realtime',purpose:'realtime',endpoint:'https://dashscope.aliyuncs.com/api/v1/webrtc/realtime',model:'managed-realtime',apiKey:'managed-voice-key',voice:'Tina',revision:3}]});
+   if(url==='https://learn.test/api/realtime/connect')return Response.json({sdp:'v=0\r\nanswer'});
    if(url==='https://learn.test/api/ai/usage')return Response.json({ok:true});
    if(options.signal?.aborted)throw new DOMException('Aborted','AbortError');
    if(mode==='http')return Response.json({error:'unavailable'},{status:429});
@@ -41,6 +42,19 @@ test('Android preserves direct companion Request credentials and cancellation',a
  await t.window.fetch(request,{signal:controller.signal});
  assert.equal(t.calls[0].input,request);assert.equal(request.headers.get('Authorization'),'Bearer managed-stream-key');
  assert.equal(t.calls[0].options.signal,controller.signal);assert.equal(t.personalReads(),0);assert.equal(t.settingsOpened(),0);
+});
+
+test('Android realtime sends SDP through the authenticated backend without sending a provider key',async()=>{
+ const t=setup(),config=await t.window.GrowingRealtime.connectionInfo(),controller=new AbortController();
+ const result=await t.window.GrowingRealtime.connect('v=0\r\noffer',{handle:config.handle,signal:controller.signal});
+ assert.equal(result.sdp,'v=0\r\nanswer');
+ const request=t.calls.find(c=>c.url.endsWith('/realtime/connect'));assert.ok(request);
+ assert.deepEqual(JSON.parse(request.options.body),{sdp:'v=0\r\noffer',configRevision:3});
+ assert.equal(request.options.headers.Authorization,'Bearer session-a');assert.equal(request.options.signal,controller.signal);
+ assert.ok(t.calls.every(c=>!c.url.includes('aliyuncs.com')));
+ t.window.localStorage.setItem('growing-cloud-session-v1',JSON.stringify({token:'session-b'}));
+ await assert.rejects(t.window.GrowingRealtime.connect('v=0\r\noffer',{handle:config.handle}));
+ assert.equal(t.calls.filter(c=>c.url.endsWith('/realtime/connect')).length,1);
 });
 test('Android rejects provider errors and cancellation without producing a passing answer',async()=>{
  for(const mode of ['http','network','empty','length']){
