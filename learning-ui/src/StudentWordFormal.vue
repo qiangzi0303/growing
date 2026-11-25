@@ -15,7 +15,7 @@ async function submit(){
 }
 function keydown(event){
  if(!['Enter',' '].includes(event.key))return;
- if(event.isComposing||composing||event.keyCode===229)return;
+ if(event.isComposing||composing||(event.key===' '&&event.keyCode===229))return;
  if(event.repeat){event.preventDefault();return;}
  if(event.key===' '){
   const expected=m.value.stage==='plural'?m.value.description?.plurals?.[0]:m.value.word.word;
@@ -23,6 +23,10 @@ function keydown(event){
   const field=event.target;
   if(parts>1&&(field.value.trim().split(/\s+/).length<parts||field.selectionStart!==field.value.length||field.selectionEnd!==field.value.length))return;
  }
+ event.preventDefault();submit();
+}
+function beforeinput(event){
+ if(!['insertLineBreak','insertParagraph'].includes(event.inputType)||event.isComposing||composing)return;
  event.preventDefault();submit();
 }
 watch([()=>m.value.stage,()=>m.value.word.id,()=>blocked.value],focusInput,{immediate:true});
@@ -35,7 +39,7 @@ watch([()=>m.value.stage,()=>m.value.word.id,()=>blocked.value],focusInput,{imme
    <p v-if="m.stage!=='recall'">请默写这个词的复数形式。中文释义已隐藏。</p>
    <form @submit.prevent="submit">
     <label for="formal-answer" :style="m.stage==='recall'?{color:'hsl(145,'+Math.min(m.run.answers.length*14,85)+'%,'+(40-Math.min(m.run.answers.length,6)*2)+'%)',fontWeight:m.run.answers.length?700:400,fontSize:(16+Math.min(m.run.answers.length,6))+'px'}:null">{{ m.stage==='recall'?'第 '+(m.run.answers.length+1)+'/7 次':'复数形式' }}</label>
-    <input id="formal-answer" ref="input" data-formal-answer :value="m.recallDraft||''" :aria-label="m.stage==='recall'?'英文默写':'复数形式'" autocomplete="off" autocapitalize="off" autocorrect="off" :spellcheck="false" maxlength="140" required :disabled="blocked" @input="a.recallInput($event.target.value)" @keydown="keydown" @compositionstart="composing=true" @compositionend="composing=false">
+    <input id="formal-answer" ref="input" data-formal-answer :value="m.recallDraft||''" :aria-label="m.stage==='recall'?'英文默写':'复数形式'" enterkeyhint="send" autocomplete="off" autocapitalize="off" autocorrect="off" :spellcheck="false" maxlength="140" required :disabled="blocked" @input="a.recallInput($event.target.value)" @keydown="keydown" @beforeinput="beforeinput" @compositionstart="composing=true" @compositionend="composing=false">
     <div class="formal-actions"><button class="formal-primary" type="submit" :disabled="blocked||!m.recallDraft?.trim()">{{ m.stage==='recall'?'提交默写':'确认复数' }}</button></div>
    </form>
   </template>

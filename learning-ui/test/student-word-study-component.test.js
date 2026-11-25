@@ -67,6 +67,20 @@ test('formal Enter and Space submit once while phrase separators and composition
  }finally{s.close();}
 });
 
+test('mobile Enter229 and line-break actions submit once without submitting IME candidates',async()=>{
+ const s=await setup('StudentWordFormal');try{
+  s.model.view='recall';s.model.stage='recall';s.model.run={answers:[],draft:''};s.model.recallDraft='friendship';await s.flush();
+  const field=s.w.document.querySelector('[data-formal-answer]');
+  const enter=()=>field.dispatchEvent(new s.w.KeyboardEvent('keydown',{key:'Enter',keyCode:229,bubbles:true,cancelable:true}));
+  const line=(extra={})=>field.dispatchEvent(new s.w.InputEvent('beforeinput',{inputType:'insertLineBreak',bubbles:true,cancelable:true,...extra}));
+  enter();line();field.form.dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));await s.flush();assert.equal(s.calls.filter(c=>c[0]==='submitRecall').length,1);
+  line();await s.flush();assert.equal(s.calls.filter(c=>c[0]==='submitRecall').length,2);
+  field.dispatchEvent(new s.w.CompositionEvent('compositionstart',{bubbles:true}));enter();line();await s.flush();assert.equal(s.calls.filter(c=>c[0]==='submitRecall').length,2);
+  field.dispatchEvent(new s.w.CompositionEvent('compositionend',{bubbles:true}));line({isComposing:true});await s.flush();assert.equal(s.calls.filter(c=>c[0]==='submitRecall').length,2);
+  s.model.recallDraft='';await s.flush();line();await s.flush();assert.equal(s.calls.filter(c=>c[0]==='submitRecall').length,2);
+ }finally{s.close();}
+});
+
 test('daily recall hides English and artwork until submitted and retains drafts on save failure',async()=>{
  const s=await setup();try{
   s.model.view='review';s.model.reviewSession={ids:['friendship'],index:0,draft:'frien',hinted:false,feedback:null,finished:false};await s.flush();
