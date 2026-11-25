@@ -10,7 +10,7 @@
  window.GrowingStudentPages={registerLegacy(render){if(!enabled)return false;legacyRenders.push(render);if(failed)render();return true;}};
  if(!enabled)return;
  const base=new URL('./',document.currentScript.src),loads=new Map(),hidden=[];
- const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi',page==='math-wrong-questions'?'20261121-archive-clean-1':page==='catalog'?'20261121-catalog-clean-1':['english-course','unit3-course'].includes(page)?'20261121-no-paper-tab-1':'20261121-no-paper-tab-1');if(name==='student-math-course.js')url.searchParams.set('studentUi','20261124-evidence-1');if(name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261124-radical-math-1');return url;};
+ const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi',page==='math-wrong-questions'?'20261121-archive-clean-1':page==='catalog'?'20261121-catalog-clean-1':['english-course','unit3-course'].includes(page)?'20261121-no-paper-tab-1':'20261121-no-paper-tab-1');if(['student-math-course.js','student-math-resources.js','student-catalog-model.js','math-chapter-score.js','math-wrong-index.js'].includes(name))url.searchParams.set('studentUi','20261125-chapter-rewards-1');if(['student-math-course.js','question-attempts.js'].includes(name)||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-reward-entry-2');if(['student-unit3-course.js','student-english-course.js','student-catalog-model.js','student-summary-model.js','english-word-review.js','english-unit-score.js','english-score.js','english-engine.js','unit-summary-core.js'].includes(name.split('?')[0])||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-english-reward-sheet-3');if(name==='student-catalog-model.js'||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-english-reward-sheet-3');if(['student-catalog-model.js','student-resources-model.js','student-math-labs.js'].includes(name)||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-catalog-labels-1');return url;};
  function load(name,css=false){
   if(loads.has(name))return loads.get(name);
   const promise=new Promise((resolve,reject)=>{const el=document.createElement(css?'link':'script');if(css){el.rel='stylesheet';el.href=assetUrl(name);}else el.src=assetUrl(name);el.onload=resolve;el.onerror=()=>{el.remove();loads.delete(name);reject(Error('新版学习页面资源暂不可用，已保留原页面。'));};document.head.append(el);});loads.set(name,promise);return promise;
@@ -30,7 +30,7 @@
   const sessionActive=()=>{active();if(run!==startup)throw Error('学习页面已重新打开。');};
   const fail=error=>{if(run===startup)fallback(error);};
   let storage,cloud,eventHost=window;
-  try{cloud=window.top.GrowingCloud;storage=cloud?.storage?cloud.storage(window):localStorage;eventHost=window.top;}catch(error){if(error.name!=='SecurityError'){fail(error);return;}storage=localStorage;}
+  try{const host=window.GrowingCloudHost;cloud=host?.cloud||window.GrowingCloud||window.top.GrowingCloud;storage=cloud?.storage?cloud.storage(window):localStorage;eventHost=host?.window||(window.GrowingCloud?window:window.top);}catch(error){if(error.name!=='SecurityError'){fail(error);return;}storage=localStorage;}
   const read=key=>{sessionActive();const raw=storage.getItem(key);return raw===null?null:JSON.parse(raw);};
   try{
    await Promise.all([window.GrowingVantHome||load('vendor/learning-ui/learning-ui.js'),load('vendor/learning-ui/learning-ui.css',true)]);sessionActive();
@@ -43,6 +43,7 @@
       await Promise.all([window.GrowingEnglishWordReview||load('english-word-review.js'),window.GrowingEnglishWordStudyData||load('english-word-study-data.js')]);
       await Promise.all(['english-word-study-units-245.js','english-word-study-units-3678.js'].map(name=>load(name)));
      }
+     if(['math-course','math-resources-workbench'].includes(page))await Promise.all([load('math-chapter-score.js'),load('math-wrong-index.js')]);
      if(page==='math-course'&&!window.GrowingPracticeFigures)await load('practice-figures.js');
      if(page==='math-course'){
       await Promise.all([load('question-attempts.js'),load('../cloud/question-drawing.js'),window.katex||load('../cloud/vendor/katex/katex.min.js'),load('../cloud/vendor/katex/katex.min.css',true)]);
@@ -96,7 +97,7 @@
      if(['knowledge','english-labs','math-labs','physics-labs','midterm'].includes(page)){updateRoute(state);routeSubscription=controller.subscribe(updateRoute);}
      if(page.endsWith('-course')&&!window.GrowingCourseAccount){ownedAccount={open(view){sessionActive();if(view==='calendar')return openCalendar();if(controller.actions.open)controller.actions.open(view);else controller.actions.navigate?.(view);},back(){sessionActive();if(calendarApp?.isOpen()){calendarApp.close();return true;}const state=controller.snapshot?controller.snapshot():controller.model;const home=page==='unit3-course'?'library':'words';if(state?.view&&state.view!==home){if(controller.actions.open)controller.actions.open(home);else controller.actions.navigate(home);return true;}return false;}};window.GrowingCourseAccount=ownedAccount;}
     }
-    else model=page==='home'?{kind:'home',title:'逆流 · 数学、英语与物理',subjects:[{id:'math',name:'数学',description:'苏科版 · 八年级上下册',icon:'notes-o'},{id:'english',name:'英语',description:'译林版 · 八年级上下册',icon:'description'},{id:'physics',name:'物理',description:'苏科版 · 八年级上册',icon:'bulb-o'}]}:page==='summary'?await window.GrowingStudentSummary.create({params,storage,load,active:sessionActive}):page==='resources'?window.GrowingStudentResources.create({subject:file.split('-')[0],params,openPapers}):await window.GrowingStudentCatalog.create({params:page==='catalog'?new URLSearchParams(location.search):params,page,read,wrongSummary,wrongError});
+    else model=page==='home'?{kind:'home',title:'逆流 · 数学、英语与物理',subjects:[{id:'math',name:'数学',description:'苏科版 · 八年级上下册',icon:'notes-o'},{id:'english',name:'英语',description:'译林版 · 八年级上下册',icon:'description'},{id:'physics',name:'物理',description:'苏科版 · 八年级上册',icon:'bulb-o'}]}:page==='summary'?await window.GrowingStudentSummary.create({params,storage,load,active:sessionActive}):page==='resources'?window.GrowingStudentResources.create({subject:file.split('-')[0],params,openPapers}):await window.GrowingStudentCatalog.create({params:page==='catalog'?new URLSearchParams(location.search):params,page,read,storage,load,active:sessionActive,wrongSummary,wrongError});
     sessionActive();if(request!==version)return;
     if(model.kind==='redirect'){
      const href=new URL(model.href,location.href).href;

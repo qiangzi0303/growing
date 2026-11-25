@@ -16,6 +16,7 @@ if(!process.argv.includes('--stage-only')){
   execFileSync(process.execPath,[vite,'build'],{cwd:ui,stdio:'inherit'});
 }
 const course=join(repo,'app/src/main/assets/web/app-design');
+copyFileSync(join(course,'question-attempts.js'),join(repo,'platform-web/question-attempts.js'));
 // Node 22.18 on Windows can fast-fail (0xC0000409) in native cpSync for these asset directories.
 function copySceneAssets(source,target){
   mkdirSync(target,{recursive:true});
@@ -32,6 +33,10 @@ function reviseHtml(path,names){
  const before=readFileSync(path,'utf8'),after=before.replace(/<(?:script|link)\b[^>]*>/gi,tag=>tag.replace(/\b(src|href)=(['"])([^'"<>]+)\2/g,(all,attr,quote,value)=>{
   const name=value.split(/[?#]/)[0].split('/').pop();if(!names.has(name))return all;
   const hash=value.indexOf('#'),fragment=hash<0?'':value.slice(hash),url=hash<0?value:value.slice(0,hash),query=url.indexOf('?'),base=query<0?url:url.slice(0,query),params=new URLSearchParams(query<0?'':url.slice(query+1));
+  if(['student-pages.js','student-catalog-model.js','student-resources-model.js','student-math-labs.js','vant-home.js'].includes(name)){params.set('studentUi','20261125-catalog-labels-1');return attr+'='+quote+base+'?'+params+fragment+quote;}
+  if(['student-pages.js','student-english-course.js','student-unit3-course.js','student-catalog-model.js','student-summary-model.js','english-unit-score.js','english-score.js','english-engine.js','english-course.js','english-word-review.js','unit-summary-core.js','unit-summary.js','catalog.js','reward-engine.js','unit-rewards.js'].includes(name)){params.set('studentUi','20261125-catalog-labels-1');return attr+'='+quote+base+'?'+params+fragment+quote;}
+  if(['vant-home.js','student-pages.js','student-math-course.js','question-attempts.js','cloud-storage.js','course-ai.js','course-duck.js','course-navigation.js','home-settings.js'].includes(name)){params.set('studentUi','20261125-reward-entry-2');return attr+'='+quote+base+'?'+params+fragment+quote;}
+  if(['student-pages.js','student-math-course.js','student-math-resources.js','student-catalog-model.js','math-chapter-score.js','math-wrong-index.js','reward-engine.js','unit-rewards.js'].includes(name)){params.set('studentUi','20261125-chapter-rewards-1');return attr+'='+quote+base+'?'+params+fragment+quote;}
   const managed=['course-ai.js','api-settings.js','home-settings.js','ai-client.js','realtime-client.js'].includes(name);
   params.set('studentUi',['math-feedback.js','math-course.js','student-math-course.js','student-pages.js'].includes(name)?'20261124-evidence-1':name==='student-pages.js'?'20261124-radical-math-1':['student-pages.js','course-duck.js','bootstrap.js'].includes(name)?'20261124-duck-loading-1':['app.js','course-ai.js','student-math-course.js'].includes(name)?'20261124-duck-shell-2':managed?assetRevision:path.endsWith('math-wrong-questions.html')?'20261121-archive-clean-1':path.endsWith('units.html')?'20261121-catalog-clean-1':path.endsWith('english-course.html')||path.endsWith(join('word-ops-unit3','index.html'))?'20261121-no-paper-tab-1':assetRevision);return attr+'='+quote+base+'?'+params+fragment+quote;
  }));if(after!==before)writeFileSync(path,after);
@@ -40,10 +45,11 @@ const newModels=['math-feedback.js','student-pages.js','student-catalog-model.js
 newModels.push('student-duck-controls.js');
 newModels.push('application-practice.js','handwriting-ai.js','handwriting-core.js','practice-progress.js','math-figures.js','practice-figures.js','geometry-guidance.js');
 newModels.push('paper-photo-uploads.js');
-newModels.push('question-attempts.js');
+newModels.push('question-attempts.js','course-navigation.js','home-settings.js');
 newModels.push('english-engine.js','english-word-pilot-data.js','english-word-pilot-core.js','student-word-pilot.js');
-newModels.push('english-word-review.js','english-word-study-data.js','english-word-study-units-245.js','english-word-study-units-3678.js');
-newModels.push('course-ai.js');
+newModels.push('english-unit-score.js','english-score.js','english-word-review.js','english-word-study-data.js','english-word-study-units-245.js','english-word-study-units-3678.js');
+newModels.push('unit-summary-core.js');
+newModels.push('course-ai.js','math-chapter-score.js','math-wrong-index.js','reward-engine.js','unit-rewards.js');
 const migratedAssets=['catalog.js','unit-summary.js','math-course.js','english-course.js','knowledge.js','handwriting.js','index.html','units.html','study.html','unit-summary.html','math-resources.html','english-resources.html','physics-resources.html','math-course.html','physics-course.html','english-course.html','knowledge.html','physics-knowledge.html','handwriting.html','english-visual-lab.html','english-visual-quiz.html','english-sentence-demo.html','english-visual-lab.js','english-visual-quiz.js','english-sentence-demo.js','math-exam-practice.html','math-wrong-questions.html','math-exam-practice.js','math-wrong-questions.js','math-explore-lab.html','geometry-models.html','math-lab.js','geometry-models.js'];
 const targets=[course,join(project,'app-design'),join(repo,'cloudflare/public/learn/app-design')];
 migratedAssets.push('physics-explore-lab.html','physics-sound-lab.html','triangle-centers.html','triangle-centers-legacy.js','math-exam-midterm.html','math-exam-midterm-graph.html','math-exam-midterm-answers.js','math-exam-midterm-graph.js','paper-knowledge-graph.js','math-geometry-links.js');
@@ -51,7 +57,7 @@ migratedAssets.push('course-duck.js','companion-duck/index.html','companion-duck
 const revisedNames=new Set([...newModels,...migratedAssets,'vant-home.js','course-duck.js','student-duck-controls.js','course-ai.js','api-settings.js','home-settings.js','ai-client.js','realtime-client.js'].map(name=>name.split('/').pop()));
 for(const target of [course,join(project,'app-design')])for(const name of migratedAssets.filter(name=>name.endsWith('.html')))reviseHtml(join(target,name),revisedNames);
 for(const target of [join(repo,'app/src/main/assets/web'),project])for(const name of ['word-ops-unit3/index.html'])reviseHtml(join(target,name),revisedNames);
-reviseHtml(join(repo,'platform-web/index.html'),new Set(['student-platform.js','student-photo-review.js','student-paper-pages.js','student-paper-ai.js','paper-ai.js','paper-cache.js','vant-home.js','app.js','photo-review.js','my-papers.js','question-bank.js','course-ai.js','api-settings.js']));
+reviseHtml(join(repo,'platform-web/index.html'),new Set(['student-platform.js','student-photo-review.js','student-paper-pages.js','student-paper-ai.js','paper-ai.js','paper-cache.js','question-attempts.js','vant-home.js','app.js','photo-review.js','my-papers.js','grading-progress.js','question-bank.js','course-ai.js','api-settings.js']));
 for(const target of targets){
   const vendor=join(target,'vendor/learning-ui');mkdirSync(vendor,{recursive:true});
   for(const name of ['learning-ui.js','learning-ui.css'])copyFileSync(join(ui,'dist',name),join(vendor,name));
@@ -78,7 +84,7 @@ for(const name of ['word-ops-unit3/index.html']){
  copyFileSync(join(repo,'app/src/main/assets/web',name),destination);
 }
 for(const target of ['app/src/main/assets/web/cloud','cloudflare/public','cloudflare/public/learn/cloud','../cloud']){
-  for(const name of ['student-platform.js','student-photo-review.js','student-paper-pages.js','photo-review.js','my-papers.js','question-bank.js','question-figures.js','paper-cache.js','paper-ai.js','app.js','index.html','cloud-storage.js','api-settings.js'])copyFileSync(join(repo,'platform-web',name),join(repo,target,name));
+  for(const name of ['student-platform.js','student-photo-review.js','student-paper-pages.js','photo-review.js','my-papers.js','grading-progress.js','question-bank.js','question-figures.js','paper-cache.js','paper-ai.js','question-attempts.js','app.js','index.html','cloud-storage.js','api-settings.js'])copyFileSync(join(repo,'platform-web',name),join(repo,target,name));
 }
 for(const target of [course,join(project,'app-design'),join(repo,'cloudflare/public/learn/app-design')])copyFileSync(join(repo,'platform-web/student-photo-review.js'),join(target,'student-photo-review.js'));
 for(const target of ['platform-web','app/src/main/assets/web/cloud','cloudflare/public','cloudflare/public/learn/cloud','../cloud']){

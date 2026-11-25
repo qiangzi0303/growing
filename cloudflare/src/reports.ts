@@ -5,6 +5,7 @@ import mathFeedback from '../../app/src/main/assets/web/app-design/math-feedback
 import sentenceProgress from '../../app/src/main/assets/web/app-design/english-sentence-progress.js';
 import sentenceRules from './english-sentence-rules.json';
 import englishScore from '../../app/src/main/assets/web/app-design/english-score.js';
+import {masteryBoards} from './rankings';
 
 type ObjectData = Record<string, any>;
 const obj = (v: unknown): ObjectData => v !== null && typeof v === "object" && !Array.isArray(v) ? v : {};
@@ -49,6 +50,7 @@ export function buildReport(docs: Document[], now = new Date()) {
         english.practice += Object.keys(obj(data.lessons)).length;
         const unit = rules[doc.key.slice("growing-english-course-v1:".length)];
         for (const word of arr(unit?.words)) if (englishScore.wordPassed(word, data.words?.[word.id])) english.mastered++;
+        if(unit)english.mastered+=englishScore.summary(unit.allWords,data.words,[],null,false,{state:data,lessons:unit.lessons}).lessons.mastered;
       }
       if (doc.key === "fraction-minute-v1") {
         for (const id of rules.__legacy.fractionTopics) {
@@ -67,6 +69,7 @@ export function buildReport(docs: Document[], now = new Date()) {
           if (englishScore.wordPassed(word, record, true)) english.mastered++;
         }
         english.practice += arr(data.records).length;
+        english.mastered+=englishScore.summary(legacy.words,data.mastered,[],null,true,{state:data,lessons:legacy.lessons}).lessons.mastered;
         addDays(english, data.learningTime?.days);
       }
       if (doc.key.startsWith('growing-english-sentences-v1:')) english.mastered += sentenceProgress.summary((sentenceRules as ObjectData)[doc.key.slice('growing-english-sentences-v1:'.length)] ?? [], data).completed;
@@ -93,9 +96,9 @@ export function buildReport(docs: Document[], now = new Date()) {
     report.totalMinutes = report.activeMinutes;
   }
   return {
-    subjects, today, timezone: 'Asia/Shanghai', lastSyncedAt: docs.length ? docs.map(d => d.updatedAt).sort().at(-1)! : null,
+    subjects, englishScores:masteryBoards(docs).filter(r=>r.subject==='english').map(r=>({id:r.id,title:r.title,kind:r.kind,score:r.score/100})), today, timezone: 'Asia/Shanghai', lastSyncedAt: docs.length ? docs.map(d => d.updatedAt).sort().at(-1)! : null,
     timeNote: '今日按北京时间 00:00 起算；累计为全部已记录日期之和。课程已有计时与各设备前台活跃计时按科目、按日取较大值，不重复相加；前台活跃计时在切后台或超过60秒无操作时暂停。',
-    note: "英语仅按单词默写50%＋句子闯关50%评分，满分100分；达标项仅统计必会词与有效整句通关，其他学习活动不计分。数学/物理普通微课需解释和练习均达标，原分式按有效AI评分达8分。每日时长取课程已有计时与新增前台活跃计时的较大值，避免重复累计。练习次数是历史活动统计，不等于成绩。",
+    note: "英语满分100分：必会词35＋句子25＋课时30＋错词库10。数学/物理普通微课需解释和练习均达标，原分式按有效AI评分达8分。每日时长取课程已有计时与新增前台活跃计时的较大值，避免重复累计。练习次数是历史活动统计，不等于成绩。",
     warnings,
   };
 }

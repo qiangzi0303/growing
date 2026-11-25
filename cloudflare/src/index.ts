@@ -9,6 +9,7 @@ import handwriting from '../../app/src/main/assets/web/app-design/handwriting-co
 import { assess, type VisionEnv } from './handwriting-vision';
 import { QuestionBank, questionUnits } from './question-bank';
 import { PaperImportJobs } from './paper-import-jobs';
+import { enqueuePhotoJob } from './photo-processing-agent';
 import { PhotoReview } from './photo-review';
 import { paperAI } from './paper-ai';
 import { QuestionAttempts } from './question-attempts';
@@ -20,6 +21,7 @@ import { ManagedAI, resolveManagedModel, type ManagedAIEnv } from './managed-ai'
 export interface Env extends ReleaseEnv, VisionEnv, RealtimeEnv, ManagedAIEnv {
   ASSETS: Fetcher;
   DB?: D1Database;
+  PHOTO_PROCESSING_QUEUE?: Queue<{id:string;revision:number}>;
   AUTH_LIMITER: { limit(options: { key: string }): Promise<{ success: boolean }> };
   AI_USAGE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
@@ -177,13 +179,17 @@ export function createHandler(database: (env: Env) => Database = env => {
           return decorate(json(await bank.unitWrongQuestion(await body(request,4000))),request);
         if(path==='/api/question-bank/import'&&request.method==='POST')
           return decorate(json(await bank.import(await body(request,2_100_000),env,request.signal,aiFetch)),request);
-        if(path==='/api/question-bank/import-jobs'&&request.method==='POST')
-          return decorate(json(await new PaperImportJobs(db,current).create(await body(request,2_100_000))),request);
+        if(path==='/api/question-bank/import-jobs'&&request.method==='POST'){
+          if(env.PHOTO_PROCESSING_QUEUE&&!env.ZHIPU_API_KEY)error(503,'后台拍照识别密钥尚未配置，请联系管理员。');
+          const job=await new PaperImportJobs(db,current).create(await body(request,2_100_000),!!env.PHOTO_PROCESSING_QUEUE);
+          await enqueuePhotoJob(env,job);
+          return decorate(json(job),request);
+        }
         if(path==='/api/question-bank/import-jobs'&&request.method==='GET'){
           const student=await bank.authorize(url.searchParams.get('studentId'));
           return decorate(json(await new PaperImportJobs(db,current).list(student,url.searchParams.get('subject')||undefined)),request);
         }
-        if(/^\/api\/question-bank\/import-jobs\/[a-f0-9-]{36}(?:\/(?:step|progress))?$/.test(path)){
+        if(/^\/api\/question-bank\/import-jobs\/[a-f0-9-]{36}(?:\/(?:step|progress|retry))?$/.test(path)){
           const jobs=new PaperImportJobs(db,current),id=path.split('/')[4];
           if(path===`/api/question-bank/import-jobs/${id}`&&request.method==='DELETE'){
             const data=await body(request,4000),student=await bank.authorize(data.studentId);
@@ -193,7 +199,14 @@ export function createHandler(database: (env: Env) => Database = env => {
             const data=await body(request,2_100_000),student=await bank.authorize(data.studentId);
             return decorate(json(await jobs.step(student,id,data,env,request.signal,aiFetch)),request);
           }
-          if(!path.endsWith('/step')&&request.method==='GET'){
+          if(path.endsWith('/retry')&&request.method==='POST'){
+            const data=await body(request,4000),student=await bank.authorize(data.studentId);
+            if(!env.PHOTO_PROCESSING_QUEUE)error(503,'后台处理队列尚未配置。');
+            const job=await jobs.retry(student,id,data.revision);
+            await enqueuePhotoJob(env,job);
+            return decorate(json(job),request);
+          }
+          if(!path.endsWith('/step')&&!path.endsWith('/retry')&&request.method==='GET'){
             const student=await bank.authorize(url.searchParams.get('studentId'));
             return decorate(json(path.endsWith('/progress')?await jobs.progress(student,id):await jobs.get(student,id)),request);
           }
@@ -362,7 +375,7 @@ export function createHandler(database: (env: Env) => Database = env => {
         url.pathname = path;
         result = await env.ASSETS.fetch(new Request(url, request));
         if (request.method !== "HEAD" && result.ok && result.headers.get("Content-Type")?.includes("text/html")) {
-          const html = (await result.text()).replace(/<head\b[^>]*>/i, '$&<script src="/cloud-storage.js?v=cloud-local-terms-1"></script>');
+          const html = (await result.text()).replace(/<head\b[^>]*>/i, '$&<script src="/cloud-storage.js?v=20261125-embedded-rewards-1"></script>');
           const headers = new Headers(result.headers); headers.delete("Content-Length"); headers.delete("ETag"); headers.delete("Content-Encoding");
           result = new Response(html, { status: result.status, headers });
         }

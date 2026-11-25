@@ -105,7 +105,7 @@ async function register(role = "Student") {
   assert.equal(response.status, 200, await response.clone().text());
   return { ...await response.json() as any, name, response };
 }
-test('legacy realtime signalling requires login then requests upgrade without forwarding credentials',async()=>{
+test('legacy realtime config requests upgrade; managed signalling rejects unconfigured or limited calls without forwarding credentials',async()=>{
   assert.equal((await call('/api/realtime/config')).status,401);
   const account=await register();
   assert.equal((await call('/api/realtime/config','GET',undefined,account.token)).status,410);
@@ -115,8 +115,8 @@ test('legacy realtime signalling requires login then requests upgrade without fo
     return new Response('v=0\r\nanswer');
   }) as typeof fetch);
   const request=()=>new Request('https://learn.test/api/realtime/connect',{method:'POST',headers:{'Content-Type':'application/json','X-Growing-Client':'1','X-Duck-Client':'1',Authorization:'Bearer '+account.token,Origin:'https://appassets.androidplatform.net'},body:JSON.stringify({apiKey:'test-qwen-session-key',sdp:'v=0\r\noffer',voice:'Tina'})});
-  const response=await proxy(request(),env,context);assert.equal(response.status,410);assert.equal(forwarded,false);assert.equal(response.headers.get('Access-Control-Allow-Origin'),'https://appassets.androidplatform.net');assert.match(await response.text(),/升级/);
-  const limitedEnv={...env,AI_LIMITER:{limit:async()=>({success:false})}};forwarded=false;assert.equal((await proxy(request(),limitedEnv,context)).status,410);assert.equal(forwarded,false);
+  const response=await proxy(request(),env,context);assert.equal(response.status,503);assert.equal(forwarded,false);assert.equal(response.headers.get('Access-Control-Allow-Origin'),'https://appassets.androidplatform.net');assert.match(await response.text(),/配置|启用/);
+  const limitedEnv={...env,AI_LIMITER:{limit:async()=>({success:false})}};forwarded=false;assert.equal((await proxy(request(),limitedEnv,context)).status,429);assert.equal(forwarded,false);
 });
 const invite = async (token: string) => (await (await call("/api/student/invitations", "POST", undefined, token)).json() as any).code;
 before(async () => {
@@ -165,7 +165,7 @@ before(async () => {
   await db.batch(subjectMigration.split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
   const classificationMigration=await readFile(new URL('../migrations/0016_paper_classification.sql',import.meta.url),'utf8');
   await db.batch(classificationMigration.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
-  for(const migration of ['0017_paper_import_jobs.sql','0018_photo_question_type.sql','0019_photo_practice.sql','0020_managed_ai.sql']){
+  for(const migration of ['0017_paper_import_jobs.sql','0018_photo_question_type.sql','0019_photo_practice.sql','0020_managed_ai.sql','0021_english_score_version.sql','0022_photo_processing_agent.sql']){
     const sql=await readFile(new URL('../migrations/'+migration,import.meta.url),'utf8');
     await db.batch(sql.replace(/--[^\n]*/g,'').split(';').map(s=>s.trim()).filter(Boolean).map(sql=>({sql})));
   }
@@ -1145,7 +1145,7 @@ test('rankings use real D1 scoring, ties, privacy, pagination and bound-parent a
   const overview=await (await call('/api/student/rankings','GET',undefined,a.token)).json() as any;
   assert.deepEqual(overview.boards.map((r:any)=>r.id).sort(),[rule.id,'physics:upper'].sort());
   assert.equal(overview.boards.find((r:any)=>r.id===rule.id).score,100);
-  assert.equal(overview.formula,'英语：单词默写 × 50% + 句子闯关 × 50%；数学/物理：费曼学习 × 30% + 应用练习 × 70%');
+  assert.equal(overview.formula,'英语：必会词35分＋句子闯关25分＋课时30分＋错词库10分；数学/物理：费曼学习 × 30% + 应用练习 × 70%');
   assert.equal((await call('/api/student/rankings?board=math:upper','GET',undefined,a.token)).status,404);
   assert.equal((await call(path+'&page=0','GET',undefined,a.token)).status,400);
   assert.equal((await call(path)).status,401);
@@ -1177,24 +1177,28 @@ test('rankings use real D1 scoring, ties, privacy, pagination and bound-parent a
   assert.equal((await call(path,'GET',undefined,c.token)).status,404);
 });
 
-test('English rankings rebuild old cache counts and enroll historical sentence-only learners with 50/50 scoring',async()=>{
+test('English rankings rebuild old cache counts and enroll historical sentence-only learners with versioned four-part scoring',async()=>{
   const a=await register(),b=await register(),unit='english-8a-01',key='growing-english-course-v1:'+unit;
   const words=Object.fromEntries(englishRules[unit].words.map(w=>[w.id,{protocol:'seven-recalls',answers:Array(7).fill(w.word)}]));
   const sentenceKey='growing-english-sentences-v1:'+unit,value=JSON.stringify({version:1,sentences:Object.fromEntries(sentenceRules[unit].map(s=>[s.id,{protocol:'sentence-typing-v1',answer:s.en,wrong:0,hints:0,revealed:false,at:1}]))});
   assert.equal((await call('/api/student/state/'+key,'PUT',{revision:0,value:JSON.stringify({words,lessons:{},feynman:{}})},a.token)).status,200);
   // Existing rows hold the previous lesson/combined-test denominators.
-  await db.query('UPDATE "GrowingRankings" SET "ConceptDone"=4,"ConceptTotal"=4,"TestDone"=1,"TestTotal"=99,"Score"=9999 WHERE "StudentId"=?1',[a.user.id]);
+  await db.query('UPDATE "GrowingRankings" SET "ConceptDone"=4,"ConceptTotal"=4,"TestDone"=1,"TestTotal"=99,"Score"=9999,"ScoreVersion"=0 WHERE "StudentId"=?1',[a.user.id]);
   // The old engine never enrolled learners who had only sentence completions.
   await db.query(`INSERT INTO "GrowingDocuments" ("StudentId","Key","Value","Revision","UpdatedAt") VALUES (?1,?2,?3,1,${nowSql})`,[b.user.id,sentenceKey,value]);
   const path='/api/student/rankings?board='+unit;
   const response=await call(path,'GET',undefined,a.token);assert.equal(response.status,200,await response.clone().text());
   let data=await response.json() as any;
-  assert.equal(data.self.score,50);assert.equal(data.self.conceptPercent,100);assert.equal(data.self.testPercent,0);
-  assert.deepEqual(data.rows.map((r:any)=>r.score),[50,50]);assert.deepEqual(data.rows.map((r:any)=>r.rank),[1,1]);
+  assert.equal(data.self.score,45);assert.equal(data.self.conceptPercent,100);assert.equal(data.self.testPercent,0);
+  assert.deepEqual(data.rows.map((r:any)=>r.score),[45,35]);assert.deepEqual(data.rows.map((r:any)=>r.rank),[1,2]);
   data=await (await call(path,'GET',undefined,b.token)).json() as any;
-  assert.equal(data.self.score,50);assert.equal(data.self.conceptPercent,0);assert.equal(data.self.testPercent,100);
+  assert.equal(data.self.score,35);assert.equal(data.self.conceptPercent,0);assert.equal(data.self.testPercent,100);
   assert.equal((await call('/api/student/state/'+sentenceKey,'PUT',{revision:0,value},a.token)).status,200);
-  data=await (await call(path,'GET',undefined,a.token)).json() as any;assert.equal(data.self.score,100);assert.equal(data.self.rank,1);
+  data=await (await call(path,'GET',undefined,a.token)).json() as any;assert.equal(data.self.score,70);assert.equal(data.self.rank,1);
+  const versions=await db.query<any>('SELECT "ScoreVersion" AS version FROM "GrowingRankings" WHERE "StudentId"=?1',[a.user.id]);assert.ok(versions.every(r=>r.version===1));
+  const oldDocs=await new Store(db).state(a.user.id);
+  await db.batch(rankingStatements(a.user.id,oldDocs,0));
+  assert.equal((await (await call(path,'GET',undefined,a.token)).json() as any).self.score,70);
   // Source archives remain unchanged by reads and derived-index rebuilding.
   assert.equal((await db.query<any>('SELECT "Value" AS value FROM "GrowingDocuments" WHERE "StudentId"=?1 AND "Key"=?2',[b.user.id,sentenceKey]))[0].value,value);
 });

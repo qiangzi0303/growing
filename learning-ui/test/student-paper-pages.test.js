@@ -1,6 +1,41 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';import vm from 'node:vm';
 const file=new URL('../../platform-web/student-paper-pages.js',import.meta.url);
 
+test('background photo jobs poll progress only and open server completion',async()=>{
+ const calls=[];let polls=0;
+ const job={id:'j1',processor:'photo-agent-v1',status:'recognizing',revision:1};
+ const {w,controller:c}=await setup(async(path,options)=>{calls.push({path,options});if(path.includes('/progress?'))return ++polls===1?job:{...job,status:'complete',revision:2,paperId:'p1'};if(path.includes('/papers/p1'))return {id:'p1',subject:'math',questions:[],pages:[]};return [];});
+ w.GrowingQuestionFigures={prepareImportStep:()=>{throw Error('client preparation forbidden');}};
+ await c.actions.resume('j1');assert.equal(c.model.paper.id,'p1');
+ assert.equal(calls.filter(v=>v.path.includes('/import-jobs/j1')&&!v.path.includes('/progress?')).length,0);c.destroy();
+});
+
+test('background failure waits for explicit retry and never permits legacy defer',async()=>{
+ const calls=[];let retry=false;
+ const job={id:'j1',processor:'photo-agent-v1',status:'recognizing',revision:1,canDefer:true};
+ const {controller:c}=await setup(async(path,options)=>{calls.push({path,options});if(path.endsWith('/retry')){retry=true;return {...job,revision:3};}if(path.includes('/progress?'))return {...job,status:'failed',revision:retry?4:2,error:'图形无法确认'};return [];});
+ // Clicking resume retries once; a subsequent failure remains visible.
+ await c.actions.resume('j1');assert.equal(retry,true);assert.match(c.model.notice,/图形无法确认/);
+ const retries=calls.filter(v=>v.path.endsWith('/retry'));assert.equal(retries.length,1);assert.deepEqual(JSON.parse(retries[0].options.body),{studentId:'s1',revision:2});
+ await assert.rejects(c.actions.deferQuestion(),/等待/);assert.equal(calls.some(v=>v.path.endsWith('/step')),false);c.destroy();
+});
+
+test('closing background progress cancels polling without cancelling server job',async()=>{
+ const calls=[];let release;
+ const job={id:'j1',processor:'photo-agent-v1',status:'recognizing',revision:1};let polls=0;
+ const {controller:c}=await setup(async(path,options)=>{calls.push({path,options});if(path.includes('/progress?'))return ++polls===1?job:new Promise(resolve=>release=resolve);return [];});
+ const pending=c.actions.resume('j1');await new Promise(r=>setTimeout(r,0));c.actions.stopJob();release({...job,status:'complete',revision:2,paperId:'p1'});await pending;
+ assert.match(c.model.notice,/后台继续/);assert.equal(c.model.paper,null);assert.equal(c.model.jobs[0].id,'j1');assert.equal(calls.some(v=>v.options?.method),false);c.destroy();
+});
+
+test('a newly uploaded background task reports failure without automatic retry',async()=>{
+ const calls=[],job={id:'j1',processor:'photo-agent-v1',status:'planning',revision:1};
+ const {w,controller:c}=await setup(async(path,options)=>{calls.push({path,options});if(path==='/question-bank/import-jobs'&&options)return job;if(path.includes('/progress?'))return {...job,status:'failed',revision:2,error:'OCR 暂不可用'};return [];});
+ w.GrowingQuestionFigures={photo:async()=> 'prepared-photo',prepareImportStep:()=>{throw Error('client preparation forbidden');}};
+ await c.actions.subject('math');await c.actions.addFiles([{}]);await c.actions.importPhotos();
+ assert.match(c.model.notice,/OCR 暂不可用/);assert.equal(c.model.running,false);assert.equal(calls.some(v=>/\/(retry|step)$/.test(v.path)),false);c.destroy();
+});
+
 test('math paper uses current SVG even with an attached image and never falls back to source crops',async()=>{
  const questions=[
   {id:'valid',revision:1,hasDrawing:true,drawingRevision:1,hasFigureImage:true,figures:[{page:1}]},
@@ -38,13 +73,13 @@ test('timed-out paper step waits for the lease and resumes saved completion with
   if(path==='/question-bank/catalog')return [];
   if(path.includes('/papers/p1'))return {id:'p1',subject:'math',questions:[],units:[],pages:[]};
   if(path.endsWith('/step')){steps++;throw Object.assign(Error('timeout'),{code:'REQUEST_TIMEOUT'});}
-  if(path.includes('/progress?')){polls++;return polls===1?job:polls===2?{...job,processing:true}:{...job,status:'complete',revision:2,paperId:'p1'};}
+  if(path.includes('/progress?')){polls++;return polls<=2?job:polls===3?{...job,processing:true}:{...job,status:'complete',revision:2,paperId:'p1'};}
   if(path.includes('/import-jobs/j1?'))return job;
   return [];
  });
  w.GrowingQuestionFigures={prepareImportStep:async()=>({})};
  await c.actions.resume('j1');
- assert.equal(steps,1);assert.equal(polls,3);assert.equal(c.model.paper.id,'p1');assert.equal(c.model.running,false);c.destroy();
+ assert.equal(steps,1);assert.equal(polls,4);assert.equal(c.model.paper.id,'p1');assert.equal(c.model.running,false);c.destroy();
 });
 
 test('manual deferral submits the failed revision once without recropping and opens the unconfirmed draft',async()=>{

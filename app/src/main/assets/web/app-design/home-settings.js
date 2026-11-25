@@ -3,7 +3,7 @@
   'use strict';
   const button=document.getElementById('open-home-settings');
   if(!button)return;
-  let shell=false;try{shell=window.top!==window&&!!window.top.GrowingCloud;}catch{}
+  let shell=!!window.GrowingCloudHost;try{shell||=window.top!==window&&!!window.top.GrowingCloud;}catch{}
   if(window.GrowingNative||shell){button.closest('.home-settings-entry').remove();return;}
   const resources=new URL('./',document.currentScript.src),entry=button.closest('.home-settings-entry');
   entry.innerHTML='<details id="home-account-menu"><summary id="open-home-settings" aria-label="设置" title="设置"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></summary><div class="home-menu-panel"><a data-home-rankings>我的排行榜</a><button type="button" data-home-calendar>学习日历</button><a data-home-account>云账号</a><p role="status"></p></div></details>';

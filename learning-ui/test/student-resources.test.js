@@ -12,7 +12,7 @@ test('resources retain subject, semester, Unit 3 and original maths destinations
  const factory=await models(),opened=[];
  const math=factory.create({subject:'math',params:new URLSearchParams('term=lower'),openPapers:subject=>opened.push(subject)});
  assert.equal(math.backHref,'units.html?subject=math&term=lower');
- assert.deepEqual(Array.from(math.groups.flatMap(g=>g.links.map(l=>l.href))),['math-exam-midterm.html','math-exam-practice.html','math-exam-midterm-graph.html','geometry-models.html']);
+ assert.deepEqual(Array.from(math.groups.flatMap(g=>g.links.map(l=>l.href))),['math-exam-midterm.html','math-exam-practice.html','math-exam-midterm-graph.html']);
  await math.openPapers();assert.deepEqual(opened,['math']);
  assert.equal(factory.create({subject:'english',params:new URLSearchParams('unit=english-8a-03')}).backHref,'../word-ops-unit3/index.html');
  assert.equal(factory.create({subject:'physics',params:new URLSearchParams('unit=physics-8a-02')}).backHref,'physics-course.html?chapter=physics-8a-02');

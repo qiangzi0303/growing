@@ -9,6 +9,7 @@
       const $=s=>d.querySelector(s),bar=$('progress');
       let closed=false,running=false,pollTimer=null,pollController=null,stepController=null,stepTimer=null;
       const current=()=>!closed&&alive();
+      const background=()=>job?.processor==='photo-agent-v1';
       function close(result=null){
         if(closed)return;closed=true;clearTimeout(pollTimer);pollController?.abort();observer.disconnect();
         // A submitted server step may finish and persist; closing stops subsequent steps.
@@ -33,15 +34,25 @@
         catch{/* The step response remains authoritative; failures are shown by advance(). */}
         finally{if(pollController===controller)pollController=null;if(current()&&running)pollTimer=setTimeout(poll,1500);}
       }
-      async function advance(){
+      async function advance(retry=false){
         if(running||!current())return;running=true;$('[data-error]').hidden=true;$('[data-retry]').hidden=true;
         try{
           if(!job)render(await create());
           if(!current())return;
-          pollTimer=setTimeout(poll,1500);
+          if(retry&&background()&&job.status==='failed'){
+            render(await api(path()+'/progress'+query));if(!current())return;
+            if(job.status==='failed')render(await api(path()+'/retry',{method:'POST',body:JSON.stringify({studentId,revision:job.revision})}));
+            if(!current())return;
+          }
+          if(!background())pollTimer=setTimeout(poll,1500);
           while(current()){
             render(await api(path()+'/progress'+query));
             if(!current()||job.status==='complete')break;
+            if(background()){
+              if(job.status==='failed')throw Error(job.error||'后台处理失败，请重试。');
+              $('[data-stage]').textContent='后台处理中，关闭后仍会继续。';
+              await new Promise(r=>setTimeout(r,1500));continue;
+            }
             // Another tab may own this step. Do not start duplicate AI requests.
             if(job.processing){await new Promise(r=>setTimeout(r,1500));continue;}
             const detail=await api(path()+query);if(!current())return;
@@ -61,7 +72,7 @@
         }}finally{running=false;clearTimeout(pollTimer);pollController?.abort();if(!alive())close();}
       }
       $('[data-close]').onclick=()=>close(job?.status==='complete'?job:null);
-      $('[data-retry]').onclick=advance;
+      $('[data-retry]').onclick=()=>advance(true);
       d.addEventListener('cancel',event=>{event.preventDefault();close();});
       const observer=new MutationObserver(()=>{if(!alive())close();});observer.observe(document.body,{childList:true,subtree:true});
       document.body.append(d);d.showModal();advance();

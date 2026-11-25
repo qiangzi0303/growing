@@ -10,13 +10,23 @@
     if(!Number.isInteger(gameMinutes)||!finite(gameMinutes,600000)||!finite(cashYuan,100000)||Math.abs(cashYuan*100-cents(cashYuan))>1e-6)throw Error('游戏时间须为0—600000的整数分钟，红包须为0—100000元且最多两位小数。');
     return {gameMinutes,cashYuan,enabled:enabled!==false};
   }
-  function restore(raw,legacy){
-    const d={version:1,defaultBudgetVersion:2,config:budget(120,200),peak:0,done:0,total:0,paidGame:0,paidCash:0,history:[]};
+  function restore(raw,legacy,defaults){
+    const def=defaults&&Number.isInteger(defaults.gameMinutes)?defaults:null;
+    const d={version:1,defaultBudgetVersion:2,config:budget(def?def.gameMinutes:120,def?def.cashYuan:200),peak:0,done:0,total:0,paidGame:0,paidCash:0,history:[]};
     if(raw?.version===1&&raw.config){
       d.config=budget(raw.config.gameMinutes,raw.config.cashYuan,raw.config.enabled);
       if(!finite(raw.peak,1)||!Number.isInteger(raw.paidGame)||!finite(raw.paidGame,d.config.gameMinutes)||!Number.isInteger(raw.paidCash)||!finite(raw.paidCash,cents(d.config.cashYuan)))throw Error('奖励存档格式不正确，原存档已保留。');
       Object.assign(d,{peak:raw.peak,done:raw.done||0,total:raw.total||0,paidGame:raw.paidGame,paidCash:raw.paidCash,legacyLocked:raw.legacyLocked===true,history:Array.isArray(raw.history)?raw.history:[]});
       if(raw.defaultBudgetVersion!==2&&d.config.cashYuan===100&&!locked(d))d.config.cashYuan=200;
+      if(typeof raw.defaultsKey==='string')d.defaultsKey=raw.defaultsKey;
+      if(raw.budgetCustomized===true)d.budgetCustomized=true;
+      for(const key of ['earnedGameFloor','earnedCashFloor'])if(raw[key]!==undefined){if(!Number.isInteger(raw[key])||raw[key]<0||raw[key]>(key==='earnedGameFloor'?d.config.gameMinutes:cents(d.config.cashYuan)))throw Error('历史奖励额度无效');d[key]=raw[key];}
+      // Apply a provider's new default once to an unredeemed ledger still holding the old 120/200 default.
+      if(def&&raw.defaultsKey!==def.key&&!d.budgetCustomized&&!locked(d)&&d.config.gameMinutes===120&&d.config.cashYuan===200){
+        const earned=amounts(d);
+        if(earned.game<=def.gameMinutes&&earned.cash<=cents(def.cashYuan)){d.earnedGameFloor=earned.game;d.earnedCashFloor=earned.cash;d.config=budget(def.gameMinutes,def.cashYuan,d.config.enabled);}
+      }
+      if(def)d.defaultsKey=def.key;
       return d;
     }
     // Import an existing whole-unit promise once; paid legacy items remain paid.
@@ -25,7 +35,7 @@
       const game=Number.isFinite(c.gameMinutes)?c.gameMinutes:Number.isFinite(c.hours)?Math.round(c.hours*60):120;
       const oldCash=Number.isFinite(c.cashYuan)?c.cashYuan:Number.isFinite(c.yuan)?c.yuan:200;
       const cash=oldCash===100&&!a?200:oldCash;
-      d.config=budget(game,cash,c.enabled);
+      d.config=budget(game,cash,c.enabled);if(def&&!a&&game===120&&cash===200&&c.budgetCustomized!==true)d.config=budget(def.gameMinutes,def.cashYuan,c.enabled);
       if(a&&(Number.isFinite(a.unlockedAt)||Number.isFinite(a.earnedAt))){
         d.config=budget(Number.isFinite(a.gameMinutes)?a.gameMinutes:Math.round(a.hours*60),Number.isFinite(a.cashYuan)?a.cashYuan:a.yuan);
         d.peak=1;d.legacyLocked=true;
@@ -34,6 +44,7 @@
         d.history.push({legacy:true,at:a.unlockedAt||a.earnedAt,game:d.paidGame,cash:d.paidCash});
       }
     }
+    if(def)d.defaultsKey=def.key;
     return d;
   }
   function accrue(data,done,total){
@@ -44,12 +55,13 @@
   }
   const locked=d=>!!d.legacyLocked||d.history.some(x=>!x.legacy)||d.paidGame>0||d.paidCash>0;
   function amounts(d){
-    const game=Math.floor(d.config.gameMinutes*d.peak+1e-8),cash=Math.floor(cents(d.config.cashYuan)*d.peak+1e-8);
+    const game=Math.max(d.earnedGameFloor||0,Math.floor(d.config.gameMinutes*d.peak+1e-8)),cash=Math.max(d.earnedCashFloor||0,Math.floor(cents(d.config.cashYuan)*d.peak+1e-8));
     return {game,cash,availableGame:Math.max(0,game-d.paidGame),availableCash:Math.max(0,cash-d.paidCash)};
   }
   function configure(data,game,cash,enabled=true){
     if(locked(data))throw Error('已有核销或旧版锁定奖励，不能修改本单元奖励总额。');
-    return {...clone(data),config:budget(game,cash,enabled)};
+    if(game<(data.earnedGameFloor||0)||cents(cash)<(data.earnedCashFloor||0))throw Error('奖励总额不能低于已保留的历史奖励。');
+    return {...clone(data),budgetCustomized:true,config:budget(game,cash,enabled)};
   }
   function redeem(data,kind,parent,at=Date.now()){
     if(!['game','cash'].includes(kind))throw Error('奖励类型无效。');

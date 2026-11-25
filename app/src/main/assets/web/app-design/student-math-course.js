@@ -28,7 +28,7 @@
    try{storeApi.setItem(KEY,JSON.stringify({version:1,topics:nextRecords,tools:nextLearning}));records=nextRecords;learning=nextLearning;storageError='';W.UnitRewards?.update(chapter.id);return true;}
    catch(error){storageError='保存未完成：'+error.message+'。原已保存记录保留，请恢复存储后重试。';return false;}
   }
-  function store(change,id=selected,event){if(!valid())return false;const next={...records,[id]:{...record(id),...change}},tools=T.restore(learning);if(event)T.log(tools,id,{...event,mastered:concept(next[id])&&P.result(next[id]).passed});return saveBundle(next,tools);}
+  function store(change,id=selected,event){if(!valid())return false;if(!physics&&W.GrowingMathScore)change=W.GrowingMathScore.keepBest(record(id),change,P,validGrade);const next={...records,[id]:{...record(id),...change}},tools=T.restore(learning);if(event)T.log(tools,id,{...event,mastered:concept(next[id])&&P.result(next[id]).passed});return saveBundle(next,tools);}
   function results(qs){
    const found=A.results(storeApi,subject,chapter.id,qs);
    for(const q of qs.filter(q=>q.sourceKey)){
@@ -79,6 +79,7 @@
    const state=concept(r)&&quiz.passed?'mastered':r.seen&&r.attempts.length&&practiced?'completed':started?'learning':'pending';
    return {id:n.id,title:n.title,section:section(n),ms,time:T.format(ms),state,label:state==='mastered'&&quiz.legacy?'历史已掌握':{pending:'待学习',learning:'学习中',completed:'已完成',mastered:'已掌握'}[state],score:P.mastery(r).score};
   }
+  function chapterScore(){assertActive();if(unreadable)throw Error('原学习记录无法读取，暂不计算章节分数。');return W.GrowingMathScore.fromRecords(chapter.nodes,records,learning,W.GrowingMathWrongIndex?.[chapter.id]||[],W.GrowingMathScore.loadWrong(storeApi),P,validGrade);}
   function snapshot(){
    if(!chapter)return {kind:'error',title:'请从'+name+'目录选择课程',backHref:'units.html?subject='+subject};
    const n=node(),r=record(),draft=learning.doubts[selected]||{draft:'',messages:[]};let qs=[],practiceError='';
@@ -90,7 +91,7 @@
   }
   function context(){if(!valid()||!chapter)return;const n=node(),exam=view==='home'&&tab!=='learn';W.GrowingDuckContext={id:subject+':'+chapter.id+':'+n.id,title:chapter.title+' · '+n.title,subject,mode:exam?'exam':'learn',segments:exam?[]:[n.review,...(n.steps||[]),n.example,n.pitfall?'易错提醒：'+n.pitfall:''].filter(Boolean)};W.dispatchEvent(new CustomEvent('duck:course-context',{detail:W.GrowingDuckContext}));}
   function route(){if(!valid()||!chapter)return;const search=new URLSearchParams({chapter:chapter.id,node:selected});for(const key of ['v','ui'])if(params.has(key))search.set(key,params.get(key));if(tab==='practice')search.set('practice','1');try{history.replaceState(null,'',(physics?'physics-course.html':'math-course.html')+'?'+search+(location.hash.startsWith('#question-'+selected+'-application-')?location.hash:''));}catch{}document.title=node().title+' · '+chapter.title+' · 逆流';context();}
-  function duck(){try{return W.top.GrowingDuckCourse||W.GrowingDuckCourse;}catch{return W.GrowingDuckCourse;}}
+  function duck(){try{return (W.GrowingCloudHost?.window||W.top).GrowingDuckCourse||W.GrowingDuckCourse;}catch{return W.GrowingDuckCourse;}}
   function stop(){duck()?.stopTeaching();teachingState='idle';}
   function teach(){if(!valid())return;const companion=duck();if(!companion?.toggleTeaching){message='小鸭正在准备，请稍后重试。';notify();return;}message='';companion.toggleTeaching();}
   function cancelPractice(){practiceJob?.abort();practiceJob=null;for(const [id,job] of photoJobs){job.abort();photoMessages.set(id,'上传已取消，已保存原稿保留。');}photoJobs.clear();practiceMessage='提交已取消，答案和已保存照片保留。';}
@@ -98,7 +99,7 @@
   function flushTime(){if(!valid()||pendingTime<=0)return;const next=T.restore(learning);T.log(next,timeTopic,{kind:'time',ms:pendingTime});if(saveBundle(records,next))pendingTime=0;}
   function tickTime(){if(!valid())return;const now=performance.now(),delta=now-lastTick;lastTick=now;if(document.visibilityState==='visible'&&document.hasFocus()&&!busy&&!doubtBusy&&['home','doubts'].includes(view)&&now-lastInput<90000&&![...document.querySelectorAll('dialog[open],.van-popup[role=dialog]')].some(element=>getComputedStyle(element).display!=='none')&&delta<5000)pendingTime+=Math.max(0,delta);if(pendingTime>=10000)flushTime();}
   function choose(id){if(!valid()||id===selected||!chapter.nodes.some(n=>n.id===id))return;flushTime();cancel();selected=id;timeTopic=id;view='home';tab='learn';message='';route();notify();}
-  function navigate(href,replace=false){if(!valid())return;flushTime();cancel();if(onNavigate)onNavigate(href,replace);else if(W.top.GrowingCloud?.navigate)W.top.GrowingCloud.navigate(new URL(href,location.href).href,replace);else if(replace)location.replace(href);else location.href=href;}
+  function navigate(href,replace=false){if(!valid())return;flushTime();cancel();if(onNavigate)onNavigate(href,replace);else if(W.GrowingCloudHost?.cloud?.navigate)W.GrowingCloudHost.cloud.navigate(new URL(href,location.href).href,replace);else if(replace)location.replace(href);else location.href=href;}
   function open(next,back=false){if(!valid())return;if(next==='interactive'){navigate(snapshot().labHref);return;}flushTime();cancel();if(!back&&next!==view)viewHistory.push(view);view=next;message='';context();notify();}
   async function grade(){
    if(!valid()||busy)return;const n=node(),id=selected,answer=record().draft.trim();if(answer.length<12){message='请先用至少12个字符写出自己的解释和例子。';notify();return;}
@@ -166,7 +167,7 @@
     const g=response.grade;if(!g||g.revision!==q.sourcePhoto.revision||!['correct','incorrect','partial','review','unanswered'].includes(g.result?.verdict))throw Error('批改结果未通过校验');
     latest.photoPracticeGrade={sourceKey:q.sourceKey,revision,id:g.id,at:g.at,score:g.result.score,verdict:g.result.verdict,feedback:g.result.feedback};latest.updatedAt=g.at;if(['review','unanswered'].includes(g.result.verdict)){delete latest.practiceRequestId;delete latest.practiceRequestRevision;}persistPhoto(key,latest);
     q.sourcePhoto.latestGrade={id:g.id,at:g.at};
-    W.top.dispatchEvent(new CustomEvent('growing:knowledge-changed',{detail:{studentId:photoContext.studentId}}));
+    (W.GrowingCloudHost?.window||W).dispatchEvent(new CustomEvent('growing:knowledge-changed',{detail:{studentId:photoContext.studentId}}));
     return {key,revision,at:g.at};
    }
    const response=await W.GrowingHandwritingAI.request({subject,unitId:chapter.id,prompt:doc.prompt,nodeIds:[q.topic],pages},controller.signal);
@@ -192,7 +193,7 @@
       if(!entry||entry.sourceKey!==q.sourceKey||entry.choice!==choice){entry={sourceKey:q.sourceKey,choice,requestId:crypto.randomUUID()};if(!store({photoChoiceRequests:{...record(id).photoChoiceRequests,[q.id]:entry}},id))throw Error('选项尚未保存，请重试');}
       const response=await photoContext.api('/question-bank/questions/'+q.sourcePhoto.id+'/correct',{method:'POST',signal:controller.signal,body:JSON.stringify({studentId:photoContext.studentId,requestId:entry.requestId,revision:q.sourcePhoto.revision,figureVersion:q.sourcePhoto.figureVersion,choice})});
       if(!current())return;const g=response.grade;if(!g||g.revision!==q.sourcePhoto.revision||!['correct','incorrect','partial','review','unanswered'].includes(g.result?.verdict))throw Error('选择题批改未完成');
-      if(['review','unanswered'].includes(g.result.verdict))store({photoChoiceRequests:{...record(id).photoChoiceRequests,[q.id]:null}},id);gradedChoices[q.id]=g;q.sourcePhoto.latestGrade={id:g.id,at:g.at};W.top.dispatchEvent(new CustomEvent('growing:knowledge-changed',{detail:{studentId:photoContext.studentId}}));
+      if(['review','unanswered'].includes(g.result.verdict))store({photoChoiceRequests:{...record(id).photoChoiceRequests,[q.id]:null}},id);gradedChoices[q.id]=g;q.sourcePhoto.latestGrade={id:g.id,at:g.at};(W.GrowingCloudHost?.window||W).dispatchEvent(new CustomEvent('growing:knowledge-changed',{detail:{studentId:photoContext.studentId}}));
      }
      if(!current())return;const found=results(qs);
      if(qs.some(q=>q.type==='solution'&&graded[q.id]&&(found[q.id]?.key!==graded[q.id].key||found[q.id]?.doc.revision!==graded[q.id].revision||found[q.id]?.grade?.at!==graded[q.id].at)))throw Error('原稿或批改已更新，请重新提交');
@@ -208,6 +209,7 @@
   }
   function configured(fn){assertActive();const previous=W.GrowingCourseAIStorage;W.GrowingCourseAIStorage=()=>storeApi;try{return fn();}finally{if(previous===undefined)delete W.GrowingCourseAIStorage;else W.GrowingCourseAIStorage=previous;}}
   const actions={
+   rewards(){if(!valid()||physics)return;flushTime();try{if(!W.GrowingMathScore||!W.UnitRewards?.open)throw Error('评分与奖励组件未加载，请刷新重试');W.UnitRewards.open(chapter.id);}catch(error){message=error.message;notify();}},
    choose,open,navigate,grade,ask,uploadPhoto,practiceChoice,submitPractice,loadPhotoPractice,cancelPractice(){cancelPractice();notify();},
    openPhotoBank(wrong=false){const route=new URLSearchParams({unit:chapter.id,nodeId:selected,...(wrong?{wrong:'1'}:{})});navigate((W.GrowingNative?'../cloud/index.html':'/')+'?'+route+'#question-bank');},
    tab(next){if(!valid()||!['learn','recall','practice'].includes(next))return;stop();tab=next;message='';route();notify();},
@@ -228,14 +230,15 @@
    teach,
    stop,
   };
-  if(chapter&&(physics||chapter.number!==10)){
+  if(chapter){
    try{const raw=storeApi.getItem(KEY);if(raw){const parsed=JSON.parse(raw);if(parsed.version!==1||!parsed.topics||typeof parsed.topics!=='object'||Array.isArray(parsed.topics))throw Error('格式不匹配');
     // A whole-archive save must never discard a damaged topic, including one in another chapter.
     if(Object.values(parsed.topics).some(r=>r!==null&&(typeof r!=='object'||Array.isArray(r)||typeof r.draft!=='string'||!Array.isArray(r.self)||!Array.isArray(r.attempts))))throw Error('知识点记录格式不匹配');
-    learning=T.restore(parsed.tools);for(const n of D.nodes){const r=parsed.topics[n.id];if(r&&typeof r==='object'&&typeof r.draft==='string'&&Array.isArray(r.self)&&Array.isArray(r.attempts))records[n.id]={draft:r.draft,seen:r.seen===true,self:r.self.filter(Number.isInteger),bestQuiz:Number.isInteger(r.bestQuiz)?Math.max(0,Math.min(3,r.bestQuiz)):0,practiceChoiceSources:r.practiceChoiceSources,photoChoiceRequests:r.photoChoiceRequests,practiceSet:r.practiceSet,practice10:r.practice10,practicePhoto:r.practicePhoto,practiceRound:r.practiceRound,practiceMode:r.practiceMode,practiceChoices:P.choices(r.practiceChoices),attempts:r.attempts.filter(validGrade).slice(-20)};}if(!parsed.tools)for(const n of D.nodes)for(const attempt of records[n.id]?.attempts||[])if(attempt.at&&Number.isFinite(new Date(attempt.at).getTime()))T.log(learning,n.id,{kind:'grade',score:attempt.score},attempt.at);}}
+    learning=T.restore(parsed.tools);for(const n of D.nodes){const r=parsed.topics[n.id];if(r&&typeof r==='object'&&typeof r.draft==='string'&&Array.isArray(r.self)&&Array.isArray(r.attempts))records[n.id]={draft:r.draft,seen:r.seen===true,self:r.self.filter(Number.isInteger),bestQuiz:Number.isInteger(r.bestQuiz)?Math.max(0,Math.min(3,r.bestQuiz)):0,practiceChoiceSources:r.practiceChoiceSources,photoChoiceRequests:r.photoChoiceRequests,bestFeynman:r.bestFeynman,practiceBestRound:r.practiceBestRound,practiceSet:r.practiceSet,practice10:r.practice10,practicePhoto:r.practicePhoto,practiceRound:r.practiceRound,practiceMode:r.practiceMode,practiceChoices:P.choices(r.practiceChoices),attempts:r.attempts.filter(validGrade).slice(-20)};}if(!parsed.tools)for(const n of D.nodes)for(const attempt of records[n.id]?.attempts||[])if(attempt.at&&Number.isFinite(new Date(attempt.at).getTime()))T.log(learning,n.id,{kind:'grade',score:attempt.score},attempt.at);}}
    catch{unreadable=true;storageError='本机微课记录暂时无法读取。旧记录未删除；请先备份并修复记录后再保存。';}
    for(const n of D.nodes)if(concept(record(n.id))&&P.result(record(n.id)).passed&&!Object.hasOwn(learning.mastery,n.id))learning.mastery[n.id]=null;
-   if(valid())W.UnitRewards?.register(chapter.id,{title:chapter.title,rule:'每个知识点须有效AI解释评分≥8分且无核心错误，并通过10/10应用练习；解答题批改及关联知识点均须≥80分，待复核不计通过。旧版达标和已获得奖励保留。',progress:()=>({done:chapter.nodes.filter(n=>concept(record(n.id))&&P.result(record(n.id)).passed).length,total:chapter.nodes.length})});
+   if(valid()){const unregister=W.UnitRewards?.register(chapter.id,!physics&&W.GrowingMathScore?{title:chapter.title,storage:storeApi,defaults:{key:'math-score-v1',gameMinutes:100,cashYuan:200},describe:()=>W.GrowingMathScore.describe(chapterScore()),progress:()=>chapterScore().progress}:{title:chapter.title,rule:'每个知识点须有效AI解释评分≥8分且无核心错误，并通过10/10应用练习；旧版达标和已获得奖励保留。',progress:()=>({done:chapter.nodes.filter(n=>concept(record(n.id))&&P.result(record(n.id)).passed).length,total:chapter.nodes.length})});if(typeof unregister==='function')cleanups.push(unregister);}
+   if(!physics&&params.get('rewards')==='1')setTimeout(()=>{if(valid())actions.rewards();},0);
    const previousAccount=W.GrowingCourseAccount,account={open,back(){if(!viewHistory.length)return false;open(viewHistory.pop(),true);return true;}};W.GrowingCourseAccount=account;cleanups.push(()=>{if(W.GrowingCourseAccount===account){if(previousAccount===undefined)delete W.GrowingCourseAccount;else W.GrowingCourseAccount=previousAccount;}});
    const input=()=>{tickTime();lastInput=performance.now();};for(const event of ['pointerdown','keydown','input','wheel'])listen(document,event,input,{passive:true});listen(document,'visibilitychange',()=>{tickTime();flushTime();notify();});listen(W,'duck:teaching-state',event=>{if(!valid()||event.detail?.courseId!==W.GrowingDuckContext?.id)return;teachingState=event.detail.state;message=event.detail.message||'';notify();});listen(W,'pagehide',()=>{tickTime();flushTime();destroy();});listen(W,'pageshow',()=>{if(valid()){for(const n of chapter.nodes)syncPhoto(n.id);notify();}});listen(W,'storage',event=>{if(valid()&&(event.key===null||C.KEY.test(event.key))){for(const n of chapter.nodes)syncPhoto(n.id);notify();}});const timer=setInterval(()=>{tickTime();notify();},1000);cleanups.push(()=>clearInterval(timer));for(const n of chapter.nodes)syncPhoto(n.id);route();void loadPhotoPractice();
   }

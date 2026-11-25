@@ -1,0 +1,11 @@
+CREATE TABLE GrowingPaperOCRPages (
+ JobId TEXT NOT NULL REFERENCES GrowingPaperImportJobs(Id) ON DELETE CASCADE,
+ Page INTEGER NOT NULL,
+ Model TEXT NOT NULL,
+ Markdown TEXT NOT NULL,
+ Raw TEXT NOT NULL,
+ CreatedAt TEXT NOT NULL,
+ PRIMARY KEY(JobId,Page)
+);
+ALTER TABLE GrowingPhotoQuestions ADD COLUMN AutoVerifiedRevision INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE GrowingPhotoQuestions ADD COLUMN SourceProcessor TEXT NOT NULL DEFAULT '';

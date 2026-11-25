@@ -48,9 +48,9 @@ export function validatePaper(v:any,pageCount:number,subject='math'):Recognized|
   return {format:formatFor(subject),title:v.title,warnings:v.warnings,classification:normalizeClassification(v.classification,subject,v.title),questions};
 }
 
-const questionFields=`q."Practice" AS practice,p."Subject" AS subject,q."QuestionType" AS questionType,q."Id" AS id,q."PaperWrong" AS paperWrong,q."PaperId" AS paperId,q."Number" AS number,q."Text" AS text,q."Answer" AS answer,
+const questionFields=`q."SourceProcessor" AS sourceProcessor,(q."AutoVerifiedRevision"=q."Revision") AS autoVerified,q."Practice" AS practice,p."Subject" AS subject,q."QuestionType" AS questionType,q."Id" AS id,q."PaperWrong" AS paperWrong,q."PaperId" AS paperId,q."Number" AS number,q."Text" AS text,q."Answer" AS answer,
  q."UnitId" AS unitId,q."Reason" AS reason,q."Uncertain" AS uncertain,q."Pages" AS pages,q."Revision" AS revision,q."Reviewed" AS reviewed,q."Format" AS format,q."Regions" AS regions,q."Figures" AS figures,q."FigureVersion" AS figureVersion,(length(q."FigureImage")>0) AS hasFigureImage,(length(q."FigureDrawing")>0) AS hasDrawing,q."DrawingReviewed" AS drawingReviewed,q."DrawingRevision" AS drawingRevision,p."Mode" AS mode,p."Title" AS paperTitle,p."CreatedAt" AS createdAt`;
-function decode(rows:any[]){return rows.map(q=>({...q,practice:readPractice(q.practice,q.subject,q.unitId),uncertain:JSON.parse(q.uncertain),pages:JSON.parse(q.pages),reviewed:!!q.reviewed}));}
+function decode(rows:any[]){return rows.map(q=>({...q,practice:readPractice(q.practice,q.subject,q.unitId),uncertain:JSON.parse(q.uncertain),pages:JSON.parse(q.pages),reviewed:!!q.reviewed,autoVerified:!!q.autoVerified}));}
 export class QuestionBank {
   constructor(private db:Database,private user:User){}
   async authorize(id:unknown):Promise<string>{
@@ -66,7 +66,7 @@ export class QuestionBank {
     if(unit!=='all'&&!validUnit(unit))fail(400,'单元无效。');
     if(nodeId&&!photoCatalog.knowledge.some(n=>n.id===nodeId&&(unit==='all'||n.unitId===unit)))fail(400,'知识点与单元不符。');
     if(wrong){
-      let rows=(await this.evidence(student)).filter(q=>q.needsCorrection&&(unit==='all'||q.unitIds.includes(unit))&&(!nodeId||q.nodeIds.includes(nodeId)));
+      let rows=(await this.evidence(student)).filter(q=>q.needsCorrection&&(unit==='all'||q.unitIds.includes(unit))&&(!nodeId||(q.sourceProcessor==='photo-agent-v1'?q.gapNodeIds:q.nodeIds).includes(nodeId)));
       if(repeated){const attempts=await this.db.query<any>('SELECT "QuestionId" AS id FROM "GrowingQuestionAttempts" WHERE "StudentId"=?1 AND "Kind"=\'photo\' AND "Correct"=0 GROUP BY "QuestionId" HAVING count(*)>=2',[student]);rows=rows.filter(q=>attempts.some(a=>a.id===q.id));}
       return {rows:await attachPhotoGrades(this.db,rows.slice((page-1)*20,page*20).map(({evidenceResult,...q})=>q)),total:rows.length,page,pageSize:20};
     }
@@ -89,7 +89,7 @@ export class QuestionBank {
     const unit=units.find(u=>u.id===unitId);if(!unit)fail(400,'单元无效。');
     const rows=decode(await this.db.query<any>(`SELECT ${questionFields},q."FigureDrawing" AS drawing FROM "GrowingPhotoQuestions" q
       JOIN "GrowingQuestionPapers" p ON p."Id"=q."PaperId" WHERE p."StudentId"=?1 AND q."UnitId"=?2
-      AND p."Mode" IN ('paper','grade','transcribe') AND q."Reviewed"=1
+      AND p."Mode" IN ('paper','grade','transcribe') AND (q."Reviewed"=1 OR q."AutoVerifiedRevision"=q."Revision")
       ORDER BY p."CreatedAt" DESC,p.rowid DESC,q.rowid`,[student,unitId]));
     const candidates=rows.filter(q=>q.practice);
     const counts=Object.fromEntries(practiceCatalog(unit!.subject).filter(n=>n.unitId===unitId).map(n=>[n.id,candidates.filter(q=>q.practice.nodeId===n.id).length]));
@@ -99,7 +99,7 @@ export class QuestionBank {
       const choice=['basic','improved'].includes(q.practice.level);
       if(q.questionType!==(choice?'choice':'written'))continue;
       const figures=JSON.parse(q.figures||'[]'),vector=drawing.normalize(JSON.parse(q.drawing||'null'));
-      if((figures.length||q.hasFigureImage||q.hasDrawing)&&(!vector||!q.drawingReviewed||q.drawingRevision!==q.revision))continue;
+      if((figures.length||q.hasFigureImage||q.hasDrawing)&&(!vector||(!q.drawingReviewed&&!q.autoVerified)||q.drawingRevision!==q.revision))continue;
       const slot=q.practice.nodeId+':'+q.practice.level,content=q.practice.nodeId+':'+q.text.replace(/\s+/g,'')+':'+JSON.stringify(vector);
       const limit=q.practice.level==='basic'?6:q.practice.level==='improved'?2:1;
       if((slots.get(slot)||0)>=limit||seen.has(content))continue;slots.set(slot,(slots.get(slot)||0)+1);seen.add(content);
@@ -141,7 +141,7 @@ export class QuestionBank {
       ORDER BY p."CreatedAt" DESC,p.rowid DESC,q.rowid`,[student,subject??null,paperId??null]);
     return decode(rows).map(q=>{
       const result=q.evidenceResult?JSON.parse(q.evidenceResult):null;
-      const pending=!result&&(q.mode==='paper-draft'||!q.reviewed);
+      const pending=!result&&(q.mode==='paper-draft'||(!q.reviewed&&!q.autoVerified));
       const nodes=photoCatalog.knowledge.filter(n=>n.subject===q.subject);
       const knowledge=(result?.knowledge||[]).filter((k:any)=>k.confidence>=.8&&nodes.some(n=>n.id===k.nodeId));
       const nodeIds=[...new Set<string>([...knowledge.map((k:any)=>k.nodeId),...(!pending&&q.practice?[q.practice.nodeId]:[])])];
@@ -270,7 +270,7 @@ export class QuestionBank {
     if(signal.aborted)fail(499,'绘图已取消，原题图保留。');
     if(!vector)fail(502,'SVG 绘图结果无效，原题图保留。');
     await this.authorize(student);
-    const saved=await this.db.query(`UPDATE "GrowingPhotoQuestions" SET "Reviewed"=0,"FigureDrawing"=?4,"DrawingReviewed"=0,"DrawingRevision"="Revision","FigureVersion"="FigureVersion"+1 WHERE "Id"=?1 AND "FigureVersion"=?3 AND "Revision"=?5 AND "PaperId" IN (SELECT "Id" FROM "GrowingQuestionPapers" WHERE "StudentId"=?2) RETURNING "Id"`,[id,student,data.figureVersion,JSON.stringify(vector),data.revision]);
+    const saved=await this.db.query(`UPDATE "GrowingPhotoQuestions" SET "AutoVerifiedRevision"=0,"Revision"="Revision"+CASE WHEN "SourceProcessor"='photo-agent-v1' THEN 1 ELSE 0 END,"Reviewed"=0,"FigureDrawing"=?4,"DrawingReviewed"=0,"DrawingRevision"="Revision"+CASE WHEN "SourceProcessor"='photo-agent-v1' THEN 1 ELSE 0 END,"FigureVersion"="FigureVersion"+1 WHERE "Id"=?1 AND "FigureVersion"=?3 AND "Revision"=?5 AND "PaperId" IN (SELECT "Id" FROM "GrowingQuestionPapers" WHERE "StudentId"=?2) RETURNING "Id"`,[id,student,data.figureVersion,JSON.stringify(vector),data.revision]);
     if(!saved.length)fail(409,'绘图期间题目或题图已更新，请刷新后重试。');
     return {saved:true,figureVersion:Number(data.figureVersion)+1};
   }
@@ -293,7 +293,7 @@ export class QuestionBank {
       if(figures.some(r=>!sources.some(p=>p.page===r.page)))fail(400,'来源页原稿缺失，请先补回原稿。');
     }
     await this.authorize(student);
-    const saved=await this.db.query(`UPDATE "GrowingPhotoQuestions" SET "Reviewed"=0,"Figures"=?4,"FigureImage"=?5,"FigureDrawing"='',"DrawingReviewed"=0,"DrawingRevision"=0,"FigureVersion"="FigureVersion"+1 WHERE "Id"=?1 AND "FigureVersion"=?3 AND "PaperId" IN (SELECT "Id" FROM "GrowingQuestionPapers" WHERE "StudentId"=?2) RETURNING "Id"`,[id,student,data.figureVersion,JSON.stringify(figures),uploaded?data.image:'']);
+    const saved=await this.db.query(`UPDATE "GrowingPhotoQuestions" SET "AutoVerifiedRevision"=0,"Revision"="Revision"+CASE WHEN "SourceProcessor"='photo-agent-v1' THEN 1 ELSE 0 END,"Reviewed"=0,"Figures"=?4,"FigureImage"=?5,"FigureDrawing"='',"DrawingReviewed"=0,"DrawingRevision"=0,"FigureVersion"="FigureVersion"+1 WHERE "Id"=?1 AND "FigureVersion"=?3 AND "PaperId" IN (SELECT "Id" FROM "GrowingQuestionPapers" WHERE "StudentId"=?2) RETURNING "Id"`,[id,student,data.figureVersion,JSON.stringify(figures),uploaded?data.image:'']);
     if(!saved.length)fail(409,'题图已更新，请刷新后重新核对。');
     return {saved:true,figureVersion:Number(data.figureVersion)+1};
   }
@@ -330,7 +330,7 @@ export class QuestionBank {
     let text:string,answer:string;
     try{text=textFor(data.text as string,paper.subject);answer=textFor(data.answer as string,paper.subject);}catch{ return fail(400,'公式格式无效，请检查公式括号和LaTeX命令；不能用图片代替题面。'); }
     if(!str(text,6000)||!str(answer,2000))fail(400,'标准化后的题目或答案过长，请分题录入。');
-    const rows=await this.db.query(`UPDATE "GrowingPhotoQuestions" SET "Number"=?3,"Text"=?4,"Answer"=?5,"UnitId"=?6,"QuestionType"=?9,"Practice"=?10,"Reviewed"=1,"PaperWrong"=NULL,"Format"=?8,"Revision"="Revision"+1
+    const rows=await this.db.query(`UPDATE "GrowingPhotoQuestions" SET "Number"=?3,"Text"=?4,"Answer"=?5,"UnitId"=?6,"QuestionType"=?9,"Practice"=?10,"Reviewed"=1,"Uncertain"='[]',"PaperWrong"=NULL,"Format"=?8,"Revision"="Revision"+1
       WHERE "Id"=?1 AND "Revision"=?7 AND "PaperId" IN (SELECT "Id" FROM "GrowingQuestionPapers" WHERE "StudentId"=?2) RETURNING "Id"`,[id,student,data.number,text,answer,data.unitId,data.revision,formatFor(paper.subject),data.questionType??'unknown',JSON.stringify(practice||{})]);
     if(!rows.length)fail(409,'题目已更新或不可访问，请刷新题库再修改。');
     return {saved:true};

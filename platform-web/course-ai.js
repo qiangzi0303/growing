@@ -4,7 +4,7 @@
 const native=window.GrowingNative;
 let cache=null;
 function account(){
- let cloud;try{cloud=window.top?.GrowingCloud||window.GrowingCloud;}catch{}
+ let cloud;try{cloud=window.GrowingCloudHost?.cloud||window.GrowingCloud||window.top?.GrowingCloud;}catch{}
  if(!native&&cloud?.aiContext)return cloud.aiContext();
  if(!native)throw Error('请先登录后使用 AI。');
  const read=()=>{try{return JSON.parse(localStorage.getItem('growing-cloud-session-v1')||'null');}catch{return null;}};
@@ -15,7 +15,7 @@ function account(){
 function state(a){if(!cache||cache.key!==a.key)cache={key:a.key,models:null,pending:null};return cache;}
 async function prepare(purpose='chat'){
  // Reuse the shell's memory cache across same-origin classroom frames.
- try{const shared=window.top?.GrowingCourseAI;if(window.top!==window&&shared&&shared.prepare!==prepare)return shared.prepare(purpose);}catch{}
+ try{const owner=window.GrowingCloudHost?.window||window.top,shared=owner?.GrowingCourseAI;if(owner!==window&&shared&&shared.prepare!==prepare)return shared.prepare(purpose);}catch{}
  const a=account(),s=state(a);
  if(!s.pending&&!s.models)s.pending=a.api('/ai/config',{cache:'no-store'}).then(data=>{if(!a.current())throw Error('账号已切换，请重试。');s.models=Array.isArray(data.models)?data.models:[];}).finally(()=>s.pending=null);
  if(s.pending)await s.pending;

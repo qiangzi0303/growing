@@ -3,7 +3,7 @@ const root=path.resolve(__dirname,'..'),web=path.join(root,'app/src/main/assets/
 const wordRules=require(path.join(web,'word-mastery-rules.js'));
 for(const file of ['english-vocabulary.js','english-lessons.js'])vm.runInContext(fs.readFileSync(path.join(web,file),'utf8'),context,{filename:file});
 const rules=Object.fromEntries(Object.entries(context.window.GrowingEnglishVocabulary).map(([number,words])=>['english-8a-'+number.padStart(2,'0'),{
-  wordCount:words.length,words:words.filter(w=>!w.optional).map(w=>wordRules.describe(w)),lessons:(context.window.GrowingEnglishLessons[number]||[]).map(l=>({id:l.id,answers:l.questions.map(q=>q.answer)}))
+  wordCount:words.length,allWords:words.map(w=>({...wordRules.describe(w),optional:!!w.optional})),words:words.filter(w=>!w.optional).map(w=>wordRules.describe(w)),lessons:(context.window.GrowingEnglishLessons[number]||[]).map(l=>({id:l.id,title:l.title,answers:l.questions.map(q=>q.answer)}))
 }]));
 const legacy=vm.createContext({window:{}});
 const wordHtml=fs.readFileSync(path.join(root,'app/src/main/assets/web/word-ops-unit3/index.html'),'utf8');
@@ -18,7 +18,7 @@ if(!fs.existsSync(sentenceTarget)||fs.readFileSync(sentenceTarget,'utf8')!==sent
 const summaryLegacy={words:unit.words.map(({id,en,cn,pos})=>({id,en,cn,pos})),lessons:unit.lessons.map(({id,title})=>({id,title}))};
 const summaryTarget=path.join(web,'unit-summary-legacy.js'),summaryOutput='/* Generated from the original Unit 3 classroom. */\nwindow.GrowingSummaryLegacy='+JSON.stringify(summaryLegacy)+';\n';
 if(!fs.existsSync(summaryTarget)||fs.readFileSync(summaryTarget,'utf8')!==summaryOutput)fs.writeFileSync(summaryTarget,summaryOutput);
-rules.__legacy={fractionTopics:[],words:unit.words.map(w=>wordRules.describe(w)),
+rules.__legacy={fractionTopics:[],lessons:summaryLegacy.lessons,words:unit.words.map(w=>wordRules.describe(w)),
   seenIds:[...unit.words.map(w=>w.id),...unit.lessons.flatMap(l=>l.cards.map(c=>c.id))],tests:[...unit.groups,...unit.lessons].map(l=>l.id)};
 const math=require(path.join(web,'math-data.js')),physics=require(path.join(web,'physics-data.js'));
 const diagnosis=Object.fromEntries(Object.entries({math,physics}).map(([name,data])=>[name,{

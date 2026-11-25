@@ -24,9 +24,10 @@
     const $=s=>root.querySelector(s),message=s=>{$('[data-status]').textContent=s;};
     const jobsHost=document.createElement('section');jobsHost.className='papers-import-jobs';$('[data-list]').before(jobsHost);
     const pause=document.createElement('button');pause.dataset.pauseImport='';pause.textContent='暂存并退出整理';pause.hidden=true;$('[data-status]').after(pause);
-    function stopImport(){jobGeneration++;runningJob=false;pause.hidden=true;jobsHost.hidden=false;lock(false);message('进度已保存，可继续整理。');}
+    let backgroundJob=false;
+    function stopImport(){jobGeneration++;runningJob=false;pause.hidden=true;jobsHost.hidden=false;lock(false);message(backgroundJob?'后台继续处理，可稍后回来查看。':'进度已保存，可继续整理。');}
     pause.onclick=stopImport;
-    function jobCard(job){const action=job.mode==='grade'?'批改':'整理';return `<article class="papers-import-job" data-job-id="${esc(job.id)}" data-job-revision="${job.revision}" tabindex="0" aria-label="${esc(subjectName(job.subject))}待继续${action}，长按或按 Delete 删除"><strong>${esc(subjectName(job.subject))} · ${job.status==='failed'?action+'中断':'待继续'+action}</strong><p>已规划 ${job.plannedPages}/${job.pageCount} 页 · 已${action} ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题</p>${job.error?`<details class="papers-import-error"><summary>查看原因</summary><p>${esc(job.error)}</p></details>`:''}<button data-resume="${esc(job.id)}">${job.status==='failed'?'重试'+action:'继续'+action}</button></article>`;}
+    function jobCard(job){const action=job.mode==='grade'?'批改':'整理';return `<article class="papers-import-job" data-job-id="${esc(job.id)}" data-job-revision="${job.revision}" tabindex="0" aria-label="${esc(subjectName(job.subject))}待继续${action}，长按或按 Delete 删除"><strong>${esc(subjectName(job.subject))} · ${job.status==='failed'?action+'中断':job.processor==='photo-agent-v1'?'后台处理中':'待继续'+action}</strong><p>已规划 ${job.plannedPages}/${job.pageCount} 页 · 已${action} ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题</p>${job.error?`<details class="papers-import-error"><summary>查看原因</summary><p>${esc(job.error)}</p></details>`:''}<button data-resume="${esc(job.id)}">${job.status==='failed'?'重试'+action:job.processor==='photo-agent-v1'?'查看进度':'继续'+action}</button></article>`;}
     async function runJob(initial){
       const student=studentId,selectedSubject=subject,generation=++jobGeneration;
       const current=()=>valid()&&generation===jobGeneration&&student===studentId&&selectedSubject===subject;
@@ -34,6 +35,7 @@
       // A selection change cancels local progression; a server step already in flight may finish safely.
       root.querySelectorAll('[data-student],[data-subject]').forEach(e=>{e.disabled=false;});
       let job=initial;
+      backgroundJob=job.processor==='photo-agent-v1';pause.textContent=backgroundJob?'关闭进度，后台继续':'暂存并退出整理';
       if(job.mode==='grade'){
         pause.hidden=true;
         try{const result=await GrowingGradingProgress.run({api,studentId:student,job,alive:current});if(!current())return;if(result)await open(result.paperId);else{message('批改进度已保存。');await list();}}
@@ -44,6 +46,12 @@
         while(current()){
           if(job.status==='complete'){runningJob=false;pause.hidden=true;await open(job.paperId);return;}
           jobsHost.innerHTML=jobCard(job);
+          if(job.processor==='photo-agent-v1'){
+            if(job.status==='failed')throw Error(job.error||'后台处理失败，请重试。');
+            message('后台处理中，退出后仍会继续。');
+            job=await api('/question-bank/import-jobs/'+job.id+'/progress?'+new URLSearchParams({studentId:student}));if(!current())return;
+            if(!['failed','complete'].includes(job.status))await new Promise(resolve=>setTimeout(resolve,1500));continue;
+          }
           message(`正在整理：已规划 ${job.plannedPages}/${job.pageCount} 页，已整理 ${job.recognizedQuestions}/${job.totalQuestions||'?'} 题。${job.next?.number?' 第 '+job.next.number+' 题 · '+GrowingQuestionFigures.importStage(job.next):''}`);
           const detail=await api('/question-bank/import-jobs/'+job.id+'?'+new URLSearchParams({studentId:student}));if(!current())return;job=detail;
           if(job.status==='complete')continue;
@@ -226,7 +234,7 @@
         if(b.hasAttribute('data-rotate')){lock(true);const student=studentId,index=Number(b.dataset.rotate),src=photos[index],rotated=await GrowingQuestionFigures.rotatePhoto(src);if(!valid()||student!==studentId||photos[index]!==src)return;photos[index]=rotated;requestId=crypto.randomUUID();previews();return;}
         if(b.hasAttribute('data-library')){closeReview();$('[data-upload]').hidden=true;$('[data-paper]').hidden=true;$('[data-list]').hidden=false;await list();return;}
         lock(true);
-        if(b.dataset.resume){const student=studentId,generation=jobGeneration;const job=await api('/question-bank/import-jobs/'+b.dataset.resume+'?'+new URLSearchParams({studentId:student}));if(!valid()||student!==studentId||generation!==jobGeneration)return;await runJob(job);return;}
+        if(b.dataset.resume){const student=studentId,generation=jobGeneration;let job=await api('/question-bank/import-jobs/'+b.dataset.resume+'/progress?'+new URLSearchParams({studentId:student}));if(!valid()||student!==studentId||generation!==jobGeneration)return;if(job.processor==='photo-agent-v1'&&job.status==='failed'){job=await api('/question-bank/import-jobs/'+job.id+'/retry',{method:'POST',body:JSON.stringify({studentId:student,revision:job.revision})});if(!valid()||student!==studentId||generation!==jobGeneration)return;}await runJob(job);return;}
         if(b.dataset.open)await open(b.dataset.open);
         if(b.hasAttribute('data-import')&&photos.length){message('正在保存照片与整理进度…');const student=studentId,generation=jobGeneration;
           const data=await api('/question-bank/import-jobs',{method:'POST',body:JSON.stringify({studentId:student,requestId,pages:photos,subject:subject||'math'})});

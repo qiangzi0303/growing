@@ -44,13 +44,24 @@ test('failed review save retains feedback and retry writes once; conflicts and a
 });
 function setup(records={},request=async()=>'',query='unit=english-8a-01',review=false,cards=null){
  const w={URLSearchParams,AbortController,Date,Math,setTimeout,clearTimeout,setInterval,clearInterval,document:{hidden:false,hasFocus:()=>true,querySelector:()=>null,addEventListener(){},removeEventListener(){}},addEventListener(){},removeEventListener(){},dispatchEvent(){},CustomEvent:class{constructor(type,value){this.type=type;this.detail=value?.detail;}},UnitRewards:{register(){},update(){}},GrowingCourseSpeech:{create:()=>({stop(){},play(){}})}};w.window=w;
- const context=vm.createContext(w);for(const file of ['curriculum.js','word-mastery-rules.js','english-engine.js','english-vocabulary.js','english-lessons.js','english-word-pilot-data.js','english-word-pilot-core.js','student-word-pilot.js','student-english-course.js'])vm.runInContext(fs.readFileSync(path.join(web,file),'utf8'),context);
+ const context=vm.createContext(w);for(const file of ['curriculum.js','word-mastery-rules.js','english-sentence-progress.js','english-unit-score.js','english-score.js','english-engine.js','english-vocabulary.js','english-lessons.js','english-word-pilot-data.js','english-word-pilot-core.js','student-word-pilot.js','student-english-course.js'])vm.runInContext(fs.readFileSync(path.join(web,file),'utf8'),context);
  if(review)vm.runInContext(fs.readFileSync(path.join(web,'english-word-review.js'),'utf8'),context);
  if(cards)w.GrowingEnglishWordStudyData=cards;
  const storage={getItem:key=>records[key]??null,setItem:(key,value)=>records[key]=value,removeItem:key=>delete records[key]};let alive=true;
  const controller=w.GrowingStudentEnglishCourse.create({params:new URLSearchParams(query),storage,active(){if(!alive)throw Error('session expired');},request});
  return {w,records,storage,controller,expire(){alive=false;},close(){controller.destroy();}};
 }
+test('partial quiz credit and best Feynman survive later failures and reload',async()=>{
+ let mark=9;const s=setup({},async()=>JSON.stringify({score:mark,feedback:'valid',criticalErrors:[]}));
+ try{const c=s.controller,l=c.model.lesson,answers=l.questions.map(q=>q.answer);
+  c.actions.quiz();c.actions.submitQuiz([answers[0],answers[1],'wrong']);
+  c.actions.quiz();c.actions.submitQuiz(['wrong','wrong','wrong']);
+  c.actions.navigate('feynman');c.actions.feynmanDraft('解释定义、使用条件和例子');await c.actions.gradeFeynman();mark=1;
+  for(let i=0;i<21;i++)await c.actions.gradeFeynman();
+  const raw=JSON.parse(s.records[c.model.storageKey]);assert.equal(raw.feynman[l.id].attempts.length,20);assert.equal(raw.feynman[l.id].bestFeynman.score,9);
+  const r=setup(s.records);try{const result=r.w.GrowingEnglishUnitScore.lessonResult(l,raw,false);assert.equal(result.quiz,2/3);assert.equal(result.feynman,9);assert.equal(result.mastered,false);}finally{r.close();}
+ }finally{s.close();}
+});
 test('real words, linked lessons and historical cursor restore without rewriting records',()=>{const records={'growing-english-course-v1:english-8a-01':'{"version":1,"words":{},"lessons":{},"feynman":{},"wordCursor":"u1w2"}'},before=JSON.stringify(records),s=setup(records);try{assert.equal(s.controller.model.kind,'english');assert.ok(s.controller.model.words.length>20);assert.equal(JSON.stringify(records),before);}finally{s.close();}});
 
 for(const number of [1,2,4,5,6,7,8])test('Unit '+number+' shares continuous dictation, review and isolated illustrated cards',()=>{
@@ -105,7 +116,7 @@ test('cancelling a doubt request preserves draft and ignores late response',asyn
 test('all seven current classroom units and direct node links retain actual content',()=>{
  for(const number of [1,2,4,5,6,7,8]){const s=setup({},async()=>'',`unit=english-8a-0${number}`);try{assert.equal(s.controller.model.kind,'english');assert.ok(s.controller.model.lessons.length);const target=s.controller.model.lessons[0],linked=setup({},async()=>'',`unit=english-8a-0${number}&node=lesson:${target.id}`);try{assert.equal(linked.controller.model.view,'lesson');assert.equal(linked.controller.model.lesson.id,target.id);}finally{linked.close();}}finally{s.close();}}
 });
-test('failed quiz does not create mastery and feynman validation rejects malformed result',async()=>{const s=setup({},async()=>'{"score":10,"feedback":"missing critical errors"}');try{const c=s.controller;c.actions.quiz();c.actions.submitQuiz(c.model.lesson.questions.map(()=> 'wrong'));assert.equal(c.model.attempt.result.saved,false);assert.equal(s.records[c.model.storageKey],undefined);c.actions.navigate('feynman');c.actions.feynmanDraft('解释定义使用条件并举例');await c.actions.gradeFeynman();assert.match(c.model.notice,/格式不完整/);assert.equal(JSON.parse(s.records[c.model.storageKey]).feynman[c.model.lesson.id].attempts,undefined);}finally{s.close();}});
+test('failed quiz does not create mastery and feynman validation rejects malformed result',async()=>{const s=setup({},async()=>'{"score":10,"feedback":"missing critical errors"}');try{const c=s.controller;c.actions.quiz();c.actions.submitQuiz(c.model.lesson.questions.map(()=> 'wrong'));assert.equal(c.model.attempt.result.saved,false);assert.equal(JSON.parse(s.records[c.model.storageKey]).lessons[c.model.lesson.id].protocol,"three-question-attempt");c.actions.navigate('feynman');c.actions.feynmanDraft('解释定义使用条件并举例');await c.actions.gradeFeynman();assert.match(c.model.notice,/格式不完整/);assert.equal(JSON.parse(s.records[c.model.storageKey]).feynman[c.model.lesson.id].attempts,undefined);}finally{s.close();}});
 test('beforeLeave flushes foreground study time while destroy after session invalidation only cleans up',()=>{const s=setup(),now=Date.now();s.w.Date=class extends Date{static now(){return now+5000;}};s.controller.beforeLeave();const saved=s.records[s.controller.model.storageKey];assert.ok(Object.values(JSON.parse(saved).learningTime.days)[0]>=4900);s.expire();s.close();assert.equal(s.records[s.controller.model.storageKey],saved);});
 test('actual 90-second timeout rejects late resolved grades while preserving the draft',async()=>{
  let finish,signal,timeout;const s=setup({},({signal:value})=>{signal=value;return new Promise(resolve=>finish=resolve);});

@@ -14,7 +14,7 @@ test('compiled Unit3 uses Vant and hides English and previous answers during all
  w.HTMLElement.prototype.scrollIntoView=function(){};
  w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
  const html=await readFile(new URL('word-ops-unit3/index.html',base),'utf8'),scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];for(const i of [0,2,3,4,5,6,7])w.eval(scripts[i][1]);
- for(const [name,file] of Object.entries({WordMasteryRules:'word-mastery-rules.js',GrowingRewards:'reward-engine.js',GrowingEnglishScore:'english-score.js',GrowingEnglishWordReview:'english-word-review.js'}))w[name]=require('../../app/src/main/assets/web/app-design/'+file);
+ for(const [name,file] of Object.entries({WordMasteryRules:'word-mastery-rules.js',GrowingRewards:'reward-engine.js',GrowingEnglishUnitScore:'english-unit-score.js',GrowingEnglishScore:'english-score.js',GrowingEnglishWordReview:'english-word-review.js'}))w[name]=require('../../app/src/main/assets/web/app-design/'+file);
  w.UnitRewards={register(){},update(){}};w.GrowingCourseSpeech={create:()=>({play(){},stop(){}})};w.GrowingCourseAI={request:async()=>JSON.stringify({meaningPassed:true,posPassed:true,feedback:'准确',errors:[]}),info:()=>({configured:false})};w.SentenceDemo={units:{'english-8a-03':{topics:[]}}};
  w.eval(await readFile(new URL('app-design/student-unit3-course.js',base),'utf8'));w.eval(code);const c=w.GrowingStudentUnit3Course.create({storage:w.localStorage}),app=w.Unit3Test.mount(w.document.querySelector('#root'),c);
  try{

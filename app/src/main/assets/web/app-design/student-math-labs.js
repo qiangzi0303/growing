@@ -13,9 +13,9 @@
    Object.assign(state,{current,chapter,values:{...values},progress,running,speed,animateKey,feedback,quizHidden,answer});
    if(geometry){
     state.filtered=G.models.filter(m=>(!filters.group||m.group===filters.group)&&(!filters.level||(filters.level==='advanced')===m.advanced)&&(!filters.search||[m.id,m.title,m.given,m.result,...m.nodes.map(id=>D.nodes.find(n=>n.id===id)?.title||id)].join(' ').toLowerCase().includes(filters.search.trim().toLowerCase())));
-    state.svg=current?geometrySvg(current,progress,G,titles):'';state.title=current?.title||'模型推导';state.route='geometry-models.html'+(current?'#model-'+current.id:'');
+    state.svg=current?geometrySvg(current,progress,G,titles):'';state.title=current?.title||'模型推导';state.route='geometry-models.html?term='+(params.get('term')==='lower'?'lower':'upper')+(current?'#model-'+current.id:'');
     state.lessons=current?.nodes.map(id=>{const n=D.nodes.find(n=>n.id===id),c=D.chapters.find(c=>c.id===n.chapter);return {id,title:c.title+' · '+n.title,href:'math-course.html?'+new URLSearchParams({chapter:n.chapter,node:id})};})||[];
-    state.backHref='units.html?subject=math&term=upper';
+    state.backHref='units.html?subject=math&term='+(params.get('term')==='lower'?'lower':'upper');
    }else{
     const result=M.evaluate(current,values);Object.assign(state,{svg:result.svg,stats:result.stats,conclusion:result.conclusion,title:current.name,experiments:M.experiments.filter(e=>e.chapter===chapter.number),route:'math-explore-lab.html?'+new URLSearchParams({chapter:chapter.id,experiment:current.id}),backHref:'math-course.html?'+new URLSearchParams({chapter:chapter.id,node:current.nodes[0]})});
    }

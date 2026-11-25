@@ -4,13 +4,21 @@ const fs=require('node:fs');
 const {JSDOM}=require('../console-web/node_modules/jsdom');
 const source=fs.readFileSync(require('node:path').join(__dirname,'../platform-web/my-papers.js'),'utf8');
 const tick=()=>new Promise(r=>setTimeout(r,25));
+
+test('background resume reads only progress and retries a failed revision explicitly',async()=>{
+ let retried=false;const job={id:'j1',processor:'photo-agent-v1',subject:'math',status:'failed',revision:4,error:'服务暂不可用'};
+ const {dom,root,requests}=await fixture(false,{api(path){if(path.includes('/progress?'))return retried?{...job,status:'complete',revision:6,paperId:'p1'}:job;if(path.endsWith('/retry')){retried=true;return {...job,status:'recognizing',revision:5};}}});
+ root.querySelector('[data-resume]').click();await tick();
+ assert.deepEqual(requests.find(r=>r.path.endsWith('/retry')).body,{studentId:'s1',revision:4});
+ assert.equal(requests.some(r=>r.path.includes('/step')||/import-jobs\/j1\?/.test(r.path)),false);assert.ok(root.querySelector('[data-paper-title]'));dom.window.close();
+});
 async function fixture(fail=false,options={}){
  const dom=new JSDOM('<main></main>',{url:'https://test.invalid',runScripts:'outside-only'}),w=dom.window,requests=[];
  const region={page:1,x:0,y:0,width:.5,height:.5};let job={id:'j1',subject:'math',status:'recognizing',revision:1,pageCount:2,plannedPages:2,recognizedQuestions:0,totalQuestions:1,next:{kind:'question',number:'1',pages:[1,2],regions:[region]}};
  w.GrowingLegacy={target:async()=> 's1'};w.GrowingQuestionFigures={photo:async()=> 'image',importStage:()=> '核对题面',prepareImportStep:async(next,pages)=>({fragments:next.regions.map(region=>({page:region.page,region,image:'cropped'}))})};w.GrowingMathFormat={questionHtml:s=>s};w.GrowingPaperReview={mount:()=>({dispose(){}})};
  w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};
  const api=async(path,request)=>{const body=request&&JSON.parse(request.body);requests.push({path,body,method:request?.method||'GET'});if(options.api){const override=await options.api(path,body,requests,request);if(override!==undefined)return override;}if(path==='/parent/children')return [{id:'s1',displayName:'One'},{id:'s2',displayName:'Two'}];if(path.includes('/papers/'))return {id:'p1',subject:'math',title:'试卷',mode:'paper-draft',warnings:[],questions:[],pages:[]};if(path.includes('/papers?'))return [];if(path.includes('/step')){if(fail)throw Error('模型失败');job={...job,status:'complete',paperId:'p1',next:null};return job;}if(path.includes('/import-jobs/'))return {...job,sourcePages:[{page:1,image:'original1'},{page:2,image:'original2'}]};return [job];};
- w.eval(source);const root=w.document.querySelector('main');await w.GrowingPapers.mount(root,api,String,()=>true,{role:options.parent?'Parent':'Student',id:'s1'},{subject:'math'});return {dom,w,root,requests};
+ w.eval(source);const root=w.document.querySelector('main');await w.GrowingPapers.mountLegacy(root,api,String,()=>true,{role:options.parent?'Parent':'Student',id:'s1'},{subject:'math'});return {dom,w,root,requests};
 }
 test('saved import resumes with cropped fragments and opens only completed paper',async()=>{const {dom,root,requests}=await fixture();assert.ok(root.querySelector('[data-resume]'));root.querySelector('[data-resume]').click();await tick();assert.equal(requests.find(r=>r.path.endsWith('/step')).body.fragments[0].image,'cropped');assert.ok(root.querySelector('[data-paper-title]'));dom.window.close();});
 test('failed step keeps resumable task and actionable error',async()=>{const {dom,root}=await fixture(true);root.querySelector('[data-resume]').click();await tick();assert.match(root.querySelector('.papers-import-error').textContent,/模型失败/);assert.ok(root.querySelector('[data-resume]'));dom.window.close();});

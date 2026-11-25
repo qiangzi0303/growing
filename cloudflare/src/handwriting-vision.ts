@@ -4,6 +4,8 @@ import handwriting from '../../app/src/main/assets/web/app-design/handwriting-co
 import { validateAnswerAnnotations } from './photo-assessment';
 
 export interface VisionEnv extends ManagedAIEnv {
+  ZHIPU_API_KEY?: string;
+  PHOTO_AGENT_INSTRUCTIONS?: string;
   MANAGED_AI_CONTEXT?: {db:Database;userId:string;feature:string};
   HANDWRITING_VISION_MODELS?: string;
   PAPER_RECOGNITION_MODELS?: string;
@@ -126,7 +128,7 @@ export async function visionCompletion(env: VisionEnv, signal: AbortSignal, upst
         method:'POST', redirect:'manual', signal:controller.signal,
         headers:{...model.customHeaders,'Content-Type':'application/json',Authorization:'Bearer '+model.apiKey},
         body:JSON.stringify({...additional,model:model.model,stream:false,temperature:0.1,max_tokens:options.maxTokens??(paper?12000:grading?8192:4096),...(!options.paperReview&&!options.reasoning?{thinking:{type:'disabled'}}:{}),response_format:{type:'json_object'},messages:[
-          {role:'system',content:system},
+          {role:'system',content:[env.PHOTO_AGENT_INSTRUCTIONS,system].filter(Boolean).join('\n\n')},
           {role:'user',content:[{type:'text',text:JSON.stringify(context)},...pages.flatMap((url,i)=>[{type:'text',text:options.imageLabels?.[i]??'第'+(i+1)+'页'},{type:'image_url',image_url:{url}}])]}
         ]})
       });

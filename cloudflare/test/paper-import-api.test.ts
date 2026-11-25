@@ -130,3 +130,45 @@ test('HTTP job lifecycle persists an ungraded classified draft; auth and repeat 
  assert.equal((await db.query('SELECT * FROM "GrowingQuestionPapers" WHERE "StudentId"=?1',[a.user.id])).length,1);
  assert.deepEqual(await db.query('PRAGMA foreign_key_check'),[]);
 });
+
+test('HTTP background upload requires configured OCR, queues auto mode and exposes private-data-free progress',async()=>{
+ const previousQueue=env.PHOTO_PROCESSING_QUEUE,previousKey=env.ZHIPU_API_KEY;
+ const sent:any[]=[];const beforeCalls=calls;
+ try{
+  env.PHOTO_PROCESSING_QUEUE={send:async(message:any)=>{sent.push(message);}} as any;delete env.ZHIPU_API_KEY;
+  const a=await register('background_owner'),b=await register('background_other');
+  const input={studentId:a.user.id,requestId:crypto.randomUUID(),subject:'math',pages:[image]};
+  assert.equal((await call(base,'POST',input,a.token)).status,503);
+  assert.equal((await db.query('SELECT Id FROM GrowingPaperImportJobs WHERE StudentId=?1',[a.user.id])).length,0);
+  env.ZHIPU_API_KEY='test-only-no-network';
+  const job=await ok(await call(base,'POST',input,a.token));
+  assert.equal(job.processor,'photo-agent-v1');assert.equal(job.mode,'auto');assert.deepEqual(sent,[{id:job.id,revision:job.revision}]);
+  const path=base+'/'+job.id,body={studentId:a.user.id,revision:job.revision};
+  await db.query(`INSERT INTO GrowingPaperOCRPages(JobId,Page,Model,Markdown,Raw,CreatedAt) VALUES (?1,1,'glm-ocr','PRIVATE_OCR_MARKDOWN','PRIVATE_OCR_RAW','2026')`,[job.id]);
+  const progress=await ok(await call(path+'/progress?studentId='+a.user.id,'GET',undefined,a.token));
+  const serialized=JSON.stringify(progress);assert.ok(!serialized.includes('/9j/'));assert.ok(!serialized.includes('PRIVATE_OCR'));assert.ok(!serialized.includes('test-only-no-network'));assert.equal(progress.sourcePages,undefined);
+  assert.equal((await call(path+'/step','POST',{...body,workflow:'visual-v1'},a.token)).status,409);
+  assert.equal((await call(path+'/retry','POST',body)).status,401);
+  assert.equal((await call(path+'/retry','POST',body,b.token)).status,404);
+  assert.equal((await call(path+'/retry','POST',{...body,studentId:b.user.id},b.token)).status,404);
+  await db.query(`UPDATE GrowingPaperImportJobs SET State=json_set(State,'$.error','test failure','$.queueRetries',5) WHERE Id=?1`,[job.id]);
+  assert.equal((await call(path+'/retry','POST',{studentId:a.user.id},a.token)).status,409);
+  assert.equal((await call(path+'/retry','POST',{...body,revision:job.revision+1},a.token)).status,409);
+  const retried=await ok(await call(path+'/retry','POST',body,a.token));
+  assert.equal(retried.revision,job.revision+1);assert.equal(retried.error,'');assert.deepEqual(sent.at(-1),{id:job.id,revision:retried.revision});
+  const [state]=await db.query<any>('SELECT State FROM GrowingPaperImportJobs WHERE Id=?1',[job.id]);assert.equal(JSON.parse(state.State).queueRetries,0);
+  assert.equal(calls,beforeCalls,'HTTP uploads and retries must not execute model processing');
+ }finally{if(previousQueue===undefined)delete env.PHOTO_PROCESSING_QUEUE;else env.PHOTO_PROCESSING_QUEUE=previousQueue;if(previousKey===undefined)delete env.ZHIPU_API_KEY;else env.ZHIPU_API_KEY=previousKey;}
+});
+
+test('HTTP background queue failure still saves upload for cron recovery',async()=>{
+ const previousQueue=env.PHOTO_PROCESSING_QUEUE,previousKey=env.ZHIPU_API_KEY;
+ try{
+  env.ZHIPU_API_KEY='test-only-no-network';env.PHOTO_PROCESSING_QUEUE={send:async()=>{throw Error('queue offline');}} as any;
+  const a=await register('background_offline');
+  const job=await ok(await call(base,'POST',{studentId:a.user.id,requestId:crypto.randomUUID(),subject:'math',pages:[image]},a.token));
+  assert.equal(job.processor,'photo-agent-v1');assert.equal(job.status,'planning');
+  const rows=await db.query<any>('SELECT State FROM GrowingPaperImportJobs WHERE Id=?1',[job.id]);assert.equal(rows.length,1);assert.equal(JSON.parse(rows[0].State).error,'');
+  assert.equal((await db.query('SELECT Page FROM GrowingPaperImportJobPages WHERE JobId=?1',[job.id])).length,1);
+ }finally{if(previousQueue===undefined)delete env.PHOTO_PROCESSING_QUEUE;else env.PHOTO_PROCESSING_QUEUE=previousQueue;if(previousKey===undefined)delete env.ZHIPU_API_KEY;else env.ZHIPU_API_KEY=previousKey;}
+});

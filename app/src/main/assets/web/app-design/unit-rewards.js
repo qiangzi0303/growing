@@ -7,13 +7,13 @@
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=c=>(c/100).toFixed(2).replace(/\.00$/,'');
   const percent=n=>Math.floor(n*1000+1e-8)/10;
-  function load(id){const raw=localStorage.getItem(prefix+id);return E.restore(raw?JSON.parse(raw):null,providers.get(id)?.legacy?.());}
-  function persist(id,d){localStorage.setItem(prefix+id,JSON.stringify(d));}
+  function load(id){const p=providers.get(id),raw=(p?.storage||localStorage).getItem(prefix+id);return E.restore(raw?JSON.parse(raw):null,p?.legacy?.(),p?.defaults);}
+  function persist(id,d){(providers.get(id)?.storage||localStorage).setItem(prefix+id,JSON.stringify(d));}
   function current(id){const p=providers.get(id);if(p.readOnly)return load(id);const s=p.progress();return E.accrue(load(id),s.done,s.total);}
   function summary(id,d){
     const p=providers.get(id),a=E.amounts(d),ratio=d.total?d.done/d.total:0;
     const row=(name,earned,paid,available,unit)=>`<div class="unit-reward-amount"><h3>${name}</h3><strong>已获得 ${earned}${unit}</strong><p>已核销 ${paid}${unit} · 可核销 <b>${available}${unit}</b></p></div>`;
-    return `<div class="unit-reward-heading"><div><span>本单元奖励 · ${esc(p.title)}</span><h2>掌握多少，获得多少</h2></div><strong>${percent(ratio)}%</strong></div><progress max="100" value="${ratio*100}" aria-label="本单元掌握进度">${percent(ratio)}%</progress><p class="unit-reward-rule">${d.total?`已完成 ${d.done}/${d.total} 项。`:'暂无正式掌握记录，暂不累计掌握进度。'}${esc(p.rule)}<br>奖励总额：${d.config.gameMinutes}分钟游戏 ＋ ${money(Math.round(d.config.cashYuan*100))}元红包，按实际比例计算，游戏向下取整到分钟、红包到分。</p><div class="unit-reward-grid">${row('游戏时间',a.game,d.paidGame,a.availableGame,'分钟')}${row('红包',money(a.cash),money(d.paidCash),money(a.availableCash),'元')}</div>${d.peak>ratio?'<p class="unit-reward-rule">曾获得的奖励已保留；重学或重置进度不会重复获得同一份额度，超过历史进度后继续累积。</p>':''}${!d.config.enabled?'<p class="unit-reward-rule">奖励累计已暂停，已获得额度保留。</p>':''}`;
+    return `<div class="unit-reward-heading"><div><span>本单元奖励 · ${esc(p.title)}</span><h2>掌握多少，获得多少</h2></div><strong>${percent(ratio)}%</strong></div><progress max="100" value="${ratio*100}" aria-label="本单元掌握进度">${percent(ratio)}%</progress><p class="unit-reward-rule">${p.describe?esc(p.describe()):(d.total?`已完成 ${d.done}/${d.total} 项。`:'暂无正式掌握记录，暂不累计掌握进度。')+esc(p.rule)}<br>奖励总额：${d.config.gameMinutes}分钟游戏 ＋ ${money(Math.round(d.config.cashYuan*100))}元红包，按实际比例计算，游戏向下取整到分钟、红包到分。</p><div class="unit-reward-grid">${row('游戏时间',a.game,d.paidGame,a.availableGame,'分钟')}${row('红包',money(a.cash),money(d.paidCash),money(a.availableCash),'元')}</div>${d.peak>ratio?'<p class="unit-reward-rule">曾获得的奖励已保留；重学或重置进度不会重复获得同一份额度，超过历史进度后继续累积。</p>':''}${!d.config.enabled?'<p class="unit-reward-rule">奖励累计已暂停，已获得额度保留。</p>':''}`;
   }
   function render(el,id){
     if(!providers.has(id)||el.dataset.rewardMounted)return;
@@ -21,7 +21,7 @@
     try{
       const d=current(id),p=providers.get(id);if(!p.readOnly)persist(id,d);
       if(p.readOnly){el.innerHTML=`<div class="unit-reward-summary">${summary(id,d)}</div><p class="unit-reward-rule">目录显示最近保存的记录。<a href="${esc(p.entry)}">进入单元同步进度、设置奖励或家长核销 →</a></p>`;return;}
-      el.innerHTML=`<div class="unit-reward-summary">${summary(id,d)}</div><details class="unit-reward-settings"><summary>奖励总额设置 / 家长核销</summary><fieldset><legend>本单元奖励总额</legend><label>游戏时间（分钟）<input data-reward-field="game" type="number" min="0" max="600000" step="1" value="${d.config.gameMinutes}"></label><label>红包（元）<input data-reward-field="cash" type="number" min="0" max="100000" step="0.01" value="${d.config.cashYuan}"></label><label class="unit-reward-check"><input data-reward-field="enabled" type="checkbox" ${d.config.enabled?'checked':''}>启用奖励累计</label><button type="button" data-reward-action="save">保存本单元奖励</button><p>首次核销后固定总额。各单元独立设置，默认120分钟、200元。</p></fieldset><div class="unit-reward-parent"><label>核销家长称呼<input data-reward-field="parent" maxlength="30" placeholder="例如：妈妈"></label><label class="unit-reward-check"><input data-reward-field="confirm" type="checkbox">我是家长，确认已实际兑现本次额度</label><div class="unit-reward-buttons"><button type="button" data-reward-action="game">核销当前可领游戏时间</button><button type="button" data-reward-action="cash">核销当前可领红包</button></div><p>每次只核销尚未兑现的额度。本页只记账，不转账或控制游戏时长；家长确认不提供身份验证。</p><div class="unit-reward-history"></div></div></details><p class="unit-reward-status" role="status" aria-live="polite"></p>`;
+      el.innerHTML=`<div class="unit-reward-summary">${summary(id,d)}</div><details class="unit-reward-settings"><summary>奖励总额设置 / 家长核销</summary><fieldset><legend>本单元奖励总额</legend><label>游戏时间（分钟）<input data-reward-field="game" type="number" min="0" max="600000" step="1" value="${d.config.gameMinutes}"></label><label>红包（元）<input data-reward-field="cash" type="number" min="0" max="100000" step="0.01" value="${d.config.cashYuan}"></label><label class="unit-reward-check"><input data-reward-field="enabled" type="checkbox" ${d.config.enabled?'checked':''}>启用奖励累计</label><button type="button" data-reward-action="save">保存本单元奖励</button><p>首次核销后固定总额。各单元独立设置，默认120分钟、200元；数学和英语新方案为100分钟、200元，历史奖励保留。</p></fieldset><div class="unit-reward-parent"><label>核销家长称呼<input data-reward-field="parent" maxlength="30" placeholder="例如：妈妈"></label><label class="unit-reward-check"><input data-reward-field="confirm" type="checkbox">我是家长，确认已实际兑现本次额度</label><div class="unit-reward-buttons"><button type="button" data-reward-action="game">核销当前可领游戏时间</button><button type="button" data-reward-action="cash">核销当前可领红包</button></div><p>每次只核销尚未兑现的额度。本页只记账，不转账或控制游戏时长；家长确认不提供身份验证。</p><div class="unit-reward-history"></div></div></details><p class="unit-reward-status" role="status" aria-live="polite"></p>`;
       refresh(el,id,d);
     }catch(e){el.innerHTML='<p role="status">奖励记录暂不可用：'+esc(e.message)+' 请允许本地存储后刷新；原记录未删除。</p>';}
   }
@@ -59,7 +59,7 @@
     }
   }
   function scan(){for(const el of document.querySelectorAll('[data-unit-reward]'))render(el,el.dataset.unitReward);for(const id of providers.keys())refreshProgress(id);}
-  function register(id,p){providers.set(id,p);scan();update(id);}
+  function register(id,p){providers.set(id,p);scan();update(id);return()=>{if(providers.get(id)===p){providers.delete(id);if(dialog?.querySelector('[data-unit-reward]')?.dataset.unitReward===id)dialog.close();}};}
   const placeholder=id=>`<div class="unit-progress" data-unit-progress="${esc(id)}" hidden></div>`;
   function showCalendar(){
     const host=dialog.querySelector('[data-unit-calendar]');
@@ -87,7 +87,7 @@
       document.body.append(dialog);
     }
     opener=button;
-    dialog.innerHTML=`<header class="unit-reward-dialog-bar"><h2 id="unit-reward-dialog-title">${esc(providers.get(id).title)} · 掌握程度</h2><button type="button" data-reward-close autofocus aria-label="关闭掌握程度" title="关闭掌握程度" style="width:44px;height:44px;padding:0;font-size:28px;line-height:1;flex:0 0 44px">×</button></header><nav class="unit-reward-tabs" aria-label="查看本单元记录"><button type="button" data-reward-tab="progress" aria-pressed="true">掌握与奖励</button><button type="button" data-reward-tab="calendar" aria-pressed="false">学习日历</button></nav><section data-unit-reward="${esc(id)}" aria-label="本单元进度与奖励"></section><section class="unit-calendar" data-unit-calendar="${esc(id)}" hidden></section>`;
+    dialog.innerHTML=`<header class="unit-reward-dialog-bar"><h2 id="unit-reward-dialog-title">${esc(providers.get(id).title)} · ${providers.get(id).describe?'章节评分与奖励':'掌握程度'}</h2><button type="button" data-reward-close autofocus aria-label="关闭掌握程度" title="关闭掌握程度" style="width:44px;height:44px;padding:0;font-size:28px;line-height:1;flex:0 0 44px">×</button></header><nav class="unit-reward-tabs" aria-label="查看本单元记录"><button type="button" data-reward-tab="progress" aria-pressed="true">掌握与奖励</button><button type="button" data-reward-tab="calendar" aria-pressed="false">学习日历</button></nav><section data-unit-reward="${esc(id)}" aria-label="本单元进度与奖励"></section><section class="unit-calendar" data-unit-calendar="${esc(id)}" hidden></section>`;
     render(dialog.querySelector('[data-unit-reward]'),id);
     if(!dialog.open)dialog.showModal();
     document.documentElement.classList.add('unit-reward-modal-open');
@@ -121,5 +121,5 @@
   window.addEventListener('pageshow',()=>{for(const id of providers.keys())refreshProgress(id);});
   // Observe course re-renders, not our own numeric/text updates.
   new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('[data-unit-progress],[data-unit-reward]:not([data-reward-mounted])')||n.querySelector?.('[data-unit-progress],[data-unit-reward]:not([data-reward-mounted])')))))scan();}).observe(document.documentElement,{childList:true,subtree:true});
-  window.UnitRewards={register,placeholder,update,openCalendar(id){open(id,document.activeElement,true);}};
+  window.UnitRewards={register,placeholder,update,open(id){open(id,document.activeElement);},openCalendar(id){open(id,document.activeElement,true);}};
 })();

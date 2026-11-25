@@ -2,6 +2,7 @@ import catalogData from './ranking-rules.json';
 import mathFeedback from '../../app/src/main/assets/web/app-design/math-feedback.js';
 import wordMastery from '../../app/src/main/assets/web/app-design/word-mastery-rules.js';
 import englishData from './english-rules.json';
+import englishScore from '../../app/src/main/assets/web/app-design/english-score.js';
 import sentenceRules from './english-sentence-rules.json';
 import sentenceProgress from '../../app/src/main/assets/web/app-design/english-sentence-progress.js';
 import diagnosisData from './diagnosis-rules.json';
@@ -45,6 +46,7 @@ export function buildUnitReports(docs: Document[]) {
   const units = (catalogData as Data[]).flatMap(unit => {
     const board = boards.get(unit.id);
     let started = !!board, mastered = 0, total = 0, minutes = 0, hasTime = false;
+    let englishDetails: ReturnType<typeof englishScore.summary>|null=null;
     let words: { mastered: number; total: number } | null = null;
     let sentences: { completed: number; total: number } | null = null;
     const dates = new Set<string>(), grades: any[] = [], daily = new Map<string, number>();
@@ -102,8 +104,10 @@ export function buildUnitReports(docs: Document[]) {
       const rules = (sentenceRules as Record<string, { id: string; en: string }[]>)[unit.id] ?? [];
       const saved = states.get(sentenceProgress.key(unit.id));
       sentences = sentenceProgress.summary(rules, saved);
-      mastered = (board?.conceptDone ?? 0) + sentences.completed;
-      total = (unit.kind === 'legacy-english' ? legacy.words.length : unit.rules.words.length) + sentences.total;
+      const old=unit.kind==='legacy-english',state=states.get(old?'wordops_8A_unit3':'growing-english-course-v1:'+unit.id)??{};
+      englishDetails=englishScore.summary(old?legacy.words:unit.rules.allWords,old?state.mastered:state.words,rules,saved,old,{state,lessons:old?legacy.lessons:unit.rules.lessons});
+      mastered=englishDetails.words.completed+sentences.completed+englishDetails.lessons.mastered;
+      total=englishDetails.words.total+sentences.total+englishDetails.lessons.total;
       if (sentences.completed) {
         started = true;
         rules.filter(s => saved?.version === 1 && sentenceProgress.valid(s, saved.sentences?.[s.id])).forEach(s => remember(saved!.sentences[s.id].at));
@@ -137,7 +141,7 @@ export function buildUnitReports(docs: Document[]) {
     written.sort((a, b) => a.at.localeCompare(b.at));
     return [{ id: unit.id, title: unit.title, subject: unit.subject, subjectName: unit.subjectName, term: unit.term, termName: unit.termName,
       activeMinutes: hasTime ? minutes : null, firstStudyDay: ordered[0] ?? null, lastStudyDay: ordered.at(-1) ?? null, studyDays: ordered.length,
-      mastered, total, masteryPercent: board ? board.score / 100 : 0, words, sentences,
+      mastered, total, masteryPercent: englishDetails?englishDetails.score:board ? board.score / 100 : 0, words, sentences, englishScore:englishDetails,
       concept: { passed: board?.conceptDone ?? 0, total: board?.conceptTotal ?? (sentences ? total - sentences.total : unit.topics?.length ?? unit.rules?.lessons.length), retainedAttempts: grades.length,
         best: grades.length ? Math.max(...grades.map(g => g.score)) : null, latest: timedGrades.at(-1)?.score ?? null },
       practice: { done: board?.testDone ?? 0, total: board?.testTotal ?? sentences?.total ?? total }, diagnostic,
@@ -145,5 +149,5 @@ export function buildUnitReports(docs: Document[]) {
     }];
   });
   return { units, lastSyncedAt: docs.map(d => d.updatedAt).sort().at(-1) ?? null, warnings: [...new Set(warnings)],
-    note: '仅显示已有学习记录的已开放单元。时长为课程实际保存的有效学习计时，缺失时不补算；学习日期来自留存活动与评测，不代表完整历史。英语满分100分，仅按单词默写50%＋句子闯关50%评分；未完成记0，其他学习活动不计分。单词展示总数含选学词，计分只含必会词；同一句重复通关只计一次。数学/物理须概念与应用均通过；图谱初筛单独展示，不计作课程达标。' };
+    note: '仅显示已有学习记录的已开放单元。时长为课程实际保存的有效学习计时，缺失时不补算；学习日期来自留存活动与评测，不代表完整历史。英语满分100分：必会词35＋句子25＋课时30＋错词库10；课时包含费曼最好成绩、最好检测和有效学习时间。单词展示总数含选学词，计分只含必会词；同一句重复通关只计一次。数学/物理须概念与应用均通过；图谱初筛单独展示，不计作课程达标。' };
 }

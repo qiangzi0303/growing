@@ -45,7 +45,7 @@
     for(const u of book.units){
       // Catalogs display the latest saved course counts; they do not infer mastery from browsing.
       window.UnitRewards.register(u.id,{title:u.title,readOnly:true,mastery:()=>{
-        if(subject==='english'&&u.entry){const legacy=u.number===3,raw=JSON.parse(localStorage.getItem(legacy?'wordops_8A_unit3':'growing-english-course-v1:'+u.id)||'null'),sentences=window.SentenceDemo.units[u.id].topics.flatMap(t=>t.sentences);return window.GrowingEnglishScore.summary(legacy?window.GrowingSummaryLegacy.words:window.GrowingEnglishVocabulary[u.number],legacy?raw?.mastered:raw?.words,sentences,JSON.parse(localStorage.getItem('growing-english-sentences-v1:'+u.id)||'null'),legacy).score;}
+        if(subject==='english'&&u.entry){const legacy=u.number===3,raw=JSON.parse(localStorage.getItem(legacy?'wordops_8A_unit3':'growing-english-course-v1:'+u.id)||'null'),sentences=window.SentenceDemo.units[u.id].topics.flatMap(t=>t.sentences);return window.GrowingEnglishScore.summary(legacy?window.GrowingSummaryLegacy.words:window.GrowingEnglishVocabulary[u.number],legacy?raw?.mastered:raw?.words,sentences,JSON.parse(localStorage.getItem('growing-english-sentences-v1:'+u.id)||'null'),legacy,{state:raw||{},lessons:legacy?window.GrowingSummaryLegacy.lessons:window.GrowingEnglishLessons[u.number]}).score;}
         const ids=Object.keys(window.GrowingHandwriting.knowledgeUnits[u.id]||{});if(!hasGraph||!ids.length)return null;
         const raw=localStorage.getItem('growing-'+subject+'-lessons-v1'),saved=raw?JSON.parse(raw):null;
         if(saved&&(saved.version!==1||!saved.topics||typeof saved.topics!=='object'))throw Error('课程记录不可用');

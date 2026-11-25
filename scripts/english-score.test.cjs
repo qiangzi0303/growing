@@ -3,22 +3,22 @@ const S=require('../app/src/main/assets/web/app-design/english-score.js');
 const words=[{id:'one',word:'one'},{id:'two',word:'two'},{id:'extra',word:'extra',optional:true}],sentences=[{id:'a',en:'Hello.'},{id:'b',en:'Goodbye.'}];
 const recall=word=>({protocol:'seven-recalls',answers:Array(7).fill(word)});
 const complete=answer=>({protocol:'sentence-typing-v1',answer,wrong:0,hints:0,revealed:false,at:1});
-test('English has two fixed halves; incomplete and empty categories never redistribute weight',()=>{
+test('English keeps fixed 35/25 weights and the no-wrong-word base credit',()=>{
  const records={one:recall('one'),two:recall('two')},saved={version:1,sentences:{a:complete('Hello.'),b:complete('Goodbye.')}};
- assert.equal(S.summary(words,{},sentences,null).score,0);
- assert.equal(S.summary(words,records,sentences,null).score,50);
- assert.equal(S.summary(words,{},sentences,saved).score,50);
- assert.equal(S.summary(words,records,sentences,saved).score,100);
- assert.equal(S.summary(words,{one:records.one},sentences,saved).score,75);
- assert.equal(S.summary([],{},sentences,saved).score,50);
- assert.equal(S.summary(words,records,[],null).score,50);
+ assert.equal(S.summary(words,{},sentences,null).score,10);
+ assert.equal(S.summary(words,records,sentences,null).score,45);
+ assert.equal(S.summary(words,{},sentences,saved).score,35);
+ assert.equal(S.summary(words,records,sentences,saved).score,70);
+ assert.equal(S.summary(words,{one:records.one},sentences,saved).score,52.5);
+ assert.equal(S.summary([],{},sentences,saved).score,35);
+ assert.equal(S.summary(words,records,[],null).score,45);
 });
 test('unknown, optional, malformed and incomplete records do not earn points',()=>{
  const records={one:true,two:{...recall('two'),answers:['two']},extra:recall('extra'),unknown:recall('unknown')};
  const saved={version:1,sentences:{unknown:complete('Hello.'),a:complete('wrong'),b:{...complete('Goodbye.'),at:0}}};
- assert.equal(S.summary(words,records,sentences,saved).score,0);
- assert.equal(S.summary(words,{},sentences,{...saved,version:2}).score,0);
- assert.equal(S.summary(words,{one:{...recall('one'),answers:Array(7).fill(1)}},[],null).score,0);
+ assert.equal(S.summary(words,records,sentences,saved).score,10);
+ assert.equal(S.summary(words,{},sentences,{...saved,version:2}).score,10);
+ assert.equal(S.summary(words,{one:{...recall('one'),answers:Array(7).fill(1)}},[],null).score,10);
 });
 test('historical Unit 3 case and punctuation rules remain compatible',()=>{
  assert.equal(S.wordPassed({id:'w34',en:'Italian'},recall('Italian'),true),true);

@@ -1,0 +1,1 @@
+ALTER TABLE "GrowingRankings" ADD COLUMN "ScoreVersion" INTEGER NOT NULL DEFAULT 0;

@@ -5,9 +5,9 @@
  const day=time=>{const d=new Date(time);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
  const later=(time,n)=>{const d=new Date(time);d.setDate(d.getDate()+n);return day(d);};
  function answer(old,correct,hinted,time){const today=day(time);
-  if(!correct||hinted)return {level:0,due:later(time,1),lastDay:today,failedDay:today};
+  if(!correct||hinted)return {...old,level:0,due:later(time,1),lastDay:today,failedDay:today};
   if(old&&(old.lastDay===today||old.due>today))return {...old};
-  const level=Math.min(5,(old?.level||0)+1);return {level,due:later(time,intervals[level-1]),lastDay:today};
+  const level=Math.min(5,(old?.level||0)+1);return {...old,level,due:later(time,intervals[level-1]),lastDay:today,...(old?.failedDay&&today>old.failedDay?{conqueredDay:today}:{})};
  }
  function plan(words,records,passed,time){const today=day(time),dueIds=[],freshIds=[],scheduledIds=[],dates=[];
   for(const w of words){if(w.optional)continue;const r=records[w.id];if(r){if(r.due<=today)dueIds.push(w.id);else {scheduledIds.push(w.id);dates.push(r.due);}}else if(passed(w.id))dueIds.push(w.id);else freshIds.push(w.id);}

@@ -12,9 +12,8 @@ async function open(){if(busy.value)return;busy.value=true;status.value='';try{a
   <nav class="page-nav" aria-label="页面导航"><Button tag="a" :href="model.backHref" class="back-link" icon="arrow-left">{{model.backLabel}}</Button></nav>
   <header class="catalog-heading"><div><p class="eyebrow">{{model.subjectName}}</p><h1>{{model.title}}</h1></div></header>
   <section class="my-papers" aria-labelledby="student-papers-title"><h2 id="student-papers-title">我的试卷</h2><div class="paper-entry student-photo-entry"><div><h3>拍照整理试卷</h3></div><nav aria-label="我的拍照试卷"><Button data-open-papers :loading="busy" loading-text="正在打开" @click="open">我的拍照试卷 / 拍照导入</Button></nav></div><p role="status" class="student-resource-status" :class="{'empty-status':!status}">{{status}}</p>
-   <template v-for="group in model.groups.filter(g=>g.title!=='模型推导')" :key="group.title"><div class="paper-entry"><div><h3>{{group.title}}</h3></div><nav :aria-label="group.title+'资料'"><Cell v-for="link in group.links" :key="link.href" tag="a" :href="link.href" :title="link.title"/></nav></div></template>
+   <template v-for="group in model.groups" :key="group.title"><div class="paper-entry"><div><h3>{{group.title}}</h3></div><nav :aria-label="group.title+'资料'"><Cell v-for="link in group.links" :key="link.href" tag="a" :href="link.href" :title="link.title"/></nav></div></template>
   </section>
-  <section v-for="group in model.groups.filter(g=>g.title==='模型推导')" :key="group.title" class="my-papers"><h2>{{group.title}}</h2><div v-for="link in group.links" :key="link.href" class="paper-entry"><div><h3>{{link.title}}</h3></div><nav aria-label="模型推导"><Cell tag="a" :href="link.href" title="进入模型推导"/></nav></div></section>
  </main>
 </template>
 <style scoped>

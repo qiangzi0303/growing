@@ -19,7 +19,7 @@ export interface Mastery {
   diagnosisDone: number; diagnosisTotal: number; score: number;
 }
 const weights = {concept:3000,practice:7000};
-const score = (r: Omit<Mastery,'score'>): Mastery => ({...r,score:Math.round((r.conceptTotal?(r.subject==='english'?5000:weights.concept)*r.conceptDone/r.conceptTotal:0)+(r.testTotal?(r.subject==='english'?5000:weights.practice)*r.testDone/r.testTotal:0))});
+const score = (r: Omit<Mastery,'score'>): Mastery => ({...r,score:Math.round((r.conceptTotal?(weights.concept)*r.conceptDone/r.conceptTotal:0)+(r.testTotal?(weights.practice)*r.testDone/r.testTotal:0))});
 export function masteryBoards(docs: Document[]): Mastery[] {
   const states = new Map<string,Data>();
   for (const doc of docs) if (doc.value !== null) {
@@ -28,7 +28,7 @@ export function masteryBoards(docs: Document[]): Mastery[] {
   const units: (Mastery & {started: boolean})[] = catalog.map(unit => {
     let conceptDone=0,testDone=0,conceptTotal=unit.topics?.length??unit.rules?.lessons.length??0;
     let testTotal=unit.kind==='english'?unit.rules.words.length+unit.rules.lessons.length:unit.tests?.length??conceptTotal;
-    let started=false;
+    let started=false,englishPoints:number|undefined;
     let diagnosisDone=0;
     const diagnosisTopics:string[]=unit.diagnosisTopics??[],diagnosisTotal=diagnosisTopics.length||conceptTotal;
     const evidence=object(states.get('growing-diagnosis-v1:'+unit.id));
@@ -58,23 +58,23 @@ export function masteryBoards(docs: Document[]): Mastery[] {
       }
     } else {
       const legacy=unit.kind==='legacy-english',state=states.get(legacy?'wordops_8A_unit3':'growing-english-course-v1:'+unit.id)??{};
-      const vocabulary=legacy?englishData.__legacy.words:unit.rules.words,records=legacy?object(state.mastered):object(state.words);
+      const vocabulary=legacy?englishData.__legacy.words:unit.rules.allWords,records=legacy?object(state.mastered):object(state.words);
       const saved=states.get('growing-english-sentences-v1:'+unit.id),sentences=(sentenceData as Data)[unit.id]??[];
-      const marks=englishScore.summary(vocabulary,records,sentences,saved,legacy);
+      const marks=englishScore.summary(vocabulary,records,sentences,saved,legacy,{state,lessons:legacy?englishData.__legacy.lessons:unit.rules.lessons});englishPoints=marks.points;
       conceptDone=marks.words.completed;conceptTotal=marks.words.total;testDone=marks.sentences.completed;testTotal=marks.sentences.total;
-      started=!!marks.sentences.completed||Object.keys(records).length>0||Object.keys(object(state.lessons)).length>0||Object.keys(object(state.feynman)).length>0||array(state.seen).length>0||Object.keys(object(state.best)).length>0;
+      started=!!marks.sentences.completed||Object.keys(records).length>0||Object.keys(object(state.lessons)).length>0||Object.keys(object(state.feynman)).length>0||array(state.seen).length>0||Object.keys(object(state.best)).length>0||Object.keys(object(state.wordReview)).length>0||Object.keys(object(state.learningTime?.days)).length>0;
     }
-    return {...score({id:unit.id,title:unit.title,subject:unit.subject,subjectName:unit.subjectName,term:unit.term,termName:unit.termName,kind:'unit',conceptDone,conceptTotal,testDone,testTotal,diagnosisDone,diagnosisTotal}),started};
+    return {...score({id:unit.id,title:unit.title,subject:unit.subject,subjectName:unit.subjectName,term:unit.term,termName:unit.termName,kind:'unit',conceptDone,conceptTotal,testDone,testTotal,diagnosisDone,diagnosisTotal}),...(englishPoints===undefined?{}:{score:englishPoints}),started};
   });
   const result:Mastery[]=units.filter(u=>u.started).map(({started,...u})=>u);
   for (const key of new Set(units.map(u=>u.subject+':'+u.term))) {
     const group=units.filter(u=>u.subject+':'+u.term===key);
     if (!group.some(u=>u.started))continue;
     const first=group[0];
-    result.push(score({id:key,title:first.termName+' · '+first.subjectName,subject:first.subject,subjectName:first.subjectName,term:first.term,termName:first.termName,kind:'course',
+    const combined=score({id:key,title:first.termName+' · '+first.subjectName,subject:first.subject,subjectName:first.subjectName,term:first.term,termName:first.termName,kind:'course',
       conceptDone:group.reduce((n,u)=>n+u.conceptDone,0),conceptTotal:group.reduce((n,u)=>n+u.conceptTotal,0),
       testDone:group.reduce((n,u)=>n+u.testDone,0),testTotal:group.reduce((n,u)=>n+u.testTotal,0),
-      diagnosisDone:group.reduce((n,u)=>n+u.diagnosisDone,0),diagnosisTotal:group.reduce((n,u)=>n+u.diagnosisTotal,0)}));
+      diagnosisDone:group.reduce((n,u)=>n+u.diagnosisDone,0),diagnosisTotal:group.reduce((n,u)=>n+u.diagnosisTotal,0)});if(first.subject==='english')combined.score=Math.round(group.reduce((n,u)=>n+u.score,0)/group.length);result.push(combined);
   }
   return result;
 }
@@ -85,8 +85,8 @@ export function rankingStatements(student:string,docs:Document[],revision?:numbe
   const guard=revision===undefined?'':' AND EXISTS (SELECT 1 FROM "GrowingUsers" WHERE "Id"=?1 AND "SyncRevision"=?2)';
   const statements:Statement[]=[{sql:'DELETE FROM "GrowingRankings" WHERE "StudentId"=?1'+guard,params:revision===undefined?[student]:[student,revision]}];
   for(const row of masteryBoards(docs))statements.push({
-    sql:`INSERT INTO "GrowingRankings" ("StudentId","BoardId","Kind","Subject","Term","Title","ConceptDone","ConceptTotal","TestDone","TestTotal","DiagnosisDone","DiagnosisTotal","Score","UpdatedAt")
-      SELECT ?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,strftime('%Y-%m-%dT%H:%M:%fZ','now')`+
+    sql:`INSERT INTO "GrowingRankings" ("StudentId","BoardId","Kind","Subject","Term","Title","ConceptDone","ConceptTotal","TestDone","TestTotal","DiagnosisDone","DiagnosisTotal","Score","ScoreVersion","UpdatedAt")
+      SELECT ?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,1,strftime('%Y-%m-%dT%H:%M:%fZ','now')`+
       (revision===undefined?'':' WHERE EXISTS (SELECT 1 FROM "GrowingUsers" WHERE "Id"=?1 AND "SyncRevision"=?14)'),
     params:[student,row.id,row.kind,row.subject,row.term,row.title,row.conceptDone,row.conceptTotal,row.testDone,row.testTotal,row.diagnosisDone,row.diagnosisTotal,row.score,...(revision===undefined?[]:[revision])],
   });
@@ -96,22 +96,18 @@ export function rankingStatements(student:string,docs:Document[],revision?:numbe
 const eligible=`FROM "GrowingRankings" r JOIN "GrowingUsers" u ON u."Id"=r."StudentId" WHERE u."Role"='Student'
   AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=u."Id")`;
 // Derive totals on reads so older cached scores use the current weights immediately.
-const currentPoints=`CAST(ROUND((CASE WHEN r."Subject"='english' THEN 5000.0 ELSE ${weights.concept}.0 END)*r."ConceptDone"/r."ConceptTotal"+(CASE WHEN r."Subject"='english' THEN 5000.0 ELSE ${weights.practice}.0 END)*r."TestDone"/r."TestTotal") AS INTEGER)`;
+const currentPoints=`CASE WHEN r."Subject"='english' THEN r."Score" ELSE CAST(ROUND(${weights.concept}.0*r."ConceptDone"/NULLIF(r."ConceptTotal",0)+${weights.practice}.0*r."TestDone"/NULLIF(r."TestTotal",0)) AS INTEGER) END`;
 const fields=`r."BoardId" AS id,r."Kind" AS kind,r."Subject" AS subject,r."Term" AS term,r."Title" AS title,
   r."ConceptDone" AS conceptDone,r."ConceptTotal" AS conceptTotal,r."TestDone" AS testDone,r."TestTotal" AS testTotal,
   r."DiagnosisDone" AS diagnosisDone,r."DiagnosisTotal" AS diagnosisTotal,${currentPoints} AS points,r."UpdatedAt" AS updatedAt`;
 export class Rankings {
   constructor(private db:Database){}
   private async refreshEnglish(){
-    // Old English rows contain Feynman/quiz counts, so changing weights alone is insufficient.
-    const expected=catalog.filter(u=>u.subject==='english').map(u=>({id:u.id,term:u.term,conceptTotal:u.kind==='legacy-english'?englishData.__legacy.words.length:u.rules.words.length,testTotal:((sentenceData as Data)[u.id]??[]).length}));
-    const totals=new Map(expected.map(r=>[r.id,r]));
-    for(const term of new Set(expected.map(r=>r.term))){const group=expected.filter(r=>r.term===term);totals.set('english:'+term,{id:'english:'+term,term,conceptTotal:group.reduce((n,r)=>n+r.conceptTotal,0),testTotal:group.reduce((n,r)=>n+r.testTotal,0)});}
-    const rows=await this.db.query<Data>('SELECT "StudentId" AS student,"BoardId" AS id,"ConceptTotal" AS words,"TestTotal" AS sentences FROM "GrowingRankings" WHERE "Subject"=\'english\'');
-    const students=new Set(rows.filter(r=>r.words!==totals.get(r.id)?.conceptTotal||r.sentences!==totals.get(r.id)?.testTotal).map(r=>String(r.student)));
-    const prefix='growing-english-sentences-v1:';
-    const missing=await this.db.query<Data>(`SELECT d."StudentId" AS student,d."Key" AS key,d."Value" AS value FROM "GrowingDocuments" d WHERE d."Key" LIKE '${prefix}%' AND d."Value" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "GrowingRankings" r WHERE r."StudentId"=d."StudentId" AND r."BoardId"=substr(d."Key",${prefix.length+1}))`);
-    for(const r of missing){try{if(englishScore.summary([],{},(sentenceData as Data)[r.key.slice(prefix.length)]??[],JSON.parse(r.value)).sentences.completed)students.add(String(r.student));}catch{/* Invalid source archives earn no points. */}}
+    // A version marker rebuilds every old English board, even when its word/sentence totals match.
+    const rows=await this.db.query<Data>(`SELECT DISTINCT "StudentId" AS student FROM "GrowingRankings" WHERE "Subject"='english' AND "ScoreVersion"<1`);
+    const students=new Set(rows.map(r=>String(r.student)));
+    const missing=await this.db.query<Data>(`SELECT DISTINCT d."StudentId" AS student FROM "GrowingDocuments" d WHERE (d."Key" LIKE 'growing-english-course-v1:%' OR d."Key" LIKE 'growing-english-sentences-v1:%' OR d."Key"='wordops_8A_unit3') AND d."Value" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "GrowingRankings" r WHERE r."StudentId"=d."StudentId" AND r."Subject"='english' AND r."ScoreVersion"=1)`);
+    for(const r of missing)students.add(String(r.student));
     for(const student of students){
       const [users,docs]=await this.db.batch([{sql:'SELECT "SyncRevision" AS revision FROM "GrowingUsers" WHERE "Id"=?1',params:[student]},{sql:'SELECT "Key" AS key,"Value" AS value,"Revision" AS revision,"UpdatedAt" AS updatedAt FROM "GrowingDocuments" WHERE "StudentId"=?1',params:[student]}]);
       if(users.length)await this.db.batch(rankingStatements(student,docs as Document[],users[0].revision));
@@ -122,9 +118,9 @@ export class Rankings {
     const rows=await this.db.query<Data>(`SELECT ${fields},(SELECT COUNT(*) FROM "GrowingRankings" peer JOIN "GrowingUsers" pu ON pu."Id"=peer."StudentId"
       WHERE peer."BoardId"=r."BoardId" AND pu."Role"='Student' AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=pu."Id")) AS participants
       ${eligible} AND r."StudentId"=?1 ORDER BY r."Subject",r."Term",r."Kind",r."BoardId"`,[student]);
-    return {boards:rows.map(r=>this.percentages(r)),formula:'英语：'+englishScore.formula+'；数学/物理：费曼学习 × 30% + 应用练习 × 70%',note:'按最近云同步记录排名；学期按教材上册/下册划分。科目榜两项分别按本学期全部已开放单元的总题量计算，未完成记0，同分并列。英语其他学习活动不计分。'};
+    return {boards:rows.map(r=>this.percentages(r)),formula:'英语：'+englishScore.formula+'；数学/物理：费曼学习 × 30% + 应用练习 × 70%',note:'按最近云同步记录排名；学期按教材上册/下册划分。英语科目榜按全部已开放单元得分平均；未开始的单元只得无错词基础分，词句与课时均记0。数学/物理按本学期总题量计算，同分并列。'};
   }
-  percentages(row:Data){const {points,...rest}=row;return {...rest,score:points/100,conceptPercent:100*row.conceptDone/row.conceptTotal,testPercent:100*row.testDone/row.testTotal,diagnosisPercent:100*row.diagnosisDone/row.diagnosisTotal};}
+  percentages(row:Data){const {points,...rest}=row;return {...rest,score:points/100,conceptPercent:row.conceptTotal?100*row.conceptDone/row.conceptTotal:0,testPercent:row.testTotal?100*row.testDone/row.testTotal:0,diagnosisPercent:row.diagnosisTotal?100*row.diagnosisDone/row.diagnosisTotal:0};}
   async board(student:string,id:string,page:number){
     await this.refreshEnglish();
     const own=await this.db.query<Data>(`SELECT ${fields} ${eligible} AND r."StudentId"=?1 AND r."BoardId"=?2`,[student,id]);

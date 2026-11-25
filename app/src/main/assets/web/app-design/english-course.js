@@ -25,7 +25,7 @@
   const progress=()=>E.progress(words,lessons,state,sentences,JSON.parse(localStorage.getItem(sentenceKey)||'null'));
   const status=message=>{notice=message;const el=document.getElementById('course-status');if(el)el.textContent=message;};
   function save(kind,item,record,cursor){
-    try{const latest=read();latest[kind][item.id]=record;if(cursor)latest.wordCursor=cursor;localStorage.setItem(key,JSON.stringify(latest));state=latest;window.UnitRewards.update(id);return true;}
+    try{const latest=read();if(kind==='feynman')record={...record,bestFeynman:window.GrowingEnglishUnitScore.keepBest(latest.feynman[item.id],record.attempts?.at(-1))};if(kind==='lessons'){const best=window.GrowingEnglishUnitScore.bestQuiz(item,latest.lessons[item.id],record);record={...latest.lessons[item.id],...record,bestQuiz:{protocol:best.protocol,answers:best.answers,at:best.at}};}latest[kind][item.id]=record;if(cursor)latest.wordCursor=cursor;localStorage.setItem(key,JSON.stringify(latest));state=latest;window.UnitRewards.update(id);return true;}
     catch(error){status('本次记录未保存：'+error.message+'。请恢复本地存储后重试。');return false;}
   }
   const speaker=window.GrowingCourseSpeech.create({assets:window.GrowingEnglishAudio,onStatus:status,label:'英语朗读'});
@@ -158,14 +158,14 @@
     if(e.target.id==='lesson-quiz'&&view==='quiz'&&attempt&&!attempt.result){
       const form=new FormData(e.target),answers=activeLesson.questions.map((q,i)=>form.get('q'+i));if(answers.some(a=>!a))return;
       const correct=answers.filter((a,i)=>a===activeLesson.questions[i].answer).length;
-      const saved=correct===3&&save('lessons',activeLesson,{protocol:'three-correct',answers,at:Date.now()});
+      const recorded=save('lessons',activeLesson,{protocol:correct===3?'three-correct':'three-question-attempt',answers,at:Date.now()}),saved=correct===3&&recorded;
       attempt.result={answers,correct,saved};paint();window.scrollTo(0,0);
     }
   });
   window.addEventListener('storage',e=>{if(e.key!==null&&e.key!==key&&e.key!==sentenceKey)return;try{state=read();if(view!=='quiz'&&view!=='recall')paint();window.UnitRewards.update(id);}catch(error){status('外部存档暂无法读取：'+error.message);}});
   window.addEventListener('pagehide',()=>{wordFlow?.destroy();stopSpeech();cancelDoubt();cancelFeynman();});
   window.addEventListener('pageshow',event=>{if(event.persisted){paint();window.UnitRewards.update(id);}});
-  window.UnitRewards.register(id,{title:`Unit ${unit.number} ${unit.title}`,rule:window.GrowingEnglishScore.formula+'，满分100分。只计必会词达标和整句通关，未完成记0；其他学习活动不计分，历史默写记录保留。',progress,mastery:()=>progress().done/100});
+  window.UnitRewards.register(id,{title:`Unit ${unit.number} ${unit.title}`,defaults:window.GrowingEnglishUnitScore.defaults,describe:()=>window.GrowingEnglishUnitScore.describe(window.GrowingEnglishScore.summary(words,state.words,sentences,JSON.parse(localStorage.getItem(sentenceKey)||'null'),false,{state,lessons})),progress,mastery:()=>window.GrowingEnglishScore.summary(words,state.words,sentences,JSON.parse(localStorage.getItem(sentenceKey)||'null'),false,{state,lessons}).score});
   const requestedNode=new URLSearchParams(location.search).get('node');
   if(requestedNode?.startsWith('word:')){const target=words.find(w=>w.id===requestedNode.slice(5));if(target){selected=target;view='word';}}
   if(requestedNode?.startsWith('lesson:')){const target=lessons.find(l=>l.id===requestedNode.slice(7));if(target){activeLesson=target;view='lesson';}}

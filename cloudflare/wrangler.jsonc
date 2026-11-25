@@ -1,10 +1,16 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "growing-platform",
-  "main": "src/index.ts",
+  "main": "src/worker.ts",
   "compatibility_date": "2026-10-22",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "rules": [{ "type": "Data", "globs": ["**/*.ttf"], "fallthrough": true }],
+  "queues": {
+    "producers": [{ "binding": "PHOTO_PROCESSING_QUEUE", "queue": "growing-photo-processing" }],
+    "consumers": [{ "queue": "growing-photo-processing", "max_batch_size": 1, "max_batch_timeout": 1, "max_retries": 5, "retry_delay": 60, "max_concurrency": 2 }]
+  },
+  "triggers": { "crons": ["*/5 * * * *"] },
   "routes": [{ "pattern": "007yx.com/*", "zone_name": "007yx.com" }],
   "kv_namespaces": [{ "binding": "APK_FILES", "id": "d4791757e7614d3f91d25e069610de66" }],
   "d1_databases": [{

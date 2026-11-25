@@ -1,20 +1,25 @@
 <script setup>
 import {Button,Cell,Progress,Tag} from 'vant';
+import {ref, watch} from 'vue';
+import StudentRewardDialog from './StudentRewardDialog.vue';
 import 'vant/es/button/style';import 'vant/es/cell/style';import 'vant/es/progress/style';import 'vant/es/tag/style';
-defineProps({model:{type:Object,required:true}});
+const props=defineProps({model:{type:Object,required:true}}),rewardUnit=ref(null);
+watch(()=>props.model.subject+':'+props.model.term,()=>{rewardUnit.value=null;});
 const progressLevel=value=>!Number.isFinite(value)?undefined:value>=90?'mastered':value>=60?'growing':value>=30?'developing':value>0?'started':'none';
 </script>
 <template>
  <section class="student-catalog" :class="model.kind==='catalog'?'catalog-shell':''" :data-student-page="model.kind">
+  <StudentRewardDialog v-if="rewardUnit" :unit="rewardUnit" :read-reward="model.readReward" @close="rewardUnit=null"/>
   <template v-if="model.kind==='catalog'">
    <nav class="page-nav" aria-label="页面导航"><Button tag="a" href="index.html" class="back-link" icon="arrow-left">返回选科</Button></nav>
    <header class="catalog-heading"><div><h1>{{model.subjectName}}</h1></div><div class="subject-stamp" aria-hidden="true">{{model.subject==='physics'?'v = s/t':model.subject==='math'?'x²':'Aa'}}</div></header>
-   <div class="catalog-actions"><nav class="term-switch" aria-label="选择学期"><Button v-for="term in model.terms" :key="term.key" tag="a" :href="term.href" :aria-current="term.key===model.term?'page':undefined">{{term.name}}<span>{{term.key==='upper'?'上学期':'下学期'}}</span></Button></nav><Button tag="a" :href="model.resources.href" class="resources-link">{{model.resources.label}} <span aria-hidden="true">→</span></Button></div>
+   <div class="catalog-actions"><nav class="term-switch" aria-label="选择学期"><Button v-for="term in model.terms" :key="term.key" tag="a" :href="term.href" :aria-current="term.key===model.term?'page':undefined">{{term.name}}<span>{{term.key==='upper'?'上学期':'下学期'}}</span></Button></nav><Button tag="a" :href="model.resources.href" class="resources-link">{{model.resources.label}}</Button></div>
+   <nav v-if="model.derivationHref" class="math-derivation-tools" aria-label="数学推导"><Button tag="a" :href="model.derivationHref">模型推导</Button></nav>
    <nav v-if="model.animationHref" class="catalog-tools" aria-label="英语学习工具"><Button tag="a" :href="model.animationHref" class="english-animation-button">动画记单词 →</Button></nav>
    <p v-if="model.notice" class="verification-note" role="note">ⓘ {{model.notice}}</p>
    <p v-if="model.wrongError" role="status">{{model.wrongError}}</p><section class="unit-section" aria-labelledby="student-unit-title"><div class="list-heading"><h2 id="student-unit-title">{{model.termName}}<span> / {{model.subject==='english'?'单元':'章节'}}目录</span></h2><p>{{model.units.length}} {{model.verified?(model.subject==='english'?'个单元':'章'):'个预留单元'}}<span v-if="model.units.some(u=>u.available)" class="available-count"> · {{model.units.filter(u=>u.available).length}} {{model.subject==='english'?'个':'章'}}可学习</span></p></div>
     <ol class="unit-list student-unit-list"><li v-for="unit in model.units" :key="unit.id" class="student-unit" :data-unit="unit.id">
-     <div class="unit-row" :class="{'is-ready':unit.available}" :data-mastery-level="progressLevel(unit.mastery)"><span class="unit-number" aria-hidden="true">{{String(unit.number).padStart(2,'0')}}</span><div class="unit-copy"><div class="unit-title"><span v-if="unit.wrongCount>0" class="wrong-dot" role="img" :aria-label="unit.wrongCount+'道错题待订正'" :title="unit.wrongCount+'道错题待订正'"></span><h3><Cell tag="a" :href="unit.href" :title="unit.title" :aria-label="unit.label+' '+unit.title+'，'+(unit.state||'可学习')"/></h3></div><div v-if="unit.summaryHref" class="unit-actions"><Button tag="a" :href="unit.summaryHref" class="unit-reward-trigger">单元总结</Button></div><div v-if="unit.available&&Number.isFinite(unit.mastery)&&unit.mastery>0" class="unit-progress student-mastery" :data-mastery-level="progressLevel(unit.mastery)" role="progressbar" :aria-label="unit.title+'掌握度'" :aria-valuenow="unit.mastery" aria-valuemin="0" aria-valuemax="100"><span>{{unit.mastery}}%</span><Progress :percentage="unit.mastery" :show-pivot="false" stroke-width="7" color="var(--mastery-color, var(--accent, #557b3c))" track-color="#dfe8d5"/></div><p v-if="unit.masteryError" class="student-record-error" role="status">{{unit.masteryError}}</p></div><span v-if="!unit.available" class="unit-state">{{unit.state}}</span></div>
+     <div class="unit-row" :class="{'is-ready':unit.available}" :data-mastery-level="progressLevel(unit.mastery)"><span class="unit-number" aria-hidden="true">{{String(unit.number).padStart(2,'0')}}</span><div class="unit-copy"><div class="unit-title"><span v-if="unit.wrongCount>0" class="wrong-dot" role="img" :aria-label="unit.wrongCount+'道错题待订正'" :title="unit.wrongCount+'道错题待订正'"></span><h3><Cell tag="a" :href="unit.href" :title="unit.title" :aria-label="unit.label+' '+unit.title+'，'+(unit.state||'可学习')"/></h3></div><div v-if="unit.summaryHref" class="unit-actions"><Button v-if="['math','english'].includes(model.subject)" @click="rewardUnit=unit" aria-haspopup="dialog" class="unit-reward-trigger">奖励</Button><Button tag="a" :href="unit.summaryHref" class="unit-reward-trigger">单元总结</Button></div><div v-if="unit.available&&Number.isFinite(unit.mastery)&&unit.mastery>0" class="unit-progress student-mastery" :data-mastery-level="progressLevel(unit.mastery)" role="progressbar" :aria-label="unit.title+'掌握度'" :aria-valuenow="unit.mastery" aria-valuemin="0" aria-valuemax="100"><span>{{unit.mastery}}%</span><Progress :percentage="unit.mastery" :show-pivot="false" stroke-width="7" color="var(--mastery-color, var(--accent, #557b3c))" track-color="#dfe8d5"/></div><p v-if="unit.masteryError" class="student-record-error" role="status">{{unit.masteryError}}</p></div><span v-if="!unit.available" class="unit-state">{{unit.state}}</span></div>
     </li></ol>
    </section>
   </template>
@@ -26,6 +31,7 @@ const progressLevel=value=>!Number.isFinite(value)?undefined:value>=90?'mastered
  </section>
 </template>
 <style scoped>
+.math-derivation-tools{margin:4px 0 20px}.student-catalog .math-derivation-tools>.van-button{min-height:44px;padding:8px 0;border:0;background:transparent;color:var(--ui-ink);font:inherit;font-size:14px}.math-derivation-tools :deep(.van-button__text){display:flex;align-items:center;gap:12px}
 .wrong-dot{display:inline-block;width:8px;height:8px;flex:none;border-radius:50%;background:#c43d3d;margin-right:8px}.unit-title{display:flex;align-items:center}
 /* Title and summary share one row; the summary sits at the far right on every width. */
 .unit-row .unit-copy>.unit-title,.unit-row .unit-title h3{margin:0}
@@ -38,4 +44,5 @@ const progressLevel=value=>!Number.isFinite(value)?undefined:value>=90?'mastered
 .student-catalog .student-mastery{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;font-size:13px;color:var(--mastery-color,var(--ui-muted));font-variant-numeric:tabular-nums}.student-catalog .student-mastery :deep(.van-progress){width:100%;min-width:0;border-radius:8px}.student-catalog .unit-row[data-mastery-level=none]{--mastery-color:#6b7562;--mastery-soft:#f0f2eb;--mastery-tint:#fbfcf9;background:var(--mastery-tint)}.student-catalog .unit-row[data-mastery-level=none] .unit-number{color:var(--mastery-color);background:var(--mastery-soft)}.student-catalog .unit-row[data-mastery-level] .unit-reward-trigger{color:var(--mastery-color);background:var(--mastery-soft)}
 .student-catalog .unit-row .unit-actions .unit-reward-trigger{background:transparent;border:0;box-shadow:none}
 .student-catalog .unit-actions .unit-reward-trigger::before{background:transparent}
+.student-catalog .unit-actions{flex-wrap:wrap;gap:4px;max-width:230px}@media(max-width:520px){.student-catalog .unit-actions{max-width:130px}}
 </style>

@@ -6,8 +6,9 @@
   const controls=window.GrowingStudentDuckControls,raw=value=>controls?.unwrap(value)||value,make=tag=>controls?.wrap(document.createElement(tag))||document.createElement(tag);
   // A portal owns one companion; its course documents only forward learning events.
   try{
-    if(window!==window.top&&window.top.GrowingCloud){
-      const owner=window.top,connect=()=>owner.GrowingDuckCourse?.attach(window);
+    const host=window.GrowingCloudHost?.window||window.top;
+    if(window!==host&&host.GrowingCloud){
+      const owner=host,connect=()=>owner.GrowingDuckCourse?.attach(window);
       if(owner.GrowingDuckCourse)connect();
       else{
         let script=owner.document.getElementById('global-course-duck');
@@ -200,7 +201,7 @@ const archiveStyle=make('style');archiveStyle.textContent='.duck-knowledge{posit
   const noteDrafts=new Map();
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const labels={unknown:'未测',learning:'学习中',mastered:'课程已达标',weak:'待巩固',review:'达标后需复习'};
-  function cloud(){try{return window.top.GrowingCloud||window.GrowingStudentKnowledge;}catch{return null;}}
+  function cloud(){try{return window.GrowingCloudHost?.cloud||window.GrowingCloud||window.top.GrowingCloud||window.GrowingStudentKnowledge;}catch{return null;}}
   function unit(){return (context||fallback()).id?.match(/(?:math|physics|english)-8[ab]-\d{2}/)?.[0]||'';}
   function topic(){return String((context||fallback()).id||'').split(':').at(-1);}
   function sendKnowledge(requestId=''){

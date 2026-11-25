@@ -5,7 +5,9 @@
   const stamp=at=>new Date(at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'});
   window.GrowingQuestionAttempts={
     async context(){
-      if(window.top.GrowingCloud?.questionAttempts)return window.top.GrowingCloud.questionAttempts();
+      let cloud=window.GrowingCloudHost?.cloud||window.GrowingCloud;
+      if(!cloud)try{cloud=window.top.GrowingCloud;}catch(error){if(error.name!=='SecurityError')throw error;}
+      if(cloud?.questionAttempts)return cloud.questionAttempts();
       if(!window.GrowingNative)return null;
       const base=String(GrowingNative.cloudApiUrl?.()||'').replace(/\/$/,'');
       const session=JSON.parse(localStorage.getItem('growing-cloud-session-v1')||'null');

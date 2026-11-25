@@ -383,7 +383,7 @@ test('duplicate upload repairs discarded legacy originals; missing pages can be 
 test('whole-paper import atomically retains sources and grades, maps real lessons, and counts only reliable answers once',async()=>{
   const u=await register(),{input,data}=await importPaper(u);assert.equal(data.questions.length,4);
   const [q1,q2,q3,q4]=data.questions;assert.equal(q1.grades[0].result.score,50);assert.equal(q1.answer,'');assert.equal(q1.regions.length,1);
-  assert.match(q1.grades[0].result.knowledge[0].href,/knowledge.html\?chapter=math-8b-10&node=add/);assert.equal(q2.grades[0].result.models[0].href,'app-design/geometry-models.html#model-10');
+  assert.equal(q1.grades[0].result.knowledge[0].href,'app-design/math-course.html?chapter=math-8b-10&node=add');assert.equal(q2.grades[0].result.models[0].href,'app-design/geometry-models.html#model-10');
   const source=await (await call('/question-bank/papers/'+data.paperId+'?studentId='+u.user.id,'GET',undefined,u.token)).json() as any;assert.equal(source.pages.length,2);assert.equal(source.questions.length,4);
   const count=await db.query<any>('SELECT "QuestionId" AS id,"Correct" AS correct FROM "GrowingQuestionAttempts" WHERE "StudentId"=?1',[u.user.id]);assert.equal(count.length,2);assert.equal(count.find(r=>r.id===q1.id).correct,0);assert.ok(!count.some(r=>[q3.id,q4.id].includes(r.id)));
   const before=calls.length;

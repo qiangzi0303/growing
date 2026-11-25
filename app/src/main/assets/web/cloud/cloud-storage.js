@@ -2,8 +2,15 @@
 (()=>{
   'use strict';
   if(window.GrowingNative)return;
-  const cloud=window.top.GrowingCloud;
+  // The platform can itself be embedded in a cross-origin preview window.
+  // Walk only accessible ancestors; the nearest platform owns this course's account.
+  let owner=window,cloud;
+  while(owner){
+    try{if(owner.GrowingCloud){cloud=owner.GrowingCloud;break;}if(owner.parent===owner)break;owner=owner.parent;}
+    catch(error){if(error.name!=='SecurityError')throw error;break;}
+  }
   if(!cloud){location.replace('/');throw Error('请从学习中心进入课程');}
+  window.GrowingCloudHost={window:owner,cloud};
   Object.defineProperty(window,'localStorage',{value:cloud.storage(window),configurable:false});
   document.addEventListener('DOMContentLoaded',()=>{
     let back=document.querySelector('.course-return-nav [data-growing-back],a#catalog-back,a#back,a#course-back,a.back-link');

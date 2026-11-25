@@ -87,14 +87,13 @@ test('OCR delimiter recovery cannot accept truncated JSON, arbitrary escapes or 
  }
 });
 
-test('grading retains strict JSON parsing when an OCR binding is present',async()=>{
- await assert.rejects(()=>visionCompletion(env,signal(),(async()=>Response.json({choices:[{finish_reason:'stop',message:{content:String.raw`{"text":"\(x\)"}`}}]})) as typeof fetch,
-  'system',{},[],value=>value,true,true,{paperRecognition:true}),{status:502});
-});
-
-test('reviewed paper grading keeps strict JSON parsing while ordinary grading retains its provider',async()=>{
- await assert.rejects(()=>visionCompletion({...env,PAPER_FIGURE_MODELS:config('visual')},signal(),(async(_url,options)=>{
-  assert.equal(JSON.parse(String(options?.body)).model,'visual');
-  return Response.json({choices:[{finish_reason:'stop',message:{content:String.raw`{"text":"\(x\)"}`}}]});
- }) as typeof fetch,'system',{},[],value=>value,true,true,{paperReview:true}),{status:502});
+for(const reviewed of [false,true])test((reviewed?'reviewed paper':'ordinary')+' grading recovers only formula delimiters and retains provider and schema validation',async()=>{
+ const current=reviewed?{...env,PAPER_FIGURE_MODELS:config('visual')}:env;
+ const options=reviewed?{paperReview:true}:{paperRecognition:true};
+ const invoke=(content:string)=>visionCompletion(current,signal(),(async(_url,request)=>{
+  assert.equal(JSON.parse(String(request?.body)).model,reviewed?'visual':'deepseek');
+  return Response.json({choices:[{finish_reason:'stop',message:{content}}]});
+ }) as typeof fetch,'system',{},[],value=>typeof value?.text==='string'?value:null,true,true,options);
+ const result=await invoke(String.raw`{"text":"\(x\)"}`);assert.deepEqual(await result.json(),{text:String.raw`\(x\)`});
+ for(const invalid of [String.raw`{"text":"\(x\)"`,String.raw`{"text":"\(x\)\q"}`,String.raw`{"text":12}`])await assert.rejects(()=>invoke(invalid),{status:502});
 });

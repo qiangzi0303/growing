@@ -32,7 +32,7 @@ test('unreadable course data is not silently marked untested and no writes occur
 test('English validates answers and excludes optional words',()=>{
   const words=C.GrowingEnglishVocabulary[1],lessons=C.GrowingEnglishLessons[1],w=words.find(w=>!w.optional),l=lessons[0];
   const raw={version:1,words:{[w.id]:{protocol:'seven-recalls',answers:Array(7).fill(w.word)}},lessons:{[l.id]:{protocol:'three-correct',answers:l.questions.map(q=>q.answer)}}};
-  let out=S.english({words,lessons,raw,engine:E});assert.equal(out.rows.filter(n=>n.status==='passed').length,2);assert.equal(out.rows.length,words.filter(w=>!w.optional).length+lessons.length);
+  let out=S.english({words,lessons,raw,engine:E});assert.equal(out.rows.filter(n=>n.status==='passed').length,1);assert.equal(out.rows.length,words.filter(w=>!w.optional).length+lessons.length);
   raw.words[w.id].answers[0]='incorrect';out=S.english({words,lessons,raw,engine:E});assert.equal(out.rows.find(n=>n.id==='word:'+w.id).status,'untested');
 });
 test('legacy Unit 3 reports failed and unfinished recalls and preserves old criteria',()=>{
