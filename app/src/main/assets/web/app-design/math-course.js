@@ -29,7 +29,7 @@
   function validGrade(a){if(!physics)return F.validGrade(a);return a&&Number.isInteger(a.score)&&a.score>=0&&a.score<=10&&Array.isArray(a.criticalErrors)&&a.criticalErrors.every(x=>typeof x==='string')&&typeof a.feedback==='string';}
   function saveBundle(nextRecords,nextLearning){
     if(archiveUnreadable){storageError='原存档无法读取，已停止覆盖。请先备份并修复记录。';return false;}
-    try{localStorage.setItem(KEY,JSON.stringify({version:1,topics:nextRecords,tools:nextLearning}));records=nextRecords;learning=nextLearning;storageError='';window.UnitRewards.update(chapter.id);return true;}
+    try{localStorage.setItem(KEY,JSON.stringify({...JSON.parse(localStorage.getItem(KEY)||'null'),version:1,topics:nextRecords,tools:nextLearning}));records=nextRecords;learning=nextLearning;storageError='';window.UnitRewards.update(chapter.id);return true;}
     catch(error){storageError='保存未完成：'+error.message+'。原已保存记录保留，请恢复存储后重试。';return false;}
   }
   function store(change,id=selected,event){const next={...records,[id]:{...record(id),...change}},data=T.restore(learning);if(event)T.log(data,id,{...event,mastered:concept(next[id])&&P.result(next[id]).passed});return saveBundle(next,data);}

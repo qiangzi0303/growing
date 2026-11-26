@@ -94,3 +94,6 @@ h1{font-size:38px;line-height:1.4;font-weight:650;letter-spacing:2px;margin:0}
   .study-toolbar{height:72px;padding:8px 16px;gap:12px}.study-location{display:block;text-align:center}.study-location span{display:block;font-size:9px;margin-bottom:3px}.study-location strong{display:block;font-size:12px}.study-toolbar .back-link{font-size:12px}.home-link{font-size:14px}.pending-shell{padding:40px 22px}.pending-shell h1{font-size:26px}.pending-description{font-size:13px}.outline{padding:18px}.outline li{font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){.unit-row{transition:none}}
+.review-dot{display:inline-block;width:8px;height:8px;flex:none;border-radius:50%;background:#c43d3d;margin-right:8px;animation:review-pulse 2s ease-in-out infinite}
+@keyframes review-pulse{0%,100%{box-shadow:0 0 0 0 rgb(196 61 61 / 0)}50%{box-shadow:0 0 0 4px rgb(196 61 61 / .18)}}
+@media(prefers-reduced-motion:reduce){.review-dot{animation:none}}

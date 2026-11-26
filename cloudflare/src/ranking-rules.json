@@ -1264,19 +1264,23 @@
         {
           "id": "forms",
           "title": "语法：形容词比较级与最高级的构成",
+          "legacyQuestionCount": 3,
           "answers": [
             "happier",
             "biggest",
-            "more interesting"
+            "more interesting",
+            "bigger"
           ]
         },
         {
           "id": "comparison",
           "title": "语法：比较范围和句型",
+          "legacyQuestionCount": 3,
           "answers": [
             "the tallest",
             "much",
-            "students"
+            "students",
+            "boys is Tom"
           ]
         },
         {
@@ -2266,19 +2270,23 @@
         {
           "id": "amount",
           "title": "语法：more / fewer / less",
+          "legacyQuestionCount": 3,
           "answers": [
             "fewer",
             "the least",
-            "more"
+            "more",
+            "less; fewer"
           ]
         },
         {
           "id": "equality",
           "title": "语法：as ... as 的同级比较",
+          "legacyQuestionCount": 3,
           "answers": [
             "important",
             "much",
-            "A is shorter than B."
+            "A is shorter than B.",
+            "fast"
           ]
         },
         {
@@ -2300,27 +2308,1087 @@
     "subjectName": "英语",
     "term": "upper",
     "termName": "八年级上册",
-    "kind": "legacy-english",
-    "topics": [
-      "adverbs",
-      "reflexives",
-      "formation",
-      "patterns",
-      "reading"
-    ],
-    "tests": [
-      "v1",
-      "v2",
-      "v3",
-      "v4",
-      "v5",
-      "v6",
-      "patterns",
-      "adverbs",
-      "reflexives",
-      "formation",
-      "reading"
-    ]
+    "kind": "english",
+    "rules": {
+      "wordCount": 62,
+      "allWords": [
+        {
+          "id": "w1",
+          "word": "learner",
+          "meaning": "n. 学习者",
+          "pos": "n.",
+          "plurals": [
+            "learners"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w2",
+          "word": "feed",
+          "meaning": "v. 喂养；提供食物",
+          "pos": "v.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w3",
+          "word": "fish",
+          "meaning": "v. 钓鱼；捕鱼",
+          "pos": "v.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w4",
+          "word": "lifetime",
+          "meaning": "n. 一生",
+          "pos": "n.",
+          "plurals": [
+            "lifetimes"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w5",
+          "word": "journey",
+          "meaning": "n. 旅程；旅行",
+          "pos": "n.",
+          "plurals": [
+            "journeys"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w6",
+          "word": "single",
+          "meaning": "adj. 单个的；单身的",
+          "pos": "adj.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w7",
+          "word": "against",
+          "meaning": "prep. 逆；反对",
+          "pos": "prep.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w8",
+          "word": "fall behind",
+          "meaning": "短语 落后",
+          "pos": "短语",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w9",
+          "word": "successful",
+          "meaning": "adj. 成功的；有成效的",
+          "pos": "adj.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w10",
+          "word": "drive",
+          "meaning": "n. 冲劲；动力",
+          "pos": "n.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w11",
+          "word": "guide",
+          "meaning": "v. 指导；领路",
+          "pos": "v.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w12",
+          "word": "lifelong",
+          "meaning": "adj. 终身的",
+          "pos": "adj.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w13",
+          "word": "inventor",
+          "meaning": "n. 发明家",
+          "pos": "n.",
+          "plurals": [
+            "inventors"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w14",
+          "word": "found",
+          "meaning": "v. 创建；建立",
+          "pos": "v.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w15",
+          "word": "talent",
+          "meaning": "n. 天资；才能",
+          "pos": "n.",
+          "plurals": [
+            "talents"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w16",
+          "word": "century",
+          "meaning": "n. 世纪；百年",
+          "pos": "n.",
+          "plurals": [
+            "centuries"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w17",
+          "word": "set ... apart",
+          "meaning": "短语 使……与众不同",
+          "pos": "短语",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w18",
+          "word": "print",
+          "meaning": "n. / v. 印刷行业；印刷",
+          "pos": "n. / v.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w19",
+          "word": "himself",
+          "meaning": "pron. 他自己",
+          "pos": "pron.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w20",
+          "word": "bookseller",
+          "meaning": "n. 书商",
+          "pos": "n.",
+          "plurals": [
+            "booksellers"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w21",
+          "word": "in order to",
+          "meaning": "短语 为了",
+          "pos": "短语",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w22",
+          "word": "return",
+          "meaning": "v. 归还",
+          "pos": "v.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w23",
+          "word": "curious",
+          "meaning": "adj. 好奇的",
+          "pos": "adj.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w24",
+          "word": "storm",
+          "meaning": "n. 暴风雨",
+          "pos": "n.",
+          "plurals": [
+            "storms"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w25",
+          "word": "finding",
+          "meaning": "n. 调查发现",
+          "pos": "n.",
+          "plurals": [
+            "findings"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w26",
+          "word": "predict",
+          "meaning": "v. 预测",
+          "pos": "v.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w27",
+          "word": "countless",
+          "meaning": "adj. 数不尽的",
+          "pos": "adj.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w28",
+          "word": "invention",
+          "meaning": "n. 发明",
+          "pos": "n.",
+          "plurals": [
+            "inventions"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w29",
+          "word": "come as no surprise",
+          "meaning": "短语 不足为奇",
+          "pos": "短语",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w30",
+          "word": "invent",
+          "meaning": "v. 发明",
+          "pos": "v.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w31",
+          "word": "for free",
+          "meaning": "短语 免费",
+          "pos": "短语",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w32",
+          "word": "greatness",
+          "meaning": "n. 伟大",
+          "pos": "n.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w33",
+          "word": "success",
+          "meaning": "n. 成功",
+          "pos": "n.",
+          "plurals": [
+            "successes"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w34",
+          "word": "Italian",
+          "meaning": "n. 意大利语；意大利人",
+          "pos": "n.",
+          "plurals": [
+            "Italians"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w35",
+          "word": "themselves",
+          "meaning": "pron. 他们／她们／它们自己",
+          "pos": "pron.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w36",
+          "word": "conversation",
+          "meaning": "n. 交谈；谈话",
+          "pos": "n.",
+          "plurals": [
+            "conversations"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w37",
+          "word": "translate",
+          "meaning": "v. 翻译",
+          "pos": "v.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w38",
+          "word": "page",
+          "meaning": "n. 页",
+          "pos": "n.",
+          "plurals": [
+            "pages"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w39",
+          "word": "badly",
+          "meaning": "adv. 不好地；严重地",
+          "pos": "adv.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w40",
+          "word": "yourself",
+          "meaning": "pron. 你自己",
+          "pos": "pron.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w41",
+          "word": "yourselves",
+          "meaning": "pron. 你们自己",
+          "pos": "pron.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w42",
+          "word": "record",
+          "meaning": "v. / n. 录制；记录；纪录",
+          "pos": "v. / n.",
+          "plurals": [
+            "records"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w43",
+          "word": "printer",
+          "meaning": "n. 印刷工；印刷商；打印机",
+          "pos": "n.",
+          "plurals": [
+            "printers"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w44",
+          "word": "slashie",
+          "meaning": "n. 斜杠族；多重职业者",
+          "pos": "n.",
+          "plurals": [
+            "slashies"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w45",
+          "word": "dialect",
+          "meaning": "n. 方言",
+          "pos": "n.",
+          "plurals": [
+            "dialects"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w46",
+          "word": "besides",
+          "meaning": "prep. 除……之外还",
+          "pos": "prep.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w47",
+          "word": "possible",
+          "meaning": "adj. 可能的",
+          "pos": "adj.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w48",
+          "word": "as ... as possible",
+          "meaning": "短语 尽可能……",
+          "pos": "短语",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w49",
+          "word": "sentence",
+          "meaning": "n. 句子",
+          "pos": "n.",
+          "plurals": [
+            "sentences"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w50",
+          "word": "rather than",
+          "meaning": "短语 而不是",
+          "pos": "短语",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w51",
+          "word": "pronunciation",
+          "meaning": "n. 发音",
+          "pos": "n.",
+          "plurals": [
+            "pronunciations"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w52",
+          "word": "grammar",
+          "meaning": "n. 语法",
+          "pos": "n.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w53",
+          "word": "slowly",
+          "meaning": "adv. 慢速地；缓慢地",
+          "pos": "adv.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w54",
+          "word": "text",
+          "meaning": "n. 文本；文章",
+          "pos": "n.",
+          "plurals": [
+            "texts"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w55",
+          "word": "speech",
+          "meaning": "n. 演讲；说话的能力",
+          "pos": "n.",
+          "plurals": [
+            "speeches"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w56",
+          "word": "aloud",
+          "meaning": "adv. 出声地；大声地",
+          "pos": "adv.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w57",
+          "word": "pronounce",
+          "meaning": "v. 发音",
+          "pos": "v.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w58",
+          "word": "correctly",
+          "meaning": "adv. 正确地",
+          "pos": "adv.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w59",
+          "word": "spelling",
+          "meaning": "n. 拼写",
+          "pos": "n.",
+          "plurals": [
+            "spellings"
+          ],
+          "optional": false
+        },
+        {
+          "id": "w60",
+          "word": "to one's surprise",
+          "meaning": "短语 令某人惊讶的是",
+          "pos": "短语",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w61",
+          "word": "repeat",
+          "meaning": "v. 重复",
+          "pos": "v.",
+          "plurals": [],
+          "optional": false
+        },
+        {
+          "id": "w62",
+          "word": "tourist",
+          "meaning": "n. 游客；观光者",
+          "pos": "n.",
+          "plurals": [
+            "tourists"
+          ],
+          "optional": false
+        }
+      ],
+      "words": [
+        {
+          "id": "w1",
+          "word": "learner",
+          "meaning": "n. 学习者",
+          "pos": "n.",
+          "plurals": [
+            "learners"
+          ]
+        },
+        {
+          "id": "w2",
+          "word": "feed",
+          "meaning": "v. 喂养；提供食物",
+          "pos": "v.",
+          "plurals": []
+        },
+        {
+          "id": "w3",
+          "word": "fish",
+          "meaning": "v. 钓鱼；捕鱼",
+          "pos": "v.",
+          "plurals": []
+        },
+        {
+          "id": "w4",
+          "word": "lifetime",
+          "meaning": "n. 一生",
+          "pos": "n.",
+          "plurals": [
+            "lifetimes"
+          ]
+        },
+        {
+          "id": "w5",
+          "word": "journey",
+          "meaning": "n. 旅程；旅行",
+          "pos": "n.",
+          "plurals": [
+            "journeys"
+          ]
+        },
+        {
+          "id": "w6",
+          "word": "single",
+          "meaning": "adj. 单个的；单身的",
+          "pos": "adj.",
+          "plurals": []
+        },
+        {
+          "id": "w7",
+          "word": "against",
+          "meaning": "prep. 逆；反对",
+          "pos": "prep.",
+          "plurals": []
+        },
+        {
+          "id": "w8",
+          "word": "fall behind",
+          "meaning": "短语 落后",
+          "pos": "短语",
+          "plurals": []
+        },
+        {
+          "id": "w9",
+          "word": "successful",
+          "meaning": "adj. 成功的；有成效的",
+          "pos": "adj.",
+          "plurals": []
+        },
+        {
+          "id": "w10",
+          "word": "drive",
+          "meaning": "n. 冲劲；动力",
+          "pos": "n.",
+          "plurals": []
+        },
+        {
+          "id": "w11",
+          "word": "guide",
+          "meaning": "v. 指导；领路",
+          "pos": "v.",
+          "plurals": []
+        },
+        {
+          "id": "w12",
+          "word": "lifelong",
+          "meaning": "adj. 终身的",
+          "pos": "adj.",
+          "plurals": []
+        },
+        {
+          "id": "w13",
+          "word": "inventor",
+          "meaning": "n. 发明家",
+          "pos": "n.",
+          "plurals": [
+            "inventors"
+          ]
+        },
+        {
+          "id": "w14",
+          "word": "found",
+          "meaning": "v. 创建；建立",
+          "pos": "v.",
+          "plurals": []
+        },
+        {
+          "id": "w15",
+          "word": "talent",
+          "meaning": "n. 天资；才能",
+          "pos": "n.",
+          "plurals": [
+            "talents"
+          ]
+        },
+        {
+          "id": "w16",
+          "word": "century",
+          "meaning": "n. 世纪；百年",
+          "pos": "n.",
+          "plurals": [
+            "centuries"
+          ]
+        },
+        {
+          "id": "w17",
+          "word": "set ... apart",
+          "meaning": "短语 使……与众不同",
+          "pos": "短语",
+          "plurals": []
+        },
+        {
+          "id": "w18",
+          "word": "print",
+          "meaning": "n. / v. 印刷行业；印刷",
+          "pos": "n. / v.",
+          "plurals": []
+        },
+        {
+          "id": "w19",
+          "word": "himself",
+          "meaning": "pron. 他自己",
+          "pos": "pron.",
+          "plurals": []
+        },
+        {
+          "id": "w20",
+          "word": "bookseller",
+          "meaning": "n. 书商",
+          "pos": "n.",
+          "plurals": [
+            "booksellers"
+          ]
+        },
+        {
+          "id": "w21",
+          "word": "in order to",
+          "meaning": "短语 为了",
+          "pos": "短语",
+          "plurals": []
+        },
+        {
+          "id": "w22",
+          "word": "return",
+          "meaning": "v. 归还",
+          "pos": "v.",
+          "plurals": []
+        },
+        {
+          "id": "w23",
+          "word": "curious",
+          "meaning": "adj. 好奇的",
+          "pos": "adj.",
+          "plurals": []
+        },
+        {
+          "id": "w24",
+          "word": "storm",
+          "meaning": "n. 暴风雨",
+          "pos": "n.",
+          "plurals": [
+            "storms"
+          ]
+        },
+        {
+          "id": "w25",
+          "word": "finding",
+          "meaning": "n. 调查发现",
+          "pos": "n.",
+          "plurals": [
+            "findings"
+          ]
+        },
+        {
+          "id": "w26",
+          "word": "predict",
+          "meaning": "v. 预测",
+          "pos": "v.",
+          "plurals": []
+        },
+        {
+          "id": "w27",
+          "word": "countless",
+          "meaning": "adj. 数不尽的",
+          "pos": "adj.",
+          "plurals": []
+        },
+        {
+          "id": "w28",
+          "word": "invention",
+          "meaning": "n. 发明",
+          "pos": "n.",
+          "plurals": [
+            "inventions"
+          ]
+        },
+        {
+          "id": "w29",
+          "word": "come as no surprise",
+          "meaning": "短语 不足为奇",
+          "pos": "短语",
+          "plurals": []
+        },
+        {
+          "id": "w30",
+          "word": "invent",
+          "meaning": "v. 发明",
+          "pos": "v.",
+          "plurals": []
+        },
+        {
+          "id": "w31",
+          "word": "for free",
+          "meaning": "短语 免费",
+          "pos": "短语",
+          "plurals": []
+        },
+        {
+          "id": "w32",
+          "word": "greatness",
+          "meaning": "n. 伟大",
+          "pos": "n.",
+          "plurals": []
+        },
+        {
+          "id": "w33",
+          "word": "success",
+          "meaning": "n. 成功",
+          "pos": "n.",
+          "plurals": [
+            "successes"
+          ]
+        },
+        {
+          "id": "w34",
+          "word": "Italian",
+          "meaning": "n. 意大利语；意大利人",
+          "pos": "n.",
+          "plurals": [
+            "Italians"
+          ]
+        },
+        {
+          "id": "w35",
+          "word": "themselves",
+          "meaning": "pron. 他们／她们／它们自己",
+          "pos": "pron.",
+          "plurals": []
+        },
+        {
+          "id": "w36",
+          "word": "conversation",
+          "meaning": "n. 交谈；谈话",
+          "pos": "n.",
+          "plurals": [
+            "conversations"
+          ]
+        },
+        {
+          "id": "w37",
+          "word": "translate",
+          "meaning": "v. 翻译",
+          "pos": "v.",
+          "plurals": []
+        },
+        {
+          "id": "w38",
+          "word": "page",
+          "meaning": "n. 页",
+          "pos": "n.",
+          "plurals": [
+            "pages"
+          ]
+        },
+        {
+          "id": "w39",
+          "word": "badly",
+          "meaning": "adv. 不好地；严重地",
+          "pos": "adv.",
+          "plurals": []
+        },
+        {
+          "id": "w40",
+          "word": "yourself",
+          "meaning": "pron. 你自己",
+          "pos": "pron.",
+          "plurals": []
+        },
+        {
+          "id": "w41",
+          "word": "yourselves",
+          "meaning": "pron. 你们自己",
+          "pos": "pron.",
+          "plurals": []
+        },
+        {
+          "id": "w42",
+          "word": "record",
+          "meaning": "v. / n. 录制；记录；纪录",
+          "pos": "v. / n.",
+          "plurals": [
+            "records"
+          ]
+        },
+        {
+          "id": "w43",
+          "word": "printer",
+          "meaning": "n. 印刷工；印刷商；打印机",
+          "pos": "n.",
+          "plurals": [
+            "printers"
+          ]
+        },
+        {
+          "id": "w44",
+          "word": "slashie",
+          "meaning": "n. 斜杠族；多重职业者",
+          "pos": "n.",
+          "plurals": [
+            "slashies"
+          ]
+        },
+        {
+          "id": "w45",
+          "word": "dialect",
+          "meaning": "n. 方言",
+          "pos": "n.",
+          "plurals": [
+            "dialects"
+          ]
+        },
+        {
+          "id": "w46",
+          "word": "besides",
+          "meaning": "prep. 除……之外还",
+          "pos": "prep.",
+          "plurals": []
+        },
+        {
+          "id": "w47",
+          "word": "possible",
+          "meaning": "adj. 可能的",
+          "pos": "adj.",
+          "plurals": []
+        },
+        {
+          "id": "w48",
+          "word": "as ... as possible",
+          "meaning": "短语 尽可能……",
+          "pos": "短语",
+          "plurals": []
+        },
+        {
+          "id": "w49",
+          "word": "sentence",
+          "meaning": "n. 句子",
+          "pos": "n.",
+          "plurals": [
+            "sentences"
+          ]
+        },
+        {
+          "id": "w50",
+          "word": "rather than",
+          "meaning": "短语 而不是",
+          "pos": "短语",
+          "plurals": []
+        },
+        {
+          "id": "w51",
+          "word": "pronunciation",
+          "meaning": "n. 发音",
+          "pos": "n.",
+          "plurals": [
+            "pronunciations"
+          ]
+        },
+        {
+          "id": "w52",
+          "word": "grammar",
+          "meaning": "n. 语法",
+          "pos": "n.",
+          "plurals": []
+        },
+        {
+          "id": "w53",
+          "word": "slowly",
+          "meaning": "adv. 慢速地；缓慢地",
+          "pos": "adv.",
+          "plurals": []
+        },
+        {
+          "id": "w54",
+          "word": "text",
+          "meaning": "n. 文本；文章",
+          "pos": "n.",
+          "plurals": [
+            "texts"
+          ]
+        },
+        {
+          "id": "w55",
+          "word": "speech",
+          "meaning": "n. 演讲；说话的能力",
+          "pos": "n.",
+          "plurals": [
+            "speeches"
+          ]
+        },
+        {
+          "id": "w56",
+          "word": "aloud",
+          "meaning": "adv. 出声地；大声地",
+          "pos": "adv.",
+          "plurals": []
+        },
+        {
+          "id": "w57",
+          "word": "pronounce",
+          "meaning": "v. 发音",
+          "pos": "v.",
+          "plurals": []
+        },
+        {
+          "id": "w58",
+          "word": "correctly",
+          "meaning": "adv. 正确地",
+          "pos": "adv.",
+          "plurals": []
+        },
+        {
+          "id": "w59",
+          "word": "spelling",
+          "meaning": "n. 拼写",
+          "pos": "n.",
+          "plurals": [
+            "spellings"
+          ]
+        },
+        {
+          "id": "w60",
+          "word": "to one's surprise",
+          "meaning": "短语 令某人惊讶的是",
+          "pos": "短语",
+          "plurals": []
+        },
+        {
+          "id": "w61",
+          "word": "repeat",
+          "meaning": "v. 重复",
+          "pos": "v.",
+          "plurals": []
+        },
+        {
+          "id": "w62",
+          "word": "tourist",
+          "meaning": "n. 游客；观光者",
+          "pos": "n.",
+          "plurals": [
+            "tourists"
+          ]
+        }
+      ],
+      "lessons": [
+        {
+          "id": "patterns",
+          "title": "词汇运用：重点短语与句型",
+          "answers": [
+            "improve",
+            "reading; writing",
+            "Practise as often as possible. One of the most successful learners is Li Hua."
+          ]
+        },
+        {
+          "id": "adverbs",
+          "title": "语法：副词比较级与最高级",
+          "answers": [
+            "careful",
+            "She performed much better than before.",
+            "as hard as; fastest; hardly"
+          ]
+        },
+        {
+          "id": "reflexives",
+          "title": "语法：反身代词",
+          "answers": [
+            "myself",
+            "yourself; yourselves",
+            "We taught ourselves and shared ideas with them."
+          ]
+        },
+        {
+          "id": "formation",
+          "title": "语法：词形与后缀",
+          "answers": [
+            "learner",
+            "successful; successfully",
+            "Two centuries ago they founded a school; during their journeys they found useful records."
+          ]
+        },
+        {
+          "id": "reading",
+          "title": "阅读与写作：阅读与学习经历写作",
+          "answers": [
+            "主动学习",
+            "发音不清楚，所以每天跟读并比较录音",
+            "每天与伙伴交流，记录句子，每周比较表达进步"
+          ]
+        }
+      ]
+    }
   },
   {
     "id": "english-8a-04",
@@ -3214,19 +4282,23 @@
         {
           "id": "imperatives",
           "title": "语法：祈使句与操作步骤",
+          "legacyQuestionCount": 3,
           "answers": [
             "Read",
             "Don’t leave",
-            "make"
+            "make",
+            "Don’t touch"
           ]
         },
         {
           "id": "advice",
           "title": "语法：should / had better",
+          "legacyQuestionCount": 3,
           "answers": [
             "ask",
             "turn off",
-            "You had better not run."
+            "You had better not run.",
+            "had better not go"
           ]
         },
         {
@@ -4080,28 +5152,34 @@
         {
           "id": "verb-to",
           "title": "语法：动词 + to不定式",
+          "legacyQuestionCount": 3,
           "answers": [
             "to protect",
             "not to hurt",
-            "taking"
+            "taking",
+            "not to feed"
           ]
         },
         {
           "id": "purpose",
           "title": "语法：用to不定式表达目的",
+          "legacyQuestionCount": 3,
           "answers": [
             "to watch",
             "Why does she work hard?",
-            "To learn"
+            "To learn",
+            "to watch"
           ]
         },
         {
           "id": "object-to",
           "title": "语法：宾语后带to和不带to的不定式",
+          "legacyQuestionCount": 3,
           "answers": [
             "to wait",
             "laugh",
-            "not to disturb"
+            "not to disturb",
+            "to work"
           ]
         },
         {
@@ -4866,19 +5944,23 @@
         {
           "id": "sv-svo",
           "title": "语法：主谓与主谓宾",
+          "legacyQuestionCount": 3,
           "answers": [
             "S+V",
             "snowmen",
-            "地点状语"
+            "地点状语",
+            "We reached the station."
           ]
         },
         {
           "id": "linking",
           "title": "语法：主系表与感官动词",
+          "legacyQuestionCount": 3,
           "answers": [
             "sweet",
             "S+V+P",
-            "The soup smells good."
+            "The soup smells good.",
+            "good; well"
           ]
         },
         {
@@ -5642,28 +6724,34 @@
         {
           "id": "double-object",
           "title": "语法：主谓双宾语",
+          "legacyQuestionCount": 3,
           "answers": [
             "间接宾语",
             "to",
-            "for"
+            "for",
+            "for; to"
           ]
         },
         {
           "id": "complement",
           "title": "语法：主谓宾与宾语补足语",
+          "legacyQuestionCount": 3,
           "answers": [
             "宾语补足语",
             "She gave me a pen.",
-            "S+V+O+C"
+            "S+V+O+C",
+            "happy"
           ]
         },
         {
           "id": "conjunctions",
           "title": "语法：and / but / or / so",
+          "legacyQuestionCount": 3,
           "answers": [
             "but",
             "so",
-            "Because it rained, we stayed home."
+            "Because it rained, we stayed home.",
+            "It rained, so we stayed at home."
           ]
         },
         {
@@ -6654,19 +7742,23 @@
         {
           "id": "past-continuous",
           "title": "语法：过去进行时",
+          "legacyQuestionCount": 3,
           "answers": [
             "was reading",
             "were playing",
-            "Was he sleeping?"
+            "Was he sleeping?",
+            "were playing"
           ]
         },
         {
           "id": "when-while",
           "title": "语法：when / while / as",
+          "legacyQuestionCount": 3,
           "answers": [
             "began",
             "was washing",
-            "While I was waiting, a bus arrived."
+            "While I was waiting, a bus arrived.",
+            "when"
           ]
         },
         {

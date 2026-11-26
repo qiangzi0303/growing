@@ -2,6 +2,7 @@
 <html data-ui-kind="learning" lang="zh-CN">
 <head><link rel="stylesheet" href="../app-design/assessment-feedback.css?v=red-1">
   <meta charset="UTF-8">
+  <script>location.replace(new URL('../app-design/english-course.html?unit=english-8a-03',location.href).href);</script>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#f7f8f3">
   <title>Unit 3 To be a good learner · 英语课堂</title>
@@ -526,6 +527,10 @@ window.UNIT3 = (() => {
     {id:'patterns',title:'方法、目的与时间',ask:'用自己的学习计划，分别使用 by doing、in order to do、spend time doing 和 as ... as possible。',checks:['by 后用 doing，说明方法','in order to 后用原形，说明目的','spend time 后用 doing','as ... as possible 中间用原级'],sample:'I learn English by reading aloud. I do this in order to improve my pronunciation. I spend ten minutes reading every day. I practise as often as possible.'},
     {id:'reading',title:'学习经历与方法',ask:'介绍你的一项学习困难、采取的具体行动和进步，并借用富兰克林或赵元任的一种学习方法。',checks:['交代清楚学习困难','写出可执行的行动与频率','说明进步或感悟','联系阅读、自学、语言环境或句子学习法'],sample:'I found pronunciation difficult. I learnt from Zhao Yuanren and wrote down useful sentences. Every day, I spent ten minutes listening and reading aloud. After two months, I could express myself more clearly. Practice makes perfect.'}
   ];
+  lessons.find(l=>l.id==='adverbs').cards.push(card('a-pitfall','容易混淆的重点（必考坑）','hard 是努力地，hardly 是几乎不；比较级不能叠加 more 和 -er。',[['✓ She studies harder than before.','她比以前学习更努力。'],['✗ She studies more harder than before.','harder 已是比较级，不能再加 more。']],'study hard 表示努力学习；hardly study 表示几乎不学习，意义不同。'));
+  lessons.find(l=>l.id==='reflexives').cards.push(card('r-pitfall','容易混淆的重点（必考坑）','yourself 指你自己；yourselves 指你们自己。要根据语境判断人数。',[['✓ Help yourselves to some fruit, children.','孩子们，请随便吃些水果。'],['✗ Help yourself to some fruit, children.','children 表示多人，不能用单数 yourself。']],'Help oneself 中的反身代词随对象人数变化。'));
+  knowledge.push(question('adverbs-pitfall','adverbs','【必考坑】She studies _____ than before.（更努力）',['harder','more harder','hardly'],0,'harder 是 hard 的比较级，不叠加 more；hardly 意为几乎不。'));
+  knowledge.push(question('reflexives-pitfall','reflexives','【必考坑】Help _____ to some fruit, children.',['yourselves','yourself','themselves'],0,'说话对象 children 是多人，用 yourselves。'));
   return {groups,words,lessons,questions:[...vocabulary,...knowledge],topics,shuffle};
 })();
   </script><script src="../app-design/curriculum.js"></script>
@@ -1738,7 +1743,7 @@ window.ChapterRewards=(()=>{
   <script src="../app-design/english-sentence-progress.js?v=english-score-50"></script>
   <script src="../app-design/english-unit-score.js?v=20261125-english-score-1&studentUi=20261125-catalog-labels-1"></script>
 <script src="../app-design/english-score.js?v=english-score-50&studentUi=20261125-catalog-labels-1"></script>
-  <script src="../app-design/student-pages.js?v=unit3-vant-1&studentUi=20261125-catalog-labels-1"></script>
+  <script src="../app-design/student-pages.js?v=unit3-vant-1&studentUi=20261126-math-pomodoro-1"></script>
   <script data-source="app.js">
 /* 分关学习、考核、错题与费曼复述；无需构建，直接打开 index.html。 */
 ((start)=>{if(window.GrowingStudentPages?.registerLegacy(start))return;start();})(()=>{

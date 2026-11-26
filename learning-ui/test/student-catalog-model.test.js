@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const folder=new URL('../../app/src/main/assets/web/app-design/',import.meta.url);
 async function fixture(){
  const context={URLSearchParams,window:null};context.window=context;vm.createContext(context);
- for(const name of ['curriculum.js','practice-progress.js','student-catalog-model.js'])vm.runInContext(await readFile(new URL(name,folder),'utf8'),context);
+ for(const name of ['curriculum.js','practice-progress.js','word-mastery-rules.js','english-engine.js','english-word-review.js','student-catalog-model.js'])vm.runInContext(await readFile(new URL(name,folder),'utf8'),context);
  context.GrowingHandwriting={knowledgeUnits:{'math-8a-01':{angles:'角'},'physics-8a-01':{sound:'声音'},'math-8b-10':{meaning:'分式'}}};
  return context;
 }
@@ -13,6 +13,25 @@ test('catalog retains verified books, real links and saved mastery without write
  const w=await fixture(),reads=[];const before={version:1,topics:{angles:{bestQuiz:3,attempts:[]}}};
  const model=w.GrowingStudentCatalog.create({page:'catalog',params:new URLSearchParams('subject=math&term=upper'),read:key=>{reads.push(key);return key==='growing-math-lessons-v1'?before:null;}});
  assert.equal(model.kind,'catalog');assert.equal(model.units[0].mastery,70);assert.equal(model.units[0].title,'三角形');assert.match(model.units[0].summaryHref,/unit-summary/);assert.equal(model.terms.length,2);assert.equal(model.subjects.length,3);assert.equal(model.resources.href,'math-resources.html?term=upper');assert.deepEqual(before,{version:1,topics:{angles:{bestQuiz:3,attempts:[]}}});assert.ok(reads.includes('growing-math-lessons-v1'));
+});
+
+test('English review reminders use real schedules, local days and isolated unit/account records without writes',async()=>{
+ const w=await fixture();
+ for(const name of ['english-vocabulary.js','english-lessons.js','english-unit3-data.js'])vm.runInContext(await readFile(new URL(name,folder),'utf8'),w);
+ w.SentenceDemo={units:Object.fromEntries(w.GrowingCurriculum.english.terms.upper.units.map(u=>[u.id,{topics:[]}]))};
+ w.GrowingEnglishScore={summary:()=>({score:0})};
+ const words=w.GrowingEnglishVocabulary[1].filter(w=>!w.optional),optional=w.GrowingEnglishVocabulary[1].find(w=>w.optional);
+ assert.ok(optional);
+ const now=()=>new Date(2026,10,26,0,30).getTime(),due=date=>({level:1,due:date,lastDay:'2026-11-20'});
+ const saved={version:1,words:{[words[3].id]:{protocol:'seven-recalls',answers:Array(7).fill(words[3].word)}},lessons:{},wordReview:{[words[0].id]:due('2026-11-26'),[words[1].id]:due('2026-11-25'),[words[2].id]:due('2026-11-27'),[optional.id]:due('2026-11-25'),unknown:due('2026-11-25')}};
+ let account={['growing-english-course-v1:english-8a-01']:saved};
+ const create=()=>w.GrowingStudentCatalog.create({params:new URLSearchParams('subject=english'),read:key=>account[key]||null,now});
+ const before=JSON.stringify(saved),model=create();assert.equal(model.units[0].reviewDueCount,3);assert.equal(model.units[0].reviewError,undefined);assert.ok(model.units.slice(1).every(u=>u.reviewDueCount===0));assert.equal(JSON.stringify(saved),before);
+ for(const word of words.slice(0,4))saved.wordReview[word.id]=due('2026-11-27');
+ assert.equal(create().units[0].reviewDueCount,0);
+ account={};assert.ok(create().units.every(u=>u.reviewDueCount===0));
+ account['growing-english-course-v1:english-8a-01']={...saved,wordReview:{[words[0].id]:due('2026-02-30')}};
+ assert.equal(create().units[0].reviewDueCount,0);assert.match(create().units[0].reviewError,/复习提醒暂不可用/);
 });
 test('unverified semester never opens entries or summaries and study stays pending',async()=>{
  const w=await fixture();w.GrowingCurriculum.english.terms.lower.units[0].entry='english-course.html';

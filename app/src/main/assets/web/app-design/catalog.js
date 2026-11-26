@@ -21,6 +21,7 @@
   if(document.body.dataset.page==='catalog'){
     document.title=`${course.name}单元目录 · 逆流`;
     const available=book.units.filter(u=>u.entry).length;
+    const reviews=subject==='english'?window.GrowingStudentCatalog.create({params,read:key=>JSON.parse(localStorage.getItem(key)||'null')}).units:[];
     const tagline={math:'宇宙的语言。',english:'通往世界的钥匙。',physics:'现象是观察，发现规律才是智慧。'}[subject];
     target.innerHTML=`
       <header class="catalog-heading">
@@ -43,16 +44,19 @@
       </section>
       <p class="catalog-footnote">${hasGraph?(book.verified?'各章均可进入学习，并查看本章图谱与薄弱点诊断。':(subject==='physics'?'下册暂不开放，当前先学习上册。':'下册内容待提供教材核对后开放。')):book.verified?'上册8个单元均可学习：单词、闭卷默写、阅读与语法练习、独立奖励进度。':'下册内容待教材核对后开放。'}</p>`;
     for(const u of book.units){
+      const review=reviews.find(item=>item.id===u.id),title=target.querySelector('[data-unit="'+u.id+'"] .unit-title');
+      if(review?.reviewDueCount>0&&title){const dot=document.createElement('span');dot.className='review-dot';dot.setAttribute('role','img');dot.setAttribute('aria-label',review.reviewDueCount+'个单词待复习');dot.title=review.reviewDueCount+'个单词待复习';title.prepend(dot);}
+      if(review?.reviewError&&title){const error=document.createElement('p');error.setAttribute('role','status');error.textContent=review.reviewError;title.parentElement.append(error);}
       // Catalogs display the latest saved course counts; they do not infer mastery from browsing.
       window.UnitRewards.register(u.id,{title:u.title,readOnly:true,mastery:()=>{
-        if(subject==='english'&&u.entry){const legacy=u.number===3,raw=JSON.parse(localStorage.getItem(legacy?'wordops_8A_unit3':'growing-english-course-v1:'+u.id)||'null'),sentences=window.SentenceDemo.units[u.id].topics.flatMap(t=>t.sentences);return window.GrowingEnglishScore.summary(legacy?window.GrowingSummaryLegacy.words:window.GrowingEnglishVocabulary[u.number],legacy?raw?.mastered:raw?.words,sentences,JSON.parse(localStorage.getItem('growing-english-sentences-v1:'+u.id)||'null'),legacy,{state:raw||{},lessons:legacy?window.GrowingSummaryLegacy.lessons:window.GrowingEnglishLessons[u.number]}).score;}
+        if(subject==='english'&&u.entry){const raw=JSON.parse(localStorage.getItem('growing-english-course-v1:'+u.id)||'null'),sentences=window.SentenceDemo.units[u.id].topics.flatMap(t=>t.sentences);return window.GrowingEnglishScore.summary(window.GrowingEnglishVocabulary[u.number],raw?.words,sentences,JSON.parse(localStorage.getItem('growing-english-sentences-v1:'+u.id)||'null'),false,{state:raw||{},lessons:window.GrowingEnglishLessons[u.number]}).score;}
         const ids=Object.keys(window.GrowingHandwriting.knowledgeUnits[u.id]||{});if(!hasGraph||!ids.length)return null;
         const raw=localStorage.getItem('growing-'+subject+'-lessons-v1'),saved=raw?JSON.parse(raw):null;
         if(saved&&(saved.version!==1||!saved.topics||typeof saved.topics!=='object'))throw Error('课程记录不可用');
         return Math.round(ids.reduce((sum,id)=>sum+window.GrowingPracticeProgress.mastery(saved?.topics[id]).score,0)/ids.length*10)/10;
       },entry:studyLink(u),rule:u.entry?'此处展示最近保存的掌握记录；进入课堂学习后同步。':'课程内容筹备中，有正式达标记录后开始累计。'});
     }
-    window.addEventListener('storage',e=>{if(subject==='english'&&(e.key===null||e.key?.startsWith('growing-english-')||e.key==='wordops_8A_unit3'))for(const u of book.units)window.UnitRewards.update(u.id);});
+    window.addEventListener('storage',e=>{if(subject==='english'&&(e.key===null||e.key?.startsWith('growing-english-')))for(const u of book.units)window.UnitRewards.update(u.id);});
     return;
   }
   const unit=book.units.find(item=>item.id===params.get('unit'));

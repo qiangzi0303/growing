@@ -46,11 +46,11 @@
     const key=legacy?'english-8a-02':unitId;
     const unit=Object.prototype.hasOwnProperty.call(units,key)?units[key]:undefined;
     if(!unit)return {error:'该单元暂无已核对的句子练习，请从英语目录选择已开放的上册单元。'};
-    const backHref=unit.number===3?'../word-ops-unit3/index.html':'english-course.html?unit='+unit.id;
+    const backHref='english-course.html?unit='+unit.id;
     if(topicId==null&&!legacy)return {unit,topic:null,backHref};
     const topic=unit.topics.find(t=>t.id===(legacy?'reading':topicId));
     if(!topic)return {unit,backHref,error:'这个知识点不存在，请返回本单元重新选择。'};
-    return {unit,topic,sentences:topic.sentences,backHref:unit.number===3?backHref:backHref+'&lesson='+encodeURIComponent(topic.id)};
+    return {unit,topic,sentences:topic.sentences,backHref:backHref+'&lesson='+encodeURIComponent(topic.id)};
   }
   function wordPrompts(sentence){
     const words=sentence.en.match(/[A-Za-z]+(?:['’-][A-Za-z]+)*/g)||[];

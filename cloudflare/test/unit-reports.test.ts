@@ -8,6 +8,13 @@ import english from '../src/english-rules.json';
 import sentences from '../src/english-sentence-rules.json';
 const doc=(key:string,data:any):Document=>({key,value:JSON.stringify(data),revision:1,updatedAt:'2026-10-24T03:00:00Z'});
 const good={score:8,feedback:'解释正确',criticalErrors:[],at:Date.UTC(2026,9,23,17)};
+
+test('English reports exclude empty drafts but include submitted point practice with the shared score',()=>{
+ const key='growing-english-course-v1:english-8a-01';
+ assert.equal(buildUnitReports([doc(key,{words:{friendship:{practice:{answers:[],recallDraft:'draft'}}},lessons:{},feynman:{reading:{draft:'draft'}}})]).units.length,0);
+ const [unit]=buildUnitReports([doc(key,{pointPractice:{reading:{evidence:{version:1,index:0,best:0,answers:{'english-8a-01-reading-evidence-01':{choice:1,checked:true}}}}}})]).units;
+ assert.equal(unit.id,'english-8a-01');assert.equal(unit.masteryPercent,10);
+});
 test('only studied units appear; rewards and subject-wide time cannot manufacture unit time',()=>{
   assert.equal(buildUnitReports([]).units.length,0);
   assert.equal(buildUnitReports([doc('growing-unit-rewards-v1:math-8a-01',{version:1}),doc('growing-activity-v1:device',{days:{'2026-10-23':{数学:600}}})]).units.length,0);
@@ -26,9 +33,10 @@ test('English mandatory recalls count but lesson answers alone do not master a l
   const [r]=buildUnitReports([doc('growing-english-course-v1:english-8a-01',{words:{friendship:{protocol:'seven-recalls',answers:Array(7).fill('friendship'),at:Date.now()},honest:{protocol:'seven-recalls',answers:Array(6).fill('honest')},unknown:{protocol:'seven-recalls',answers:Array(7).fill('unknown')}},lessons:{[lesson.id]:{protocol:'three-correct',answers:lesson.answers}},learningTime:{version:1,days:{'2026-10-24':90000}}})]).units;
   assert.equal(r.mastered,1);assert.equal(r.total,english['english-8a-01'].words.length+sentences['english-8a-01'].length+english['english-8a-01'].lessons.length);assert.equal(r.activeMinutes,1.5);assert.equal(r.diagnostic.total,0);
 });
-test('legacy Unit 3 keeps time without inferring mastery; fraction has 11 shared-course topics',()=>{
+test('Unit 3 uses shared time without importing the retired archive; fraction has 11 shared-course topics',()=>{
   assert.equal(buildUnitReports([doc('growing-math-lessons-v1',{version:1,topics:{definition:{seen:true}}})]).units.find(u=>u.id==='math-8b-10')?.total,11);
-  const [u]=buildUnitReports([doc('wordops_8A_unit3',{seen:['w1'],best:{[english.__legacy.tests[0]]:80},learningTime:{days:{'2026-10-23':120000}}})]).units;
+  assert.equal(buildUnitReports([doc('wordops_8A_unit3',{seen:['w1'],best:{adverbs:80},learningTime:{days:{'2026-10-23':120000}}})]).units.length,0);
+  const [u]=buildUnitReports([doc('growing-english-course-v1:english-8a-03',{words:{w1:{practice:{answers:[]}}},learningTime:{days:{'2026-10-23':120000}}})]).units;
   assert.equal(u.mastered,0);assert.equal(u.activeMinutes,2);
 });
 test('valid complete graph assessments stay separate from course mastery; incomplete evidence earns nothing',()=>{
@@ -52,7 +60,7 @@ test('word counts include optional vocabulary and valid sentence-only learning a
   assert.equal(r.id,unit);assert.deepEqual(r.words,{mastered:0,total:english[unit].wordCount});
   assert.deepEqual(r.sentences,{completed:1,total:sentences[unit].length});assert.equal(r.mastered,1);assert.equal(r.masteryPercent,Math.round(2500/sentences[unit].length+1000)/100);assert.equal(r.activeMinutes,null);
   assert.equal(r.firstStudyDay,'2026-11-06');
-  const [legacy]=buildUnitReports([doc('wordops_8A_unit3',{mastered:{w1:{protocol:'seven-recalls',answers:Array(7).fill('learner')}}})]).units;
-  assert.deepEqual(legacy.words,{mastered:1,total:english.__legacy.words.length});
-  assert.deepEqual(legacy.sentences,{completed:0,total:sentences['english-8a-03'].length});
+  const [shared]=buildUnitReports([doc('growing-english-course-v1:english-8a-03',{words:{w1:{protocol:'seven-recalls',answers:Array(7).fill('learner')}}})]).units;
+  assert.deepEqual(shared.words,{mastered:1,total:english['english-8a-03'].words.length});
+  assert.deepEqual(shared.sentences,{completed:0,total:sentences['english-8a-03'].length});
 });

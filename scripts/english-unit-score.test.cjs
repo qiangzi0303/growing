@@ -7,10 +7,33 @@ const saved={version:1,sentences:{s1:sentence('Hello.'),s2:sentence('Goodbye.')}
 const full=()=>({words:{one:recall('one'),two:recall('two')},feynman:{l1:{attempts:[grade(10)]},l2:{attempts:[grade(10)]}},lessons:{l1:quiz(['a','b','c']),l2:quiz(['a','b','c'])},learningTime:{version:1,days:{'2026-11-25':40*60000}}});
 const marks=(state={},sent=saved)=>S.summary(words,state.words,items,sent,false,{state,lessons});
 test('four fixed weights and no redistribution',()=>{
- assert.equal(marks({},null).score,10);
+ assert.equal(marks({},null).score,0);
  assert.equal(marks({words:full().words},null).score,45);
  assert.equal(marks({}).score,35);
  const s=marks(full());assert.deepEqual(s.parts,{words:35,sentences:25,lessons:30,wrong:10});assert.equal(s.points,10000);assert.equal(s.cleared,true);assert.deepEqual(s.progress,{done:1000,total:1000});
+});
+
+test('unstarted units have zero score and reward progress; placeholders and drafts do not unlock credit',()=>{
+ for(const state of [{},{words:{one:{practice:{answers:[],recallDraft:'one'}}},wordCursor:'one'},
+  {lessons:{l1:{}},feynman:{l1:{draft:'正在想'}}},
+  {learningTime:{days:{'2026-11-25':0,'bad':1000}}},
+  {wordReview:{alien:{failedDay:'2026-11-25'}}},
+  {pointPractice:{l1:{rule:{version:1,index:0,best:10,answers:{'l1-rule-01':{choice:0,checked:false}}}}}},
+  {pointPractice:{foreign:{rule:{version:1,index:0,best:10,answers:{'foreign-rule-01':{choice:0,checked:true}}}}}}
+ ]){const s=marks(state,null);assert.equal(s.score,0);assert.equal(s.started,false);assert.equal(s.progress.done,0);assert.equal(s.parts.wrong,0);}
+});
+
+test('saved learning unlocks wrong-word calculation even when the submitted answer scores zero',()=>{
+ const samples=[{learningTime:{days:{'2026-11-25':1000}}},
+  {words:{one:{practice:{answers:['one'],formalActive:true}}}},
+  {lessons:{l1:quiz(['wrong','wrong','wrong'])}},
+  {feynman:{l1:{attempts:[grade(0)]}}},
+  {wordReview:{one:{level:1,lastDay:'2026-11-25',due:'2026-11-26'}}},
+  {pointPractice:{l1:{rule:{version:1,index:0,best:0,answers:{'l1-rule-01':{choice:1,checked:true}}}}}}
+ ];
+ for(const state of samples){const before=JSON.stringify(state),s=marks(state,null);assert.equal(s.started,true);assert.equal(s.parts.wrong,10);assert.equal(JSON.stringify(state),before);}
+ assert.equal(marks({wordReview:{one:{failedDay:'2026-11-25'}}},null).parts.wrong,0);
+ assert.equal(marks({wordReview:{one:{failedDay:'2026-11-24',conqueredDay:'2026-11-25'}}},null).parts.wrong,10);
 });
 test('each lesson splits Feynman40 quiz50 time10, with unit time shared',()=>{
  const s=marks({feynman:{l1:{attempts:[grade(9)]}},lessons:{l1:quiz(['a','b','wrong'])},learningTime:{days:{'2026-11-25':20*60000}}},null);

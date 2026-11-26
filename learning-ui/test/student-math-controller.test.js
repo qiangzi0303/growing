@@ -183,11 +183,10 @@ test('a corrupt topic in another chapter blocks whole-archive writes while lesso
  }
 });
 
-test('real connection services clear keys only in the active account storage',async()=>{
+test('managed connection services reject local configuration and enforce the active account guard',async()=>{
  let active=true;const f=await fixture({active:()=>{if(!active)throw Error('account changed');}}),c=f.controller,w=f.w;
  w.eval(await readFile(new URL(folder+'course-ai.js',import.meta.url),'utf8'));
- c.actions.saveSettings('deepseek',{apiKey:'test-only-key',model:'deepseek-flash'});assert.ok(w.localStorage.getItem('growing-course-ai-v1'));c.actions.clearSettings('deepseek');assert.equal(w.localStorage.getItem('growing-course-ai-v1'),null);
- c.actions.saveSettings('deepseek',{apiKey:'test-only-key',model:'deepseek-flash'});const before=w.localStorage.getItem('growing-course-ai-v1');active=false;assert.throws(()=>c.actions.clearSettings('deepseek'));assert.equal(w.localStorage.getItem('growing-course-ai-v1'),before);c.destroy();w.close();
+ try{assert.throws(()=>c.actions.saveSettings('deepseek',{model:'deepseek-flash'}),/管理员/);assert.equal(w.localStorage.getItem('growing-course-ai-v1'),null);c.actions.clearSettings('deepseek');active=false;assert.throws(()=>c.actions.clearSettings('deepseek'),/学习会话已退出或变更/);assert.equal(w.localStorage.getItem('growing-course-ai-v1'),null);}finally{c.destroy();w.close();}
 });
 
 test('reviewed photo candidates replace written slots without increasing ten or borrowing old answers',async t=>{

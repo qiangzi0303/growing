@@ -5,7 +5,7 @@ const recall=word=>({protocol:'seven-recalls',answers:Array(7).fill(word)});
 const complete=answer=>({protocol:'sentence-typing-v1',answer,wrong:0,hints:0,revealed:false,at:1});
 test('English keeps fixed 35/25 weights and the no-wrong-word base credit',()=>{
  const records={one:recall('one'),two:recall('two')},saved={version:1,sentences:{a:complete('Hello.'),b:complete('Goodbye.')}};
- assert.equal(S.summary(words,{},sentences,null).score,10);
+ assert.equal(S.summary(words,{},sentences,null).score,0);
  assert.equal(S.summary(words,records,sentences,null).score,45);
  assert.equal(S.summary(words,{},sentences,saved).score,35);
  assert.equal(S.summary(words,records,sentences,saved).score,70);
@@ -16,9 +16,9 @@ test('English keeps fixed 35/25 weights and the no-wrong-word base credit',()=>{
 test('unknown, optional, malformed and incomplete records do not earn points',()=>{
  const records={one:true,two:{...recall('two'),answers:['two']},extra:recall('extra'),unknown:recall('unknown')};
  const saved={version:1,sentences:{unknown:complete('Hello.'),a:complete('wrong'),b:{...complete('Goodbye.'),at:0}}};
- assert.equal(S.summary(words,records,sentences,saved).score,10);
- assert.equal(S.summary(words,{},sentences,{...saved,version:2}).score,10);
- assert.equal(S.summary(words,{one:{...recall('one'),answers:Array(7).fill(1)}},[],null).score,10);
+ assert.equal(S.summary(words,records,sentences,saved).score,0);
+ assert.equal(S.summary(words,{},sentences,{...saved,version:2}).score,0);
+ assert.equal(S.summary(words,{one:{...recall('one'),answers:Array(7).fill(1)}},[],null).score,0);
 });
 test('historical Unit 3 case and punctuation rules remain compatible',()=>{
  assert.equal(S.wordPassed({id:'w34',en:'Italian'},recall('Italian'),true),true);

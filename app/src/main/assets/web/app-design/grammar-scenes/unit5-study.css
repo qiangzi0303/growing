@@ -1,0 +1,11 @@
+[hidden]{display:none!important}
+#point-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 1px 10px;margin-bottom:18px;scrollbar-width:thin;scroll-margin-top:8px}
+#point-tabs button{flex:0 0 auto;border-radius:6px;font-size:14px;padding:8px 12px;white-space:nowrap}
+#point-tabs [aria-selected=true]{background:#345d46;color:#fff;border-color:#345d46}
+#point-panel:focus-visible{outline:2px solid #7a9775;outline-offset:4px}
+.point-focus{padding:16px 20px;background:#edf3e7;border-left:3px solid #71916f}.point-focus h2{font-size:19px;line-height:1.65;margin:0}
+.point-example{padding:20px 0 6px}.point-example #sentence{font-size:23px}.point-example #explain{font-size:15px}.point-pitfall{font-size:14px;color:#9d3732;margin:12px 0 18px}
+#animation{margin:18px 0}#animation .playback{margin-bottom:8px}#animation .stage stick-scene{height:220px!important}
+.point-practice{border-top:1px solid #dce3d8;padding-top:20px}.practice-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px}.practice-heading h3{margin:0 0 12px;font-size:18px}#score{font-size:13px;color:#42684a}#question{font-size:17px;line-height:1.8}#options{display:grid;gap:8px}#options label{align-items:baseline;padding:10px 13px;font-size:15px}#options input{flex:none}#options label.correct{border-color:#70956c;background:#eff6e8}#options label.wrong{border-color:#c37770;background:#fff2ef}
+#feedback{font-size:14px;line-height:1.8;margin-top:12px;white-space:pre-line}.question-nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:20px}#question-position{color:#68766a;font-size:13px}#save-status{font-size:12px;color:#68766a;margin:14px 0 0}#save-status.bad{color:#b91c1c}.embedded #point-panel{padding:0}.embedded .page-heading,.embedded .lesson-tabs,.embedded footer{display:none}
+@media(max-width:600px){.point-focus{padding:13px 15px}.point-focus h2{font-size:17px}.point-example #sentence{font-size:20px}.point-example{padding-top:16px}#point-tabs{gap:5px}#point-tabs button{font-size:13px;padding-inline:10px}.question-nav button{padding:8px 12px}#question{font-size:16px}}

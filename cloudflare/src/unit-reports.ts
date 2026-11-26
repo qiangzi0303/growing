@@ -86,7 +86,7 @@ export function buildUnitReports(docs: Document[]) {
       words = { mastered, total: unit.rules.wordCount ?? unit.rules.words.length };
       for (const l of unit.rules.lessons) {
         const r = s.lessons?.[l.id];
-        if (r?.protocol === 'three-correct' && arr(r.answers).length === l.answers.length && r.answers.every((a: any, i: number) => typeof a === 'string' && a === l.answers[i])) mastered++;
+        if (r?.protocol === 'three-correct' && (arr(r.answers).length === l.answers.length || arr(r.answers).length === l.legacyQuestionCount) && r.answers.every((a: any, i: number) => typeof a === 'string' && a === l.answers[i])) mastered++;
         if (r) remember(r.at); attempts(s.feynman?.[l.id]);
       }
       for (const [d, ms] of Object.entries(obj(s.learningTime?.days))) time(d, ms);
@@ -106,6 +106,7 @@ export function buildUnitReports(docs: Document[]) {
       sentences = sentenceProgress.summary(rules, saved);
       const old=unit.kind==='legacy-english',state=states.get(old?'wordops_8A_unit3':'growing-english-course-v1:'+unit.id)??{};
       englishDetails=englishScore.summary(old?legacy.words:unit.rules.allWords,old?state.mastered:state.words,rules,saved,old,{state,lessons:old?legacy.lessons:unit.rules.lessons});
+      started=englishDetails.started;
       mastered=englishDetails.words.completed+sentences.completed+englishDetails.lessons.mastered;
       total=englishDetails.words.total+sentences.total+englishDetails.lessons.total;
       if (sentences.completed) {

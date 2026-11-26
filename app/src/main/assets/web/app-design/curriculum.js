@@ -36,7 +36,7 @@ window.GrowingCurriculum={
       upper:{name:'八年级上册',verified:true,units:[
         {id:'english-8a-01',number:1,title:'Friendship',summary:'友谊 · 形容词比较级与最高级',outline:['What makes good friends?','My best friend','Comparative and superlative adjectives']},
         {id:'english-8a-02',number:2,title:'School life',summary:'校园生活 · 数量比较 · as … as',outline:['Unusual schools around the world','My school life','Comparing the amount of things','Using as ... as']},
-        {id:'english-8a-03',number:3,title:'To be a good learner',summary:'善于学习 · 副词比较级与最高级 · 反身代词',outline:['Learning to learn','A love of learning','Comparative and superlative adverbs','Reflexive pronouns'],entry:'../word-ops-unit3/index.html'},
+        {id:'english-8a-03',number:3,title:'To be a good learner',summary:'善于学习 · 副词比较级与最高级 · 反身代词',outline:['Learning to learn','A love of learning','Comparative and superlative adverbs','Reflexive pronouns'],entry:'english-course.html?unit=english-8a-03'},
         {id:'english-8a-04',number:4,title:'Hands-on fun',summary:'动手实践 · 祈使句 · should / had better',outline:['Just make it!','DIY made easy','Imperative sentences','Using should and had better']},
         {id:'english-8a-05',number:5,title:'Wild animals',summary:'野生动物 · 动词不定式',outline:['Animals in the wild','Protecting pandas','Using to-infinitives']},
         {id:'english-8a-06',number:6,title:'Seasons',summary:'季节与天气 · 动词和句子结构（Ⅰ）',outline:['Weather and seasons','A poem about seasons','Verbs and sentence structures (I)']},

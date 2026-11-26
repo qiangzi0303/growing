@@ -1,9 +1,9 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),web=path.join(root,'app/src/main/assets/web/app-design'),context=vm.createContext({window:{}});
 const wordRules=require(path.join(web,'word-mastery-rules.js'));
-for(const file of ['english-vocabulary.js','english-lessons.js'])vm.runInContext(fs.readFileSync(path.join(web,file),'utf8'),context,{filename:file});
+for(const file of ['english-vocabulary.js','english-lessons.js','english-unit3-data.js'])vm.runInContext(fs.readFileSync(path.join(web,file),'utf8'),context,{filename:file});
 const rules=Object.fromEntries(Object.entries(context.window.GrowingEnglishVocabulary).map(([number,words])=>['english-8a-'+number.padStart(2,'0'),{
-  wordCount:words.length,allWords:words.map(w=>({...wordRules.describe(w),optional:!!w.optional})),words:words.filter(w=>!w.optional).map(w=>wordRules.describe(w)),lessons:(context.window.GrowingEnglishLessons[number]||[]).map(l=>({id:l.id,title:l.title,answers:l.questions.map(q=>q.answer)}))
+  wordCount:words.length,allWords:words.map(w=>({...wordRules.describe(w),optional:!!w.optional})),words:words.filter(w=>!w.optional).map(w=>wordRules.describe(w)),lessons:(context.window.GrowingEnglishLessons[number]||[]).map(l=>({id:l.id,title:l.title,legacyQuestionCount:l.legacyQuestionCount,answers:l.questions.map(q=>q.answer)}))
 }]));
 const legacy=vm.createContext({window:{}});
 const wordHtml=fs.readFileSync(path.join(root,'app/src/main/assets/web/word-ops-unit3/index.html'),'utf8');
@@ -34,7 +34,7 @@ for(const [subject,course] of Object.entries(curriculum))for(const [term,book] o
   for(const u of book.units){
     questionUnits.push({id:u.id,title:u.title,subject,subjectName:course.name,termName:book.name,summary:u.summary,outline:u.outline});
     const row={id:u.id,title:u.title,subject,subjectName:course.name,term,termName:book.name};
-    if(subject==='english')Object.assign(row,u.number===3?{kind:'legacy-english',topics:unit.topics.map(t=>t.id),tests:rules.__legacy.tests}:{kind:'english',rules:rules[u.id]});
+    if(subject==='english')Object.assign(row,{kind:'english',rules:rules[u.id]});
     else Object.assign(row,{kind:subject,topics:(subject==='math'?math:physics).chapters.find(c=>c.id===u.id).nodes.map(n=>n.id)});
     ranking.push(row);
     if(subject!=='english')row.diagnosisTopics=(subject==='math'?math:physics).chapters.find(c=>c.id===u.id).nodes.map(n=>n.id);

@@ -61,17 +61,8 @@ export function buildReport(docs: Document[], now = new Date()) {
         }
         addDays(math, data.activity?.days);
       }
-      if (doc.key === "wordops_8A_unit3") {
-        const legacy = rules.__legacy, seen = new Set(legacy.seenIds);
-        english.read += new Set(arr(data.seen).filter(v => seen.has(v))).size;
-        for (const word of legacy.words) {
-          const record = data.mastered?.[word.id];
-          if (englishScore.wordPassed(word, record, true)) english.mastered++;
-        }
-        english.practice += arr(data.records).length;
-        english.mastered+=englishScore.summary(legacy.words,data.mastered,[],null,true,{state:data,lessons:legacy.lessons}).lessons.mastered;
-        addDays(english, data.learningTime?.days);
-      }
+      // Unit 3 now uses the shared classroom. Its retired archive remains stored,
+      // but does not import old scores or duplicate the new classroom's activity.
       if (doc.key.startsWith('growing-english-sentences-v1:')) english.mastered += sentenceProgress.summary((sentenceRules as ObjectData)[doc.key.slice('growing-english-sentences-v1:'.length)] ?? [], data).completed;
     } catch { warnings.push("一份学习记录无法汇总，原存档保留。"); }
   }

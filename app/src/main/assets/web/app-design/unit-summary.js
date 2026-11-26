@@ -9,7 +9,7 @@
   if(!entry||!entry.book.verified||!entry.unit.entry){fail('本单元尚未开放，请选择已核对教材的单元。');return;}
   const {unit,term,book}=entry;
   let summary;
-  const load=name=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=name;s.onload=resolve;s.onerror=()=>reject(Error('课程资源加载失败，请检查连接后刷新。'));document.head.append(s);});
+  const load=name=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=name==='english-unit-score.js'?name+'?v=20261126-english-zero-1':name;s.onload=resolve;s.onerror=()=>reject(Error('课程资源加载失败，请检查连接后刷新。'));document.head.append(s);});
   const read=key=>{const raw=localStorage.getItem(key);return raw===null?null:JSON.parse(raw);};
   const handwritten=()=>{
     const H=window.GrowingHandwriting,documents=[];
@@ -19,7 +19,7 @@
   };
   function refresh(){
     try{
-      if(subject==='english')summary=unit.number===3?E.legacyEnglish({data:window.GrowingSummaryLegacy,raw:read('wordops_8A_unit3'),engine:window.GrowingEnglishEngine,items:window.SentenceDemo.units[unit.id].topics.flatMap(t=>t.sentences),saved:read('growing-english-sentences-v1:'+unit.id)}):E.english({words:window.GrowingEnglishVocabulary[unit.number],lessons:window.GrowingEnglishLessons[unit.number],raw:read('growing-english-course-v1:'+unit.id),engine:window.GrowingEnglishEngine,items:window.SentenceDemo.units[unit.id].topics.flatMap(t=>t.sentences),saved:read('growing-english-sentences-v1:'+unit.id)});
+      if(subject==='english')summary=E.english({words:window.GrowingEnglishVocabulary[unit.number],lessons:window.GrowingEnglishLessons[unit.number],raw:read('growing-english-course-v1:'+unit.id),engine:window.GrowingEnglishEngine,items:window.SentenceDemo.units[unit.id].topics.flatMap(t=>t.sentences),saved:read('growing-english-sentences-v1:'+unit.id)});
       else{const data=subject==='physics'?window.GrowingPhysics:window.GrowingMath;summary=E.math({subject,chapter:data.chapters.find(c=>c.id===unit.id),data,read,diagnosis:window.GrowingDiagnosis,handwriting:handwritten()});}
       render();
     }catch{fail('本机学习记录暂时无法读取，原记录未改动。请检查存储权限或修复存档后刷新。');}
@@ -40,7 +40,7 @@
   }
   (async()=>{
     try{
-      const files=subject==='english'?unit.number===3?['english-engine.js','unit-summary-legacy.js']:['english-engine.js','english-vocabulary.js','english-lessons.js']:subject==='physics'?['physics-builder.js','physics-sound.js','physics-light.js','physics-lenses.js','physics-thermal.js','physics-motion.js','physics-data.js','diagnosis-engine.js']:['knowledge-data.js','math-builder.js','math-upper.js','math-lower.js','math-data.js','diagnosis-engine.js'];
+      const files=subject==='english'?['english-engine.js','english-vocabulary.js','english-lessons.js','english-unit3-data.js']:subject==='physics'?['physics-builder.js','physics-sound.js','physics-light.js','physics-lenses.js','physics-thermal.js','physics-motion.js','physics-data.js','diagnosis-engine.js']:['knowledge-data.js','math-builder.js','math-upper.js','math-lower.js','math-data.js','diagnosis-engine.js'];
       if(unit.id==='math-8b-10')files.push('handwriting-core.js','fraction-paper-tasks.js');
       if(subject==='english')for(const asset of ['word-mastery-rules.js','english-sentence-units-13.js','english-sentence-units-2.js','english-sentence-units-45.js','english-sentence-units-678.js','english-sentence-data.js','english-sentence-progress.js','english-unit-score.js','english-score.js'])await load(asset);
    if(subject==='english')await load('word-mastery-rules.js?v=1');

@@ -1,11 +1,18 @@
 (()=>{
- const startLegacy=()=>{
+ let cleanup=()=>true;
+ const startLegacy=(route=new URL(location.href))=>{
+  if(!cleanup())return false;
+  const lifetime=new AbortController();
+  const listen=(target,type,handler)=>target.addEventListener(type,handler,{signal:lifetime.signal});
+  cleanup=()=>{lifetime.abort();return true;};
   'use strict';
   const D=window.SentenceDemo,P=window.EnglishSentenceProgress,root=document.getElementById('sentence-app');
   const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const button=(text,action,extra='')=>`<button type="button" data-action="${action}" ${extra}>${text}</button>`;
-  const params=new URLSearchParams(location.search),practice=D.getPractice(params.get('unit'),params.get('topic'));
-  const unitHref=unit=>'english-sentence-demo.html?unit='+encodeURIComponent(unit.id);
+  const params=new URLSearchParams(route.search),practice=D.getPractice(params.get('unit'),params.get('topic'));
+  const embedded=params.get('embed')==='1'&&window.parent!==window;
+  if(embedded)document.documentElement.classList.add('sentence-embedded');
+  const unitHref=unit=>'english-sentence-demo.html?'+(embedded?'embed=1&':'')+'unit='+encodeURIComponent(unit.id);
   if(practice.unit){
     document.title=`Unit ${practice.unit.number} · ${practice.topic?.title||'句子闯关'} · 逆流英语`;
     const back=document.querySelector('.back-link');back.href=practice.backHref;back.textContent='返回 Unit '+practice.unit.number;
@@ -14,24 +21,26 @@
     root.innerHTML=`<main class="sheet" id="workspace"><section class="results"><h1>暂时无法开始练习</h1><p>${esc(practice.error)}</p><div class="result-actions">${practice.unit?`<a href="${esc(unitHref(practice.unit))}">重新选择知识点</a>`:''}<a href="units.html?subject=english&amp;term=upper">返回英语目录</a></div></section></main>`;
     return;
   }
-  const progressKey=P.key(practice.unit.id),readProgress=()=>P.restore(JSON.parse(localStorage.getItem(progressKey)||'null'));
+  const progressStorage=embedded&&window.parent.GrowingCloudHost?.cloud?.storage?window.parent.GrowingCloudHost.cloud.storage(window):localStorage;
+  const progressKey=P.key(practice.unit.id),readProgress=()=>P.restore(JSON.parse(progressStorage.getItem(progressKey)||'null'));
   let progressMessage='',pending=[];
   const progressNotice=()=>progressMessage?`<p role="status">${esc(progressMessage)} ${button('重试保存','save-progress')}</p>`:'';
   function saveProgress(){
     try{
       let saved=readProgress();for(const item of pending)saved=P.complete(saved,item.sentence,item.result,item.at);
-      localStorage.setItem(progressKey,JSON.stringify(saved));pending=[];progressMessage='';
+      progressStorage.setItem(progressKey,JSON.stringify(saved));pending=[];progressMessage='';
+      if(embedded)window.parent.dispatchEvent(new window.parent.CustomEvent('english:sentence-saved'));
     }catch(error){progressMessage='句子完成记录暂未保存：'+error.message+'。请保持页面打开，恢复存储后重试。';}
   }
-  const backNavigation=`<nav class="practice-nav" aria-label="返回导航">${practice.topic?`<a href="${esc(unitHref(practice.unit))}"><span aria-hidden="true">←</span> 返回知识点</a>`:''}<a href="${esc(practice.backHref)}"><span aria-hidden="true">←</span> 返回课堂</a></nav>`;
+  const backNavigation=`<nav class="practice-nav" aria-label="返回导航">${practice.topic?`<a href="${esc(unitHref(practice.unit))}"><span aria-hidden="true">←</span> 返回知识点</a>`:''}${embedded?'':`<a href="${esc(practice.backHref)}"><span aria-hidden="true">←</span> 返回课堂</a>`}</nav>`;
   if(!practice.topic){
     let saved;try{saved=readProgress();}catch(error){progressMessage=error.message;}
     const progress=P.summary(practice.unit.topics.flatMap(t=>t.sentences),saved);
-    root.innerHTML=`<main class="sheet" id="workspace">${backNavigation}<section class="results topic-picker"><p class="topic-eyebrow">八年级上册 · 句子闯关</p><h1>Unit ${practice.unit.number} · ${esc(practice.unit.title)}</h1><p>句子互动已完成 <strong class="topic-completed-count">${progress.completed}</strong>/${progress.total} 项</p>${progressMessage?`<p role="status">${esc(progressMessage)}</p>`:''}<ul class="topic-list">${practice.unit.topics.map(t=>{
+    root.innerHTML=`<main class="sheet" id="workspace">${backNavigation}<section class="results topic-picker"><p>句子互动已完成 <strong class="topic-completed-count">${progress.completed}</strong>/${progress.total} 项</p>${progressMessage?`<p role="status">${esc(progressMessage)}</p>`:''}<ul class="topic-list">${practice.unit.topics.map((t,i)=>{
       const status=P.summary(t.sentences,saved),complete=status.total>0&&status.completed===status.total;
-      return `<li><a${complete?' class="is-complete"':''} href="${esc(unitHref(practice.unit))}&amp;topic=${encodeURIComponent(t.id)}" aria-label="${esc(t.title)}，已完成 ${status.completed}/${status.total}句"><strong>${esc(t.title)}</strong>${complete?'<span class="topic-check" aria-hidden="true">✓</span>':''}</a></li>`;
+      return `<li><a${complete?' class="is-complete"':''} href="${esc(unitHref(practice.unit))}&amp;topic=${encodeURIComponent(t.id)}" aria-label="${esc(t.title)}，已完成 ${status.completed}/${status.total}句"><strong>${i+1}. ${esc(t.title)}</strong>${complete?'<span class="topic-check" aria-hidden="true">✓</span>':''}</a></li>`;
     }).join('')}</ul></section></main>`;
-    return;
+    return true;
   }
   const selectedSentences=practice.sentences;
   const emptyRecord=()=>({wrong:0,hints:0,revealed:false});
@@ -43,6 +52,8 @@
   const expected=()=>phase==='word'?words[wordIndex].en:current().en;
   const focusAction=action=>root.querySelector(`[data-action="${action}"]`)?.focus({preventScroll:true});
   function stopSpeech(){speechToken++;if('speechSynthesis' in window)speechSynthesis.cancel();}
+  cleanup=()=>{if(pending.length){saveProgress();if(pending.length){render();return false;}}stopSpeech();lifetime.abort();return true;};
+  listen(window,'sentence:pause',stopSpeech);
   function resetTask(){
     stopSpeech();draft='';task=emptyRecord();phaseDone=false;answerOpen=false;composing=false;credited=false;message='';audioStatus='';rating='';
   }
@@ -139,8 +150,8 @@
     utterance.onerror=()=>{if(token===speechToken){audioStatus='本次朗读未能完成，请重试。';root.querySelector('.audio-status')?.replaceChildren(document.createTextNode(audioStatus));}};
     try{speechSynthesis.speak(utterance);}catch{audioStatus='本次朗读未能开始，请重试。';render();}
   }
-  root.addEventListener('pointerdown',event=>{if(touchTyping&&event.target.closest('.support-actions button'))event.preventDefault();});
-  root.addEventListener('click',event=>{
+  listen(root,'pointerdown',event=>{if(touchTyping&&event.target.closest('.support-actions button'))event.preventDefault();});
+  listen(root,'click',event=>{
     const el=event.target.closest('button[data-action]');if(!el)return;const action=el.dataset.action;
     if(action==='save-progress'){saveProgress();render();return;}
     if(action==='restart'||action==='retry'){
@@ -151,8 +162,8 @@
     if(action==='start')start();if(action==='next')advance();if(action==='submit')submit();
     if(action==='reveal')reveal();if(action==='redo')redo();if(action==='speak')speak();
   });
-  root.addEventListener('compositionstart',event=>{if(event.target.id==='typing-answer')composing=true;});
-  root.addEventListener('compositionend',event=>{if(event.target.id==='typing-answer'){composing=false;if(phaseDone){event.target.value=draft;return;}draft=event.target.value;updateTyping();}});
+  listen(root,'compositionstart',event=>{if(event.target.id==='typing-answer')composing=true;});
+  listen(root,'compositionend',event=>{if(event.target.id==='typing-answer'){composing=false;if(phaseDone){event.target.value=draft;return;}draft=event.target.value;updateTyping();}});
   function updateTyping(){
     const input=document.getElementById('typing-answer');if(!input)return;
     input.className='typing-input '+D.typingState(expected(),draft);input.removeAttribute('aria-invalid');
@@ -163,11 +174,11 @@
     return event.inputType==='insertLineBreak'||event.inputType==='insertParagraph'||/^[ \r\n]+$/.test(inserted);
   }
   // Soft keyboards may send input events without a usable keydown.
-  root.addEventListener('beforeinput',event=>{
+  listen(root,'beforeinput',event=>{
     if(event.target.id!=='typing-answer'||!phaseDone||composing||event.isComposing||!event.cancelable)return;
     if(confirmsNext(event)){event.preventDefault();advance();}
   });
-  root.addEventListener('input',event=>{
+  listen(root,'input',event=>{
     if(event.target.id!=='typing-answer')return;
     if(phaseDone){
       const next=!composing&&!event.isComposing&&confirmsNext(event);
@@ -178,21 +189,29 @@
     // Some mobile keyboards insert a space without sending keydown.
     if(/\s$/.test(draft)&&(phase==='word'||D.typingState(expected(),draft)==='correct'))submit();
   });
-  root.addEventListener('keydown',event=>{
+  listen(root,'keydown',event=>{
     if(event.repeat&&(event.key==='Enter'||event.key===' ')){event.preventDefault();return;}
     if(event.target.id!=='typing-answer'||event.isComposing||composing||event.keyCode===229)return;
     if(phaseDone&&(event.key==='Enter'||event.key===' ')){event.preventDefault();advance();return;}
     if(event.key==='Enter'||event.key===' '&&(phase==='word'||D.typingState(expected(),draft)==='correct')){event.preventDefault();submit();}
   });
-  root.addEventListener('submit',event=>{if(event.target.id==='answer-form'){event.preventDefault();submit();}});
-  document.addEventListener('keydown',event=>{
+  listen(root,'submit',event=>{if(event.target.id==='answer-form'){event.preventDefault();submit();}});
+  listen(document,'keydown',event=>{
     if(showResults||phase!=='preview'||event.isComposing||event.ctrlKey||event.altKey||event.metaKey||event.repeat||event.key.length!==1&&event.key!=='Enter'||event.target.closest('a,input,textarea,summary'))return;
     event.preventDefault();start();
   });
-  window.addEventListener('pagehide',stopSpeech);
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopSpeech();});
+  listen(window,'pagehide',stopSpeech);
+  listen(document,'visibilitychange',()=>{if(document.hidden)stopSpeech();});
   if('speechSynthesis' in window)speechSynthesis.getVoices();
-  resetSentence();render();
+  resetSentence();render();return true;
  };
+ document.addEventListener('click',event=>{
+  const link=event.target.closest('a[href]');
+  if(!link||!link.closest('#sentence-app')||event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||link.target==='_blank')return;
+  const url=new URL(link.href,location.href);
+  if(url.origin!==location.origin||url.pathname!==location.pathname)return;
+  event.preventDefault();
+  if(startLegacy(url))history.replaceState(null,'',url);
+ },true);
  if(!window.GrowingStudentPages?.registerLegacy(startLegacy))startLegacy();
 })();

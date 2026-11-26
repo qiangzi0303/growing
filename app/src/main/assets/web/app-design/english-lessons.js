@@ -259,4 +259,126 @@
         q('The sign warns us ___ here.（不要游泳）','not to swim|don’t swim|not swimming','warn sb not to do sth。')])
     ]
   };
+  const pitfalls = {
+  "forms": {
+    "rule": "比较级不能把 more 和 -er 叠加；最高级也不能叠加 most 和 -est。",
+    "correct": "This box is bigger than that one.",
+    "wrong": "This box is more bigger than that one.",
+    "prompt": "This box is ___ than that one.",
+    "choices": "bigger|more bigger|most biggest"
+  },
+  "comparison": {
+    "rule": "one of the + 最高级后必须接复数名词；整个短语作主语时谓语用单数。",
+    "correct": "One of the tallest boys is Tom.",
+    "wrong": "One of the tallest boy are Tom.",
+    "prompt": "One of the tallest ___ in our class.",
+    "choices": "boys is Tom|boy is Tom|boys are Tom"
+  },
+  "amount": {
+    "rule": "fewer 修饰可数名词复数，less 修饰不可数名词；homework 不可数。",
+    "correct": "We have less homework and fewer tests.",
+    "wrong": "We have fewer homework and less tests.",
+    "prompt": "We have ___ homework and ___ tests this week.",
+    "choices": "less; fewer|fewer; less|fewer; fewer"
+  },
+  "equality": {
+    "rule": "as ... as 中间用原级；有 than 才考虑比较级等比较结构。",
+    "correct": "He runs as fast as me.",
+    "wrong": "He runs as faster as me.",
+    "prompt": "He runs as ___ as me.",
+    "choices": "fast|faster|fastest"
+  },
+  "imperatives": {
+    "rule": "祈使句用动词原形；否定形式是 Don’t + 原形，不能用 Don’t to do。",
+    "correct": "Don’t touch the wet paint.",
+    "wrong": "Don’t to touch the wet paint.",
+    "prompt": "___ the wet paint!",
+    "choices": "Don’t touch|Don’t to touch|Not touching"
+  },
+  "advice": {
+    "rule": "had better 后用原形，否定是 had better not do；should 后也用原形。",
+    "correct": "You had better not go out alone.",
+    "wrong": "You had not better to go out alone.",
+    "prompt": "You ___ out alone at night.",
+    "choices": "had better not go|had not better to go|had better not to go"
+  },
+  "verb-to": {
+    "rule": "decide、hope、plan 后接 to do；否定不定式是 not to do，不是 to not do（本课常规表达）。",
+    "correct": "We decided not to feed the animals.",
+    "wrong": "We decided not feed the animals.",
+    "prompt": "We decided ___ the animals.（不投喂）",
+    "choices": "not to feed|not feed|not feeding"
+  },
+  "purpose": {
+    "rule": "表示目的用 to + 原形；不能把 for + 动词原形当作目的不定式。",
+    "correct": "We went there to watch birds.",
+    "wrong": "We went there for watch birds.",
+    "prompt": "We went to the reserve ___ birds.（为了观察）",
+    "choices": "to watch|for watch|to watching"
+  },
+  "object-to": {
+    "rule": "make sb do 在主动语态中不带 to；变为被动 sb be made to do 时必须还原 to。不要把这一变化机械套用到所有动词。",
+    "correct": "主动：The boss made me work overtime.（老板让我加班。）被动：I was made to work overtime.（我被要求加班，to 必须回来。）",
+    "wrong": "I was made work overtime.",
+    "prompt": "I was made ___ overtime.",
+    "choices": "to work|work|working"
+  },
+  "sv-svo": {
+    "rule": "不及物动词不能直接接宾语；arrive 后接地点时要用 in / at，reach 则直接接地点。",
+    "correct": "We arrived at the station. / We reached the station.",
+    "wrong": "We arrived the station. / We reached at the station.",
+    "prompt": "Which sentence is correct?",
+    "choices": "We reached the station.|We arrived the station.|We reached at the station."
+  },
+  "linking": {
+    "rule": "look、sound、smell、taste、feel 作系动词时后接形容词；说明动作方式时才用副词。",
+    "correct": "The soup tastes good. / She cooks well.",
+    "wrong": "The soup tastes well.（想表达汤味道好）",
+    "prompt": "The soup tastes ___, and she cooks ___.",
+    "choices": "good; well|well; good|well; well"
+  },
+  "double-object": {
+    "rule": "give / show / send sth to sb；buy / make sth for sb。不能把 to 和 for 随意互换。",
+    "correct": "She bought a book for me. / She gave a book to me.",
+    "wrong": "She bought a book to me.",
+    "prompt": "She bought a book ___ me and gave it ___ me.",
+    "choices": "for; to|to; for|to; to"
+  },
+  "complement": {
+    "rule": "宾补说明宾语的状态或动作；make sb + 形容词与 make sb do 是不同结构，不能随意加 be。",
+    "correct": "The news made us happy. / The joke made us laugh.",
+    "wrong": "The news made us be happy.",
+    "prompt": "The good news made us ___.",
+    "choices": "happy|happily|be happy"
+  },
+  "conjunctions": {
+    "rule": "英语中 because 和 so 不用于连接同一组因果分句；although 和 but 也不成对重复使用。",
+    "correct": "Because it rained, we stayed at home.",
+    "wrong": "Because it rained, so we stayed at home.",
+    "prompt": "Which sentence is correct?",
+    "choices": "It rained, so we stayed at home.|Because it rained, so we stayed at home.|Although it rained, but we went out."
+  },
+  "past-continuous": {
+    "rule": "过去进行时是 was / were + doing；不能漏掉 be，也不能写成 was + 动词原形。",
+    "correct": "They were playing at eight last night.",
+    "wrong": "They playing at eight last night. / They were play at eight last night.",
+    "prompt": "They ___ at eight last night.",
+    "choices": "were playing|was playing|were play"
+  },
+  "when-while": {
+    "rule": "while 从句通常描述持续中的动作；表示某事突然发生常用 when + 一般过去时，不能把短暂动作直接套进 while。",
+    "correct": "I was reading when the phone rang. / While I was reading, the phone rang.",
+    "wrong": "While the phone rang once, I was reading.",
+    "prompt": "I was reading ___ the phone rang once.",
+    "choices": "when|while|during"
+  }
+};
+  for (const lessons of Object.values(window.GrowingEnglishLessons)) for (const lesson of lessons) {
+    const pitfall = pitfalls[lesson.id];
+    if (!lesson.title.startsWith("语法：") || !pitfall) continue;
+    lesson.pitfall = pitfall;
+    lesson.legacyQuestionCount = lesson.questions.length;
+    lesson.questions.push(q("【必考坑】" + pitfall.prompt, pitfall.choices, pitfall.rule));
+  }
+
 })();

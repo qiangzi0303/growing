@@ -1182,8 +1182,8 @@ test('English rankings rebuild old cache counts and enroll historical sentence-o
   const words=Object.fromEntries(englishRules[unit].words.map(w=>[w.id,{protocol:'seven-recalls',answers:Array(7).fill(w.word)}]));
   const sentenceKey='growing-english-sentences-v1:'+unit,value=JSON.stringify({version:1,sentences:Object.fromEntries(sentenceRules[unit].map(s=>[s.id,{protocol:'sentence-typing-v1',answer:s.en,wrong:0,hints:0,revealed:false,at:1}]))});
   assert.equal((await call('/api/student/state/'+key,'PUT',{revision:0,value:JSON.stringify({words,lessons:{},feynman:{}})},a.token)).status,200);
-  // Existing rows hold the previous lesson/combined-test denominators.
-  await db.query('UPDATE "GrowingRankings" SET "ConceptDone"=4,"ConceptTotal"=4,"TestDone"=1,"TestTotal"=99,"Score"=9999,"ScoreVersion"=0 WHERE "StudentId"=?1',[a.user.id]);
+  // Version 2 awarded baseline credit to every unstarted unit; rebuild its cached totals.
+  await db.query('UPDATE "GrowingRankings" SET "ConceptDone"=4,"ConceptTotal"=4,"TestDone"=1,"TestTotal"=99,"Score"=9999,"ScoreVersion"=2 WHERE "StudentId"=?1',[a.user.id]);
   // The old engine never enrolled learners who had only sentence completions.
   await db.query(`INSERT INTO "GrowingDocuments" ("StudentId","Key","Value","Revision","UpdatedAt") VALUES (?1,?2,?3,1,${nowSql})`,[b.user.id,sentenceKey,value]);
   const path='/api/student/rankings?board='+unit;
@@ -1195,7 +1195,9 @@ test('English rankings rebuild old cache counts and enroll historical sentence-o
   assert.equal(data.self.score,35);assert.equal(data.self.conceptPercent,0);assert.equal(data.self.testPercent,100);
   assert.equal((await call('/api/student/state/'+sentenceKey,'PUT',{revision:0,value},a.token)).status,200);
   data=await (await call(path,'GET',undefined,a.token)).json() as any;assert.equal(data.self.score,70);assert.equal(data.self.rank,1);
-  const versions=await db.query<any>('SELECT "ScoreVersion" AS version FROM "GrowingRankings" WHERE "StudentId"=?1',[a.user.id]);assert.ok(versions.every(r=>r.version===1));
+  const versions=await db.query<any>('SELECT "ScoreVersion" AS version FROM "GrowingRankings" WHERE "StudentId"=?1',[a.user.id]);assert.ok(versions.every(r=>r.version===3));
+  const overview=await (await call('/api/student/rankings','GET',undefined,a.token)).json() as any;
+  assert.equal(overview.boards.find((r:any)=>r.id==='english:upper').score,8.75,'70 points in one unit; seven untouched units contribute zero');
   const oldDocs=await new Store(db).state(a.user.id);
   await db.batch(rankingStatements(a.user.id,oldDocs,0));
   assert.equal((await (await call(path,'GET',undefined,a.token)).json() as any).self.score,70);

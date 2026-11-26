@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const repo=path.resolve(__dirname,'..'),web=path.join(repo,'app/src/main/assets/web/app-design');
 const context=vm.createContext({window:{}});
-for(const name of ['curriculum.js','english-vocabulary.js','english-lessons.js'])vm.runInContext(fs.readFileSync(path.join(web,name),'utf8'),context,{filename:name});
+for(const name of ['curriculum.js','english-vocabulary.js','english-lessons.js','english-unit3-data.js'])vm.runInContext(fs.readFileSync(path.join(web,name),'utf8'),context,{filename:name});
 const data={math:require(path.join(web,'math-data.js')),physics:require(path.join(web,'physics-data.js'))};
 const routes=[],numerals=['零','一','二','三','四','五','六','七','八','九','十','十一'];
 const aliases={

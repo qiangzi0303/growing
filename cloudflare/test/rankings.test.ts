@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {masteryBoards} from '../src/rankings';
+import {masteryBoards,Rankings} from '../src/rankings';
 import catalog from '../src/ranking-rules.json';
-import type {Document} from '../src/database';
+import type {Document,Database} from '../src/database';
 import diagnosis from '../../app/src/main/assets/web/app-design/diagnosis-engine.js';
 import diagnosisRules from '../src/diagnosis-rules.json';
 import sentenceRules from '../src/english-sentence-rules.json';
@@ -15,9 +15,23 @@ import vm from 'node:vm';
 const doc=(key:string,value:unknown):Document=>({key,value:JSON.stringify(value),revision:1,updatedAt:'2026-10-22T00:00:00Z'});
 const good={score:10,feedback:'概念准确，例子恰当。',criticalErrors:[]};
 const math=catalog.find(u=>u.id==='math-8a-01')!;
+
+test('empty archives do not cause repeated whole-account ranking rebuilds',async()=>{
+ let writes=0;
+ const db:Database={async query<T>(sql:string){return (sql.includes('FROM "GrowingDocuments" d')?[{student:'empty',...doc('growing-english-course-v1:english-8a-01',{words:{},lessons:{},feynman:{}})}]:[]) as T[];},async batch(){writes++;return [];},async close(){}};
+ const rankings=new Rankings(db);await rankings.list('empty');await rankings.list('empty');assert.equal(writes,0);
+});
+
+test('unstarted English units add no base points to the semester; submitted zero-score work is real study',()=>{
+ const unit=catalog.find(u=>u.id==='english-8a-01')!,lesson=unit.rules!.lessons[0];
+ const rows=masteryBoards([doc('growing-english-course-v1:'+unit.id,{lessons:{[lesson.id]:{protocol:'three-question-attempt',answers:lesson.answers.map(()=> 'wrong')}}})]);
+ assert.equal(rows.find(r=>r.id===unit.id)!.score,1000);
+ assert.equal(rows.find(r=>r.id==='english:upper')!.score,125);
+ assert.deepEqual(masteryBoards([doc('growing-english-course-v1:'+unit.id,{words:{[unit.rules!.words[0].id]:{practice:{answers:[]}}},learningTime:{days:{'2026-11-25':0}}})]),[]);
+});
 test('all eight units agree across browser vocabulary, rankings and reports including optional wrong words',()=>{
  const context=vm.createContext({window:{}}) as any;
- for(const file of ['english-vocabulary.js','english-lessons.js','unit-summary-legacy.js'])vm.runInContext(readFileSync(new URL('../../app/src/main/assets/web/app-design/'+file,import.meta.url),'utf8'),context);
+ for(const file of ['english-vocabulary.js','english-lessons.js','english-unit3-data.js'])vm.runInContext(readFileSync(new URL('../../app/src/main/assets/web/app-design/'+file,import.meta.url),'utf8'),context);
  for(const u of catalog.filter(u=>u.subject==='english')){
   const legacy=u.kind==='legacy-english',number=Number(u.id.slice(-2)),vocabulary=legacy?context.window.GrowingSummaryLegacy.words:context.window.GrowingEnglishVocabulary[number],lessons=legacy?context.window.GrowingSummaryLegacy.lessons:context.window.GrowingEnglishLessons[number],l=lessons[0];
   const wrong=vocabulary.find((w:any)=>w.optional)||vocabulary[0];
@@ -109,16 +123,19 @@ test('fraction diagnostic and semester denominators use the actual graph',()=>{
   assert.equal(unit.diagnosisTotal,11);assert.equal(unit.diagnosisDone,11);assert.equal(unit.score,0);
   assert.equal(course.diagnosisTotal,36);assert.equal(course.score,0);
 });
-test('legacy Unit 3 keeps valid records; bonus exams cannot inflate the test denominator',()=>{
-  const english=catalog.find(u=>u.kind==='legacy-english')!;
+test('Unit 3 shared scores replace the retired standalone classroom without importing its archive',()=>{
+  const english=catalog.find(u=>u.id==='english-8a-03')!;
   const rows=masteryBoards([
-    doc('wordops_8A_unit3',{studyHistory:{days:{'2026-10-22':{feynman:{[english.topics![0]]:{attempts:1,best:80}}}}},best:{[english.tests![0]]:100,unknown:100}}),
+    doc('wordops_8A_unit3',{mastered:{w2:{protocol:'seven-recalls',answers:Array(7).fill('feed')}},best:{adverbs:100}}),
+    doc('growing-english-course-v1:'+english.id,{words:{w1:{protocol:'seven-recalls',answers:Array(7).fill('learner')}}}),
   ]);
-  assert.equal(rows.find(r=>r.id===english.id)!.conceptDone,0);
+  assert.equal(english.kind,'english');
+  assert.equal(rows.find(r=>r.id===english.id)!.conceptDone,1);
   assert.equal(rows.find(r=>r.id===english.id)!.testDone,0);
+  assert.equal(masteryBoards([doc('wordops_8A_unit3',{seen:['w1'],best:{adverbs:100}})]).length,0);
 });
 
-test('all eight English units and their semester use fixed four-part weights, including legacy Unit 3',()=>{
+test('all eight English units and their semester use fixed four-part weights, including shared Unit 3',()=>{
   const all:Document[]=[];
   for(const u of catalog.filter(u=>u.subject==='english')){
     const legacy=u.kind==='legacy-english',words=legacy?englishRules.__legacy.words:u.rules!.words;

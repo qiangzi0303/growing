@@ -16,10 +16,10 @@ test('ranking and unit reports agree that new evidence requires both plural and 
     assert.equal(buildReport(docs).subjects.find(s=>s.subject==='英语')!.mastered,credit);
   }
 });
-test('legacy Unit 3 reports validate new records without turning pending oral work into mastery',()=>{
+test('shared Unit 3 reports validate new records without turning pending oral work into mastery',()=>{
   const learner={...good,answers:Array(7).fill('learner'),pluralAnswer:'learners'};
   for(const [record,credit] of [[learner,1],[{...learner,pluralAnswer:'learner'},0],[{...learner,oral:{...good.oral,meaningPassed:false}},0]] as const){
-    const docs=[doc('wordops_8A_unit3',{seen:['w1'],mastered:{w1:record}})];
+    const docs=[doc('growing-english-course-v1:english-8a-03',{words:{w1:record}})];
     assert.equal(buildUnitReports(docs).units.find(b=>b.id==='english-8a-03')!.mastered,credit);
     assert.equal(buildReport(docs).subjects.find(s=>s.subject==='英语')!.mastered,credit);
   }

@@ -10,10 +10,10 @@
  window.GrowingStudentPages={registerLegacy(render){if(!enabled)return false;legacyRenders.push(render);if(failed)render();return true;}};
  if(!enabled)return;
  const base=new URL('./',document.currentScript.src),loads=new Map(),hidden=[];
- const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi',page==='math-wrong-questions'?'20261121-archive-clean-1':page==='catalog'?'20261121-catalog-clean-1':['english-course','unit3-course'].includes(page)?'20261121-no-paper-tab-1':'20261121-no-paper-tab-1');if(['student-math-course.js','student-math-resources.js','student-catalog-model.js','math-chapter-score.js','math-wrong-index.js'].includes(name))url.searchParams.set('studentUi','20261125-chapter-rewards-1');if(['student-math-course.js','question-attempts.js'].includes(name)||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-reward-entry-2');if(['student-unit3-course.js','student-english-course.js','student-catalog-model.js','student-summary-model.js','english-word-review.js','english-unit-score.js','english-score.js','english-engine.js','unit-summary-core.js'].includes(name.split('?')[0])||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-english-reward-sheet-3');if(name==='student-catalog-model.js'||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-english-reward-sheet-3');if(['student-catalog-model.js','student-resources-model.js','student-math-labs.js'].includes(name)||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-catalog-labels-1');if(['english-course','unit3-course'].includes(page)&&name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-mobile-enter-1');return url;};
+const assetUrl=name=>{const url=new URL(name,base);url.searchParams.set('studentUi',page==='math-wrong-questions'?'20261121-archive-clean-1':page==='catalog'?'20261121-catalog-clean-1':['english-course','unit3-course'].includes(page)?'20261121-no-paper-tab-1':'20261121-no-paper-tab-1');if(['student-math-course.js','student-math-resources.js','student-catalog-model.js','math-chapter-score.js','math-wrong-index.js'].includes(name))url.searchParams.set('studentUi','20261125-chapter-rewards-1');if(['student-math-course.js','question-attempts.js'].includes(name)||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-reward-entry-2');if(['student-unit3-course.js','student-english-course.js','student-catalog-model.js','student-summary-model.js','english-word-review.js','english-unit-score.js','english-score.js','english-engine.js','unit-summary-core.js'].includes(name.split('?')[0])||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-english-reward-sheet-3');if(name==='student-catalog-model.js'||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-english-reward-sheet-3');if(['student-catalog-model.js','student-resources-model.js','student-math-labs.js'].includes(name)||name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-catalog-labels-1');if(['english-course','unit3-course'].includes(page)&&name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-mobile-enter-1');if(page==='english-course'&&name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261126-sentence-local-1');if(['student-english-course.js','english-engine.js','english-unit-score.js'].includes(name))url.searchParams.set('studentUi','20261126-sentence-local-1');if(['english-course','unit3-course'].includes(page)&&name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261126-sentence-local-1');if(page==='english-course'&&name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261126-unit5-scenes-1');if(page==='english-course'&&(name==='student-english-course.js'||name.startsWith('vendor/learning-ui/')))url.searchParams.set('studentUi','20261126-unit5-tabs-2');if(page==='english-course'&&(name==='student-english-course.js'||name.startsWith('vendor/learning-ui/')))url.searchParams.set('studentUi','20261126-points-1');if(['student-catalog-model.js','student-summary-model.js','curriculum.js','english-unit3-data.js','english-sentence-data.js'].includes(name.split('?')[0]))url.searchParams.set('studentUi','20261126-points-1');if(name.split('?')[0]==='english-unit-score.js')url.searchParams.set('studentUi','20261126-english-zero-1');if(name==='student-catalog-model.js'||(['catalog','english-course'].includes(page)&&name.startsWith('vendor/learning-ui/')))url.searchParams.set('studentUi','20261126-review-dot-1');if(page==='english-course'&&(['english-pomodoro.js','student-english-course.js'].includes(name)||name.startsWith('vendor/learning-ui/')))url.searchParams.set('studentUi','20261126-pomodoro-1');return url;};
  function load(name,css=false){
   if(loads.has(name))return loads.get(name);
-  const promise=new Promise((resolve,reject)=>{const el=document.createElement(css?'link':'script'),url=assetUrl(name);if(page==='catalog'&&name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261125-catalog-align-1');if(css){el.rel='stylesheet';el.href=url;}else el.src=url;el.onload=resolve;el.onerror=()=>{el.remove();loads.delete(name);reject(Error('新版学习页面资源暂不可用，已保留原页面。'));};document.head.append(el);});loads.set(name,promise);return promise;
+  const promise=new Promise((resolve,reject)=>{const el=document.createElement(css?'link':'script'),url=assetUrl(name);if(name==='student-catalog-model.js'||(['catalog','english-course'].includes(page)&&name.startsWith('vendor/learning-ui/')))url.searchParams.set('studentUi','20261126-review-dot-1');if(page==='math-course'&&(['math-pomodoro.js','math-pomodoro-session.js','student-math-course.js'].includes(name)||name.startsWith('vendor/learning-ui/')))url.searchParams.set('studentUi','20261126-math-pomodoro-1');if(page==='english-course'&&name.startsWith('vendor/learning-ui/'))url.searchParams.set('studentUi','20261126-pomodoro-1');if(css){el.rel='stylesheet';el.href=url;}else el.src=url;el.onload=resolve;el.onerror=()=>{el.remove();loads.delete(name);reject(Error('新版学习页面资源暂不可用，已保留原页面。'));};document.head.append(el);});loads.set(name,promise);return promise;
  }
  const nativeId=window.GrowingNative?.identityAccount?.();
  const active=()=>{if(disposed||nativeId&&window.GrowingNative.identityAccount()!==nativeId)throw Error('学习会话已变更，请重新打开课程。');};
@@ -42,10 +42,17 @@
      if(['english-course','unit3-course'].includes(page)){
       await Promise.all([window.GrowingEnglishWordReview||load('english-word-review.js'),window.GrowingEnglishWordStudyData||load('english-word-study-data.js')]);
       await Promise.all(['english-word-study-units-245.js','english-word-study-units-3678.js'].map(name=>load(name)));
+      if(page==='english-course'){
+       await load('english-pomodoro.js');
+       await load('grammar-scenes/course-registry.js?v=20261126-points-1');
+       const unitId=params.get('unit')||'english-8a-01',files=window.GrowingEnglishPointCourses.assets[unitId]||[];
+       await Promise.all(files.map(file=>load('grammar-scenes/'+file+'?v=20261126-points-1')));
+      }
      }
      if(['math-course','math-resources-workbench'].includes(page))await Promise.all([load('math-chapter-score.js'),load('math-wrong-index.js')]);
      if(page==='math-course'&&!window.GrowingPracticeFigures)await load('practice-figures.js');
      if(page==='math-course'){
+      if(file==='math-course.html'){await load('math-pomodoro.js');await load('math-pomodoro-session.js');}
       await Promise.all([load('question-attempts.js'),load('../cloud/question-drawing.js'),window.katex||load('../cloud/vendor/katex/katex.min.js'),load('../cloud/vendor/katex/katex.min.css',true)]);
       await load('../cloud/math-format.js');
      }
@@ -56,7 +63,7 @@
     }
     else if(page==='summary'){if(!window.GrowingStudentSummary)await load('student-summary-model.js');}
     else if(page==='resources'){if(!window.GrowingStudentResources)await load('student-resources-model.js');}
-    else if(!window.GrowingStudentCatalog)await load('student-catalog-model.js');
+    else {if(page==='catalog')await Promise.all([window.GrowingEnglishEngine||load('english-engine.js'),window.GrowingEnglishWordReview||load('english-word-review.js')]);if(!window.GrowingStudentCatalog)await load('student-catalog-model.js');}
    }
    async function openPapers(subject){
     sessionActive();
@@ -85,7 +92,7 @@
     const request=++version;sessionActive();
     if(controller){controller.actions.refresh?.();return;}
     let model,wrongSummary=null,wrongError='';
-    if(page==='catalog')try{
+    if(page==='catalog'&&(new URLSearchParams(location.search).get('subject')||'math')!=='english')try{
      if(!window.GrowingQuestionAttempts)await load('question-attempts.js');
      const target=await window.GrowingQuestionAttempts.context();sessionActive();
      if(target){wrongSummary=await target.api('/question-bank/unit-summary?'+new URLSearchParams({studentId:target.studentId,subject:new URLSearchParams(location.search).get('subject')||'math'}),reload?{cache:'reload'}:undefined);if(wrongSummary.studentId!==target.studentId)throw Error('学生信息已变更');}

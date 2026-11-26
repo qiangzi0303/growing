@@ -112,7 +112,7 @@ export function buildKnowledge(docs: Document[], wrongQuestions: Data[] = [], no
       if (item.type === 'word') mastered = wordPassed(item, r);
       else if (item.type === 'legacyWord') mastered = wordPassed(item, r, true);
       else if (item.type === 'legacyTest') mastered = typeof state.best?.[id] === 'number' && state.best[id] >= 80 && state.best[id] <= 100;
-      else if (item.type === 'lesson') mastered = r.protocol === 'three-correct' && Array.isArray(r.answers) && r.answers.length === item.answers.length && r.answers.every((a: any, i: number) => typeof a === 'string' && a === item.answers[i]);
+      else if (item.type === 'lesson') mastered = r.protocol === 'three-correct' && Array.isArray(r.answers) && (r.answers.length === item.answers.length || r.answers.length === item.legacyQuestionCount) && r.answers.every((a: any, i: number) => typeof a === 'string' && a === item.answers[i]);
       else if (old) mastered = (concept || Object.hasOwn(obj(state.learning?.mastery), id)) && practice.result(r).passed;
       else mastered = concept && practice.result(r).passed;
       const evidence: string[] = [];

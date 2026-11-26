@@ -62,7 +62,7 @@ export function masteryBoards(docs: Document[]): Mastery[] {
       const saved=states.get('growing-english-sentences-v1:'+unit.id),sentences=(sentenceData as Data)[unit.id]??[];
       const marks=englishScore.summary(vocabulary,records,sentences,saved,legacy,{state,lessons:legacy?englishData.__legacy.lessons:unit.rules.lessons});englishPoints=marks.points;
       conceptDone=marks.words.completed;conceptTotal=marks.words.total;testDone=marks.sentences.completed;testTotal=marks.sentences.total;
-      started=!!marks.sentences.completed||Object.keys(records).length>0||Object.keys(object(state.lessons)).length>0||Object.keys(object(state.feynman)).length>0||array(state.seen).length>0||Object.keys(object(state.best)).length>0||Object.keys(object(state.wordReview)).length>0||Object.keys(object(state.learningTime?.days)).length>0;
+      started=marks.started;
     }
     return {...score({id:unit.id,title:unit.title,subject:unit.subject,subjectName:unit.subjectName,term:unit.term,termName:unit.termName,kind:'unit',conceptDone,conceptTotal,testDone,testTotal,diagnosisDone,diagnosisTotal}),...(englishPoints===undefined?{}:{score:englishPoints}),started};
   });
@@ -86,7 +86,7 @@ export function rankingStatements(student:string,docs:Document[],revision?:numbe
   const statements:Statement[]=[{sql:'DELETE FROM "GrowingRankings" WHERE "StudentId"=?1'+guard,params:revision===undefined?[student]:[student,revision]}];
   for(const row of masteryBoards(docs))statements.push({
     sql:`INSERT INTO "GrowingRankings" ("StudentId","BoardId","Kind","Subject","Term","Title","ConceptDone","ConceptTotal","TestDone","TestTotal","DiagnosisDone","DiagnosisTotal","Score","ScoreVersion","UpdatedAt")
-      SELECT ?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,1,strftime('%Y-%m-%dT%H:%M:%fZ','now')`+
+      SELECT ?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,3,strftime('%Y-%m-%dT%H:%M:%fZ','now')`+
       (revision===undefined?'':' WHERE EXISTS (SELECT 1 FROM "GrowingUsers" WHERE "Id"=?1 AND "SyncRevision"=?14)'),
     params:[student,row.id,row.kind,row.subject,row.term,row.title,row.conceptDone,row.conceptTotal,row.testDone,row.testTotal,row.diagnosisDone,row.diagnosisTotal,row.score,...(revision===undefined?[]:[revision])],
   });
@@ -104,10 +104,13 @@ export class Rankings {
   constructor(private db:Database){}
   private async refreshEnglish(){
     // A version marker rebuilds every old English board, even when its word/sentence totals match.
-    const rows=await this.db.query<Data>(`SELECT DISTINCT "StudentId" AS student FROM "GrowingRankings" WHERE "Subject"='english' AND "ScoreVersion"<1`);
+    const rows=await this.db.query<Data>(`SELECT DISTINCT "StudentId" AS student FROM "GrowingRankings" WHERE "Subject"='english' AND "ScoreVersion"<3`);
     const students=new Set(rows.map(r=>String(r.student)));
-    const missing=await this.db.query<Data>(`SELECT DISTINCT d."StudentId" AS student FROM "GrowingDocuments" d WHERE (d."Key" LIKE 'growing-english-course-v1:%' OR d."Key" LIKE 'growing-english-sentences-v1:%' OR d."Key"='wordops_8A_unit3') AND d."Value" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "GrowingRankings" r WHERE r."StudentId"=d."StudentId" AND r."Subject"='english' AND r."ScoreVersion"=1)`);
-    for(const r of missing)students.add(String(r.student));
+    const missing=await this.db.query<Data>(`SELECT d."StudentId" AS student,d."Key" AS key,d."Value" AS value,d."Revision" AS revision,d."UpdatedAt" AS updatedAt FROM "GrowingDocuments" d WHERE (d."Key" LIKE 'growing-english-course-v1:%' OR d."Key" LIKE 'growing-english-sentences-v1:%') AND d."Value" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "GrowingRankings" r WHERE r."StudentId"=d."StudentId" AND r."Subject"='english' AND r."ScoreVersion"=3)`);
+    const candidates=new Map<string,Document[]>();
+    for(const r of missing){const id=String(r.student);if(!candidates.has(id))candidates.set(id,[]);candidates.get(id)!.push(r as Document);}
+    // Empty archives never create a ranking row. Do not repeatedly rebuild all subjects for them.
+    for(const [id,docs] of candidates)if(!students.has(id)&&masteryBoards(docs).some(row=>row.subject==='english'))students.add(id);
     for(const student of students){
       const [users,docs]=await this.db.batch([{sql:'SELECT "SyncRevision" AS revision FROM "GrowingUsers" WHERE "Id"=?1',params:[student]},{sql:'SELECT "Key" AS key,"Value" AS value,"Revision" AS revision,"UpdatedAt" AS updatedAt FROM "GrowingDocuments" WHERE "StudentId"=?1',params:[student]}]);
       if(users.length)await this.db.batch(rankingStatements(student,docs as Document[],users[0].revision));
@@ -118,7 +121,7 @@ export class Rankings {
     const rows=await this.db.query<Data>(`SELECT ${fields},(SELECT COUNT(*) FROM "GrowingRankings" peer JOIN "GrowingUsers" pu ON pu."Id"=peer."StudentId"
       WHERE peer."BoardId"=r."BoardId" AND pu."Role"='Student' AND NOT EXISTS (SELECT 1 FROM "GrowingAdministrators" a WHERE a."UserId"=pu."Id")) AS participants
       ${eligible} AND r."StudentId"=?1 ORDER BY r."Subject",r."Term",r."Kind",r."BoardId"`,[student]);
-    return {boards:rows.map(r=>this.percentages(r)),formula:'英语：'+englishScore.formula+'；数学/物理：费曼学习 × 30% + 应用练习 × 70%',note:'按最近云同步记录排名；学期按教材上册/下册划分。英语科目榜按全部已开放单元得分平均；未开始的单元只得无错词基础分，词句与课时均记0。数学/物理按本学期总题量计算，同分并列。'};
+    return {boards:rows.map(r=>this.percentages(r)),formula:'英语：'+englishScore.formula+'；数学/物理：费曼学习 × 30% + 应用练习 × 70%',note:'按最近云同步记录排名；学期按教材上册/下册划分。英语科目榜按全部已开放单元得分平均；未开始的单元按0分计，有实际学习记录后才计算错词项得分。数学/物理按本学期总题量计算，同分并列。'};
   }
   percentages(row:Data){const {points,...rest}=row;return {...rest,score:points/100,conceptPercent:row.conceptTotal?100*row.conceptDone/row.conceptTotal:0,testPercent:row.testTotal?100*row.testDone/row.testTotal:0,diagnosisPercent:row.diagnosisTotal?100*row.diagnosisDone/row.diagnosisTotal:0};}
   async board(student:string,id:string,page:number){

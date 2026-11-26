@@ -13,10 +13,15 @@
   const grades=[record?.bestFeynman,...array(record?.attempts),attempt].filter(validGrade);
   return grades.sort((a,b)=>gradeScore(b)-gradeScore(a)||Number(!b.criticalErrors.length)-Number(!a.criticalErrors.length))[0];
  }
+ function validQuiz(lesson,record){
+  const expected=lesson.answers||array(lesson.questions).map(q=>q.answer);
+  return expected.length>0&&['three-correct','three-question-attempt'].includes(record?.protocol)&&Array.isArray(record.answers)&&(record.answers.length===expected.length||record.answers.length===lesson.legacyQuestionCount)&&record.answers.length>0&&record.answers.every(a=>typeof a==='string'&&a.trim().length>0);
+ }
  function quizCorrect(lesson,record){
   const expected=lesson.answers||array(lesson.questions).map(q=>q.answer);
-  if(expected.length!==3||!['three-correct','three-question-attempt'].includes(record?.protocol)||!Array.isArray(record.answers)||record.answers.length!==3||!record.answers.every(a=>typeof a==='string'))return 0;
-  return expected.reduce((n,a,i)=>n+Number(a===record.answers[i]),0);
+  if(!validQuiz(lesson,record))return 0;
+  // Keep the historical 0–3 score scale while supporting expanded quizzes.
+  return record.answers.reduce((n,a,i)=>n+Number(a===expected[i]),0)/record.answers.length*3;
  }
  function bestQuiz(lesson,record,attempt){
   return [record,record?.bestQuiz,attempt].filter(Boolean).sort((a,b)=>quizCorrect(lesson,b)-quizCorrect(lesson,a))[0];
@@ -31,7 +36,23 @@
    }
   }
   const feynman=Math.max(0,...grades.map(gradeScore)),quiz=legacy?ratio(num(state.best?.[lesson.id])/100):Math.max(quizCorrect(lesson,state.lessons?.[lesson.id]),quizCorrect(lesson,state.lessons?.[lesson.id]?.bestQuiz))/3;
-  return {id:lesson.id,title:lesson.title||lesson.id,feynman,quiz,mastered:grades.some(g=>g.score>=8&&!g.criticalErrors.length)&&quiz>=(legacy?.8:1)};
+  const studied=grades.length>0||(legacy?typeof state.best?.[lesson.id]==='number'&&state.best[lesson.id]>=0&&state.best[lesson.id]<=100:validQuiz(lesson,state.lessons?.[lesson.id])||validQuiz(lesson,state.lessons?.[lesson.id]?.bestQuiz));
+  return {id:lesson.id,title:lesson.title||lesson.id,feynman,quiz,studied,mastered:grades.some(g=>g.score>=8&&!g.criticalErrors.length)&&quiz>=(legacy?.8:1)};
+ }
+ function hasSavedPractice(vocabulary,lessons,state){
+  const wordStudy=vocabulary.some(w=>{
+   const r=state.wordReview?.[w.id],answers=state.words?.[w.id]?.practice?.answers;
+   return validDay(r?.failedDay)||validDay(r?.lastDay)&&validDay(r?.due)&&Number.isInteger(r?.level)&&r.level>=0&&r.level<=5||
+    Array.isArray(answers)&&answers.length>0&&answers.length<=7&&answers.every(a=>typeof a==='string'&&a.trim().length>0);
+  });
+  if(wordStudy)return true;
+  return lessons.some(l=>Object.entries(state.pointPractice?.[l.id]||{}).some(([point,r])=>
+   r?.version===1&&Number.isInteger(r.index)&&r.index>=0&&r.index<10&&r.answers&&typeof r.answers==='object'&&!Array.isArray(r.answers)&&
+   Object.entries(r.answers).some(([id,a])=>{
+    const stem=id.slice(0,-3),suffix=id.slice(-2);
+    return (stem===l.id+'-'+point||stem.endsWith('-'+l.id+'-'+point))&&id.at(-3)==='-'&&/^\d{2}$/.test(suffix)&&Number(suffix)>=1&&Number(suffix)<=10&&
+     a?.checked===true&&Number.isInteger(a.choice)&&a.choice>=0&&a.choice<4;
+   })));
  }
  function compute({words,sentences,lessons=[],state={},vocabulary=[],legacy=false}){
   const ms=Object.entries(state.learningTime?.days||{}).reduce((sum,[day,value])=>sum+(validDay(day)?Math.max(0,Math.min(86400000,num(value))):0),0);
@@ -39,10 +60,11 @@
   const items=lessons.map(l=>{const r=lessonResult(l,state,legacy);return {...r,score:CONFIG.lessons/lessons.length*(CONFIG.feynman*r.feynman/10+CONFIG.quiz*r.quiz+CONFIG.time*timeRatio)};});
   const wrongIds=[...new Set(vocabulary.map(w=>w.id))].filter(id=>validDay(state.wordReview?.[id]?.failedDay));
   const wrong={total:wrongIds.length,conquered:wrongIds.filter(id=>conquered(state.wordReview[id])).length};
-  const parts={words:words.total?CONFIG.words*ratio(words.completed/words.total):0,sentences:sentences.total?CONFIG.sentences*ratio(sentences.completed/sentences.total):0,lessons:items.reduce((s,i)=>s+i.score,0),wrong:wrong.total?CONFIG.wrong*wrong.conquered/wrong.total:CONFIG.wrong};
+  const started=words.completed>0||sentences.completed>0||ms>0||items.some(i=>i.studied)||hasSavedPractice(vocabulary,lessons,state);
+  const parts={words:words.total?CONFIG.words*ratio(words.completed/words.total):0,sentences:sentences.total?CONFIG.sentences*ratio(sentences.completed/sentences.total):0,lessons:items.reduce((s,i)=>s+i.score,0),wrong:!started?0:wrong.total?CONFIG.wrong*wrong.conquered/wrong.total:CONFIG.wrong};
   const points=Math.round(Object.values(parts).reduce((a,b)=>a+b,0)*100),score=points/100;
   const cleared=words.total>0&&words.completed===words.total&&sentences.total>0&&sentences.completed===sentences.total&&items.length>0&&items.every(i=>i.mastered);
-  return {words,sentences,lessons:{total:items.length,mastered:items.filter(i=>i.mastered).length,items,timeRatio},wrong,parts,points,score,cleared,progress:{done:Math.min(1000,Math.round(score*8)+(cleared?200:0)),total:1000}};
+  return {started,words,sentences,lessons:{total:items.length,mastered:items.filter(i=>i.mastered).length,items,timeRatio},wrong,parts,points,score,cleared,progress:{done:Math.min(1000,Math.round(score*8)+(cleared?200:0)),total:1000}};
  }
  function describe(s){
   const next=[];
