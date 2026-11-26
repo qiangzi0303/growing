@@ -134,9 +134,9 @@
     if(!valid()||request!==controller||controller.signal.aborted)return;
     const value=physics?JSON.parse(content):await F.parseWithRetry(content,answer,correction=>window.GrowingCourseAI.request({task:task+'\n'+correction,format:'json_object',signal:controller.signal}));if(physics&&(!validGrade(value)||value.gaps!==undefined&&(!Array.isArray(value.gaps)||!value.gaps.every(x=>typeof x==='string'))))throw Error('AI评分字段不完整或格式无效');
     if(!valid()||request!==controller||controller.signal.aborted)return;
-    const saved=store({attempts:[...record(id).attempts,{...value,answer,at:new Date().toISOString()}].slice(-20)},id,{kind:'grade',score:value.score});
+    const saved=store({...value.score<7?{draft:''}:{},attempts:[...record(id).attempts,{...value,answer,at:new Date().toISOString()}].slice(-20)},id,{kind:'grade',score:value.score});
     if(saved)pomoRecord({id:'recall:'+id,kind:'recall',nodeId:id,title:n.title+' · 闭卷复述',detail:'有效评分 '+value.score+'/10；'+String(value.feedback||value.comment||'').slice(0,500),status:'graded',score:value.score},pomoRound);
-    if(selected===id)message=saved?'本次有效评分已保存。':'本次评分未保存，请恢复存储后重试。';
+    if(selected===id)message=saved?(value.score<7?'本次评分低于 7 分，复述已清空，请重新录入。':'本次有效评分已保存。'):'本次评分未保存，请恢复存储后重试。';
     if(saved&&selected===id)W.dispatchEvent(new CustomEvent('duck:assessment',{detail:{id:'grade-'+Date.now()+'-'+Math.random().toString(36).slice(2),courseId:subject+':'+chapter.id+':'+id,title:n.title,grade:value}}));
    }catch(error){if(valid()&&request===controller&&selected===id)message=(error.name==='AbortError'?'AI检查已取消或等待超时':error instanceof SyntaxError?'AI未返回可核验的评分格式':error.message)+'；草稿已保留，本次不计通过。';}
    finally{clearTimeout(timer);if(valid()&&request===controller){request=null;busy=false;notify();}}

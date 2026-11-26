@@ -102,8 +102,8 @@ function lessonView(){const l=activeLesson;return `<article class="panel lesson-
       const result=JSON.parse(content.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,''));
       if(!validExplanation(result))throw Error('评分格式不完整，本次不计分，请重试。');
       const latest=read(),record=latest.feynman[lesson.id]||{};
-      if(!save('feynman',lesson,{...record,draft:text,attempts:[...(record.attempts||[]),{score:result.score,feedback:result.feedback,criticalErrors:result.criticalErrors,gaps:result.gaps||[],at:Date.now()}].slice(-20)}))return;
-      notice='概念复述已保存；联网同步后更新排行榜。';
+      if(!save('feynman',lesson,{...record,draft:result.score<7?'':text,attempts:[...(record.attempts||[]),{score:result.score,feedback:result.feedback,criticalErrors:result.criticalErrors,gaps:result.gaps||[],at:Date.now()}].slice(-20)}))return;
+      notice=result.score<7?'本次评分低于 7 分，复述已清空，请重新录入。':'概念复述已保存；联网同步后更新排行榜。';
       if(activeLesson.id===lesson.id&&view==='feynman')window.dispatchEvent(new CustomEvent('duck:assessment',{detail:{id:'grade-'+Date.now()+'-'+Math.random().toString(36).slice(2),courseId:id+':'+lesson.id,title:lesson.title,grade:result}}));
     }catch(error){if(feynmanRequest===controller)notice=(error.name==='AbortError'?'已取消或等待超时':error.message)+'；草稿保留，本次不计分。';}
     finally{clearTimeout(timeout);if(feynmanRequest===controller){feynmanRequest=null;if(view==='feynman')paint();}}

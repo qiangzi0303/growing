@@ -51,13 +51,27 @@ function setup(records={},request=async()=>'',query='unit=english-8a-01',review=
  const controller=w.GrowingStudentEnglishCourse.create({params:new URLSearchParams(query),storage,active(){if(!alive)throw Error('session expired');},request});
  return {w,records,storage,controller,expire(){alive=false;},close(){controller.destroy();}};
 }
+test('Feynman clears only scores below seven, persists the reset and keeps feedback',async()=>{
+ for(const score of [0,6,7,10]){
+  const answer='解释定义、使用条件和自己的例子',s=setup({},async()=>JSON.stringify({score,feedback:'复述反馈',criticalErrors:[]}));
+  try{const c=s.controller;c.actions.navigate('feynman');c.actions.feynmanDraft(answer);await c.actions.gradeFeynman();const record=c.model.state.feynman[c.model.lesson.id];assert.equal(record.draft,score<7?'':answer);assert.equal(record.attempts.at(-1).score,score);assert.equal(record.attempts.at(-1).feedback,'复述反馈');const restored=setup(s.records);try{assert.equal(restored.controller.model.state.feynman[c.model.lesson.id].draft,record.draft);}finally{restored.close();}c.actions.feynmanDraft('重新输入的解释和例子');assert.equal(c.model.state.feynman[c.model.lesson.id].draft,'重新输入的解释和例子');}finally{s.close();}
+ }
+});
+
+test('Feynman preserves the draft when grading or saving fails',async()=>{
+ for(const failure of ['invalid','network','storage']){
+  const s=setup({},async()=>{if(failure==='network')throw Error('offline');return JSON.stringify(failure==='invalid'?{score:1}:{score:1,feedback:'重写',criticalErrors:[]});});
+  try{const c=s.controller,answer='解释定义、使用条件和自己的例子';c.actions.navigate('feynman');c.actions.feynmanDraft(answer);if(failure==='storage')s.storage.setItem=()=>{throw Error('quota');};await c.actions.gradeFeynman();assert.equal(c.model.state.feynman[c.model.lesson.id].draft,answer);assert.equal((c.model.state.feynman[c.model.lesson.id].attempts||[]).length,0);}finally{s.close();}
+ }
+});
+
 test('partial quiz credit and best Feynman survive later failures and reload',async()=>{
  let mark=9;const s=setup({},async()=>JSON.stringify({score:mark,feedback:'valid',criticalErrors:[]}));
  try{const c=s.controller,l=c.model.lesson,answers=l.questions.map(q=>q.answer);
   c.actions.quiz();c.actions.submitQuiz([answers[0],answers[1],'wrong']);
   c.actions.quiz();c.actions.submitQuiz(['wrong','wrong','wrong']);
   c.actions.navigate('feynman');c.actions.feynmanDraft('解释定义、使用条件和例子');await c.actions.gradeFeynman();mark=1;
-  for(let i=0;i<21;i++)await c.actions.gradeFeynman();
+  for(let i=0;i<21;i++){c.actions.feynmanDraft('解释定义、使用条件和例子');await c.actions.gradeFeynman();}
   const raw=JSON.parse(s.records[c.model.storageKey]);assert.equal(raw.feynman[l.id].attempts.length,20);assert.equal(raw.feynman[l.id].bestFeynman.score,9);
   const r=setup(s.records);try{const result=r.w.GrowingEnglishUnitScore.lessonResult(l,raw,false);assert.equal(result.quiz,2/3);assert.equal(result.feynman,9);assert.equal(result.mastered,false);}finally{r.close();}
  }finally{s.close();}

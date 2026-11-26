@@ -15,6 +15,20 @@ async function fixture({subject='math',data={},active=()=>true,request=async()=>
  const chapter=subject==='physics'?'physics-8a-01':'math-8a-01';const controller=w.GrowingStudentMathCourse.create({subject,params:new URLSearchParams({chapter}),storage:w.localStorage,active});
  return {dom,w,controller};
 }
+test('Feynman resets only a saved score below seven in math and physics',async()=>{
+ for(const subject of ['math','physics'])for(const score of (subject==='math'?[0,6,6.5,7,8]:[0,6,7,8])){
+  const answer='这是自己的概念解释，包括条件、方法和一个例子。';
+  const result=subject==='physics'?{score,criticalErrors:[],feedback:'复述反馈'}:{criteria:['core','condition','example','boundary'].map((id,i)=>({id,score:score===0?0:[score-4,2,1,1][i],evidence:answer,feedback:'待改进'})),good:[],gaps:[],criticalErrors:[],followup:'为什么？',comment:'复述反馈'};
+  const f=await fixture({subject,request:async()=>JSON.stringify(result)}),c=f.controller;
+  try{c.actions.draft(answer);await c.actions.grade();const s=c.snapshot(),saved=JSON.parse(f.w.localStorage.getItem('growing-'+subject+'-lessons-v1')).topics[s.node.id];assert.equal(s.record.draft,score<7?'':answer);assert.equal(saved.draft,s.record.draft);assert.equal(saved.attempts.at(-1).score,score);assert.equal(saved.attempts.at(-1).answer,answer);assert.equal(saved.attempts.at(-1).feedback,'复述反馈');c.actions.draft('重新录入的解释');assert.equal(c.snapshot().record.draft,'重新录入的解释');}finally{c.destroy();f.w.close();}
+ }
+});
+
+test('a low Feynman score cannot erase the draft when storage fails',async()=>{
+ const f=await fixture({subject:'physics',request:async()=>JSON.stringify({score:1,feedback:'重写',criticalErrors:[]})}),c=f.controller,answer='这是自己的概念解释，包括条件、方法和一个例子。';
+ try{c.actions.draft(answer);f.w.Storage.prototype.setItem=()=>{throw Error('quota');};await c.actions.grade();assert.equal(c.snapshot().record.draft,answer);assert.equal(c.snapshot().record.attempts.length,0);}finally{c.destroy();f.w.close();}
+});
+
 test('duck lecture uses realtime, tracks pause and stops on topic changes without opening a panel',async()=>{
  for(const subject of ['math','physics']){
   const f=await fixture({subject}),c=f.controller,w=f.w;let toggles=0,stops=0;

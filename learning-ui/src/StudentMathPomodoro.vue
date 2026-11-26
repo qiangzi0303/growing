@@ -1,5 +1,6 @@
 <script setup>
 import {computed,ref,nextTick,onBeforeUnmount,watch} from 'vue';
+import PomodoroStartButton from './PomodoroStartButton.vue';
 const props=defineProps({model:{type:Object,required:true},actions:{type:Object,required:true},chapter:{type:Object,required:true}});
 const dialog=ref(null),selectedId=ref(null),localError=ref(''),confirmFinish=ref(false),working=ref(false);
 let opener=null,oldOverflow=null;
@@ -31,7 +32,7 @@ onBeforeUnmount(close);
     <template v-if="!['finished','stopped'].includes(r.phase)">{{clock(r)}}</template>
     <template v-else><svg viewBox="0 0 32 36" fill="none" aria-hidden="true"><path d="M16 10C4 3 0 19 6 27c4 6 16 6 20 0 6-8 2-24-10-17Z" stroke="currentColor" stroke-width="1.5"/><path d="M16 10V4m0 6-6-3m6 3 6-3" stroke="#66816a" stroke-width="1.7"/></svg><span>第 {{r.index+1}} 个<small>{{r.phase==='stopped'?'未完成':'已完成'}}</small></span></template>
    </button>
-   <button v-if="!current" class="mp-token" data-action="start" :disabled="working" @click="act('pomodoroStart')"><span>{{rounds.length?`第 ${rounds.length+1} 个番茄`:'开始番茄'}}<small>{{rounds.length?'待开始':'25 分钟学习'}}</small></span></button>
+   <PomodoroStartButton v-if="!current" :label="rounds.length?`第 ${rounds.length+1} 个番茄`:'开始番茄'" title="25 分钟学习" :disabled="working" @click="act('pomodoroStart')"/>
   </div>
   <div v-if="current?.phase==='ready'" class="mp-ready" role="status"><span>本轮计时完成，可以写完当前步骤再休息。</span><button data-action="start-break" :disabled="working" @click="act('pomodoroStartBreak')">开始休息 {{time(current.restTotalMs)}}</button><button data-action="skip-break" :disabled="working" @click="act('pomodoroSkipBreak')">结束本次</button></div>
   <p v-if="error" class="mp-error" role="alert">{{error}} <button data-action="retry" :disabled="working" @click="act('pomodoroRetry')">重试</button></p>

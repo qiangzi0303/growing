@@ -159,8 +159,8 @@
       const content=(await window.GrowingCourseAI.request({task,format:'json_object',signal:activeRequest.signal})).replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
       const grade=physics?JSON.parse(content):await F.parseWithRetry(content,answer,correction=>window.GrowingCourseAI.request({task:task+'\n'+correction,format:'json_object',signal:activeRequest.signal}));if(physics&&(!validGrade(grade)||grade.gaps!==undefined&&(!Array.isArray(grade.gaps)||!grade.gaps.every(x=>typeof x==='string'))))throw Error('AI评分字段不完整或格式无效');
       if(request!==activeRequest)return;
-      const saved=store({attempts:[...record(id).attempts,{...grade,answer,at:new Date().toISOString()}].slice(-20)},id,{kind:'grade',score:grade.score});
-      if(selected===id)message=saved?'本次有效评分已保存。':'本次评分未保存，请恢复存储后重试。';
+      const saved=store({...grade.score<7?{draft:''}:{},attempts:[...record(id).attempts,{...grade,answer,at:new Date().toISOString()}].slice(-20)},id,{kind:'grade',score:grade.score});
+      if(selected===id)message=saved?(grade.score<7?'本次评分低于 7 分，复述已清空，请重新录入。':'本次有效评分已保存。'):'本次评分未保存，请恢复存储后重试。';
       if(saved&&selected===id)window.dispatchEvent(new CustomEvent('duck:assessment',{detail:{id:'grade-'+Date.now()+'-'+Math.random().toString(36).slice(2),courseId:subject+':'+chapter.id+':'+id,title:n.title,grade}}));
     }catch(error){if(selected===id)message=(error.name==='AbortError'?'AI检查已取消或等待超时':error instanceof SyntaxError?'AI未返回可核验的评分格式':error.message)+'；草稿已保留，本次不计通过。';}
     finally{clearTimeout(timer);if(request===activeRequest){request=null;busy=false;render();}}

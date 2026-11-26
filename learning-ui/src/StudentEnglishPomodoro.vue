@@ -1,5 +1,6 @@
 <script setup>
 import {computed,ref,nextTick,onBeforeUnmount,watch} from 'vue';
+import PomodoroStartButton from './PomodoroStartButton.vue';
 const props=defineProps({model:{type:Object,required:true},actions:{type:Object,required:true},unit:{type:Object,required:true},view:{type:String,default:'words'}});
 const dialog=ref(null),selectedId=ref(null),localError=ref('');
 let opener=null,oldOverflow=null;
@@ -27,7 +28,7 @@ onBeforeUnmount(close);
     <template v-if="r.phase!=='finished'">{{clock(r)}}</template>
     <template v-else><svg viewBox="0 0 32 36" fill="none" aria-hidden="true"><path d="M16 10C4 3 0 19 6 27c4 6 16 6 20 0 6-8 2-24-10-17Z" stroke="currentColor" stroke-width="1.5"/><path d="M16 10V4m0 6-6-3m6 3 6-3" stroke="#66816a" stroke-width="1.7"/></svg><span>第 {{r.index+1}} 个<small>已完成</small></span></template>
    </button>
-   <button v-if="!active" class="ep-token" data-action="start" @click="act('pomodoroStart')"><span>{{rounds.length?`第 ${rounds.length+1} 个番茄`:'开始番茄'}}<small>{{rounds.length?'待开始':'20 分钟专注'}}</small></span></button>
+   <PomodoroStartButton v-if="!active" :label="rounds.length?`第 ${rounds.length+1} 个番茄`:'开始番茄'" title="20 分钟专注" @click="act('pomodoroStart')"/>
   </div>
   <p v-if="error" class="ep-error" role="alert">{{error}} <button data-action="retry" @click="act('pomodoroRetry')">重试</button></p>
   <dialog ref="dialog" class="ep-dialog" aria-label="番茄完成记录" @cancel.prevent="close" @close="restore" @click.self="close">
