@@ -21,7 +21,7 @@ const filtered=computed(()=>{const term=m.value.query.trim().toLowerCase();retur
 const feynman=computed(()=>m.value.state?.feynman[m.value.lesson?.id]||{}),last=computed(()=>feynman.value.attempts?.at(-1));
 const nextLabel=computed(()=>m.value.words.indexOf(m.value.word)<m.value.words.length-1?'下一个单词':'返回本单元');
 const pointLesson=computed(()=>!!window.GrowingEnglishPointCourses?.get(m.value.unit?.id)?.practice.groups[m.value.lesson?.id]);
-watch(()=>[m.value.view,m.value.lesson?.id],()=>{quizAnswers.value=[];recallAnswer.value='';});
+watch([()=>m.value.view,()=>m.value.lesson?.id,()=>m.value.attempt?.options],()=>{quizAnswers.value=[];recallAnswer.value='';});
 function submitRecall(){const before=m.value.stage;a.submitRecall(recallAnswer.value);if(before==='recall'||m.value.stage!==before)recallAnswer.value='';}
 </script>
 <template>

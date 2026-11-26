@@ -35,7 +35,7 @@ test('read-only record details and distinct submitted/pending metrics; updates p
  const s=await setup([round({items:[{id:'q1',kind:'question',title:'第 1 题',detail:'已提交原稿',status:'submitted'},{id:'q2',kind:'question',title:'第 2 题',detail:'订正通过',status:'corrected'},{id:'read1',kind:'read',title:'图文讲解',detail:'已阅读',status:'read'}]})]);try{
  const opener=s.w.document.querySelector('[data-round]');opener.focus();await click(s,'[data-round]');const d=s.w.document.querySelector('dialog');
  assert.ok(d.open);assert.equal(d.querySelector('input,textarea,form'),null);assert.equal(d.querySelector('[data-metric="questions"]').textContent,'2');assert.equal(d.querySelector('[data-metric="pending"]').textContent,'1');
- assert.ok(!d.textContent.includes('屏幕学习'));assert.match(d.textContent,/计时完成不代表/);
+ assert.ok(!d.textContent.includes('屏幕学习'));assert.doesNotMatch(d.textContent,/计时完成不代表|不计入本轮时长|共用一个计时器|按原来的方式学习|还没有已完成的内容/);
  const detail=d.querySelector('details');detail.open=true;s.state.rounds[0].elapsedMs+=1000;await s.flush();assert.ok(detail.open);
  await click(s,'[data-action="pause"]');assert.equal(s.calls.at(-1),'Pause');s.state.rounds[0].pausedAt=1800000746000;await s.flush();await click(s,'[data-action="resume"]');assert.equal(s.calls.at(-1),'Resume');
  d.dispatchEvent(new s.w.Event('cancel',{cancelable:true}));await s.flush();assert.ok(!d.open);assert.equal(s.w.document.body.style.overflow,'');assert.equal(s.w.document.activeElement,opener);
