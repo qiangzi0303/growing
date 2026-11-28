@@ -3,9 +3,23 @@
 'use strict';
 const native=window.GrowingNative;
 let cache=null;
+function cloudHost(){try{return window.GrowingCloudHost?.cloud||window.GrowingCloud||window.top?.GrowingCloud;}catch{return null;}}
+function standaloneLocal(){return !native&&!cloudHost()?.aiContext&&window.location?.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(window.location.hostname);}
+function localAccount(){
+ const origin=window.location.origin,current=()=>standaloneLocal()&&window.location.origin===origin;
+ return {key:'local:'+origin,local:true,current,async api(path,options={}){
+  if(!current())throw Error('学习会话已变化，请重试。');
+  if(path!=='/ai/config')throw Error('本机课堂不支持此接口。');
+  const response=await fetch(origin+'/api/local-course-ai/config',{...options,credentials:'omit',cache:'no-store',headers:{'X-Growing-Local':'1'}});
+  if(!current())throw Error('学习会话已变化，请重试。');
+  if(!response.ok){let data;try{data=await response.json();}catch{}throw Error(data?.error||'本地 AI 服务未就绪，请运行“启动本地课堂”后重试。');}
+  return response.json();
+ }};
+}
 function account(){
- let cloud;try{cloud=window.GrowingCloudHost?.cloud||window.GrowingCloud||window.top?.GrowingCloud;}catch{}
+ const cloud=cloudHost();
  if(!native&&cloud?.aiContext)return cloud.aiContext();
+ if(standaloneLocal())return localAccount();
  if(!native)throw Error('请先登录后使用 AI。');
  const read=()=>{try{return JSON.parse(localStorage.getItem('growing-cloud-session-v1')||'null');}catch{return null;}};
  const session=read();if(!session?.token)throw Error('请先登录后使用 AI。');
@@ -28,7 +42,7 @@ function begin(handle,feature){
  if(!handle.current())throw Error('账号已切换，请重试。');
  const requestId=crypto.randomUUID();let reported=false;
  return {requestId,async report({usage,status='success',providerRequestId}={}){
- if(reported)return false;reported=true;if(!handle.current())return false;
+ if(reported)return false;reported=true;if(!handle.current()||handle.account.local)return false;
  const count=x=>Number.isSafeInteger(x)&&x>=0?x:null;
  let inputTokens=count(usage?.prompt_tokens??usage?.input_tokens),outputTokens=count(usage?.completion_tokens??usage?.output_tokens);
  let totalTokens=count(usage?.total_tokens??(inputTokens!==null&&outputTokens!==null?inputTokens+outputTokens:null));

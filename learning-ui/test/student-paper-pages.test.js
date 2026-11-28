@@ -1,6 +1,12 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';import vm from 'node:vm';
 const file=new URL('../../platform-web/student-paper-pages.js',import.meta.url);
 
+test('list read failures expose retryable errors and successful empty retry clears them',async()=>{
+ let fail=false,finish;
+ const {controller:c}=await setup(async path=>{if(path.startsWith('/question-bank/papers?')&&fail){await new Promise(resolve=>finish=resolve);throw Error('读取网络中断');}return [];});
+ try{fail=true;const pending=c.actions.refresh();await Promise.resolve();assert.equal(c.model.listLoading,true);finish();await assert.rejects(pending,/读取网络中断/);assert.equal(c.model.listLoading,false);assert.equal(c.model.listError,'读取网络中断');fail=false;await c.actions.refresh();assert.equal(c.model.listError,'');assert.equal(c.model.rows.length,0);}finally{c.destroy();}
+});
+
 test('background photo jobs poll progress only and open server completion',async()=>{
  const calls=[];let polls=0;
  const job={id:'j1',processor:'photo-agent-v1',status:'recognizing',revision:1};

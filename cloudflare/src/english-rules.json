@@ -80,7 +80,7 @@
         "plurals": [
           "teenagers"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "unhappy",
@@ -127,7 +127,7 @@
         "plurals": [
           "ponytails"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "seat",
@@ -153,7 +153,7 @@
         "meaning": "adj. 值得信赖的",
         "pos": "adj.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "patient",
@@ -365,7 +365,7 @@
         "meaning": "adv. 在附近；adj. 附近的",
         "pos": "adv. / adj.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "fight",
@@ -516,6 +516,15 @@
         "plurals": []
       },
       {
+        "id": "teenager",
+        "word": "teenager",
+        "meaning": "n. 青少年",
+        "pos": "n.",
+        "plurals": [
+          "teenagers"
+        ]
+      },
+      {
         "id": "unhappy",
         "word": "unhappy",
         "meaning": "adj. 不开心的",
@@ -549,6 +558,15 @@
         ]
       },
       {
+        "id": "ponytail",
+        "word": "ponytail",
+        "meaning": "n. 马尾辫",
+        "pos": "n.",
+        "plurals": [
+          "ponytails"
+        ]
+      },
+      {
         "id": "seat",
         "word": "seat",
         "meaning": "n. 座位",
@@ -562,6 +580,13 @@
         "word": "schoolwork",
         "meaning": "n. 学校作业",
         "pos": "n.",
+        "plurals": []
+      },
+      {
+        "id": "trustworthy",
+        "word": "trustworthy",
+        "meaning": "adj. 值得信赖的",
+        "pos": "adj.",
         "plurals": []
       },
       {
@@ -742,6 +767,13 @@
         "word": "scared",
         "meaning": "adj. 害怕，恐惧",
         "pos": "adj.",
+        "plurals": []
+      },
+      {
+        "id": "nearby",
+        "word": "nearby",
+        "meaning": "adv. 在附近；adj. 附近的",
+        "pos": "adv. / adj.",
         "plurals": []
       },
       {
@@ -1138,7 +1170,7 @@
         "plurals": [
           "blogs"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "least",
@@ -1236,7 +1268,7 @@
         "meaning": "adj. 油炸的",
         "pos": "adj.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "salad",
@@ -1336,7 +1368,7 @@
         "plurals": [
           "facilities"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "uniform",
@@ -1378,7 +1410,7 @@
         "meaning": "adv. 此外",
         "pos": "adv.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "yours sincerely",
@@ -1386,7 +1418,7 @@
         "meaning": "谨上，谨启",
         "pos": "短语",
         "plurals": [],
-        "optional": true
+        "optional": false
       }
     ],
     "words": [
@@ -1625,6 +1657,15 @@
         ]
       },
       {
+        "id": "blog",
+        "word": "blog",
+        "meaning": "n. 博客，网志",
+        "pos": "n.",
+        "plurals": [
+          "blogs"
+        ]
+      },
+      {
         "id": "least",
         "word": "least",
         "meaning": "det./pron. 最少的；adv. 最少",
@@ -1703,6 +1744,13 @@
         "plurals": [
           "pizzas"
         ]
+      },
+      {
+        "id": "fried",
+        "word": "fried",
+        "meaning": "adj. 油炸的",
+        "pos": "adj.",
+        "plurals": []
       },
       {
         "id": "salad",
@@ -1786,6 +1834,15 @@
         ]
       },
       {
+        "id": "facility",
+        "word": "facility",
+        "meaning": "n. 设施，设备",
+        "pos": "n.",
+        "plurals": [
+          "facilities"
+        ]
+      },
+      {
         "id": "uniform",
         "word": "uniform",
         "meaning": "n. 校服，制服",
@@ -1813,6 +1870,20 @@
         "word": "provide",
         "meaning": "vt. 提供",
         "pos": "vt.",
+        "plurals": []
+      },
+      {
+        "id": "moreover",
+        "word": "moreover",
+        "meaning": "adv. 此外",
+        "pos": "adv.",
+        "plurals": []
+      },
+      {
+        "id": "yours sincerely",
+        "word": "yours sincerely",
+        "meaning": "谨上，谨启",
+        "pos": "短语",
         "plurals": []
       }
     ],
@@ -2994,7 +3065,7 @@
         "meaning": "vt. 折叠",
         "pos": "vt.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "complete",
@@ -3044,7 +3115,7 @@
         "plurals": [
           "handymen"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "mistake",
@@ -3074,7 +3145,7 @@
         "plurals": [
           "pipes"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "fill ... with",
@@ -3246,7 +3317,7 @@
         "meaning": "vt. 扎染（织物）",
         "pos": "vt.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "method",
@@ -3272,7 +3343,7 @@
         "meaning": "vt. 使扭曲，使弯曲",
         "pos": "vt.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "cloth",
@@ -3280,7 +3351,7 @@
         "meaning": "n. 布，织物",
         "pos": "n.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "tie",
@@ -3296,7 +3367,7 @@
         "meaning": "n. 线",
         "pos": "n.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "dye",
@@ -3342,7 +3413,7 @@
         "plurals": [
           "patterns"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "clothing",
@@ -3350,7 +3421,7 @@
         "meaning": "n. 衣服，服装",
         "pos": "n.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "roll",
@@ -3360,7 +3431,7 @@
         "plurals": [
           "rolls"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "reduce",
@@ -3426,7 +3497,7 @@
         "plurals": [
           "buttons"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "onto",
@@ -3434,7 +3505,7 @@
         "meaning": "prep. 到……上，向……上",
         "pos": "prep.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "finger",
@@ -3452,7 +3523,7 @@
         "meaning": "vt. 缝制",
         "pos": "vt.",
         "plurals": [],
-        "optional": true
+        "optional": false
       }
     ],
     "words": [
@@ -3498,6 +3569,13 @@
         "plurals": []
       },
       {
+        "id": "fold",
+        "word": "fold",
+        "meaning": "vt. 折叠",
+        "pos": "vt.",
+        "plurals": []
+      },
+      {
         "id": "complete",
         "word": "complete",
         "meaning": "adj. 完成，结束；全部的",
@@ -3533,6 +3611,15 @@
         "plurals": []
       },
       {
+        "id": "handyman",
+        "word": "handyman",
+        "meaning": "n. 手巧的人（复数 handymen）",
+        "pos": "n.",
+        "plurals": [
+          "handymen"
+        ]
+      },
+      {
         "id": "mistake",
         "word": "mistake",
         "meaning": "n. 错误",
@@ -3548,6 +3635,15 @@
         "pos": "n.",
         "plurals": [
           "power cuts"
+        ]
+      },
+      {
+        "id": "pipe",
+        "word": "pipe",
+        "meaning": "n. 管道，管子",
+        "pos": "n.",
+        "plurals": [
+          "pipes"
         ]
       },
       {
@@ -3696,6 +3792,13 @@
         "plurals": []
       },
       {
+        "id": "tie-dye",
+        "word": "tie-dye",
+        "meaning": "vt. 扎染（织物）",
+        "pos": "vt.",
+        "plurals": []
+      },
+      {
         "id": "method",
         "word": "method",
         "meaning": "n. 方法",
@@ -3712,10 +3815,31 @@
         "plurals": []
       },
       {
+        "id": "twist",
+        "word": "twist",
+        "meaning": "vt. 使扭曲，使弯曲",
+        "pos": "vt.",
+        "plurals": []
+      },
+      {
+        "id": "cloth",
+        "word": "cloth",
+        "meaning": "n. 布，织物",
+        "pos": "n.",
+        "plurals": []
+      },
+      {
         "id": "tie",
         "word": "tie",
         "meaning": "vt.（用线、绳等）系，拴，捆",
         "pos": "vt.",
+        "plurals": []
+      },
+      {
+        "id": "thread",
+        "word": "thread",
+        "meaning": "n. 线",
+        "pos": "n.",
         "plurals": []
       },
       {
@@ -3748,6 +3872,31 @@
         "pos": "n.",
         "plurals": [
           "workshops"
+        ]
+      },
+      {
+        "id": "pattern",
+        "word": "pattern",
+        "meaning": "n. 图案；模式",
+        "pos": "n.",
+        "plurals": [
+          "patterns"
+        ]
+      },
+      {
+        "id": "clothing",
+        "word": "clothing",
+        "meaning": "n. 衣服，服装",
+        "pos": "n.",
+        "plurals": []
+      },
+      {
+        "id": "roll",
+        "word": "roll",
+        "meaning": "n. 卷，管",
+        "pos": "n.",
+        "plurals": [
+          "rolls"
         ]
       },
       {
@@ -3801,6 +3950,22 @@
         ]
       },
       {
+        "id": "button",
+        "word": "button",
+        "meaning": "n. 纽扣，按钮",
+        "pos": "n.",
+        "plurals": [
+          "buttons"
+        ]
+      },
+      {
+        "id": "onto",
+        "word": "onto",
+        "meaning": "prep. 到……上，向……上",
+        "pos": "prep.",
+        "plurals": []
+      },
+      {
         "id": "finger",
         "word": "finger",
         "meaning": "n.（手套的）指部，手指",
@@ -3808,6 +3973,13 @@
         "plurals": [
           "fingers"
         ]
+      },
+      {
+        "id": "sew",
+        "word": "sew",
+        "meaning": "vt. 缝制",
+        "pos": "vt.",
+        "plurals": []
       }
     ],
     "lessons": [
@@ -3872,7 +4044,7 @@
         "plurals": [
           "dolphins"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "eagle",
@@ -3922,7 +4094,7 @@
         "plurals": [
           "zebras"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "king",
@@ -3982,7 +4154,7 @@
         "meaning": "adj. 特大的，巨大的",
         "pos": "adj.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "giant panda",
@@ -3992,7 +4164,7 @@
         "plurals": [
           "giant pandas"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "in the wild",
@@ -4102,7 +4274,7 @@
         "plurals": [
           "nature reserves"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "thanks to",
@@ -4212,7 +4384,7 @@
         "plurals": [
           "polar bears"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "meat-eater",
@@ -4222,7 +4394,7 @@
         "plurals": [
           "meat-eaters"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "melt",
@@ -4230,7 +4402,7 @@
         "meaning": "v.（使）融化",
         "pos": "v.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "drop",
@@ -4284,7 +4456,7 @@
         "plurals": [
           "rhinos"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "horn",
@@ -4294,7 +4466,7 @@
         "plurals": [
           "horns"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "disaster",
@@ -4342,6 +4514,15 @@
         "plurals": []
       },
       {
+        "id": "dolphin",
+        "word": "dolphin",
+        "meaning": "n. 海豚",
+        "pos": "n.",
+        "plurals": [
+          "dolphins"
+        ]
+      },
+      {
         "id": "eagle",
         "word": "eagle",
         "meaning": "n. 鹰",
@@ -4375,6 +4556,15 @@
         "pos": "n.",
         "plurals": [
           "wolves"
+        ]
+      },
+      {
+        "id": "zebra",
+        "word": "zebra",
+        "meaning": "n. 斑马",
+        "pos": "n.",
+        "plurals": [
+          "zebras"
         ]
       },
       {
@@ -4422,6 +4612,22 @@
         "meaning": "adj. 令人满意的",
         "pos": "adj.",
         "plurals": []
+      },
+      {
+        "id": "giant",
+        "word": "giant",
+        "meaning": "adj. 特大的，巨大的",
+        "pos": "adj.",
+        "plurals": []
+      },
+      {
+        "id": "giant panda",
+        "word": "giant panda",
+        "meaning": "n. 大熊猫",
+        "pos": "n.",
+        "plurals": [
+          "giant pandas"
+        ]
       },
       {
         "id": "in the wild",
@@ -4512,6 +4718,15 @@
         "plurals": []
       },
       {
+        "id": "nature reserve",
+        "word": "nature reserve",
+        "meaning": "n. 自然保护区",
+        "pos": "n.",
+        "plurals": [
+          "nature reserves"
+        ]
+      },
+      {
         "id": "thanks to",
         "word": "thanks to",
         "meaning": "多亏，由于",
@@ -4600,6 +4815,31 @@
         "plurals": []
       },
       {
+        "id": "polar bear",
+        "word": "polar bear",
+        "meaning": "n. 北极熊",
+        "pos": "n.",
+        "plurals": [
+          "polar bears"
+        ]
+      },
+      {
+        "id": "meat-eater",
+        "word": "meat-eater",
+        "meaning": "n. 肉食动物",
+        "pos": "n.",
+        "plurals": [
+          "meat-eaters"
+        ]
+      },
+      {
+        "id": "melt",
+        "word": "melt",
+        "meaning": "v.（使）融化",
+        "pos": "v.",
+        "plurals": []
+      },
+      {
         "id": "drop",
         "word": "drop",
         "meaning": "v.（使）降低；扔下；掉下",
@@ -4637,6 +4877,24 @@
         "meaning": "adj. 印度（人）的",
         "pos": "adj.",
         "plurals": []
+      },
+      {
+        "id": "rhino",
+        "word": "rhino",
+        "meaning": "n. 犀牛",
+        "pos": "n.",
+        "plurals": [
+          "rhinos"
+        ]
+      },
+      {
+        "id": "horn",
+        "word": "horn",
+        "meaning": "n. 角",
+        "pos": "n.",
+        "plurals": [
+          "horns"
+        ]
       },
       {
         "id": "disaster",
@@ -4734,7 +4992,7 @@
         "meaning": "adj. 有雾的，雾茫茫的",
         "pos": "adj.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "snowy",
@@ -4750,7 +5008,7 @@
         "meaning": "adj. 令人愉快的",
         "pos": "adj.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "hide",
@@ -4778,7 +5036,7 @@
         "plurals": [
           "memories"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "stream",
@@ -4788,7 +5046,7 @@
         "plurals": [
           "streams"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "shade",
@@ -4796,7 +5054,7 @@
         "meaning": "n.（树）荫",
         "pos": "n.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "lazy",
@@ -4824,7 +5082,7 @@
         "plurals": [
           "piles"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "upon",
@@ -4840,7 +5098,7 @@
         "meaning": "v. 收割（庄稼）",
         "pos": "v.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "crop",
@@ -4850,7 +5108,7 @@
         "plurals": [
           "crops"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "as",
@@ -4994,7 +5252,7 @@
         "meaning": "prep. 超出，除……之外",
         "pos": "prep.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "connect",
@@ -5052,7 +5310,7 @@
         "meaning": "n. 日光",
         "pos": "n.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "degree",
@@ -5156,14 +5414,28 @@
         "plurals": [
           "sculptures"
         ],
-        "optional": true
+        "optional": false
       }
     ],
     "words": [
       {
+        "id": "foggy",
+        "word": "foggy",
+        "meaning": "adj. 有雾的，雾茫茫的",
+        "pos": "adj.",
+        "plurals": []
+      },
+      {
         "id": "snowy",
         "word": "snowy",
         "meaning": "adj. 下雪多的；被雪覆盖的",
+        "pos": "adj.",
+        "plurals": []
+      },
+      {
+        "id": "pleasant",
+        "word": "pleasant",
+        "meaning": "adj. 令人愉快的",
         "pos": "adj.",
         "plurals": []
       },
@@ -5184,6 +5456,31 @@
         ]
       },
       {
+        "id": "memory",
+        "word": "memory",
+        "meaning": "n. 回忆",
+        "pos": "n.",
+        "plurals": [
+          "memories"
+        ]
+      },
+      {
+        "id": "stream",
+        "word": "stream",
+        "meaning": "n. 小河，溪",
+        "pos": "n.",
+        "plurals": [
+          "streams"
+        ]
+      },
+      {
+        "id": "shade",
+        "word": "shade",
+        "meaning": "n.（树）荫",
+        "pos": "n.",
+        "plurals": []
+      },
+      {
         "id": "lazy",
         "word": "lazy",
         "meaning": "adj. 懒惰的，懒散的",
@@ -5200,11 +5497,36 @@
         ]
       },
       {
+        "id": "pile",
+        "word": "pile",
+        "meaning": "n. 堆",
+        "pos": "n.",
+        "plurals": [
+          "piles"
+        ]
+      },
+      {
         "id": "upon",
         "word": "upon",
         "meaning": "prep. 在……上",
         "pos": "prep.",
         "plurals": []
+      },
+      {
+        "id": "harvest",
+        "word": "harvest",
+        "meaning": "v. 收割（庄稼）",
+        "pos": "v.",
+        "plurals": []
+      },
+      {
+        "id": "crop",
+        "word": "crop",
+        "meaning": "n. 庄稼，作物",
+        "pos": "n.",
+        "plurals": [
+          "crops"
+        ]
       },
       {
         "id": "as",
@@ -5327,6 +5649,13 @@
         "plurals": []
       },
       {
+        "id": "beyond",
+        "word": "beyond",
+        "meaning": "prep. 超出，除……之外",
+        "pos": "prep.",
+        "plurals": []
+      },
+      {
         "id": "connect",
         "word": "connect",
         "meaning": "vt. 把……联系起来；v.（使）连接",
@@ -5368,6 +5697,13 @@
         "word": "wet",
         "meaning": "adj. 湿的，潮的",
         "pos": "adj.",
+        "plurals": []
+      },
+      {
+        "id": "daylight",
+        "word": "daylight",
+        "meaning": "n. 日光",
+        "pos": "n.",
         "plurals": []
       },
       {
@@ -5452,6 +5788,15 @@
         "meaning": "v. 扔",
         "pos": "v.",
         "plurals": []
+      },
+      {
+        "id": "sculpture",
+        "word": "sculpture",
+        "meaning": "n. 雕像，雕塑品",
+        "pos": "n.",
+        "plurals": [
+          "sculptures"
+        ]
       }
     ],
     "lessons": [
@@ -5508,7 +5853,7 @@
         "plurals": [
           "sculptures"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "coral",
@@ -5518,7 +5863,7 @@
         "plurals": [
           "corals"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "reef",
@@ -5528,7 +5873,7 @@
         "plurals": [
           "reefs"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "penguin",
@@ -5548,7 +5893,7 @@
         "plurals": [
           "ecosystems"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "rainfall",
@@ -5556,7 +5901,7 @@
         "meaning": "n. 降雨量，下雨",
         "pos": "n.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "climate",
@@ -5576,7 +5921,7 @@
         "plurals": [
           "wetlands"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "include",
@@ -5592,7 +5937,7 @@
         "meaning": "adj. 非生物的",
         "pos": "adj.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "pond",
@@ -5602,7 +5947,7 @@
         "plurals": [
           "ponds"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "around",
@@ -5642,7 +5987,7 @@
         "meaning": "vt. 防止，阻止",
         "pos": "vt.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "store",
@@ -5660,7 +6005,7 @@
         "plurals": [
           "sponges"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "act",
@@ -5678,7 +6023,7 @@
         "plurals": [
           "kidneys"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "carbon dioxide",
@@ -5686,7 +6031,7 @@
         "meaning": "n. 二氧化碳",
         "pos": "n.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "trap",
@@ -5694,7 +6039,7 @@
         "meaning": "vt. 吸收；使落入险境",
         "pos": "vt.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "therefore",
@@ -5712,7 +6057,7 @@
         "plurals": [
           "lungs"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "sadly",
@@ -5756,7 +6101,7 @@
         "plurals": [
           "topics"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "quite a few",
@@ -5772,7 +6117,7 @@
         "meaning": "adj. 铺满沙子的，含沙的",
         "pos": "adj.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "noisy",
@@ -5808,7 +6153,7 @@
         "meaning": "vt. 损害，毁坏；n. 损坏，损失，损害",
         "pos": "vt. / n.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "north-east",
@@ -5834,7 +6179,7 @@
         "meaning": "adj. 稀罕的，珍贵的",
         "pos": "adj.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "red-crowned crane",
@@ -5844,7 +6189,7 @@
         "plurals": [
           "red-crowned cranes"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "daytime",
@@ -5852,7 +6197,7 @@
         "meaning": "n. 白天",
         "pos": "n.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "lead",
@@ -5876,7 +6221,7 @@
         "meaning": "n. 泥，淤泥，泥浆",
         "pos": "n.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "create",
@@ -5926,7 +6271,7 @@
         "meaning": "n. 废水",
         "pos": "n.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "environment-friendly",
@@ -5934,7 +6279,7 @@
         "meaning": "adj. 环保的，不损害环境的",
         "pos": "adj.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "sir",
@@ -5983,6 +6328,33 @@
     ],
     "words": [
       {
+        "id": "sculpture",
+        "word": "sculpture",
+        "meaning": "n. 雕像，雕塑品",
+        "pos": "n.",
+        "plurals": [
+          "sculptures"
+        ]
+      },
+      {
+        "id": "coral",
+        "word": "coral",
+        "meaning": "n. 珊瑚",
+        "pos": "n.",
+        "plurals": [
+          "corals"
+        ]
+      },
+      {
+        "id": "reef",
+        "word": "reef",
+        "meaning": "n. 礁",
+        "pos": "n.",
+        "plurals": [
+          "reefs"
+        ]
+      },
+      {
         "id": "penguin",
         "word": "penguin",
         "meaning": "n. 企鹅",
@@ -5990,6 +6362,22 @@
         "plurals": [
           "penguins"
         ]
+      },
+      {
+        "id": "ecosystem",
+        "word": "ecosystem",
+        "meaning": "n. 生态系统",
+        "pos": "n.",
+        "plurals": [
+          "ecosystems"
+        ]
+      },
+      {
+        "id": "rainfall",
+        "word": "rainfall",
+        "meaning": "n. 降雨量，下雨",
+        "pos": "n.",
+        "plurals": []
       },
       {
         "id": "climate",
@@ -6001,11 +6389,36 @@
         ]
       },
       {
+        "id": "wetland",
+        "word": "wetland",
+        "meaning": "n. 湿地",
+        "pos": "n.",
+        "plurals": [
+          "wetlands"
+        ]
+      },
+      {
         "id": "include",
         "word": "include",
         "meaning": "vt. 包括",
         "pos": "vt.",
         "plurals": []
+      },
+      {
+        "id": "non-living",
+        "word": "non-living",
+        "meaning": "adj. 非生物的",
+        "pos": "adj.",
+        "plurals": []
+      },
+      {
+        "id": "pond",
+        "word": "pond",
+        "meaning": "n. 池塘",
+        "pos": "n.",
+        "plurals": [
+          "ponds"
+        ]
       },
       {
         "id": "around",
@@ -6036,11 +6449,27 @@
         "plurals": []
       },
       {
+        "id": "prevent",
+        "word": "prevent",
+        "meaning": "vt. 防止，阻止",
+        "pos": "vt.",
+        "plurals": []
+      },
+      {
         "id": "store",
         "word": "store",
         "meaning": "vt. 贮存",
         "pos": "vt.",
         "plurals": []
+      },
+      {
+        "id": "sponge",
+        "word": "sponge",
+        "meaning": "n. 海绵块",
+        "pos": "n.",
+        "plurals": [
+          "sponges"
+        ]
       },
       {
         "id": "act",
@@ -6050,11 +6479,43 @@
         "plurals": []
       },
       {
+        "id": "kidney",
+        "word": "kidney",
+        "meaning": "n. 肾脏",
+        "pos": "n.",
+        "plurals": [
+          "kidneys"
+        ]
+      },
+      {
+        "id": "carbon dioxide",
+        "word": "carbon dioxide",
+        "meaning": "n. 二氧化碳",
+        "pos": "n.",
+        "plurals": []
+      },
+      {
+        "id": "trap",
+        "word": "trap",
+        "meaning": "vt. 吸收；使落入险境",
+        "pos": "vt.",
+        "plurals": []
+      },
+      {
         "id": "therefore",
         "word": "therefore",
         "meaning": "adv. 因此",
         "pos": "adv.",
         "plurals": []
+      },
+      {
+        "id": "lung",
+        "word": "lung",
+        "meaning": "n. 肺",
+        "pos": "n.",
+        "plurals": [
+          "lungs"
+        ]
       },
       {
         "id": "sadly",
@@ -6087,10 +6548,26 @@
         "plurals": []
       },
       {
+        "id": "topic",
+        "word": "topic",
+        "meaning": "n. 话题",
+        "pos": "n.",
+        "plurals": [
+          "topics"
+        ]
+      },
+      {
         "id": "quite a few",
         "word": "quite a few",
         "meaning": "相当多，不少",
         "pos": "短语",
+        "plurals": []
+      },
+      {
+        "id": "sandy",
+        "word": "sandy",
+        "meaning": "adj. 铺满沙子的，含沙的",
+        "pos": "adj.",
         "plurals": []
       },
       {
@@ -6119,6 +6596,13 @@
         ]
       },
       {
+        "id": "damage",
+        "word": "damage",
+        "meaning": "vt. 损害，毁坏；n. 损坏，损失，损害",
+        "pos": "vt. / n.",
+        "plurals": []
+      },
+      {
         "id": "north-east",
         "word": "north-east",
         "meaning": "n./adj./adv. 东北；东北方的；向东北方",
@@ -6135,6 +6619,29 @@
         ]
       },
       {
+        "id": "rare",
+        "word": "rare",
+        "meaning": "adj. 稀罕的，珍贵的",
+        "pos": "adj.",
+        "plurals": []
+      },
+      {
+        "id": "red-crowned crane",
+        "word": "red-crowned crane",
+        "meaning": "n. 丹顶鹤",
+        "pos": "n.",
+        "plurals": [
+          "red-crowned cranes"
+        ]
+      },
+      {
+        "id": "daytime",
+        "word": "daytime",
+        "meaning": "n. 白天",
+        "pos": "n.",
+        "plurals": []
+      },
+      {
         "id": "lead",
         "word": "lead",
         "meaning": "vi. 造成（后果）",
@@ -6146,6 +6653,13 @@
         "word": "lead to",
         "meaning": "导致",
         "pos": "短语",
+        "plurals": []
+      },
+      {
+        "id": "mud",
+        "word": "mud",
+        "meaning": "n. 泥，淤泥，泥浆",
+        "pos": "n.",
         "plurals": []
       },
       {
@@ -6183,6 +6697,20 @@
         "word": "knowledge",
         "meaning": "n. 知识",
         "pos": "n.",
+        "plurals": []
+      },
+      {
+        "id": "wastewater",
+        "word": "wastewater",
+        "meaning": "n. 废水",
+        "pos": "n.",
+        "plurals": []
+      },
+      {
+        "id": "environment-friendly",
+        "word": "environment-friendly",
+        "meaning": "adj. 环保的，不损害环境的",
+        "pos": "adj.",
         "plurals": []
       },
       {
@@ -6382,7 +6910,7 @@
         "plurals": [
           "typhoons"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "state",
@@ -6426,7 +6954,7 @@
         "meaning": "adj. 轻微的",
         "pos": "adj.",
         "plurals": [],
-        "optional": true
+        "optional": false
       },
       {
         "id": "shake",
@@ -6454,7 +6982,7 @@
         "plurals": [
           "bombs"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "shout",
@@ -6510,7 +7038,7 @@
         "plurals": [
           "bricks"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "silent",
@@ -6728,7 +7256,7 @@
         "plurals": [
           "bush fires"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "so far",
@@ -6798,7 +7326,7 @@
         "plurals": [
           "tidal waves"
         ],
-        "optional": true
+        "optional": false
       },
       {
         "id": "warn",
@@ -6814,7 +7342,7 @@
         "meaning": "vi. 消失",
         "pos": "vi.",
         "plurals": [],
-        "optional": true
+        "optional": false
       }
     ],
     "words": [
@@ -6901,6 +7429,15 @@
         ]
       },
       {
+        "id": "typhoon",
+        "word": "typhoon",
+        "meaning": "n. 台风",
+        "pos": "n.",
+        "plurals": [
+          "typhoons"
+        ]
+      },
+      {
         "id": "state",
         "word": "state",
         "meaning": "n. 状态，情况",
@@ -6933,6 +7470,13 @@
         "plurals": []
       },
       {
+        "id": "slight",
+        "word": "slight",
+        "meaning": "adj. 轻微的",
+        "pos": "adj.",
+        "plurals": []
+      },
+      {
         "id": "shake",
         "word": "shake",
         "meaning": "n./v. 摇动",
@@ -6947,6 +7491,15 @@
         "meaning": "n. 雷声",
         "pos": "n.",
         "plurals": []
+      },
+      {
+        "id": "bomb",
+        "word": "bomb",
+        "meaning": "n. 炸弹",
+        "pos": "n.",
+        "plurals": [
+          "bombs"
+        ]
       },
       {
         "id": "shout",
@@ -6988,6 +7541,15 @@
         "meaning": "四处，到处",
         "pos": "短语",
         "plurals": []
+      },
+      {
+        "id": "brick",
+        "word": "brick",
+        "meaning": "n. 砖",
+        "pos": "n.",
+        "plurals": [
+          "bricks"
+        ]
       },
       {
         "id": "silent",
@@ -7174,6 +7736,15 @@
         ]
       },
       {
+        "id": "bush fire",
+        "word": "bush fire",
+        "meaning": "n. 山林大火",
+        "pos": "n.",
+        "plurals": [
+          "bush fires"
+        ]
+      },
+      {
         "id": "so far",
         "word": "so far",
         "meaning": "迄今为止",
@@ -7227,10 +7798,26 @@
         "plurals": []
       },
       {
+        "id": "tidal wave",
+        "word": "tidal wave",
+        "meaning": "n. 海啸，潮汐波",
+        "pos": "n.",
+        "plurals": [
+          "tidal waves"
+        ]
+      },
+      {
         "id": "warn",
         "word": "warn",
         "meaning": "v. 警告，告诫",
         "pos": "v.",
+        "plurals": []
+      },
+      {
+        "id": "disappear",
+        "word": "disappear",
+        "meaning": "vi. 消失",
+        "pos": "vi.",
         "plurals": []
       }
     ],

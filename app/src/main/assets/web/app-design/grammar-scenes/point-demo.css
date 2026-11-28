@@ -1,0 +1,56 @@
+#animation .stage:has(.point-demo){background:#fafbf7;border-color:#dce5d8}
+.point-demo{padding:24px 26px;min-width:0;color:#20362b}
+.pd-heading{margin-bottom:16px}.pd-label{display:inline-block;color:#527059;font-size:12px;font-weight:600;letter-spacing:.06em}
+.point-demo .pd-prompt{margin:0 0 20px;font-size:17px;line-height:1.65;font-weight:600}
+.pd-sentence{padding:3px 0 16px}.pd-after{border-top:1px solid #dce5d8;padding:18px 0 8px}
+.pd-caption{display:block;font-size:12px;color:#708071;margin-bottom:6px}
+.point-demo .pd-english{display:block;font-size:22px;line-height:1.65;overflow-wrap:anywhere;margin:0;font-weight:500}
+.point-demo .pd-translation{display:block;font-size:14px;line-height:1.7;color:#657268;margin:6px 0 0}
+.pd-before mark{background:#e9ece5;color:inherit}.pd-after mark{background:#dcebd0;color:#16532c}
+.point-demo .pd-note,.point-demo .pd-conclusion{margin:16px 0 0;padding:13px 16px;border-left:3px solid #6e8d6e;background:#edf3e7;font-size:14px;line-height:1.85;overflow-wrap:anywhere}
+.pd-conclusion{font-weight:600}.pd-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:20px}
+.pd-controls button{font-size:14px;padding:8px 16px;min-height:44px}.pd-controls button:first-child{background:#345d46;border-color:#345d46;color:white}.pd-progress{font-size:12px;color:#657268}
+.pd-passage{display:grid;gap:0;border-block:1px solid #dce5d8}
+.point-demo .pd-line{display:flex;gap:16px;align-items:flex-start;text-align:left;min-width:0;width:100%;border:0;border-bottom:1px solid #e4e9de;border-radius:0;padding:16px 10px;background:transparent;color:inherit}
+.point-demo .pd-line:last-child{border-bottom:0}.pd-line-body{min-width:0}.pd-line-number{font-size:12px;color:#7c887b;flex-shrink:0;padding-top:7px;font-variant-numeric:tabular-nums}
+.point-demo .pd-line .pd-english{font-size:19px}.point-demo .pd-line:hover{background:#f0f4eb}.point-demo .pd-line[aria-pressed=true]{outline:2px solid #779470;outline-offset:-2px}
+.point-demo .pd-line.is-evidence{background:#e5efe0;box-shadow:inset 3px 0 #527b55}.point-demo .pd-line.is-context{background:#f5f1e8}
+.pd-after:not([hidden]),.pd-note:not([hidden]),.pd-conclusion:not([hidden]){animation:pd-reveal .2s ease-out}
+@keyframes pd-reveal{from{opacity:0}to{opacity:1}}
+@media(max-width:600px){.point-demo{padding:18px 15px}.point-demo .pd-english{font-size:19px}.point-demo .pd-line .pd-english{font-size:17px}.point-demo .pd-prompt{font-size:16px}.point-demo .pd-line{gap:10px;padding:14px 8px}.pd-controls{gap:8px}.pd-progress{flex-basis:100%}}
+@media(prefers-reduced-motion:reduce){.pd-after,.pd-note,.pd-conclusion{animation:none!important}}
+
+/* Patient listening: the speaker changes only after Tom has finished. */
+.pd-listening{margin:0 0 24px;min-width:0}
+.pd-listening-art{position:relative;overflow:hidden;background:#eef2e9;border-radius:12px;padding-top:16px}
+.pd-listening-art svg{display:block;width:100%;height:280px}
+.pd-dialogue{position:relative;width:fit-content;max-width:calc(100% - 40px);min-width:240px;box-sizing:border-box;margin:0 auto;padding:12px 22px;background:#fffdf7;border-radius:14px;box-shadow:0 2px 0 #dbe4d5;z-index:1;text-align:left}
+.pd-dialogue:after{content:'';position:absolute;bottom:-12px;left:28px;border:7px solid transparent;border-top-color:#fffdf7;border-left-color:#fffdf7}
+.pd-dialogue[data-speaker=Mia]:after{left:auto;right:28px;transform:scaleX(-1)}
+.pd-speaker{display:block;color:#9d5c46;font-size:12px;font-weight:700;line-height:1.5}
+.pd-dialogue[data-speaker=Mia] .pd-speaker{color:#3e6a50}
+.point-demo .pd-speech{margin:2px 0;font-size:20px;line-height:1.5;font-weight:600;color:#273e32}
+.point-demo .pd-dialogue-translation{margin:0;font-size:13px;line-height:1.6;color:#667268}
+.pd-character-names{position:absolute;bottom:12px;left:20%;right:20%;display:flex;justify-content:space-between;pointer-events:none}
+.pd-character-names span{font-size:12px;font-weight:600;background:#f8faf1;color:#3f5948;padding:3px 10px;border-radius:20px}
+.pd-scene-controls{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+.point-demo .pd-scene-play{min-height:44px;padding:8px 18px;border-color:#345d46;background:#345d46;color:#fff;font-size:14px}
+.pd-scene-steps{display:flex;gap:4px;flex-wrap:wrap;min-width:0}
+.point-demo .pd-scene-steps button{min-height:44px;padding:8px 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:#657268;font-size:13px}
+.point-demo .pd-scene-steps button[aria-current=step]{color:#234e36;background:#e5edde;border-color:#c7d7bf;font-weight:600}
+.point-demo .pd-scene-caption{font-size:14px;line-height:1.75;color:#536754;margin:12px 0 0;min-height:1.75em}
+.pd-listening button:focus-visible{outline:2px solid #3e704b;outline-offset:3px}
+.pd-listening .pd-relaxed-brows,.pd-listening .pd-tom-smile,.pd-listening .pd-tom-speaking,.pd-listening .pd-mia-speaking,.pd-listening .pd-hair-focus{display:none}
+.pd-listening[data-frame="2"] .pd-worried-brows,.pd-listening[data-frame="2"] .pd-tom-quiet,.pd-listening[data-frame="2"] .pd-mia-quiet{display:none}
+.pd-listening[data-frame="2"] .pd-relaxed-brows,.pd-listening[data-frame="2"] .pd-tom-smile,.pd-listening[data-frame="2"] .pd-mia-speaking{display:initial}
+.pd-listening[data-appearance=true] .pd-hair-focus{display:initial}
+.pd-listening[data-playing=true]:not([data-frame="2"]) .pd-tom-quiet{display:none}
+.pd-listening[data-playing=true]:not([data-frame="2"]) .pd-tom-speaking{display:initial}
+.pd-tom-speaking,.pd-mia-speaking{transform-box:fill-box;transform-origin:center;animation:pd-speaking .65s ease-in-out infinite;animation-play-state:paused}
+.pd-listening[data-playing=true] .pd-tom-speaking,.pd-listening[data-playing=true] .pd-mia-speaking{animation-play-state:running}
+.pd-listening[data-frame="1"][data-motion=true] .pd-speech{animation:pd-slow-speech 5.2s steps(3,end) both;animation-play-state:paused}
+.pd-listening[data-frame="1"][data-playing=true] .pd-speech{animation-play-state:running}
+@keyframes pd-speaking{0%,100%{transform:scaleY(.55)}50%{transform:scaleY(1)}}
+@keyframes pd-slow-speech{from{clip-path:inset(0 85% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@media(max-width:600px){.pd-listening-art svg{height:auto;aspect-ratio:1.45}.pd-dialogue{min-width:0;max-width:calc(100% - 24px);width:calc(100% - 24px);padding:10px 14px}.point-demo .pd-speech{font-size:17px}.pd-character-names{left:12%;right:12%;bottom:8px}.pd-scene-controls{gap:6px}.pd-scene-steps{width:100%;gap:2px}.point-demo .pd-scene-steps button{padding:8px 3px;flex:1;font-size:12px;white-space:nowrap}}
+@media(prefers-reduced-motion:reduce){.pd-listening *{animation:none!important;transition:none!important;clip-path:none!important}}

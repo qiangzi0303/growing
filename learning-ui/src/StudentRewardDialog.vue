@@ -1,5 +1,6 @@
 <script setup>
 import {ref, onMounted, onBeforeUnmount} from 'vue';
+import LoadingState from './LoadingState.vue';
 const props=defineProps({unit:{type:Object,required:true},readReward:{type:Function,required:true}});
 const emit=defineEmits(['close']);
 const dialog=ref(),data=ref(null),error=ref('');
@@ -17,9 +18,8 @@ onBeforeUnmount(()=>{alive=false;dialog.value?.close();if(opener?.isConnected)op
 <template>
  <dialog ref="dialog" class="chapter-reward-sheet" aria-labelledby="chapter-reward-title" @close="emit('close')" @click="backdrop">
   <header><div><p class="reward-eyebrow">单元奖励</p><h2 id="chapter-reward-title">{{unit.title}}</h2></div><button class="reward-close" aria-label="关闭奖励" autofocus @click="dialog.close()"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.5"/></svg></button></header>
-  <div v-if="error" class="reward-state" role="alert"><p>{{error}}</p><button @click="load">重新读取</button></div>
-  <p v-else-if="!data" class="reward-state" role="status">正在读取奖励…</p>
-  <template v-else>
+  <LoadingState class="reward-state" :loading="!data&&!error" :error="error" label="正在读取奖励…" retry skeleton @retry="load"/>
+  <template v-if="data&&!error">
    <p class="reward-caption">本单元已获得</p>
    <div class="reward-balances">
     <section aria-label="游戏时间"><h3>游戏时间</h3><p class="reward-number" :class="{'is-zero':!data.game}"><strong>{{data.game}}</strong><span>分钟</span></p></section>

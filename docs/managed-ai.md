@@ -26,6 +26,18 @@
 
 此电脑通过 Windows 系统代理访问远程绑定。启动器会将系统代理传给 Wrangler，并用 `.nmai/tmp/wrangler-remote-proxy.cjs` 为 Wrangler 4.151.3 / Miniflare 5 的内部 `ProxyWorker` 配置出站代理；仅设置 `HTTPS_PROXY` 无法覆盖该内部运行时，会导致 D1 请求超时。升级 Wrangler 后需重新验证此适配。代理凭据和数据库凭据均不写入网页资源。
 
+## 本机独立课堂
+
+`启动本地课堂.bat` 启动 `http://127.0.0.1:8797/`，由 `scripts/local-course-preview.py` 提供公开课堂资源及同源 `/api/local-course-ai/config`。独立本机页面无需学生云登录；它使用本机开发者已有 Cloudflare 授权，只读后台启用的 `chat` 配置，并沿用 `.dev.vars` 中的加密密钥解密。配置通过内存管道返回页面，页面继续直连供应商，Key 不写入前端持久存储或项目公开资源。
+
+已有页面使用其他端口时，运行 `启动本地课堂.bat --port <原端口>`，或在项目根运行 `python growing/scripts/start-local-course.py --port <原端口>`。启动器会复用已就绪的课堂服务；端口被其他服务占用时只报错。不要使用普通 `python -m http.server` 预览需要 AI 的课堂：它没有配置接口，页面会提示“本地 AI 服务未就绪”。排查时应检查用户实际地址对应的端口，不能只确认默认 8797 正常。替换已核实属于本项目的旧静态服务时保留原主机名和端口，以继续使用浏览器中的进度和草稿。
+
+此分支仅适用于无云端壳的 HTTP localhost/127.0.0.1 页面。云端网页、Android 和带账户壳的本地门户仍走原登录校验；开发服务器只绑定回环地址，校验 Host、Origin、Sec-Fetch-Site 及客户端请求头，不允许跨站读取配置，也不提供项目源文件和 `.nmai`。匿名本机调用没有云账户归属，不伪造账户用量上报。
+
+如果开发者授权过期，页面明确提示重新登录 Cloudflare，草稿及学习进度继续保留。在 `growing/cloudflare` 运行 `node node_modules/wrangler/bin/wrangler.js login` 完成本机授权后可重试；不需要创建学习账号或重新填写模型 Key。`启动本地测试.bat` 仍用于原 8790 云门户。
+
+2026-11-28：已在独立浏览器存储中通过真实 `deepseek-flash` 完成七次默写后的词义/词类评测；模拟配置失败后保留七次进度与口述草稿且不计掌握。62项 JS 回归、4项本机 HTTP 测试通过。实际 8797 服务能读到后台 chat 配置，8份共享 AI 客户端哈希一致。证据：项目 `.nmai/tmp/local-course-ai/result.json` 与 `live-grade.png`；未发布云端或修改真实学习记录。
+
 ## 统计口径
 
 客户端将供应商响应中的 usage 上报 `/api/ai/usage`，账户由后台认证确定。每次请求携带唯一 requestId 与配置 revision，重复上报不重复累计；历史配置修改后仍归属原模型。

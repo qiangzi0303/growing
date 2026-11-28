@@ -1,6 +1,9 @@
 <script setup>
+import SearchablePicker from './SearchablePicker.vue';
+import {usePopupFocus} from './popup-focus.js';
+const popupFocus=usePopupFocus();
 import {ref,computed,onBeforeUnmount} from 'vue';
-import {Button,Cell,CellGroup,Collapse,CollapseItem,Field,Popup,Picker} from 'vant';
+import {Button,Cell,CellGroup,Collapse,CollapseItem,Field,Popup} from 'vant';
 import StudentGradedAnswer from './StudentGradedAnswer.vue';
 const {controller}=defineProps({controller:{type:Object,required:true}}),m=ref(controller.model),a=controller.actions,reveals=ref({}),expanded=ref([]),picker=ref(false),failedImage=ref(false),query=ref('');
 const off=controller.subscribe(value=>m.value=value);onBeforeUnmount(off);
@@ -33,7 +36,7 @@ const format=s=>window.GrowingMathFormat.html(String(s||''));
    <div class="midterm-actions"><Button :type="m.concept==='all'?'primary':'default'" @click="a.concept('all')">全部题目</Button></div><section v-for="([name,id,items]) in m.groups" :key="id"><h3>{{name}}</h3><div class="midterm-actions"><Button v-for="([key,label]) in items" :key="key" :type="m.concept===key?'primary':'default'" @click="a.concept(key)">{{label}}</Button></div></section>
    <h2>{{m.names[m.concept]||'全部知识点'}} · {{m.filtered.length}} 道题</h2><CellGroup v-if="m.selectedLinks.length"><Cell v-for="link in m.selectedLinks" :key="link.node" :title="link.label" :url="link.href" is-link/></CellGroup><div class="midterm-actions" v-for="([from,to],i) in m.selectedPaths" :key="i"><Button @click="a.concept(from)">{{m.names[from]}}</Button> → <Button @click="a.concept(to)">{{m.names[to]}}</Button></div>
    <article v-for="q in m.filtered" :key="q.id" class="midterm-question"><h3>第 {{q.number}} 题 · {{q.title}}</h3><p :class="{'is-wrong':q.priority}">{{q.review}}</p><CellGroup><Cell v-for="unit in q.units" :key="unit.id" :title="'归档单元：'+unit.title" :url="unit.href" is-link/></CellGroup><section v-for="concept in q.links" :key="concept.id"><Button @click="a.concept(concept.id)">{{concept.title}}</Button><CellGroup><Cell v-for="link in concept.targets" :key="link.node" :title="link.label" :url="link.href" is-link/></CellGroup></section><Button tag="a" :href="m.bank+'#'+q.id">查看本题与题设图</Button></article>
-   <Popup v-model:show="picker" position="bottom" round><Picker :columns="m.students.map(s=>({text:s.username||'当前账号',value:s.id}))" @confirm="a.student($event.selectedValues[0]);picker=false" @cancel="picker=false"><template #cancel><Button icon="cross" aria-label="关闭学生选择" class="midterm-close" @click="picker=false"/></template></Picker></Popup>
+   <Popup v-bind="popupFocus('picker',()=>picker=false)" v-model:show="picker" position="bottom" round><SearchablePicker :active="!!picker" title="选择学生" :model-value="[m.studentId]" :columns="m.students.map(s=>({text:s.username||'当前账号',value:s.id}))" @confirm="a.student($event.selectedValues[0]);picker=false" @cancel="picker=false"><template #cancel><span class="van-icon van-icon-cross" role="img" aria-label="关闭学生选择"></span></template></SearchablePicker></Popup>
   </template>
  </main>
 </template>

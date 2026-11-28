@@ -13,9 +13,14 @@
     typeof record.revealed==='boolean'&&Number.isSafeInteger(record.at)&&record.at>0;
   function complete(raw,sentence,result,at=Date.now()){
     const state=restore(raw);
-    if(valid(sentence,state.sentences[sentence.id]))return state;
     const record={protocol:'sentence-typing-v1',answer:sentence.en,wrong:result.wrong,hints:result.hints,revealed:result.revealed,at};
     if(!valid(sentence,record))throw Error('句子完成记录不完整');
+    const previous=state.sentences[sentence.id];
+    if(valid(sentence,previous)){
+      const latest=valid(sentence,previous.lastAttempt)?Math.max(previous.at,previous.lastAttempt.at):previous.at;
+      if(at>latest)state.sentences[sentence.id]={...previous,lastAttempt:record};
+      return state;
+    }
     state.sentences[sentence.id]=record;return state;
   }
   function summary(sentences,raw){

@@ -1,6 +1,9 @@
 <script setup>
+import SearchablePicker from './SearchablePicker.vue';
+import {usePopupFocus} from './popup-focus.js';
+const popupFocus=usePopupFocus();
 import {ref,computed,onBeforeUnmount,onMounted,nextTick} from 'vue';
-import {Button,Tabs,Tab,Field,Switch,Popup,Picker,Collapse,CollapseItem,Progress,Cell,CellGroup} from 'vant';
+import {Button,Tabs,Tab,Field,Switch,Popup,Collapse,CollapseItem,Progress,Cell,CellGroup} from 'vant';
 import 'vant/es/button/style';import 'vant/es/tabs/style';import 'vant/es/tab/style';import 'vant/es/field/style';import 'vant/es/switch/style';import 'vant/es/popup/style';import 'vant/es/picker/style';import 'vant/es/collapse/style';import 'vant/es/collapse-item/style';import 'vant/es/progress/style';import 'vant/es/cell/style';import 'vant/es/cell-group/style';
 const props=defineProps({controller:{type:Object,required:true}}),m=ref(props.controller.model),a=props.controller.actions,error=ref(''),picker=ref(false),opened=ref([]),input=ref(),composing=ref(false);
 const stop=props.controller.subscribe(value=>{m.value=value;});onBeforeUnmount(stop);
@@ -37,7 +40,7 @@ onMounted(()=>document.addEventListener('keydown',previewKey));onBeforeUnmount((
    <footer>先看动作，再说单词，最后放进自己的句子里。<p><Button v-if="m.kind==='visual'" tag="a" class="atlas-link" href="english-visual-atlas.svg" download="英语动画词汇图谱.svg">下载词汇图谱 ↓</Button><Button v-else tag="a" :href="m.backHref">返回学习</Button></p><Collapse v-model="opened"><CollapseItem title="关于素材" name="credits">角色参考 Ian Xiaohei Illustrations · <a href="english-motion-NOTICE.txt" target="_blank" rel="noopener">来源与 MIT 授权</a></CollapseItem></Collapse></footer>
   </div>
   <Popup :show="m.help" round closeable close-icon="cross" :style="{width:'min(90vw,520px)',padding:'30px'}" @update:show="run('help',$event)"><h2>看动作，记单词</h2><p>17 个空间关系表达、16 种行走与奔跑表达，点选词汇后动画会自动循环播放。</p><p>手机也能左右对照动作，观察步幅、脚尖和身体姿态的差别，再读例句。点击“看动作，选表达”进入测试页。</p></Popup>
-  <Popup v-model:show="picker" position="bottom" round><Picker :columns="columns" :model-value="[m.reference]" @confirm="run('reference',$event.selectedValues[0]);picker=false" @cancel="picker=false"><template #cancel><span aria-label="关闭" class="cross">×</span></template></Picker></Popup>
+  <Popup v-bind="popupFocus('picker',()=>picker=false)" v-model:show="picker" position="bottom" round><SearchablePicker :active="!!picker" :columns="columns" :model-value="[m.reference]" @confirm="run('reference',$event.selectedValues[0]);picker=false" @cancel="picker=false"><template #cancel><span aria-label="关闭" class="cross">×</span></template></SearchablePicker></Popup>
  </template>
  <template v-else>
   <header class="sentence-topbar"><span>Unit {{m.practice.unit?.number}} · {{m.practice.unit?.title}}</span><Button tag="a" :href="unitHref">返回 Unit {{m.practice.unit?.number}}</Button></header><div class="sentence-shell"><nav><Button v-if="m.practice.topic" tag="a" :href="unitHref" aria-label="返回知识点" icon="arrow-left">返回知识点</Button><Button tag="a" :href="m.practice.backHref||'units.html?subject=english&term=upper'">{{m.practice.unit?'返回课堂':'英语目录'}}</Button></nav>

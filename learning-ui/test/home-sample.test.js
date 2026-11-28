@@ -27,7 +27,7 @@ test('compiled menu retains calendar navigation and ignores stale calendar loads
  const beforeMonth=w.document.querySelector('.van-calendar__header-subtitle').textContent;await click('button[aria-label="上个月"]');assert.notEqual(w.document.querySelector('.van-calendar__header-subtitle').textContent,beforeMonth);
  app.close();await tick();lateCalendar=true;await click('#vant-menu-trigger');await click('[data-vant-action="calendar"]');
  await click('[data-vant-unit]');
- const second=[...w.document.querySelectorAll('.van-picker-column__item')].find(el=>el.textContent==='数学 第二单元');assert.ok(second);second.click();await tick();await click('.van-picker__confirm');
+ const second=[...w.document.querySelectorAll('.search-choice-option')].find(el=>el.textContent==='数学 第二单元');assert.ok(second);second.click();await tick();
  assert.match(w.document.body.textContent,/7 项历史/);resolveCalendar({days:{},baseline:99,datedMastery:true});await tick();assert.doesNotMatch(w.document.body.textContent,/99 项历史/);
  app.destroy();await tick();assert.equal(w.document.querySelector('#vant-menu-trigger'),null);dom.window.close();
 });

@@ -18,3 +18,40 @@ test('native uses only current login token and never reads a personal key',async
  vm.runInNewContext(fs.readFileSync(require.resolve('../app/src/main/assets/web/app-design/course-ai.js'),'utf8'),{window,localStorage:{getItem(key){assert.equal(key,'growing-cloud-session-v1');return JSON.stringify({token});}},crypto:require('node:crypto').webcrypto,URL,fetch:async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>({models:[{id:'chat',purpose:'chat',endpoint:'https://provider.test/chat',model:'native-managed',apiKey:'managed-key',revision:1}]})};}});
  const h=await window.GrowingCourseAI.prepare();assert.equal(h.config.model,'native-managed');assert.equal(calls[0].url,'https://app.test/api/ai/config');assert.equal(calls[0].options.headers.Authorization,'Bearer session-a');token='session-b';assert.equal(h.current(),false);await window.GrowingCourseAI.prepare();assert.equal(calls[1].options.headers.Authorization,'Bearer session-b');
 });
+
+function localSetup(url='http://127.0.0.1:8797/app-design/english-course.html',cloud){
+ const calls=[],window={location:new URL(url),GrowingCloud:cloud};window.top=window;
+ let status=200,release,delayed=false;
+ vm.runInNewContext(fs.readFileSync(require.resolve('../app/src/main/assets/web/app-design/course-ai.js'),'utf8'),{window,URL,crypto:require('node:crypto').webcrypto,AbortController,DOMException,setTimeout,clearTimeout,localStorage:{getItem(){throw Error('Local credentials must not be persisted');}},fetch:async(url,options)=>{
+  calls.push({url,options});
+  if(url.endsWith('/api/local-course-ai/config')){
+   if(delayed)await new Promise(resolve=>release=resolve);
+   return {ok:status===200,json:async()=>status===200?{models:[{id:'chat',purpose:'chat',endpoint:'https://provider.test/chat',apiKey:'local-test-secret',model:'managed-local',revision:1}]}:{error:'Cloudflare 本机授权已过期，请重新登录后重试。'}};
+  }
+  return {ok:true,json:async()=>({choices:[{message:{content:'{"meaningPassed":true,"posPassed":true,"feedback":"正确","errors":[]}'}}],usage:{prompt_tokens:1,completion_tokens:2,total_tokens:3}})};
+ }});
+ return {api:window.GrowingCourseAI,window,calls,fail:()=>status=503,delay:()=>delayed=true,release:()=>release()};
+}
+test('standalone loopback classroom reads managed config once and directly grades without a cloud login',async()=>{
+ const t=localSetup(),signal=new AbortController().signal;
+ assert.equal(JSON.parse(await t.api.request({task:'评测学生的词义与词类',format:'json_object',signal})).meaningPassed,true);
+ await t.api.request({task:'another question'});
+ const configs=t.calls.filter(c=>c.url.endsWith('/api/local-course-ai/config'));
+ assert.equal(configs.length,1);assert.equal(configs[0].options.headers['X-Growing-Local'],'1');assert.equal(configs[0].options.cache,'no-store');assert.equal(configs[0].options.credentials,'omit');
+ const provider=t.calls.find(c=>c.url==='https://provider.test/chat');assert.equal(provider.options.headers.Authorization,'Bearer local-test-secret');assert.equal(provider.options.signal,signal);
+ assert.equal(t.calls.some(c=>c.url.endsWith('/ai/usage')),false,'local preview does not charge a cloud account');
+ assert(!JSON.stringify(t.api.info()).includes('secret'));
+});
+test('local authorization failures are actionable, retryable and never submit to the provider',async()=>{
+ const t=localSetup();t.fail();await assert.rejects(t.api.request({task:'grade'}),/授权已过期/);
+ assert.equal(t.calls.length,1);await assert.rejects(t.api.request({task:'retry'}),/授权已过期/);assert.equal(t.calls.length,2);
+});
+test('public sites, LAN pages and signed-out local portal retain the existing login requirement',async()=>{
+ for(const url of ['https://learn.test/app-design/english-course.html','http://192.168.1.5:8797/app-design/english-course.html','file:///english-course.html']){
+  const t=localSetup(url);await assert.rejects(t.api.request({task:'grade'}),/登录/);assert.equal(t.calls.length,0);
+ }
+ const t=localSetup(undefined,{aiContext(){throw Error('请先登录');}});await assert.rejects(t.api.request({task:'grade'}),/登录/);assert.equal(t.calls.length,0);
+});
+test('switching from standalone to a cloud session rejects a late local configuration',async()=>{
+ const t=localSetup();t.delay();const request=t.api.request({task:'grade'});t.window.GrowingCloud={aiContext(){throw Error('new session');}};t.release();await assert.rejects(request,/会话已变化/);assert.equal(t.calls.length,1);
+});

@@ -14,6 +14,15 @@ test('archive preserves reviewed source IDs, filters and saved grade identity wi
 });
 test('malformed original strokes cannot leak invalid arrays into Vue and remain untouched',async()=>{const raw=JSON.stringify({version:1,answers:{},scores:{},writing:{16:'invalid'}}),s=await setup(raw);assert.equal(s.c.snapshot().blocked,true);assert.deepEqual(Object.keys(s.c.snapshot().writing),[]);assert.equal(s.data.values().next().value,raw);s.c.destroy();});
 
+test('paper submission acknowledges only a saved result and reports grading failure',async()=>{
+ const s=await setup();assert.equal(await s.c.actions.submit(),true);s.c.destroy();
+ const t=await setup(JSON.stringify({version:1,answers:{},scores:{},writing:{16:[[{tool:'pen',points:[[1,2]]}]]}}));
+ t.w.GrowingHandwritingAI.request=async()=>{throw Error('离线');};
+ assert.equal(await t.c.actions.submit(),false);assert.match(t.c.snapshot().status,/离线/);t.c.destroy();
+ const u=await setup();u.c.destroy();const c=u.w.GrowingStudentMathResources.create({page:'math-exam-practice',storage:{getItem:()=>null,setItem(){throw Error('空间不足');},length:0}});
+ assert.equal(await c.actions.submit(),false);assert.match(c.snapshot().status,/保存失败/);c.destroy();
+});
+
 test('paper photos take priority over legacy ink, preserve repeated uploads and survive restart',async()=>{
  const s=await setup(JSON.stringify({version:1,answers:{},scores:{},writing:{16:[[{tool:'pen',points:[[1,2]]}]]}}));
  let sequence=0;s.w.crypto={randomUUID:()=>`12345678-1234-1234-1234-123456789ab${++sequence}`};s.w.URL={createObjectURL:()=> 'blob:photo',revokeObjectURL(){}};s.w.Image=class{naturalWidth=100;naturalHeight=100;decode(){return Promise.resolve();}};s.w.document={createElement:()=>({getContext:()=>({fillRect(){},drawImage(){}}),toDataURL:()=> 'data:image/jpeg;base64,/9j/AAAA'})};

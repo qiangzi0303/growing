@@ -49,6 +49,8 @@
   return lessons.some(l=>Object.entries(state.pointPractice?.[l.id]||{}).some(([point,r])=>
    r?.version===1&&Number.isInteger(r.index)&&r.index>=0&&r.index<10&&r.answers&&typeof r.answers==='object'&&!Array.isArray(r.answers)&&
    Object.entries(r.answers).some(([id,a])=>{
+    const fill=id.match(/^(.*)-fill-v1-(6|7|8|9|10)$/);
+    if(fill)return r.questionSet==='mixed-fill-v1'&&(fill[1]===l.id+'-'+point||fill[1].endsWith('-'+l.id+'-'+point))&&a?.checked===true&&Array.isArray(a.texts)&&a.texts.length>0&&a.texts.every(t=>typeof t==='string'&&t.trim().length>0&&t.length<=160);
     const stem=id.slice(0,-3),suffix=id.slice(-2);
     return (stem===l.id+'-'+point||stem.endsWith('-'+l.id+'-'+point))&&id.at(-3)==='-'&&/^\d{2}$/.test(suffix)&&Number(suffix)>=1&&Number(suffix)<=10&&
      a?.checked===true&&Number.isInteger(a.choice)&&a.choice>=0&&a.choice<4;

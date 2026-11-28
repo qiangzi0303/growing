@@ -12,6 +12,17 @@
   function text(value) { return typeof value === 'string' && value.trim().length > 0; }
   function copy(value) { return JSON.parse(JSON.stringify(value)); }
   function check(ok, message) { if (!ok) throw new Error(message); }
+  function ids(value, max, nonempty) {
+    return Array.isArray(value) && value.length <= max && (!nonempty || value.length > 0) &&
+      Array.from(value).every(text) && new Set(value).size === value.length;
+  }
+  function checkPlanMetadata(value) {
+    check(value.reviewQuestions === undefined || object(value.reviewQuestions) &&
+      Object.keys(value.reviewQuestions).length <= 200 && Object.entries(value.reviewQuestions).every(function (entry) {
+        return text(entry[0]) && ids(entry[1], 10, true);
+      }), '番茄复习题安排格式错误');
+    check(value.skippedLearn === undefined || ids(value.skippedLearn, 200, false), '番茄讲解安排格式错误');
+  }
   function checkItem(item, from, to) {
     check(object(item) && ['id', 'nodeId', 'title'].every(function (key) { return text(item[key]); }) &&
       kinds.includes(item.kind) && statuses.includes(item.status) && typeof item.detail === 'string' &&
@@ -20,13 +31,15 @@
       (item.attempts === undefined || integer(item.attempts)), '番茄学习记录格式错误');
   }
   function restore(raw, unitId) {
-    check(typeof unitId === 'string' && /^math-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(unitId), '数学单元不受支持');
+    check(typeof unitId === 'string' && /^(?:math|physics)-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(unitId), '学习单元不受支持');
     if (raw == null) return {version: 1, unitId: unitId, rounds: []};
     check(object(raw) && raw.unitId === unitId, '番茄记录单元不匹配');
     check(raw.version === 1 && Array.isArray(raw.rounds), '番茄记录版本或格式错误');
     var ids = new Set(), completed = 0;
     raw.rounds.forEach(function (r, index) {
       check(object(r) && text(r.id) && !ids.has(r.id) && r.index === index, '番茄记录编号错误');
+      check(r.planId === undefined || text(r.planId), '番茄计划编号错误');
+      checkPlanMetadata(r);
       ids.add(r.id);
       check(text(r.nodeId) && text(r.nodeTitle) && phases.includes(r.phase) &&
         integer(r.elapsedMs) && r.elapsedMs <= STUDY && integer(r.pauseMs) &&
@@ -76,7 +89,9 @@
   function start(raw, unitId, at, options) {
     var s = advance(raw, unitId, at);
     if (active(s)) return s;
-    check(object(options) && text(options.nodeId) && text(options.nodeTitle), '请选择本轮数学知识点');
+    check(object(options) && text(options.nodeId) && text(options.nodeTitle), '请选择本轮学习知识点');
+    check(options.planId === undefined || text(options.planId), '番茄计划编号错误');
+    checkPlanMetadata(options);
     var previous = s.rounds[s.rounds.length - 1];
     at = Math.max(at, previous ? previous.lastAt : 0);
     var completed = s.rounds.filter(function (r) { return r.phase === 'finished'; }).length;
@@ -85,6 +100,9 @@
       nodeId: options.nodeId, nodeTitle: options.nodeTitle, phase: 'learning', elapsedMs: 0,
       pauseMs: 0, pausedAt: null, restMs: rest, restTotalMs: rest, createdAt: at,
       lastAt: at, endedAt: null, items: []});
+    if (options.planId !== undefined) s.rounds[s.rounds.length - 1].planId = options.planId;
+    if (options.reviewQuestions !== undefined) s.rounds[s.rounds.length - 1].reviewQuestions = copy(options.reviewQuestions);
+    if (options.skippedLearn !== undefined) s.rounds[s.rounds.length - 1].skippedLearn = copy(options.skippedLearn);
     return s;
   }
   function pause(raw, unitId, at) {

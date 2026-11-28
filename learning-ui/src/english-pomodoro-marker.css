@@ -1,0 +1,6 @@
+.english-pomo-marker{display:inline-flex;align-items:center;justify-content:center;flex:none;width:23px;height:27px;margin-inline-start:8px;vertical-align:middle;color:#b26c56;line-height:1;animation:english-pomo-float 2.4s ease-in-out infinite;transform-origin:50% 75%}
+.english-pomo-marker>svg{display:block;width:23px;height:27px;flex:none}
+[aria-selected="true"]>.english-pomo-marker,.van-button--primary .english-pomo-marker{background:#fff7ec;border-radius:50%}
+.english-pomo-marker.is-paused{animation-play-state:paused}
+@keyframes english-pomo-float{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-3px) rotate(5deg)}}
+@media(prefers-reduced-motion:reduce){.english-pomo-marker{animation:none}}

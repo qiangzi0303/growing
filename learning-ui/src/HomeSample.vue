@@ -1,6 +1,9 @@
 <script setup>
+import SearchablePicker from './SearchablePicker.vue';
+import {usePopupFocus} from './popup-focus.js';
+const popupFocus=usePopupFocus();
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
-import { Button, Icon, Popup, Cell, CellGroup, Picker, Calendar, Loading } from 'vant';
+import { Button, Icon, Popup, Cell, CellGroup, Calendar, Loading } from 'vant';
 import 'vant/es/button/style';
 import 'vant/es/icon/style';
 import 'vant/es/popup/style';
@@ -66,8 +69,8 @@ defineExpose({close,openCalendar,isOpen:()=>!!(page.value||menu.value||picker.va
     <p v-if="busy" class="growing-vant-feedback" role="status"><Loading size="20"/> 正在处理…</p><p v-if="message" role="status" class="growing-vant-feedback">{{ message }}</p><p v-if="error" role="alert" class="growing-vant-error">{{ error }}</p>
    </section>
   </Popup>
-  <Popup :show="!!picker" teleport="body" class="growing-vant-popup growing-vant-picker" position="bottom" round close-on-popstate @update:show="show => !show && (picker='')" @click-overlay="picker=''">
-   <Picker :title="'选择课程单元'" :columns="units.map(u=>({text:u.label,value:u.id}))" @confirm="picked" @cancel="picker=''"><template #cancel><Button icon="cross" aria-label="关闭选择" style="width:44px;height:44px;padding:0" @click="picker=''"/></template></Picker>
+  <Popup v-bind="popupFocus('picker',()=>picker=false)" :show="!!picker" teleport="body" class="growing-vant-popup growing-vant-picker" position="bottom" round close-on-popstate @update:show="show => !show && (picker='')" @click-overlay="picker=''">
+   <SearchablePicker :active="!!picker" :title="'选择课程单元'" :model-value="[unit]" :columns="units.map(u=>({text:u.label,value:u.id}))" @confirm="picked" @cancel="picker=''"><template #cancel><span class="van-icon van-icon-cross" role="img" aria-label="关闭选择"></span></template></SearchablePicker>
   </Popup>
  </div>
 </template>

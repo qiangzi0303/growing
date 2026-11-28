@@ -88,3 +88,69 @@ test('malformed records, mismatched units and unsupported versions fail without 
  assert.throws(()=>P.advance(s,unit,Infinity));
  assert.throws(()=>P.record(s,unit,t+1,{...question,score:11}));
 });
+
+test('physics plans survive pause, resume and reload without changing legacy math rounds',()=>{
+ const physics='physics-8a-01',planned={nodeId:'source',nodeTitle:'声音来自振动',planId:'physics-8a-01-plan-1'};
+ let s=P.start(null,physics,t,planned);
+ assert.equal(last(s).planId,planned.planId);
+ s=P.start(s,physics,t+1000,{...planned,planId:'different-plan'});
+ assert.equal(s.rounds.length,1);assert.equal(last(s).planId,planned.planId);
+ s=P.pause(s,physics,t+10000);s=P.restore(JSON.parse(JSON.stringify(s)),physics);s=P.resume(s,physics,t+20000);
+ assert.equal(last(s).planId,planned.planId);assert.equal(last(s).elapsedMs,10000);
+ assert.equal(Object.hasOwn(last(P.restore(first(),unit)),'planId'),false);
+ for(const planId of ['',3,{},null])assert.throws(()=>P.start(null,physics,t,{...planned,planId}),/计划/);
+ const broken=structuredClone(s);broken.rounds[0].planId=3;assert.throws(()=>P.restore(broken,physics),/计划/);
+});
+
+test('adaptive review and skipped lecture metadata are frozen copies across reload and repeated start',()=>{
+ const planned={...options,planId:'plan-1',reviewQuestions:{'task-1':['q-2','q-5']},skippedLearn:['learn-1']};
+ let s=P.start(null,unit,t,planned);
+ planned.reviewQuestions['task-1'].push('q-6');planned.skippedLearn.push('learn-2');
+ assert.deepEqual(last(s).reviewQuestions,{'task-1':['q-2','q-5']});assert.deepEqual(last(s).skippedLearn,['learn-1']);
+ s=P.start(s,unit,t+1000,{...options,reviewQuestions:{different:['q-9']},skippedLearn:[]});
+ s=P.pause(s,unit,t+2000);s=P.restore(JSON.parse(JSON.stringify(s)),unit);s=P.resume(s,unit,t+4000);
+ assert.deepEqual(last(s).reviewQuestions,{'task-1':['q-2','q-5']});assert.deepEqual(last(s).skippedLearn,['learn-1']);
+ const legacy=last(P.restore(first(),unit));assert.equal(Object.hasOwn(legacy,'reviewQuestions'),false);assert.equal(Object.hasOwn(legacy,'skippedLearn'),false);
+ assert.deepEqual(last(P.start(null,unit,t,{...options,reviewQuestions:{},skippedLearn:[]})).reviewQuestions,{});
+});
+
+test('adaptive metadata validation rejects malformed, repeated and oversized ids without changing archives',()=>{
+ const invalidReview=[null,[],{'':['q']},{task:[]},{task:['q','q']},{task:['']},{task:[1]},{task:Array(1)},{task:Array.from({length:11},(_,i)=>'q'+i)},Object.fromEntries(Array.from({length:201},(_,i)=>['t'+i,['q']]))];
+ const invalidSkipped=[null,{},[''],[3],['a','a'],Array(1),Array.from({length:201},(_,i)=>'t'+i)];
+ for(const [field,values] of [['reviewQuestions',invalidReview],['skippedLearn',invalidSkipped]])for(const value of values){
+  assert.throws(()=>P.start(null,unit,t,{...options,[field]:value}),/复习|讲解/);
+  const raw=first();raw.rounds[0][field]=value;const before=structuredClone(raw);assert.throws(()=>P.restore(raw,unit),/复习|讲解/);assert.deepEqual(raw,before);
+ }
+ const valid={...options,reviewQuestions:Object.fromEntries(Array.from({length:200},(_,i)=>['t'+i,Array.from({length:10},(_,j)=>'q'+j)])),skippedLearn:Array.from({length:200},(_,i)=>'t'+i)};
+ assert.equal(last(P.restore(P.start(null,unit,t,valid),unit)).skippedLearn.length,200);
+});
+
+function sessionFixture(){
+ const vm=require('node:vm'),fs=require('node:fs'),data=new Map();let at=t,fail=false;
+ const storage={getItem:key=>data.get(key)??null,setItem(key,value){if(fail)throw Error('quota');data.set(key,value);}};
+ const context={window:{GrowingMathPomodoro:P}};vm.runInNewContext(fs.readFileSync(require.resolve('../app/src/main/assets/web/app-design/math-pomodoro-session.js'),'utf8'),context);
+ const create=(unitId,subject)=>context.window.GrowingMathPomodoroSession.create({unitId,subject,storage,active:()=>true,now:()=>at});
+ return {data,create,advance:ms=>at+=ms,fail:value=>fail=value};
+}
+
+test('subject sessions isolate archives and physics chapter switching pauses the prior physics timer',()=>{
+ const f=sessionFixture(),math=f.create(unit),physics=f.create('physics-8a-01','physics'),next=f.create('physics-8a-02','physics');
+ math.change('start',options);const mathBefore=f.data.get('growing-math-lessons-v1');
+ physics.change('start',{nodeId:'source',nodeTitle:'声音',planId:'sound-1'});f.advance(10000);
+ next.change('start',{nodeId:'reflection',nodeTitle:'反射',planId:'light-1'});
+ assert.equal(f.data.get('growing-math-lessons-v1'),mathBefore);
+ const archive=JSON.parse(f.data.get('growing-physics-lessons-v1'));
+ assert.equal(archive.pomodoro['physics-8a-01'].rounds[0].pausedAt,t+10000);
+ assert.equal(archive.pomodoro['physics-8a-01'].rounds[0].elapsedMs,10000);
+ assert.equal(archive.pomodoro['physics-8a-02'].rounds[0].planId,'light-1');
+ assert.equal(f.create('physics-8a-01','physics').model().rounds[0].planId,'sound-1');
+});
+
+test('physics save retry preserves the intended plan and refuses mismatched subject archives',()=>{
+ const f=sessionFixture(),physics=f.create('physics-8a-01','physics');f.fail(true);
+ assert.equal(physics.change('start',{nodeId:'source',nodeTitle:'声音',planId:'sound-1'}),false);
+ assert.match(physics.model().error,/保存/);f.fail(false);physics.retry();
+ assert.equal(physics.model().rounds[0].planId,'sound-1');
+ assert.throws(()=>f.create('physics-8a-01','math'),/学科|单元/);
+ assert.throws(()=>f.create(unit,'physics'),/学科|单元/);
+});

@@ -1,8 +1,8 @@
 /* Curated application questions and exact-question links to the existing photo workspace. */
 (function(root,factory){
-  if(typeof module==='object'&&module.exports)module.exports=factory(require('./practice-math-upper.js'),require('./practice-math-lower.js'),require('./practice-physics.js'),require('./handwriting-core.js'));
-  else root.GrowingApplicationPractice=factory(root.GrowingPracticeMathUpper,root.GrowingPracticeMathLower,root.GrowingPracticePhysics,root.GrowingHandwriting);
-})(globalThis,(upper,lower,physics,C)=>{
+  if(typeof module==='object'&&module.exports)module.exports=factory(require('./practice-math-upper.js'),require('./practice-math-lower.js'),require('./practice-physics.js'),require('./handwriting-core.js'),()=>require('./math-week13.js'));
+  else root.GrowingApplicationPractice=factory(root.GrowingPracticeMathUpper,root.GrowingPracticeMathLower,root.GrowingPracticePhysics,root.GrowingHandwriting,()=>root.GrowingWeek13);
+})(globalThis,(upper,lower,physics,C,week13)=>{
   'use strict';
   const labels={basic:'基础题',improved:'提高题',hard:'难题',comprehensive:'综合应用题'};
   const levels=['basic','basic','basic','basic','basic','basic','improved','improved','hard','comprehensive'];
@@ -15,7 +15,7 @@
   }
   function tasks(subject,unit){
     if(!['math','physics'].includes(subject)||!unit.startsWith(subject+'-'))return [];
-    return Object.keys(C.knowledgeUnits[unit]||{}).flatMap(id=>(bank(subject)?.[id]||[]).map((q,i)=>item(q,id,i+3)).filter(q=>q.type==='solution').map(q=>({id:q.id,title:labels[q.level]+' · '+C.knowledgeNodes[id],prompt:q.prompt,nodes:[id],nodeId:id,question:q})));
+    return [...Object.keys(C.knowledgeUnits[unit]||{}).flatMap(id=>(bank(subject)?.[id]||[]).map((q,i)=>item(q,id,i+3)).filter(q=>q.type==='solution').map(q=>({id:q.id,title:labels[q.level]+' · '+C.knowledgeNodes[id],prompt:q.prompt,nodes:[id],nodeId:id,question:q}))),...(subject==='math'?week13()?.tasks(unit)||[]:[])];
   }
   function link(q,subject,unit,key){
     const params=new URLSearchParams({subject,unit,practice:q.id,task:q.id});

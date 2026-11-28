@@ -10,6 +10,8 @@
   const esc=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const button=(text,action,extra='')=>`<button type="button" data-action="${action}" ${extra}>${text}</button>`;
   const params=new URLSearchParams(route.search),practice=D.getPractice(params.get('unit'),params.get('topic'));
+  const sentenceId=params.get('sentence'),targetSentence=sentenceId&&practice.topic?practice.sentences.find(sentence=>sentence.id===sentenceId):null;
+  if(params.has('sentence')&&!targetSentence)practice.error='目标句子不属于当前单元和知识点，请重新选择。';
   const embedded=params.get('embed')==='1'&&window.parent!==window;
   if(embedded)document.documentElement.classList.add('sentence-embedded');
   const unitHref=unit=>'english-sentence-demo.html?'+(embedded?'embed=1&':'')+'unit='+encodeURIComponent(unit.id);
@@ -38,11 +40,12 @@
     const progress=P.summary(practice.unit.topics.flatMap(t=>t.sentences),saved);
     root.innerHTML=`<main class="sheet" id="workspace">${backNavigation}<section class="results topic-picker"><p>句子互动已完成 <strong class="topic-completed-count">${progress.completed}</strong>/${progress.total} 项</p>${progressMessage?`<p role="status">${esc(progressMessage)}</p>`:''}<ul class="topic-list">${practice.unit.topics.map((t,i)=>{
       const status=P.summary(t.sentences,saved),complete=status.total>0&&status.completed===status.total;
-      return `<li><a${complete?' class="is-complete"':''} href="${esc(unitHref(practice.unit))}&amp;topic=${encodeURIComponent(t.id)}" aria-label="${esc(t.title)}，已完成 ${status.completed}/${status.total}句"><strong>${i+1}. ${esc(t.title)}</strong>${complete?'<span class="topic-check" aria-hidden="true">✓</span>':''}</a></li>`;
+      return `<li><a${complete?' class="is-complete"':''} data-pomodoro-topic="${esc(t.id)}" href="${esc(unitHref(practice.unit))}&amp;topic=${encodeURIComponent(t.id)}" aria-label="${esc(t.title)}，已完成 ${status.completed}/${status.total}句"><strong>${i+1}. ${esc(t.title)}</strong>${complete?'<span class="topic-check" aria-hidden="true">✓</span>':''}</a></li>`;
     }).join('')}</ul></section></main>`;
+    window.dispatchEvent(new Event('english-sentence-rendered'));
     return true;
   }
-  const selectedSentences=practice.sentences;
+  const selectedSentences=targetSentence?[targetSentence]:practice.sentences;
   const emptyRecord=()=>({wrong:0,hints:0,revealed:false});
   const touchTyping=window.matchMedia('(pointer: coarse)').matches;
   let round=D.createRound(selectedSentences),phase='preview',words=[],wordIndex=0,draft='',record,task;
@@ -97,6 +100,7 @@
       document.getElementById('preview-prompt').innerHTML=preview?button('按任意键，开始造这个句子','start'):'';
       document.getElementById('answer-view').innerHTML=preview||solved?grammarMarkup(!preview&&phase==='word'):'';
       document.getElementById('exercise-title').textContent=phase==='word'?words[wordIndex].gloss:current().zh;
+      document.getElementById('exercise-title').dataset.pomodoroSentence=current().id;
       root.querySelector('.guide-hint').innerHTML=!preview&&!solved&&round.index===0&&wordIndex===0&&phase==='word'?`在键盘上输入 <strong lang="en">${esc(expected())}</strong>`:'';
       const input=document.getElementById('typing-answer');
       input.value=draft;input.readOnly=solved&&!touchTyping;input.className='typing-input '+(preview?'empty':D.typingState(expected(),draft));
@@ -109,6 +113,7 @@
       root.querySelector('.support-actions').innerHTML=preview?'':button('播放发音','speak')+(solved?button('下一题','next')+button('重答','redo'):button('提交','submit')+button(answerOpen?'隐藏答案':'显示答案','reveal',`aria-expanded="${answerOpen}"`));
       root.querySelector('.audio-status').textContent=audioStatus;
     }
+    window.dispatchEvent(new Event('english-sentence-rendered'));
     if(focus){const target=document.getElementById(focus);target?.focus({preventScroll:true});if(focus==='typing-answer')target?.setSelectionRange(draft.length,draft.length);}
   }
   function start(){phase='word';resetTask();render('typing-answer');}
@@ -205,6 +210,13 @@
   if('speechSynthesis' in window)speechSynthesis.getVoices();
   resetSentence();render();return true;
  };
+ window.GrowingEnglishSentenceStudy={navigate(href){
+  const url=new URL(href,location.href);
+  if(url.origin!==location.origin||url.pathname!==location.pathname)return false;
+  const ok=startLegacy(url);
+  if(ok)history.replaceState(null,'',url);
+  return !!ok;
+ }};
  document.addEventListener('click',event=>{
   const link=event.target.closest('a[href]');
   if(!link||!link.closest('#sentence-app')||event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey||link.target==='_blank')return;

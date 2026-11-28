@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { h, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
-import { NAlert, NButton, NCard, NDataTable, NEmpty, NForm, NFormItem, NInput, NPagination, NSelect, NSpin, NTag } from 'naive-ui';
+import { computed, h, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { NAlert, NButton, NCard, NDataTable, NDatePicker, NEmpty, NForm, NFormItem, NInput, NPagination, NSelect, NSpin, NTag } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { listUsage, modelOptions } from '@/features/ai/api';
 import type { AccountUsage, UsageCall, UsageResult } from '@/features/ai/api';
@@ -11,6 +11,12 @@ import { formatBeijingTime } from '@/utils/datetime';
 
 const auth = useAuthStore();
 const query = reactive({ from: '', to: '', userId: '', configId: '', page: 1, pageSize: 20 });
+const dateRange = computed<[string, string] | null>(() => query.from && query.to ? [query.from, query.to] : null);
+function changeDates(value: string | [string, string] | null) {
+  if (typeof value === 'string') return;
+  // Keep calendar dates verbatim; the API applies Beijing inclusive-day boundaries.
+  query.from = value?.[0] ?? ''; query.to = value?.[1] ?? '';
+}
 const result = ref<UsageResult | null>(null); const loading = ref(false); const error = ref('');
 const options = [{ label: '全部模型用途', value: '' }, ...modelOptions];
 const tokens = (value: number | null) => value === null ? '未知' : value.toLocaleString();
@@ -53,8 +59,7 @@ onUnmounted(clear);
     <NAlert type="info">CLIENT REPORTED · 客户端上报用量，可能缺失或被修改，不作为供应商账单。未知用量不计为零；日期按北京时间，包含结束日。</NAlert>
     <NCard class="search-card" size="small" :bordered="false">
       <NForm class="list-filters" :show-feedback="false" @submit.prevent="load(true)">
-        <NFormItem label="开始日期"><NInput v-model:value="query.from" placeholder="YYYY-MM-DD" :input-props="{ 'aria-label': '开始日期' }" /></NFormItem>
-        <NFormItem label="结束日期"><NInput v-model:value="query.to" placeholder="YYYY-MM-DD" :input-props="{ 'aria-label': '结束日期' }" /></NFormItem>
+        <NFormItem class="usage-date-range" label="日期范围（北京时间）"><NDatePicker :formatted-value="dateRange" type="daterange" format="yyyy-MM-dd" value-format="yyyy-MM-dd" start-placeholder="开始日期" end-placeholder="结束日期" :to="false" clearable aria-label="日期范围（北京时间）" @update:formatted-value="changeDates" /></NFormItem>
         <NFormItem label="账户 ID"><NInput v-model:value="query.userId" placeholder="全部账户" :input-props="{ 'aria-label': '账户 ID' }" /></NFormItem>
         <NFormItem label="模型用途"><NSelect v-model:value="query.configId" :options="options" aria-label="模型用途" /></NFormItem>
         <NFormItem class="list-filters-actions" :show-label="false"><NButton attr-type="submit" type="primary" :loading="loading">查询</NButton></NFormItem>
@@ -93,6 +98,12 @@ onUnmounted(clear);
 </template>
 
 <style scoped>
+.list-filters .usage-date-range { width: 320px; max-width: 100%; }
+.usage-date-range :deep(.n-date-picker) { width: 100%; min-width: 0; }
+@media (max-width: 600px) {
+  .usage-date-range :deep(.n-date-panel--daterange) { grid-template-areas: 'left-calendar' 'footer' 'action'; }
+  .usage-date-range :deep(.n-date-panel-calendar--end), .usage-date-range :deep(.n-date-panel__vertical-divider) { display: none; }
+}
 .usage-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
 .usage-summary > div { display: grid; gap: 4px; min-width: 0; padding: 12px 14px; border-radius: 8px; background: #f4f7f5; }
 .usage-summary span { color: #5e6b63; font-size: 13px; }

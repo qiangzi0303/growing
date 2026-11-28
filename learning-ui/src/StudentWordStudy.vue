@@ -1,7 +1,9 @@
 <script setup>
 import {computed,nextTick,ref,watch} from 'vue';
 import StudentWordArtwork from './StudentWordArtwork.vue';
-const props=defineProps({model:{type:Object,required:true},actions:{type:Object,required:true}});
+import EnglishPomodoroMarker from './EnglishPomodoroMarker.vue';
+const props=defineProps({model:{type:Object,required:true},actions:{type:Object,required:true},pomodoroTargets:{type:Array,default:()=>[]},pomodoroPaused:{type:Boolean,default:false}});
+const wordTarget=id=>props.pomodoroTargets.find(t=>t.kind==='word'&&t.wordId===id);
 const m=computed(()=>props.model),a=props.actions,panel=ref(null),answerInput=ref(null);
 const card=computed(()=>m.value.studyCards?.[m.value.word.id]);
 const session=computed(()=>m.value.reviewSession);
@@ -12,7 +14,7 @@ const date=value=>value?new Date(value+'T12:00:00').toLocaleDateString('zh-CN',{
 const filtered=computed(()=>{
  const term=m.value.query.trim().toLowerCase(),filter=m.value.filter;
  return m.value.words.filter(w=>(!term||w.word.toLowerCase().includes(term)||w.meaning.includes(term))&&(
-  filter==='all'||filter==='due'&&due.value.has(w.id)||filter==='optional'&&w.optional||filter==='required'&&!w.optional||filter==='mastered'&&m.value.wordPassed[w.id]||filter==='pending'&&!w.optional&&!m.value.wordPassed[w.id]
+  ['all','required','optional'].includes(filter)||filter==='due'&&due.value.has(w.id)||filter==='mastered'&&m.value.wordPassed[w.id]||filter==='pending'&&!m.value.wordPassed[w.id]
  ));
 });
 function reload(){if(!m.value.reviewUnsaved||window.confirm('重新读取将使用已保存记录，放弃本页尚未保存的修改。是否继续？'))a.reloadReview();}
@@ -42,23 +44,23 @@ watch([()=>m.value.view,()=>m.value.word.id,()=>session.value?.index,()=>!!sessi
    <div class="study-library-heading"><h2>本单元词表 <span>{{ m.words.length }} 词</span></h2><p class="study-muted">{{ m.passed||0 }} 词默写达标</p></div>
    <div class="study-tools">
     <label><span class="study-sr-only">搜索词条或释义</span><input type="search" :value="m.query" placeholder="搜索英文或中文" @input="a.query($event.target.value)"></label>
-    <label><span class="study-sr-only">筛选词条</span><select :value="m.filter" @change="a.filter($event.target.value)"><option value="all">全部词条</option><option value="due">今天复习</option><option value="required">必会词条</option><option value="pending">待掌握</option><option value="mastered">默写已达标</option><option value="optional">选学词条</option></select></label>
+    <label><span class="study-sr-only">筛选词条</span><select :value="m.filter" @change="a.filter($event.target.value)"><option value="all">全部词条</option><option value="due">今天复习</option><option value="pending">待掌握</option><option value="mastered">默写已达标</option></select></label>
    </div>
    <div class="study-word-grid">
-    <button v-for="w in filtered" :key="w.id" type="button" class="study-word-row" :class="w.optional?'study-word-optional':m.wordPassed[w.id]?'study-word-mastered':'study-word-pending'" :data-study-word="w.id" @click="a.word(w.id)">
+    <button v-for="w in filtered" :key="w.id" type="button" class="study-word-row" :class="m.wordPassed[w.id]?'study-word-mastered':'study-word-pending'" :data-study-word="w.id" @click="a.word(w.id)">
      <img v-if="m.studyCards?.[w.id]?.art" :src="m.studyCards[w.id].art" alt="" loading="lazy" width="68" height="68">
-     <span class="study-word-copy"><strong lang="en">{{ w.word }}</strong><span>{{ w.meaning }}</span><small :class="{'study-due':due.has(w.id)}">{{ w.optional?'选学':m.wordPassed[w.id]?'✓ 已掌握':'待掌握' }}<template v-if="m.reviewStatus?.[w.id]?.due"> · {{ m.reviewStatus[w.id].label }}</template></small></span>
+     <span class="study-word-copy"><strong lang="en">{{ w.word }}<EnglishPomodoroMarker :target="wordTarget(w.id)" :paused="pomodoroPaused"/></strong><span>{{ w.meaning }}</span><small :class="{'study-due':due.has(w.id)}">{{ m.wordPassed[w.id]?'✓ 已掌握':'待掌握' }}<template v-if="m.reviewStatus?.[w.id]?.due"> · {{ m.reviewStatus[w.id].label }}</template></small></span>
     </button>
    </div>
    <p v-if="!filtered.length" class="study-muted">没有符合条件的词条，请调整搜索或筛选。</p>
   </template>
 
   <template v-else-if="m.view==='word'">
-   <div class="study-topline"><button type="button" class="study-text-button" @click="a.navigate('words')">← 返回词表</button><span class="study-muted">{{ m.word.optional?'选学词条':m.wordFullyPassed?'拼写、词义与词类均已掌握':m.wordPassed[m.word.id]?'历史默写已达标':'必会词条' }}</span></div>
+   <div class="study-topline"><button type="button" class="study-text-button" @click="a.navigate('words')">← 返回词表</button><span class="study-muted">{{ m.wordFullyPassed?'拼写、词义与词类均已掌握':m.wordPassed[m.word.id]?'历史默写已达标':'待掌握' }}</span></div>
    <article class="study-word-detail" :class="{'study-meaning-hidden':m.hideWordMeaning}">
     <StudentWordArtwork v-if="!m.hideWordMeaning" :card="card"/>
     <div class="study-word-content">
-     <h2 class="study-headword" lang="en">{{ m.word.word }}</h2>
+     <h2 class="study-headword" lang="en">{{ m.word.word }}<EnglishPomodoroMarker :target="wordTarget(m.word.id)" :paused="pomodoroPaused"/></h2>
      <div class="study-pronunciation"><span v-if="card?.ipa" lang="en">{{ card.ipa }}</span><button type="button" @click="a.speak(false)">听发音</button></div>
      <p v-if="m.hideWordMeaning" class="study-muted">七次默写已完成，词义和插画已收起，请继续验证词义与词类。</p>
      <template v-else>
@@ -85,7 +87,7 @@ watch([()=>m.value.view,()=>m.value.word.id,()=>session.value?.index,()=>!!sessi
    </article>
    <article v-else class="study-review-question">
     <p class="study-muted">第 {{ session.index+1 }} / {{ session.ids.length }} 题 · 看义默写</p>
-    <h3>{{ m.word.meaning }}</h3>
+    <h3>{{ m.word.meaning }}<EnglishPomodoroMarker :target="wordTarget(m.word.id)" :paused="pomodoroPaused"/></h3>
     <form @submit.prevent="a.submitReview()">
      <label for="study-review-answer">填写英文单词或短语</label>
      <input id="study-review-answer" ref="answerInput" :value="session.draft" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" :spellcheck="false" enterkeyhint="done" maxlength="140" :readonly="!!session.feedback" :disabled="!!m.reviewError&&!m.reviewUnsaved" @input="a.reviewInput($event.target.value)" @keydown.enter="($event.isComposing||$event.repeat)&&$event.preventDefault()">

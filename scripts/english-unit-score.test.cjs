@@ -39,6 +39,12 @@ test('each lesson splits Feynman40 quiz50 time10, with unit time shared',()=>{
  const s=marks({feynman:{l1:{attempts:[grade(9)]}},lessons:{l1:quiz(['a','b','wrong'])},learningTime:{days:{'2026-11-25':20*60000}}},null);
  assert.ok(Math.abs(s.lessons.items[0].score-15*(.4*.9+.5*2/3+.1*.5))<1e-9);assert.equal(s.lessons.timeRatio,.5);
 });
+
+test('written point submissions count as study; drafts, empty answers and foreign points do not',()=>{
+ const record=(id,answer,questionSet='mixed-fill-v1')=>({pointPractice:{l1:{rule:{version:1,index:5,best:0,questionSet,answers:{[id]:answer}}}}});
+ assert.equal(marks(record('english-8a-01-l1-rule-fill-v1-6',{texts:['wrong'],checked:true}),null).started,true);
+ for(const state of [record('english-8a-01-l1-rule-fill-v1-6',{texts:['draft'],checked:false}),record('english-8a-01-l1-rule-fill-v1-6',{texts:[''],checked:true}),record('foreign-rule-fill-v1-6',{texts:['answer'],checked:true}),record('english-8a-01-l1-rule-fill-v1-6',{texts:['answer'],checked:true},'unknown')])assert.equal(marks(state,null).started,false);
+});
 test('time caps per unit target, rejects invalid dates and non-numeric evidence',()=>{
  const s=marks({learningTime:{days:{'2026-11-25':999999999,'2026-02-30':999999999,'2026-11-24':'999999'}}},null);assert.equal(s.parts.lessons,3);assert.equal(s.lessons.timeRatio,1);
  assert.equal(marks({learningTime:{days:{'2026-02-30':999999}}},null).parts.lessons,0);

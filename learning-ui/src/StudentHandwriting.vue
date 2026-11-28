@@ -1,6 +1,10 @@
 <script setup>
 import {ref,shallowRef,onMounted,onBeforeUnmount,computed} from 'vue';
 import {Button,Cell,CellGroup,Field,Checkbox,Popup,Picker,Uploader} from 'vant';
+import {courseMathHtml} from './course-math.js';
+import ActionFeedbackButton from './ActionFeedbackButton.vue';
+import SearchablePicker from './SearchablePicker.vue';
+import {usePopupFocus} from './popup-focus.js';
 import 'vant/es/button/style';
 import 'vant/es/cell/style';
 import 'vant/es/cell-group/style';
@@ -10,13 +14,16 @@ import 'vant/es/popup/style';
 import 'vant/es/picker/style';
 import 'vant/es/uploader/style';
 const {controller}=defineProps({controller:{type:Object,required:true}}),model=shallowRef(controller.snapshot()),actions=controller.actions;
-const canvas=ref(),picker=ref('');
+const canvas=ref(),picker=ref(''),savedRevision=ref(0),saveFailed=ref(false),gradeCancelled=ref(false);
+const popupFocus=usePopupFocus();
+function saveOriginal(){saveFailed.value=false;if(actions.save())savedRevision.value++;else saveFailed.value=true;}
 const unsubscribe=controller.subscribe(value=>model.value=value);
 const columns=computed(()=>picker.value==='task'?[...model.value.tasks.map(t=>({text:t.title,value:t.id})),{text:'自拟题目 / 老师布置的作业',value:'custom'}]:[{text:'细',value:2},{text:'中',value:4},{text:'粗',value:7}]);
 function picked({selectedValues}){const value=selectedValues[0];if(picker.value==='task')actions.chooseTask(value);else actions.setWidth(value);picker.value='';}
 onMounted(()=>{if(canvas.value)actions.attachCanvas(canvas.value);});
 onBeforeUnmount(()=>{unsubscribe();actions.attachCanvas(null);});
 const photo=files=>{const file=(Array.isArray(files)?files[0]:files)?.file;return actions.photo(file);};
+const paperPrompt=computed(()=>model.value.task?.startsWith('week13-')?courseMathHtml(model.value.prompt,window.GrowingMathFormat):'');
 </script>
 <template>
  <main class="student-handwriting">
@@ -24,17 +31,18 @@ const photo=files=>{const file=(Array.isArray(files)?files[0]:files)?.file;retur
   <header><p class="eyebrow">GROWING · 拍照作答</p><h1>{{model.title}}</h1><p>{{model.courseLabel}}</p><p>{{model.guide}}</p></header>
   <p v-if="model.kind==='error'" role="status">{{model.error}}</p>
   <section v-else class="editor panel">
-   <section class="task-bank"><h2>{{model.essay?'本单元写作题目':'本章解答题'}}</h2><label>选择题目</label><Cell :value="model.tasks.find(t=>t.id===model.task)?.title||'自拟题目'" is-link :clickable="!model.busy&&!model.importing&&!model.application" @click="!model.busy&&!model.importing&&!model.application&&(picker='task')"/></section><Field :model-value="model.prompt.replaceAll('请在下方手写作答','请在纸上作答后拍照上传')" @update:model-value="actions.setPrompt" type="textarea" rows="7" maxlength="6000" :disabled="model.locked||model.application" :label="model.essay?'作文要求':'解答题题目与作答要求'" placeholder="填写完整题目与作答要求"/>
+   <section class="task-bank"><h2>{{model.essay?'本单元写作题目':'本章解答题'}}</h2><label>选择题目</label><Cell :value="model.tasks.find(t=>t.id===model.task)?.title||'自拟题目'" is-link :clickable="!model.busy&&!model.importing&&!model.application" @click="!model.busy&&!model.importing&&!model.application&&(picker='task')"/></section><div v-if="paperPrompt" class="math-prose preserve" v-html="paperPrompt"/><Field v-else :model-value="model.prompt.replaceAll('请在下方手写作答','请在纸上作答后拍照上传')" @update:model-value="actions.setPrompt" type="textarea" rows="7" maxlength="6000" :disabled="model.locked||model.application" :label="model.essay?'作文要求':'解答题题目与作答要求'" placeholder="填写完整题目与作答要求"/>
+   <div v-if="model.tasks.find(t=>t.id===model.task)?.figures?.length" class="course-figure"><img v-for="src in model.tasks.find(t=>t.id===model.task).figures" :key="src" :src="src" alt="本题题设图" style="width:280px;max-width:100%;max-height:300px;object-fit:contain"/></div>
    <p v-if="model.knowledge" class="student-writing-knowledge">考核知识点：{{model.knowledge}}</p>
    <nav class="student-writing-pages" aria-label="原稿页码"><Button aria-label="上一页" icon="arrow-left" :disabled="model.locked||model.page===0" @click="actions.turn(model.page-1)"/><span>第 {{model.page+1}} / {{model.pageCount}} 页</span><Button aria-label="下一页" icon="arrow" :disabled="model.locked||model.page===model.pageCount-1" @click="actions.turn(model.page+1)"/></nav>
    <p class="muted">请在纸上作答后拍照上传。每次上传保留独立记录，历史原稿仅供查看。</p><div v-show="model.hasOriginal" class="student-writing-paper"><canvas ref="canvas" width="800" height="1100" aria-label="作答原稿预览（只读）">需要支持 Canvas 的浏览器。</canvas></div>
    <p class="student-writing-status" role="status" aria-live="polite">{{model.saveStatus}}</p>
-   <div class="student-writing-actions"><Button :disabled="model.locked" @click="actions.save">立即保存原稿</Button><Button type="primary" :disabled="model.locked" :loading="model.busy" loading-text="正在批改" @click="actions.grade">AI批改</Button><Uploader accept="image/*" capture="environment" :after-read="photo" :show-upload-list="false" :disabled="model.locked"><Button :disabled="model.locked" :loading="model.importing">拍照上传</Button></Uploader><Button v-if="model.busy" @click="actions.cancel">取消批改</Button></div>
+   <div class="student-writing-actions"><ActionFeedbackButton :disabled="model.locked" :result-key="savedRevision" :context-key="model.key" :failed="saveFailed" retry-text="重试保存" @click="saveOriginal">立即保存原稿</ActionFeedbackButton><ActionFeedbackButton type="primary" :disabled="model.locked" :loading="model.busy" :result-key="model.grades[0]?.at" :context-key="model.key" :failed="model.unsaved" :cancelled="gradeCancelled" success-text="批改已保存" retry-text="重新批改" loading-text="正在批改" @click="gradeCancelled=false;actions.grade()">AI批改</ActionFeedbackButton><Uploader accept="image/*" capture="environment" :after-read="photo" :show-upload-list="false" :disabled="model.locked"><Button :disabled="model.locked" :loading="model.importing">拍照上传</Button></Uploader><Button v-if="model.busy" @click="gradeCancelled=true;actions.cancel()">取消批改</Button></div>
    <p class="student-writing-status" role="status" aria-live="polite">{{model.status}}</p>
-   <section aria-label="上传与历史原稿记录"><h2>上传与历史原稿记录</h2><p v-if="!model.records.length">尚无上传记录</p><Button v-for="record in model.records" :key="record.key" :disabled="model.locked||record.current" @click="actions.openRecord(record.key)">最后保存：{{new Date(record.at).toLocaleString('zh-CN')}}{{record.current?' · 当前':''}}</Button></section>
+   <details class="study-disclosure" aria-label="上传与历史原稿记录"><summary>上传与历史原稿记录（{{model.records.length}}）</summary><p v-if="!model.records.length">尚无上传记录</p><Button v-for="record in model.records" :key="record.key" :disabled="model.locked||record.current" @click="actions.openRecord(record.key)">最后保存：{{new Date(record.at).toLocaleString('zh-CN')}}{{record.current?' · 当前':''}}</Button></details>
    <section v-if="model.grades.length" class="student-writing-grades" aria-label="原稿批改记录"><article v-for="(grade,index) in model.grades" :key="grade.at+':'+index"><h2>{{grade.current?'本份原稿':'历史点评 · 原稿已修改'}}</h2><p class="student-writing-score">{{grade.needsReview?'需要复核 · 不计分':grade.score+' / 100'}}</p><p v-if="grade.parts">{{grade.parts.map((part,i)=>(model.essay?['内容','结构','语言','标点与格式']:['审题','思路','推导','表达'])[i]+' '+part+'/'+(model.essay?[25,20,35,20]:[20,30,30,20])[i]).join(' · ')}}</p><p :class="{'assessment-gap':grade.needsReview||grade.score<80}">{{grade.feedback}}</p><div v-html="grade.details"/><small>{{grade.at.slice(0,19).replace('T',' ')}} · {{grade.source==='handwriting'?'直接查看手写原稿':'历史文字点评'}}</small></article></section>
   </section>
-  <Popup :show="!!picker" @update:show="value=>!value&&(picker='')" position="bottom" round class="student-writing-picker"><header><h2>{{picker==='task'?'选择题目':'选择笔宽'}}</h2><Button icon="cross" aria-label="关闭选择" @click="picker=''"/></header><Picker :columns="columns" :model-value="[picker==='task'?model.task:model.width]" confirm-button-text="选择" :cancel-button-text="''" @confirm="picked"/></Popup>
+  <Popup v-bind="popupFocus('task',()=>picker='')" :show="!!picker" @update:show="value=>!value&&(picker='')" position="bottom" round class="student-writing-picker"><SearchablePicker :active="!!picker" :columns="columns" :model-value="[picker==='task'?model.task:model.width]" title="选择题目" @confirm="picked" @cancel="picker=''"/></Popup>
  </main>
 </template>
 <style scoped>

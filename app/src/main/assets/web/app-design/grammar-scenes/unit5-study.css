@@ -1,4 +1,5 @@
 [hidden]{display:none!important}
+#question{white-space:pre-line;overflow-wrap:anywhere}#options.fill-answers label{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}#options.fill-answers label span{min-width:62px;font-size:14px}#options.fill-answers input{flex:1 1 180px;min-width:0;max-width:100%;box-sizing:border-box;border:1px solid #9aaea0;border-radius:6px;background:#fff;padding:10px 12px;font:inherit;font-size:16px;color:#253b3d;min-height:44px}#options.fill-answers input:focus-visible{outline:2px solid #345d46;outline-offset:2px}#options.fill-answers input:disabled{opacity:1;color:#253b3d}.practice-heading{flex-wrap:wrap}#score{overflow-wrap:anywhere}
 #point-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 1px 10px;margin-bottom:18px;scrollbar-width:thin;scroll-margin-top:8px}
 #point-tabs button{flex:0 0 auto;border-radius:6px;font-size:14px;padding:8px 12px;white-space:nowrap}
 #point-tabs [aria-selected=true]{background:#345d46;color:#fff;border-color:#345d46}

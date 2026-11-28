@@ -1,0 +1,57 @@
+{
+  "file": "math-proof-audio/factor-difference-1a4a03385e96.mp3",
+  "duration": 76.032,
+  "voice": "zh-CN-YunxiNeural",
+  "rate": "-5%",
+  "sha256": "dd3fb515a5d9e9273c0cb37c92bc181bd00c23de73f24a31c208c8b93dc90eab",
+  "cues": [
+    {
+      "stage": 0,
+      "text": "因式分解：把多项式化成整式的积。平方差等于两数的和与差的积。",
+      "start": 0.0,
+      "end": 12.75
+    },
+    {
+      "stage": 0,
+      "text": "公式中的 a、b 可代表数或整式；这个面积模型取 a＞b＞0。",
+      "start": 12.75,
+      "end": 33.0
+    },
+    {
+      "stage": 1,
+      "text": "拿走面积为 b² 的小正方形，剩下一个 L 形。",
+      "start": 33.0,
+      "end": 37.8158
+    },
+    {
+      "stage": 1,
+      "text": "沿虚线剪开：蓝色块长 a、宽 a−b；橙色块长 b、宽 a−b。",
+      "start": 37.8158,
+      "end": 46.7632
+    },
+    {
+      "stage": 2,
+      "text": "先把蓝色块平移到右边，再将橙色块旋转90度。",
+      "start": 46.7632,
+      "end": 52.0395
+    },
+    {
+      "stage": 2,
+      "text": "把两块拼在一起。它们没有拉伸，也没有增减，面积不变。",
+      "start": 52.0395,
+      "end": 58.2105
+    },
+    {
+      "stage": 3,
+      "text": "新长方形的长是 a+b，宽是 a−b。",
+      "start": 58.2105,
+      "end": 63.5132
+    },
+    {
+      "stage": 3,
+      "text": "同一块剩余面积，两种算法：a²−b²＝(a+b)(a−b)。",
+      "start": 63.5132,
+      "end": 76.032
+    }
+  ]
+}

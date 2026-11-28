@@ -1,4 +1,4 @@
-/* 2025秋译林版八上，按印刷页166—171词表原图核对；*保留教材识记级别。
+/* 2025秋译林版八上，按印刷页166—171词表原图核对；全部词条统一必学，*仅保留教材来源标记。
    同一单元词表重复出现的 boring 合并；不可靠的OCR音标不录入。 */
 (() => {
   'use strict';
@@ -393,7 +393,7 @@ warn|v. 警告，告诫
 *disappear|vi. 消失`
   };
   window.GrowingEnglishVocabulary=Object.fromEntries(Object.entries(lists).map(([n,text])=>[n,text.split('\n').map(line=>{
-    const [raw,meaning]=line.split('|'),optional=raw.startsWith('*'),word=raw.replace(/^\*/,'');
-    return {id:word,word,meaning,optional};
+    const [raw,meaning]=line.split('|'),textbookOptional=raw.startsWith('*'),word=raw.replace(/^\*/,'');
+    return {id:word,word,meaning,optional:false,textbookOptional};
   })]));
 })();

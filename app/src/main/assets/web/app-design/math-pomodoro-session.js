@@ -1,8 +1,10 @@
-/* Mathematics timers share the existing account-scoped course document. */
+/* Course timers share each subject's existing account-scoped course document. */
 (()=>{
  'use strict';
- const W=window,KEY='growing-math-lessons-v1',object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
- W.GrowingMathPomodoroSession={create({unitId,storage,active,now=()=>Date.now()}){
+ const W=window,object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+ W.GrowingMathPomodoroSession={create({unitId,subject='math',storage,active,now=()=>Date.now()}){
+  if(!['math','physics'].includes(subject)||typeof unitId!=='string'||!unitId.startsWith(subject+'-'))throw Error('番茄学科与单元不匹配');
+  const KEY='growing-'+subject+'-lessons-v1';
   const P=W.GrowingMathPomodoro;
   let cached={rounds:[]},error='',retryAction=null;
   const pending=[];
@@ -11,7 +13,7 @@
    guard();const text=storage.getItem(KEY),data=text==null?{version:1,topics:{}}:JSON.parse(text);
    if(!object(data)||data.version!==1||!object(data.topics))throw Error('原课堂记录格式错误，已停止覆盖');
    if(data.pomodoro!==undefined&&!object(data.pomodoro))throw Error('番茄记录格式错误，已停止覆盖');
-   for(const [id,state] of Object.entries(data.pomodoro||{}))P.restore(state,id);
+   for(const [id,state] of Object.entries(data.pomodoro||{})){if(!id.startsWith(subject+'-'))throw Error('番茄学科与单元不匹配');P.restore(state,id);}
    return data;
   }
   const last=s=>s.rounds.at(-1);

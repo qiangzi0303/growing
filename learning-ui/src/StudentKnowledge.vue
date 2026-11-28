@@ -1,6 +1,9 @@
 <script setup>
+import SearchablePicker from './SearchablePicker.vue';
+import {usePopupFocus} from './popup-focus.js';
+const popupFocus=usePopupFocus();
 import {ref,reactive,computed,watch,nextTick,onMounted,onBeforeUnmount} from 'vue';
-import {Button,Tab,Tabs,Tag,Field,Popup,Picker,RadioGroup,Radio,Progress,Collapse,CollapseItem,Cell,CellGroup} from 'vant';
+import {Button,Tab,Tabs,Tag,Field,Popup,RadioGroup,Radio,Progress,Collapse,CollapseItem,Cell,CellGroup} from 'vant';
 import 'vant/es/button/style';import 'vant/es/tabs/style';import 'vant/es/tab/style';import 'vant/es/tag/style';import 'vant/es/field/style';import 'vant/es/popup/style';import 'vant/es/picker/style';import 'vant/es/radio-group/style';import 'vant/es/radio/style';import 'vant/es/progress/style';import 'vant/es/collapse/style';import 'vant/es/collapse-item/style';import 'vant/es/cell/style';import 'vant/es/cell-group/style';
 const props=defineProps({controller:{type:Object,required:true}}),m=ref(props.controller.model),a=props.controller.actions;
 const stop=props.controller.subscribe(value=>{m.value=value;});const choice=ref(),search=ref(''),opened=ref([]),picker=ref(null),pickerValues=ref([]),stage=ref(),board=ref(),detail=ref(),heading=ref();
@@ -70,7 +73,7 @@ onBeforeUnmount(()=>{stop();observer?.disconnect();pointers.clear();});
     </template>
    </section>
    </div>
-   <Popup :show="!!picker" position="bottom" round closeable close-icon="cross" :close-on-click-overlay="true" @update:show="picker=$event?picker:null"><div class="student-k-picker"><Picker v-model="pickerValues" :title="'选择'+({chapter:'章节',scope:'先修范围',range:'查看范围',target:'评测目标',node:'知识点',panNode:'知识点'}[picker]||'')" :columns="columns" :show-toolbar="false"/><Button type="primary" block @click="confirmPicker({selectedValues:pickerValues})">确定</Button></div></Popup>
+   <Popup v-bind="popupFocus('picker',()=>picker=false)" :show="!!picker" position="bottom" round :close-on-click-overlay="true" @update:show="picker=$event?picker:null"><div class="student-k-picker"><SearchablePicker :active="!!picker" v-model="pickerValues" :title="'选择'+({chapter:'章节',scope:'先修范围',range:'查看范围',target:'评测目标',node:'知识点',panNode:'知识点'}[picker]||'')" :columns="columns" @confirm="confirmPicker" @cancel="picker=null"/></div></Popup>
   </template>
  </main>
 </template>

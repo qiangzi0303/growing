@@ -15,7 +15,7 @@
   const check=()=>{if(!alive)throw Error('学习页面已关闭');assertActive();};
   const currentTask=()=>tasks.find(t=>t.prompt===doc?.prompt&&t.nodes?.length);
   function records(){const result=[];try{for(let i=0;i<storage.length;i++){const id=storage.key(i);if(!C.KEY.test(id))continue;const saved=JSON.parse(storage.getItem(id));if(C.validate(saved)&&saved.subject===subject&&saved.unitId===unitId&&saved.prompt===doc?.prompt&&saved.pages.some((p,j)=>p.length||saved.photos?.[j]))result.push({key:id,at:saved.updatedAt,current:id===key});}}catch{}return result.sort((a,b)=>b.at.localeCompare(a.at));}
-  function snapshot(){return {kind:error?'error':'handwriting',records:records(),title:window.GrowingCurriculum[subject].name+'拍照'+(essay?'作文':'解答题'),courseLabel:course.title,guide:essay?'根据本单元主题和写作要求，保留原始字迹与段落。':'根据题目画图、列式，写出推导或证明过程。',backHref,error,key,subject,essay,tasks,task:tasks.find(t=>t.prompt===doc?.prompt)?.id||'custom',prompt:doc?.prompt||'',knowledge:(currentTask()?.nodes||[]).map(id=>C.knowledgeNodes[id]).join('、'),hasOriginal:!!doc?.pages.some((p,i)=>p.length||doc.photos?.[i]),page,pageCount:doc?.pages.length||0,tool,width,finger,blocked,locked:blocked||!!job||importing||!!stroke,busy:!!job,importing,application:!!application,canUndo:!!doc?.pages[page]?.length,canRedo:redo.length>0,status,saveStatus,grades:(doc?.grades||[]).slice().reverse().map(g=>({...g,current:g.revision===doc.revision,details:AI.details(g)}))};}
+  function snapshot(){return {kind:error?'error':'handwriting',records:records(),title:window.GrowingCurriculum[subject].name+'拍照'+(essay?'作文':'解答题'),courseLabel:course.title,guide:essay?'根据本单元主题和写作要求，保留原始字迹与段落。':'根据题目画图、列式，写出推导或证明过程。',backHref,error,key,subject,essay,tasks,task:tasks.find(t=>t.prompt===doc?.prompt)?.id||'custom',prompt:doc?.prompt||'',knowledge:(currentTask()?.nodes||[]).map(id=>C.knowledgeNodes[id]).join('、'),hasOriginal:!!doc?.pages.some((p,i)=>p.length||doc.photos?.[i]),page,pageCount:doc?.pages.length||0,tool,width,finger,blocked,unsaved:dirty,locked:blocked||!!job||importing||!!stroke,busy:!!job,importing,application:!!application,canUndo:!!doc?.pages[page]?.length,canRedo:redo.length>0,status,saveStatus,grades:(doc?.grades||[]).slice().reverse().map(g=>({...g,current:g.revision===doc.revision,details:AI.details(g)}))};}
   const emit=()=>{if(alive)for(const fn of listeners)fn(snapshot());};
   function say(text){if(alive){status=text;emit();}}
   function route(){const q=new URLSearchParams({subject,unit:unitId,id:key.slice(C.PREFIX.length)});if(application)q.set('practice',application.id);window.history.replaceState(null,'','?'+q);}
@@ -66,11 +66,13 @@
    const controller=new AbortController(),revision=doc.revision,documentKey=key;job=controller;status='AI 正在逐页查看作答原稿并批改，请稍候…';emit();const timer=setTimeout(()=>controller.abort(),115000);
    try{
     const task=currentTask(),pages=await Promise.all(doc.pages.map(async(strokes,i)=>AI.pageImage(strokes,C.draw,C.WIDTH,C.HEIGHT,doc.photos?.[i]?await loadPhoto(doc.photos[i]):null)));check();
-    const result=await AI.request({subject,unitId,prompt:doc.prompt,pages,...(task?{nodeIds:task.nodes}:{})},controller.signal);check();
+    const questionImage=await window.GrowingWeek13?.questionImage(task);check();
+    if(controller.signal.aborted||job!==controller||key!==documentKey||doc.revision!==revision)return;
+    const result=await AI.request({subject,unitId,prompt:doc.prompt,pages,...(task?{nodeIds:task.nodes}:{}),...(task?.reference?{reference:task.reference}:{}),...(questionImage?{questionImage}:{})},controller.signal);check();
     if(controller.signal.aborted||job!==controller||key!==documentKey||doc.revision!==revision)return;
     const g={...result,revision,at:new Date().toISOString()};
     if(!C.grade(g)||task&&!g.needsReview&&!C.matchesKnowledge(g,task))throw Error('知识点评估或分数不完整，本次不计分，请重新批改。');
-    doc.grades=[...doc.grades,g].slice(-10);doc.updatedAt=new Date().toISOString();dirty=true;save();status=g.needsReview?'原稿部分内容需要复核，未生成分数。':'作答原稿批改完成，可查看错误订正与关联知识点。';
+    doc.grades=[...doc.grades,g].slice(-10);doc.updatedAt=new Date().toISOString();dirty=true;if(!save()){status='批改结果未保存，请重试保存原稿；当前结果仍保留在页面中。';return false;}status=g.needsReview?'原稿部分内容需要复核，未生成分数。':'作答原稿批改完成，可查看错误订正与关联知识点。';return true;
    }catch(error){if(alive)status=error.name==='AbortError'?'批改已取消或超时，原稿已保留，本次不计分。':error.message;}
    finally{clearTimeout(timer);if(alive&&job===controller){job=null;emit();}}
   }

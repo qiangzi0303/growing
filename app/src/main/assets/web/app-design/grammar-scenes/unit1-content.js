@@ -2,7 +2,7 @@
 (()=>{
  const lessons={reading:{tab:'朋友与证据',points:[]},forms:{tab:'比较级构成',points:[]},comparison:{tab:'比较句型',points:[]},suffixes:{tab:'人物描写',points:[]}};
  const add=(lesson,p)=>lessons[lesson].points.push(p);
- add('reading',{id:'evidence',title:'品质要有证据',rule:'先说朋友的品质，再用具体行为作证据。',pitfall:'身高和发型只能说明外貌，不能证明善良或耐心。',sentence:'Mia is patient. She listens when I feel worried.',translation:'米娅很有耐心。我担心时，她会听我倾诉。',explain:'先看人物做了什么，再判断这些行为支持哪种品质；不要把自己的喜好当作事实。',animation:{kind:'sequence',actors:['Mia','朋友'],labels:['朋友担心','耐心倾听','patient']},rows:[
+ add('reading',{id:'evidence',title:'品质要有证据',rule:'先说朋友的品质，再用具体行为作证据。',pitfall:'身高和发型只能说明外貌，不能证明善良或耐心。',sentence:'Mia is patient. She waits until I finish and never interrupts.',translation:'米娅很有耐心。她等我说完，从不打断。',explain:'先看人物做了什么，再判断这些行为支持哪种品质；愿意等待、不打断能支持“有耐心”，外貌不能。',animation:{kind:'sequence',actors:['Mia','朋友'],labels:['朋友担心','耐心倾听','patient']},rows:[
  ['哪项最能证明朋友有耐心？','She listens without interrupting.|She is tall.|She has brown hair.','不打断地倾听是耐心的具体表现；另外两项是外貌。'],
  ['He shares his lunch with a classmate. 最能体现哪种品质？','generous|tall|short','分享午餐体现慷慨，tall和short描述身高。'],
  ['She helps me with difficult maths problems. 最能支持哪个判断？','She is helpful.|She has curly hair.|She is the tallest.','帮助解决问题是乐于助人的行为证据。'],

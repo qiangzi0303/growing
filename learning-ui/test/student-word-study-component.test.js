@@ -81,6 +81,19 @@ test('mobile Enter229 and line-break actions submit once without submitting IME 
  }finally{s.close();}
 });
 
+test('formal step track waits for successful persistence and resets after an incorrect recall',async()=>{
+ const s=await setup('StudentWordFormal');try{
+  s.model.view='recall';s.model.stage='recall';s.model.run={answers:['friendship','friendship'],draft:''};await s.flush();
+  const track=s.w.document.querySelector('.study-step-track');
+  assert.equal(track.querySelectorAll('.is-done').length,2);
+  s.model.run.answers.push('friendship');s.model.reviewUnsaved=true;await s.flush();
+  assert.equal(track.querySelectorAll('.is-done').length,2,'in-memory answer must not appear saved');
+  assert.match(track.getAttribute('aria-label'),/保存未完成/);
+  s.model.reviewUnsaved=false;await s.flush();assert.equal(track.querySelectorAll('.is-done').length,3);
+  s.model.run.answers=[];await s.flush();assert.equal(track.querySelectorAll('.is-done').length,0);
+ }finally{s.close();}
+});
+
 test('daily recall hides English and artwork until submitted and retains drafts on save failure',async()=>{
  const s=await setup();try{
   s.model.view='review';s.model.reviewSession={ids:['friendship'],index:0,draft:'frien',hinted:false,feedback:null,finished:false};await s.flush();

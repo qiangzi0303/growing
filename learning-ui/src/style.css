@@ -28,3 +28,216 @@
 html.student-vue-active{color-scheme:light}
 .student-vue-root .practice-question>ol[type="A"]{list-style:upper-alpha outside;padding-inline-start:1.75em}
 .student-vue-root{min-width:0;max-width:100%;font-family:inherit;--van-primary-color:var(--ui-accent,var(--accent,#38694f));--van-text-color:var(--ui-ink,var(--ink,#25332c));--van-text-color-2:var(--ui-muted,var(--muted,#5e6b63));--van-border-color:var(--ui-line,var(--line,#e0e6e1));--van-background-2:var(--ui-surface,#fff)}
+
+/* Shared app controls. Keep page geometry, mastery colours and drawing surfaces local. */
+:root {
+  --ui-radius-control: 10px;
+  --ui-radius-panel: 14px;
+  --ui-radius-dialog: 18px;
+  --ui-panel-shadow: 0 2px 8px rgb(30 53 41 / 3%);
+  --van-primary-color: var(--ui-accent, #38694f);
+  --van-text-color: var(--ui-ink, #25332c);
+  --van-text-color-2: var(--ui-muted, #5e6b63);
+  --van-border-color: var(--ui-line, #e0e6e1);
+  --van-button-border-radius: var(--ui-radius-control);
+  --van-popup-round-radius: var(--ui-radius-dialog);
+  --van-dialog-border-radius: var(--ui-radius-dialog);
+  --van-picker-confirm-action-color: var(--ui-accent, #38694f);
+  --van-dialog-confirm-button-text-color: var(--ui-accent, #38694f);
+}
+
+html.student-vue-active .student-vue-root .van-button {
+  border-radius: var(--ui-radius-control);
+  font-family: inherit;
+  font-weight: 500;
+  letter-spacing: 0;
+  transition: background-color 150ms, border-color 150ms, box-shadow 150ms;
+}
+html.student-vue-active .student-vue-root :is(.course-tools-nav, .lesson-tabs, .student-english-links, .course-actions, .student-photo-entry) .van-button--default {
+  border-color: var(--ui-control, #b8c5bc);
+  background: var(--ui-surface, #fff);
+  color: var(--ui-ink, #25332c);
+}
+html.student-vue-active .student-vue-root .van-button--primary,
+html.student-vue-active .student-vue-root .lesson-tabs .van-button[aria-current=page],
+html.student-vue-active .student-vue-root .student-english-links .van-button[aria-current=page] {
+  background: var(--ui-accent, #38694f);
+  border-color: var(--ui-accent, #38694f);
+  color: #fff;
+}
+html.student-vue-active .student-vue-root :is(.page-nav, .course-return-nav, .summary-nav, .student-pending-nav) .van-button {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--ui-muted, #5e6b63);
+  font-size: 14px;
+  font-weight: 400;
+}
+html.student-vue-active .student-vue-root :is(button, a, input, select, textarea, summary):focus-visible,
+.growing-vant-popup :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--ui-accent, #38694f);
+  outline-offset: 3px;
+}
+html.student-vue-active .student-vue-root .van-button--disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+html.student-vue-active .student-vue-root :is(.lesson-panel, .student-english-panel, .unit-list, .paper-entry) {
+  border-color: var(--ui-line, #e0e6e1);
+  border-radius: var(--ui-radius-panel);
+  box-shadow: var(--ui-panel-shadow);
+}
+html.student-vue-active .student-vue-root :is(.word-card, .course-hint, .grade-history) {
+  border-radius: var(--ui-radius-control);
+}
+html.student-vue-active .student-vue-root :is(.course-heading h1, .student-english-header h1, .lesson-panel > h2) {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+html.student-vue-active .student-vue-root .progress-ring {
+  background: var(--ui-soft, #eef2ef);
+  border-color: var(--ui-line, #e0e6e1);
+  border-radius: var(--ui-radius-panel);
+}
+html.student-vue-active .student-vue-root .progress-ring strong {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+html.student-vue-active .student-vue-root .lesson-list .van-button[aria-current]:not([data-mastery-level]) {
+  background: var(--ui-soft);
+  border-color: var(--ui-accent);
+  color: var(--ui-accent);
+}
+
+/* A picker is an available action, including before a lesson has been started. */
+html.student-vue-active .student-vue-root .mobile-lesson-select .van-field {
+  background: var(--ui-surface, #fff);
+  border-color: var(--ui-control, #b8c5bc);
+  border-radius: var(--ui-radius-control);
+  color: var(--ui-ink, #25332c);
+}
+html.student-vue-active .student-vue-root .mobile-lesson-select .van-field__control {
+  color: var(--ui-ink, #25332c);
+  -webkit-text-fill-color: currentColor;
+  opacity: 1;
+  font-weight: 500;
+}
+html.student-vue-active .student-vue-root :is(.word-tools .van-field, .word-tools .van-cell, .word-tools select, .unit-select .van-cell) {
+  border-color: var(--ui-control, #b8c5bc);
+  border-radius: var(--ui-radius-control);
+}
+html.student-vue-active .student-vue-root .van-field__control::placeholder {
+  color: var(--ui-muted, #5e6b63);
+  opacity: 1;
+}
+
+/* Catalog actions remain quiet; current term and mastery keep their own semantics. */
+html.student-vue-active .student-catalog .term-switch {
+  background: var(--ui-soft);
+  border-color: var(--ui-line);
+  border-radius: var(--ui-radius-panel);
+}
+html.student-vue-active .student-catalog .term-switch .van-button[aria-current] {
+  color: var(--ui-accent);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgb(30 53 41 / 8%);
+}
+html.student-vue-active .student-catalog :is(.resources-link, .english-animation-button) {
+  border-color: var(--ui-control);
+  background: var(--ui-surface);
+  color: var(--ui-accent);
+  border-radius: var(--ui-radius-control);
+}
+html.student-vue-active .student-catalog .unit-row .unit-actions .unit-reward-trigger {
+  color: var(--ui-accent);
+  font-weight: 500;
+}
+html.student-vue-active .student-catalog .unit-number {
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+html.student-vue-active body .home .student-subject.van-cell {
+  border-color: var(--ui-line);
+  border-radius: var(--ui-radius-panel);
+  box-shadow: var(--ui-panel-shadow);
+}
+html.student-vue-active body .home .subject-icon {
+  color: var(--ui-accent);
+  background: var(--ui-soft);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+}
+html.student-vue-active body .home .subject-copy p {
+  color: var(--ui-muted);
+}
+
+.growing-vant-popup, .growing-vant-confirm {
+  --van-primary-color: var(--ui-accent, #38694f);
+  --van-button-primary-background: var(--ui-accent, #38694f);
+  --van-button-primary-border-color: var(--ui-accent, #38694f);
+  --van-tabs-bottom-bar-color: var(--ui-accent, #38694f);
+  --van-calendar-selected-day-background: var(--ui-accent, #38694f);
+  --van-calendar-range-edge-background: var(--ui-accent, #38694f);
+  --van-calendar-range-middle-color: var(--ui-accent, #38694f);
+  --van-picker-confirm-action-color: var(--ui-accent, #38694f);
+  --van-dialog-confirm-button-text-color: var(--ui-accent, #38694f);
+  --van-button-border-radius: var(--ui-radius-control);
+  color: var(--ui-ink, #25332c);
+  background: var(--ui-ground, #f5f7f5);
+}
+.growing-vant-popup .van-cell { color: var(--ui-ink, #25332c); }
+.growing-vant-popup .van-cell__label { color: var(--ui-muted, #5e6b63); }
+.growing-vant-popup .van-button { font-size: 14px; }
+.van-picker__cancel { min-width: 44px; min-height: 44px; }
+.van-picker__cancel .van-icon-cross { font-size: 20px; line-height: 1; }
+html.student-vue-active .chapter-reward-sheet {
+  border-radius: var(--ui-radius-dialog);
+  color: var(--ui-ink);
+  box-shadow: 0 16px 64px rgb(30 53 41 / 16%);
+}
+
+/* The account shell mounts outside student-vue-root. */
+html :is(.student-platform-auth, .student-platform-nav, .student-platform-rankings) :is(button, a, input):focus-visible {
+  outline: 2px solid var(--ui-accent, #38694f);
+  outline-offset: 3px;
+}
+html.student-vue-active[data-ui-kind=lab] .student-vue-root .van-button--primary {
+  color: var(--ui-ground);
+}
+
+@media (hover: hover) {
+  html.student-vue-active .student-vue-root :is(.course-tools-nav, .lesson-tabs, .student-english-links, .course-actions) .van-button--default:not([aria-current]):not(:disabled):hover {
+    border-color: var(--ui-accent);
+    background: var(--ui-soft);
+  }
+  html.student-vue-active body .home .student-subject.van-cell:hover {
+    border-color: var(--ui-accent);
+    background: var(--ui-surface);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.student-vue-active .student-vue-root .van-button { transition: none; }
+}
+
+/* Native disclosure preserves mounted drafts and allows comparing histories. */
+:is(.student-vue-root,.student-paper-pages,.student-photo-review,.student-paper-ai,.student-upload-history,.student-correction-pad) details > summary,
+.study-disclosure > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 4px;
+  box-sizing: border-box;
+  line-height: 1.6;
+  color: var(--ui-ink,#25332c);
+}
+:is(.student-vue-root,.student-paper-pages,.student-photo-review,.student-paper-ai,.student-upload-history,.student-correction-pad) summary:focus-visible,
+.study-disclosure > summary:focus-visible {
+  outline: 2px solid var(--ui-accent,#38694f);
+  outline-offset: 2px;
+}
+.study-filter-tags {display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.study-filter-tags:empty {display:none}
+.study-filter-tags .van-button {min-height:44px;max-width:100%;height:auto;white-space:normal}
+.study-filter-tags .van-button__text {overflow-wrap:anywhere}
+.archive-filters {margin:16px 0;padding:14px 16px;border:1px solid var(--ui-line,#dce4dc);border-radius:12px;background:var(--ui-surface,#fff)}

@@ -17,5 +17,5 @@ test('upload records expand with matching originals and feedback, including ungr
  const records=w.document.querySelectorAll('article');assert.equal(records.length,2);assert.match(records[0].textContent,/尚无批改记录/);assert.doesNotMatch(records[0].textContent,/第一份反馈/);assert.match(records[1].textContent,/第一份反馈/);
  assert.equal(records[0].querySelector('img').getAttribute('src'),'/new.jpg');assert.equal(records[1].querySelector('img').getAttribute('src'),'/old.jpg');
  records[1].querySelector('button').click();await tick();assert.ok(w.document.querySelector('.van-image-preview'));assert.equal(w.localStorage.length,0);
- app.unmount();w.close();
+ app.unmount();await tick();w.close();
 });

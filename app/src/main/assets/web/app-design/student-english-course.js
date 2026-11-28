@@ -2,13 +2,16 @@
 (()=>{
  'use strict';
  window.GrowingStudentEnglishCourse={create({params,storage,active,request,settings,now=()=>Date.now()}){
-  active();const E=window.GrowingEnglishEngine,R=window.WordMasteryRules,P=window.GrowingEnglishPomodoro,units=window.GrowingCurriculum.english.terms.upper.units;
+  active();const E=window.GrowingEnglishEngine,R=window.WordMasteryRules,P=window.GrowingEnglishPomodoro,PP=window.GrowingEnglishPomodoroPlan,PC=window.GrowingEnglishPomodoroCatalog,units=window.GrowingCurriculum.english.terms.upper.units;
   const id=params.get('unit')||'english-8a-01',unit=units.find(u=>u.id===id),words=window.GrowingEnglishVocabulary[unit?.number],lessons=window.GrowingEnglishLessons[unit?.number],key='growing-english-course-v1:'+id,doubtKey='growing-english-doubts-v1:'+id,sentenceKey='growing-english-sentences-v1:'+id;
   let alive=true,revision=0,state,listener=()=>{},word,lesson,run,oralSaved=false,completed=false,doubtBlocked=false,job=null,jobTimer,jobKind='',timeTick=Date.now(),timeAction=timeTick;
   const check=()=>{active();if(!alive)throw Error('课堂已关闭');};
   const configured=fn=>(...args)=>{check();const previous=window.GrowingCourseAIStorage;window.GrowingCourseAIStorage=()=>storage;try{return fn(...args);}finally{if(previous===undefined)delete window.GrowingCourseAIStorage;else window.GrowingCourseAIStorage=previous;}};
   const services=settings||Object.fromEntries([['deepseek','GrowingCourseAI'],['voice','GrowingRealtime']].filter(([,name])=>window[name]).map(([name,global])=>{const service=window[global];return [name,{info:configured(async signal=>{const result=await (service.settingsInfo?service.settingsInfo({signal}):service.info());check();return result;}),save:configured(value=>service.save(value)),clear:configured(()=>service.clear()),voices:service.voices||[],test:configured(async signal=>{if(name==='voice')await service.connectionInfo({signal});else await service.request({task:'只回复“连接成功”。',signal});check();})}];}));
-  const read=()=>{check();const raw=storage.getItem(key),restored=E.restore(raw===null?null:JSON.parse(raw));if(restored.wordReviewSession?.ids.some(wid=>!words.some(w=>w.id===wid)))throw Error('复习记录含有无法识别的单词，原记录已保留');return restored;};
+  const read=()=>{check();const raw=storage.getItem(key),restored=E.restore(raw===null?null:JSON.parse(raw));
+   if(restored.parkedWordReviews!==undefined&&!Array.isArray(restored.parkedWordReviews))throw Error('暂存复习记录无法读取，原记录已保留');
+   for(const session of [restored.wordReviewSession,...(restored.parkedWordReviews||[])])if(session){E.restore({...restored,wordReviewSession:session});if(session.ids.some(wid=>!words.some(w=>w.id===wid)))throw Error('复习记录含有无法识别的单词，原记录已保留');}
+   return restored;};
   let m={kind:'error',title:'请从英语目录选择单元',message:'请检查单元入口；下册内容待教材核对。',backHref:'units.html?subject=english&term=upper',storageKey:key};
   const emit=()=>{if(alive)listener({...m});};
   const notice=text=>{m.notice=text;emit();};
@@ -18,19 +21,57 @@
   m={kind:'english',title:`Unit ${unit.number} ${unit.title} · 英语课堂`,unit,units,words,lessons,storageKey:key,view:'words',query:'',filter:'all',notice:'',busy:false,doubt:{draft:'',messages:[]},doubtNotice:'',settings:services};
   try{const raw=JSON.parse(storage.getItem(doubtKey)||'null');if(raw){if(typeof raw.draft!=='string'||!Array.isArray(raw.messages)||!raw.messages.every(x=>x&&['user','assistant'].includes(x.role)&&typeof x.text==='string'))throw Error();m.doubt={draft:raw.draft,messages:raw.messages.slice(-100)};}}catch{doubtBlocked=true;m.doubtNotice='原答疑记录无法读取，已停止覆盖，请先备份并修复记录。';}
   const validExplanation=a=>a&&Number.isInteger(a.score)&&a.score>=0&&a.score<=10&&typeof a.feedback==='string'&&(a.gaps===undefined||Array.isArray(a.gaps)&&a.gaps.every(x=>typeof x==='string'))&&Array.isArray(a.criticalErrors)&&a.criticalErrors.every(x=>typeof x==='string');
-  const WR=window.GrowingEnglishWordReview,study=!!WR,copy=x=>JSON.parse(JSON.stringify(x)),reviewStamp=s=>JSON.stringify([s.wordReview||{},s.wordReviewSession||null,s.activeWordRecall||null,s.words]);
-  let reviewBase=reviewStamp(state),pendingReview=null,recallFirst=true,recallHinted=false;
-  let pomodoroRetry=null;
+  const WR=window.GrowingEnglishWordReview,study=!!WR,copy=x=>JSON.parse(JSON.stringify(x)),reviewStamp=s=>JSON.stringify([s.wordReview||{},s.wordReviewSession||null,s.parkedWordReviews||[],s.activeWordRecall||null,s.words]);
+  let reviewBase=reviewStamp(state),pendingReview=null,pendingReviewCompletion=false,recallFirst=true,recallHinted=false;
+  let pomodoroRetry=null,targetRequest=0;
+  const pointPractice=()=>window.GrowingEnglishPointCourses?.get(id)?.practice||(id==='english-8a-05'?window.GrowingUnit5Practice:null);
+  function targetValid(t){
+   const l=lessons.find(l=>l.id===t.lessonId),sentence=window.SentenceDemo?.units[id]?.topics.find(topic=>topic.id===t.topicId)?.sentences.find(s=>s.id===t.sentenceId);
+   const event=t.kind==='word'?(t.review?'review:':'word:')+t.wordId:t.kind==='point'?'point:'+t.lessonId+':'+t.pointId:t.kind==='lesson'?'lesson:'+t.lessonId:'sentence:'+t.sentenceId;
+   if(t.eventId!==event||!(t.kind==='word'?words.some(w=>w.id===t.wordId&&!w.optional):t.kind==='point'?l&&pointPractice()?.point(t.lessonId,t.pointId):t.kind==='lesson'?l:sentence))throw Error('番茄目标不属于当前单元，原记录已保留');
+  }
+  function ensurePlan(latest){
+   if(!P)return;
+   latest.pomodoro=P.restore(latest.pomodoro,id);
+   if(!PP||!PC)return;
+   const catalog=()=>{const SP=window.EnglishSentenceProgress;return PC.build(id,{words,lessons,state:latest,practice:pointPractice(),sentenceUnit:window.SentenceDemo?.units[id],sentenceProgress:SP.restore(JSON.parse(storage.getItem(sentenceKey)||'null')),sentenceValidator:SP,engine:E,wordReview:WR,now:now()});};
+   if(latest.pomodoro.plan!==undefined){
+    PP.validate(latest.pomodoro.plan,id);
+    latest.pomodoro.plan.rounds.forEach(r=>r.targets.forEach(targetValid));
+   }else{
+    latest.pomodoro.plan=PP.build(id,catalog());
+   }
+   const used=new Set();
+   for(const round of latest.pomodoro.rounds){
+    if(!round.planId)continue;
+    if(!latest.pomodoro.plan.rounds.some(p=>p.id===round.planId))throw Error('番茄计划轮次不匹配，原记录已保留');
+    used.add(round.planId);round.targets.forEach(targetValid);
+   }
+   if(latest.pomodoro.plan.layout!=='mixed-v2'){
+    const previous=latest.pomodoro.plan,all=catalog(),last=latest.pomodoro.rounds.at(-1),current=last?.phase==='learning'&&last.targets?last:null;
+    // Rebalance the active round too, carrying its saved completions into the first batch.
+    const fixed=previous.rounds.filter(p=>used.has(p.id)&&p.id!==current?.planId).map(p=>{const r=latest.pomodoro.rounds.find(r=>r.planId===p.id);return {...p,title:r.title,kind:r.kind,targets:copy(r.targets)};});
+    const seeds=(current?.targets||[]).filter(t=>current.items.some(i=>(i.eventId||i.id)===t.eventId&&(!t.newWord||i.newWord)));
+    const hasRemaining=['words','grammar','reading','sentences'].some(k=>all[k].length);
+    const rebuilt=hasRemaining||current||!fixed.length?PP.build(id,all,seeds):{version:1,layout:'mixed-v2',unitId:id,rounds:[]},ids=new Set(previous.rounds.map(r=>r.id));
+    rebuilt.rounds.forEach((r,i)=>{if(i===0&&current)r.id=current.planId;else{let n=i+1;while(ids.has('balanced-'+n))n++;r.id='balanced-'+n;}ids.add(r.id);});
+    if(current){const first=rebuilt.rounds[0];current.previousTargets=copy(current.targets);current.targets=copy(first.targets);current.kind=first.kind;current.title=first.title;current.goal=first.targets.filter(t=>t.newWord).length;}
+    latest.pomodoro.plan={...previous,...rebuilt,previousPlan:copy(previous),rounds:fixed.concat(rebuilt.rounds)};
+    PP.validate(latest.pomodoro.plan,id);P.restore(latest.pomodoro,id);
+   }
+  }
+  const nextPlan=p=>p?.plan?.rounds.find(r=>!p.rounds.some(done=>done.planId===r.id));
+  const decorated=(p,error='')=>({...p,nextPlanId:nextPlan(p)?.id||null,error});
   const pomodoroStamp=value=>JSON.stringify(value?.rounds.map(r=>[r.id,r.phase,r.pauseUntil,r.goal,r.items]));
   function pomodoroModel(raw=state.pomodoro){
    if(!P)return;
-   try{m.pomodoro={...P.advance(raw,id,now()),error:m.pomodoro?.error||''};}
+   try{m.pomodoro=decorated(P.advance(raw,id,now()),m.pomodoro?.error||'');}
    catch(error){m.pomodoro={rounds:[],error:error.message};}
   }
   function addCompletion(next,item,at=now()){
    if(!P)return;
    // Completion and the original grade are committed in the same course write.
-   next.pomodoro=P.complete(next.pomodoro,id,at,item);
+   ensurePlan(next);next.pomodoro=P.complete(next.pomodoro,id,at,item);
   }
   function savedCompletion(next,kind,item,record){
    const previous=next[kind][item.id];
@@ -50,35 +91,60 @@
    if(!sentences.length)return;
    const records=SP.restore(JSON.parse(storage.getItem(sentenceKey)||'null')).sentences;
    const recorded=new Set(round.items.map(item=>item.id));
-   for(const sentence of sentences.filter(s=>!recorded.has('sentence:'+s.id)&&SP.valid(s,records[s.id])&&records[s.id].at>=round.createdAt&&records[s.id].at<=now()).sort((a,b)=>records[a.id].at-records[b.id].at)){
-    const record=records[sentence.id];
+   const attempt=s=>records[s.id]?.lastAttempt||records[s.id];
+   for(const sentence of sentences.filter(s=>!recorded.has('sentence:'+s.id)&&SP.valid(s,attempt(s))&&attempt(s).at>=round.createdAt&&attempt(s).at<=now()).sort((a,b)=>attempt(a).at-attempt(b).at)){
+    const record=attempt(sentence);
     addCompletion(next,{id:'sentence:'+sentence.id,kind:'sentence',title:sentence.en,detail:'句子闯关完成',newWord:false,result:copy(record)},record.at);
    }
   }
   function pomodoroChange(method,options){
    check();if(!P)return true;
    try{
-    const latest=read();sentenceCompletions(latest);
-    latest.pomodoro=P[method](latest.pomodoro,id,now(),options);
+    const latest=read();ensurePlan(latest);sentenceCompletions(latest);
+    let engineOptions=options;
+    if(method==='restart'){
+     if(m.pointUnsaved||m.reviewUnsaved||m.busy)throw Error('请先保存当前答案或等待当前评阅结束，再重新学习。');
+     const previous=latest.pomodoro.rounds.find(r=>r.id===options?.roundId);
+     if(previous?.targets){
+      const planRound={id:previous.planId,title:previous.title,kind:previous.kind,targets:copy(previous.targets)};
+      for(const t of planRound.targets)if(t.newWord&&E.wordPassed(words.find(w=>w.id===t.wordId),latest.words[t.wordId])){t.newWord=false;t.review=true;t.eventId='review:'+t.wordId;}
+      engineOptions={...options,planRound};
+     }
+    }
+    if(method==='start'&&latest.pomodoro.plan){
+     const current=P.advance(latest.pomodoro,id,now()).rounds.at(-1);
+     const requested=options?.planId;
+     if(requested&&current&&current.phase!=='finished'&&current.planId!==requested)throw Error('请先结束当前番茄，再开始所选番茄。');
+     if(!current||current.phase==='finished'){
+      const planned=requested?latest.pomodoro.plan.rounds.find(r=>r.id===requested):nextPlan(latest.pomodoro);
+      if(requested&&(!planned||latest.pomodoro.rounds.some(r=>r.planId===requested)))throw Error('请选择尚未开始的番茄，已结束记录不能覆盖。');
+      if(!planned){pomodoroModel(latest.pomodoro);emit();return true;}
+      const planRound=copy(planned);
+      // Work completed ahead of schedule becomes a fresh review in its planned slot.
+      for(const t of planRound.targets)if(t.newWord&&E.wordPassed(words.find(w=>w.id===t.wordId),latest.words[t.wordId])){t.newWord=false;t.review=true;t.eventId='review:'+t.wordId;}
+      engineOptions={planRound};
+     }
+    }
+    latest.pomodoro=P[method](latest.pomodoro,id,now(),engineOptions);
     check();storage.setItem(key,JSON.stringify(latest));state.pomodoro=latest.pomodoro;
-    pomodoroRetry=null;m.pomodoro={...latest.pomodoro,error:''};emit();return true;
+    pomodoroRetry=null;m.pomodoro=decorated(latest.pomodoro);emit();return true;
    }catch(error){pomodoroRetry=()=>pomodoroChange(method,options);m.pomodoro={...(m.pomodoro||{rounds:[]}),error:'番茄记录未保存：'+error.message};emit();return false;}
   }
   function beginPomodoro(newWords=false){
    if(!P)return true;
    // A new learning action starts the next waiting round; opening records never does.
-   try{const current=P.advance(read().pomodoro,id,now()).rounds.at(-1);if(current?.phase==='break')return true;if(current?.phase==='learning'&&(!newWords||current.goal===8))return true;}
+   try{const current=P.advance(read().pomodoro,id,now()).rounds.at(-1);if(current?.phase==='finished'&&current.endReason||current?.phase==='break')return true;if(current?.phase==='learning'&&(current.targets||!newWords||current.goal>0))return true;}
    catch(error){m.pomodoro={...(m.pomodoro||{rounds:[]}),error:error.message};emit();return false;}
    return pomodoroChange('start',{newWords});
   }
   function pomodoroTick(){
    if(!alive||!P)return;
    try{
-    const latest=read(),before=P.restore(latest.pomodoro,id);sentenceCompletions(latest);
+    const latest=read(),before=P.restore(latest.pomodoro,id),hadPlan=before.plan!==undefined;ensurePlan(latest);sentenceCompletions(latest);
     const after=P.advance(latest.pomodoro,id,now());
-    if(pomodoroStamp(before)!==pomodoroStamp(after)){latest.pomodoro=after;check();storage.setItem(key,JSON.stringify(latest));}
+    if((!hadPlan&&after.plan)||before.plan?.layout!==after.plan?.layout||pomodoroStamp(before)!==pomodoroStamp(after)){latest.pomodoro=after;check();storage.setItem(key,JSON.stringify(latest));}
     state.pomodoro=latest.pomodoro;
-    m.pomodoro={...after,error:pomodoroRetry?m.pomodoro?.error||'':''};emit();
+    m.pomodoro=decorated(after,pomodoroRetry?m.pomodoro?.error||'':'');emit();
    }catch(error){try{check();m.pomodoro={...(m.pomodoro||{rounds:[]}),error:'番茄记录未保存：'+error.message};emit();}catch{}}
   }
   function restoreRecall(){const saved=state.words[word.id]?.practice;run=R.restore(word,saved);m.recallDraft=!saved?.recallFeedback&&typeof saved?.recallDraft==='string'?saved.recallDraft:'';m.recallFeedback=null;recallHinted=!saved?.recallFeedback&&!!saved?.hinted;m.recallHinted=recallHinted;m.failedAnswer=m.recallFeedback&&!m.recallFeedback.correct?m.recallFeedback.answer:'';}
@@ -87,14 +153,33 @@
   const cards=window.GrowingEnglishWordStudyData,unitCards=cards?.units?.[id]||(cards?.unitId===id?cards:null);
   m.studyEnabled=study;m.studyCards=Object.fromEntries((unitCards?.words||[]).map(w=>[w.id,w]));m.reviewUnsaved=false;m.reviewError='';
   function reviewModel(){if(!study)return;m.reviewPlan=WR.plan(words,state.wordReview||{},wid=>E.wordPassed(words.find(w=>w.id===wid),state.words[wid]),now());m.reviewStatus=Object.fromEntries(words.map(w=>{const due=state.wordReview?.[w.id]?.due;return [w.id,{due,label:due?(due<=WR.day(now())?'今天复习':due+' 复习'):E.wordPassed(w,state.words[w.id])?'待检查':'待学习'}];}));if(!pendingReview)m.reviewSession=state.wordReviewSession||null;const s=m.reviewSession;m.reviewSummary=s?{total:s.firstCount,correct:s.correct,hinted:s.hintCount||0,wrongIds:s.ids.slice(s.firstCount)}:null;}
-  function reviewSave(next){check();try{const latest=read();if(reviewStamp(latest)!==reviewBase)throw Error('学习记录已在另一页面更新，请重新读取');const before=latest.wordReviewSession,after=next.wordReviewSession,feedback=after?.feedback;
-    if(feedback?.correct&&!feedback.hinted&&!feedback.retry&&JSON.stringify(before?.feedback)!==JSON.stringify(feedback)){
+  function reviewSave(next,countCompletion=false){check();try{const latest=read();if(reviewStamp(latest)!==reviewBase)throw Error('学习记录已在另一页面更新，请重新读取');const before=latest.wordReviewSession,after=next.wordReviewSession,feedback=after?.feedback;
+    if(countCompletion&&feedback?.correct&&!feedback.hinted&&!feedback.retry&&JSON.stringify(before?.feedback)!==JSON.stringify(feedback)){
      const reviewed=words.find(w=>w.id===feedback.wordId);
      if(reviewed)addCompletion(latest,{id:'review:'+reviewed.id,kind:'review',title:reviewed.word,detail:'独立复习拼写正确',newWord:false});
     }
-    latest.wordReview=next.wordReview||{};latest.wordReviewSession=next.wordReviewSession||null;latest.words=next.words;latest.activeWordRecall=next.activeWordRecall||null;check();storage.setItem(key,JSON.stringify(latest));state=latest;reviewBase=reviewStamp(state);pendingReview=null;m.reviewUnsaved=false;m.reviewError='';return true;}catch(error){pendingReview=next;m.reviewUnsaved=true;m.reviewError=error.message;return false;}}
-  function reviewChange(fn){check();if(m.reviewUnsaved)return false;const next=copy(state);fn(next);m.reviewSession=next.wordReviewSession||null;const saved=reviewSave(next);update();return saved;}
-  function startReviewIds(ids){check();if(m.reviewUnsaved){notice('答案尚未保存，请先重试保存或重新读取。');return;}cancel();speaker.stop();m.view='review';const session=state.wordReviewSession;if(session&&!session.finished){m.reviewSession=copy(session);word=words.find(w=>w.id===session.ids[session.index]);if(state.activeWordRecall)reviewChange(next=>{next.activeWordRecall=null;});else update();return;}if(!ids.length){navigate('words');return;}word=words.find(w=>w.id===ids[0]);reviewChange(next=>{next.activeWordRecall=null;next.wordReviewSession={ids:ids.slice(),index:0,draft:'',hinted:false,feedback:null,finished:false,firstCount:ids.length,correct:0};});}
+    latest.wordReview=next.wordReview||{};latest.wordReviewSession=next.wordReviewSession||null;latest.parkedWordReviews=next.parkedWordReviews||[];latest.words=next.words;latest.activeWordRecall=next.activeWordRecall||null;check();storage.setItem(key,JSON.stringify(latest));state=latest;reviewBase=reviewStamp(state);pendingReview=null;pendingReviewCompletion=false;m.reviewUnsaved=false;m.reviewError='';return true;}catch(error){pendingReview=next;pendingReviewCompletion=countCompletion;m.reviewUnsaved=true;m.reviewError=error.message;return false;}}
+  function reviewChange(fn,countCompletion=false){check();if(m.reviewUnsaved)return false;const next=copy(state);fn(next);m.reviewSession=next.wordReviewSession||null;const saved=reviewSave(next,countCompletion);update();return saved;}
+  function startReviewIds(ids,targeted=false){
+   check();if(m.reviewUnsaved||m.pointUnsaved){notice('答案尚未保存，请先重试保存或重新读取。');return;}
+   if(targeted){
+    const next=copy(state),session=next.wordReviewSession;
+    if(!(session&&!session.finished&&session.ids[session.index]===ids[0]&&!session.feedback&&session.index<session.firstCount)){
+     if(session&&!session.finished){next.parkedWordReviews||=[];next.parkedWordReviews.push(copy(session));}
+     next.wordReviewSession={ids:ids.slice(),index:0,draft:'',hinted:false,feedback:null,finished:false,firstCount:ids.length,correct:0};
+    }
+    next.activeWordRecall=null;
+    if(!reviewSave(next)){update();return false;}
+    cancel();speaker.stop();word=words.find(w=>w.id===ids[0]);m.view='review';update();return true;
+   }
+   cancel();speaker.stop();m.view='review';const session=state.wordReviewSession;
+   if(session&&!session.finished&&(!targeted||session.ids[session.index]===ids[0]&&!session.feedback&&session.index<session.firstCount)){
+    m.reviewSession=copy(session);word=words.find(w=>w.id===session.ids[session.index]);if(state.activeWordRecall)reviewChange(next=>{next.activeWordRecall=null;});else update();return;
+   }
+   if(!targeted&&state.parkedWordReviews?.length){reviewChange(next=>{next.wordReviewSession=next.parkedWordReviews.shift();next.activeWordRecall=null;word=words.find(w=>w.id===next.wordReviewSession.ids[next.wordReviewSession.index]);});return;}
+   if(!ids.length){navigate('words');return;}
+   word=words.find(w=>w.id===ids[0]);reviewChange(next=>{if(session&&!session.finished){next.parkedWordReviews||=[];next.parkedWordReviews.push(copy(session));}next.activeWordRecall=null;next.wordReviewSession={ids:ids.slice(),index:0,draft:'',hinted:false,feedback:null,finished:false,firstCount:ids.length,correct:0};});
+  }
   const parse=content=>JSON.parse(content.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,''));
   function update(){m.state=state;m.word=word;m.description=R.describe(word);m.lesson=lesson;m.run=run;m.stage=run?R.stage(word,run):'';m.oralSaved=oralSaved;m.completed=completed;m.passed=words.filter(w=>E.wordPassed(w,state.words[w.id])).length;m.lessonPassed=Object.fromEntries(lessons.map(l=>[l.id,E.lessonPassed(l,state.lessons[l.id])]));m.feynmanPassed=Object.fromEntries(lessons.map(l=>[l.id,(state.feynman[l.id]?.attempts||[]).some(a=>validExplanation(a)&&a.score>=8&&!a.criticalErrors.length)]));m.wordPassed=Object.fromEntries(words.map(w=>[w.id,E.wordPassed(w,state.words[w.id])]));m.wordFullyPassed=R.passed(word,state.words[word.id]);m.hideWordMeaning=R.seven(word,state.words[word.id]?.practice);m.validExplanation=validExplanation(state.feynman[lesson.id]?.attempts?.at(-1));
    pomodoroModel();reviewModel();const exam=['quiz','recall','feynman','pilot','review'].includes(m.view),wordMode=['words','word'].includes(m.view);window.GrowingDuckContext={id:id+':'+(wordMode?word.id:lesson.id),title:'Unit '+unit.number+' · '+(wordMode?word.word:lesson.title),subject:'english',mode:exam?'exam':'learn',segments:exam?[]:wordMode?[word.word+'，'+word.meaning]:[...lesson.points,'例句：'+lesson.example]};window.dispatchEvent(new CustomEvent('duck:course-context',{detail:window.GrowingDuckContext}));emit();}
@@ -127,12 +212,55 @@
    finally{clearTimeout(timer);if(alive&&job===controller){job=null;jobKind='';m.busy=false;update();}}
   }
   function doubtSave(next){check();if(doubtBlocked)return false;try{storage.setItem(doubtKey,JSON.stringify(next));m.doubt=next;return true;}catch{return false;}}
+  function preparePointTarget(target,round){
+   const practice=pointPractice(),point=practice.point(target.lessonId,target.pointId),previous=actions.pointRead(target.lessonId,target.pointId);
+   if(!previous||previous.reviewRoundId===round.id||round.items.some(item=>(item.eventId||item.id)===target.eventId)||!target.review&&practice.score(point,previous)<point.questions.length)return;
+   if(previous.reviewHistory!==undefined&&!Array.isArray(previous.reviewHistory))throw Error('要点复习历史无法读取，原记录已保留');
+   const latest=read(),snapshot=copy(previous);delete snapshot.reviewHistory;
+   const reset={...previous,answers:{},index:0,best:Math.max(previous.best||0,practice.score(point,previous)),total:point.questions.length,reviewRoundId:round.id,reviewHistory:[...(previous.reviewHistory||[]),snapshot]};
+   const saved=practice.savedRecord?practice.savedRecord(point,reset,previous):reset;
+   practice.validate(point,saved);
+   latest.pointPractice={...latest.pointPractice,[target.lessonId]:{...latest.pointPractice?.[target.lessonId],[target.pointId]:saved}};
+   storage.setItem(key,JSON.stringify(latest));state=latest;
+  }
   const actions={
    navigate,
-   pomodoroStart(){return pomodoroChange('start',{newWords:false});},
+   pomodoroStart(planId){return pomodoroChange('start',{newWords:false,planId});},
+   pomodoroRestart(roundId){return pomodoroChange('restart',{roundId});},
+   pomodoroEnd(roundId){return pomodoroChange('finish',{roundId});},
    pomodoroPause(){return pomodoroChange('pause');},
    pomodoroResume(){return pomodoroChange('resume');},
    pomodoroRetry(){check();if(pomodoroRetry)pomodoroRetry();else pomodoroTick();},
+   pomodoroTargetError(message){notice(message||'目标暂时无法打开，请在原课堂保存后重试。');},
+   pomodoroOpenTarget(targetId,planId){
+    check();if(!P||!PP||!PC)return false;
+    if(m.pointUnsaved||m.reviewUnsaved||m.busy){notice('请先保存当前答案或等待当前评阅结束，再打开目标。');return false;}
+    try{
+     const latest=read();ensurePlan(latest);const p=P.advance(latest.pomodoro,id,now()),last=p.rounds.at(-1),current=last&&last.phase!=='finished'?last:null;
+     if(current&&current.phase!=='learning')throw Error('本轮正在休息，请休息结束后开始下一轮。');
+     const planned=planId?p.plan?.rounds.find(r=>r.id===planId&&!p.rounds.some(done=>done.planId===r.id)):nextPlan(p);
+     if(current&&planId&&current.planId!==planId)throw Error('请先结束当前番茄，再开始所选番茄。');
+     const target=(current||planned)?.targets?.find(t=>t.id===targetId);
+     if(!target)throw Error('请选择当前或尚未开始番茄的学习目标。');
+     targetValid(target);
+     if(!current&&!pomodoroChange('start',{planId:planned?.id}))return false;
+     if(current)state.pomodoro=p;
+     const round=current||P.restore(state.pomodoro,id).rounds.at(-1),selected=round.targets.find(t=>t.id===targetId);
+     if(selected.kind==='word'){
+      if(selected.review)return startReviewIds([selected.wordId],true);else actions.word(selected.wordId);
+     }else if(selected.kind==='point'){
+      preparePointTarget(selected,round);actions.lesson(selected.lessonId);
+      if(m.view!=='lesson'||lesson.id!==selected.lessonId)return false;
+      m.pointTarget={lessonId:selected.lessonId,pointId:selected.pointId,requestId:++targetRequest};update();
+     }else if(selected.kind==='lesson'){
+      actions.lesson(selected.lessonId);
+     }else{
+      actions.navigate('sentences');if(m.view!=='sentences')return false;
+      m.sentenceTarget={topicId:selected.topicId,sentenceId:selected.sentenceId,requestId:++targetRequest};update();
+     }
+     return true;
+    }catch(error){notice('目标未打开：'+error.message);return false;}
+   },
    pointRead(lessonId,pointId){
     check();const P=window.GrowingEnglishPointCourses?.get(id)?.practice||(id==='english-8a-05'?window.GrowingUnit5Practice:null),p=P?.point(lessonId,pointId);
     if(!p)throw Error('要点不属于当前单元');
@@ -149,7 +277,7 @@
      const P=window.GrowingEnglishPointCourses?.get(id)?.practice||(id==='english-8a-05'?window.GrowingUnit5Practice:null),p=P?.point(lessonId,pointId),previous=actions.pointRead(lessonId,pointId);
      if(JSON.stringify(previous)!==JSON.stringify(expected))throw Error('该要点已在另一页面更新，请保留本页答案后重新打开课程');
      P.validate(p,record);if(JSON.stringify(previous?.answers)!==JSON.stringify(record.answers))beginPomodoro();const next=read();
-     const saved={...previous,...copy(record),best:Math.max(previous?.best||0,P.score(p,record)),total:p.questions.length};
+     const saved=P.savedRecord?P.savedRecord(p,copy(record),previous):{...previous,...copy(record),best:Math.max(previous?.best||0,P.score(p,record)),total:p.questions.length};
      if(P.score(p,record)===p.questions.length&&(!previous||P.score(p,previous)<p.questions.length))addCompletion(next,{id:'point:'+lessonId+':'+pointId,kind:'point',title:p.title||lesson.title,detail:'要点练习 '+p.questions.length+'/'+p.questions.length,newWord:false});
      next.pointPractice={...next.pointPractice,[lessonId]:{...next.pointPractice?.[lessonId],[pointId]:saved}};
      storage.setItem(key,JSON.stringify(next));state=next;m.pointUnsaved=false;m.notice='';update();return copy(saved);
@@ -164,9 +292,9 @@
     reviewChange(next=>{const session=next.wordReviewSession;session.feedback={correct,answer,hinted:session.hinted,retry,wordId:word.id};if(retry)return;next.wordReview||={};next.wordReview[word.id]=WR.answer(next.wordReview[word.id],correct,session.hinted,now());
      if(session.hinted)session.hintCount=(session.hintCount||0)+1;if(correct&&!session.hinted)session.correct++;else session.ids.push(word.id);
      if(!E.wordPassed(word,next.words[word.id])){const old=next.words[word.id]||{},practice=R.restore(word,old.practice);if(correct&&!session.hinted){if(practice.answers.length<7&&old.reviewCreditDay!==WR.day(now()))practice.answers.push(answer);}else {practice.answers=[];practice.pluralAnswer='';delete practice.oral;}next.words[word.id]={...old,practice,reviewCreditDay:WR.day(now())};}
-    });},
+    },true);},
    reviewNext(){check();if(!m.reviewSession?.feedback||m.reviewUnsaved)return;reviewChange(next=>{const s=next.wordReviewSession;s.index++;s.finished=s.index>=s.ids.length;s.draft='';s.hinted=false;s.feedback=null;if(!s.finished)word=words.find(w=>w.id===s.ids[s.index]);});},
-   retryReviewSave(){check();if(pendingReview)reviewSave(pendingReview);update();},
+   retryReviewSave(){check();if(pendingReview)reviewSave(pendingReview,pendingReviewCompletion);update();},
    reloadReview(){check();try{state=read();reviewBase=reviewStamp(state);pendingReview=null;m.reviewUnsaved=false;m.reviewError='';m.reviewSession=state.wordReviewSession||null;if(m.view==='recall')restoreRecall();if(m.view==='review'&&m.reviewSession&&!m.reviewSession.finished)word=words.find(w=>w.id===m.reviewSession.ids[m.reviewSession.index])||word;update();}catch(error){m.reviewError=error.message;emit();}},
    query(value){check();m.query=value;emit();},filter(value){check();m.filter=value;emit();},
    word(value){check();if(m.reviewUnsaved||m.pointUnsaved)return;const target=words.find(w=>w.id===value);if(target){word=target;navigate('word');}},

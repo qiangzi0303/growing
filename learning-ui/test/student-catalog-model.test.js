@@ -20,8 +20,11 @@ test('English review reminders use real schedules, local days and isolated unit/
  for(const name of ['english-vocabulary.js','english-lessons.js','english-unit3-data.js'])vm.runInContext(await readFile(new URL(name,folder),'utf8'),w);
  w.SentenceDemo={units:Object.fromEntries(w.GrowingCurriculum.english.terms.upper.units.map(u=>[u.id,{topics:[]}]))};
  w.GrowingEnglishScore={summary:()=>({score:0})};
- const words=w.GrowingEnglishVocabulary[1].filter(w=>!w.optional),optional=w.GrowingEnglishVocabulary[1].find(w=>w.optional);
- assert.ok(optional);
+ const words=w.GrowingEnglishVocabulary[1].filter(w=>!w.optional);
+ // Current textbook vocabulary is all required. Keep optional exclusion covered
+ // with an isolated fixture instead of depending on the published word list.
+ const optional={...words[0],id:'fixture-optional-word',optional:true};
+ w.GrowingEnglishVocabulary[1]=[...w.GrowingEnglishVocabulary[1],optional];
  const now=()=>new Date(2026,10,26,0,30).getTime(),due=date=>({level:1,due:date,lastDay:'2026-11-20'});
  const saved={version:1,words:{[words[3].id]:{protocol:'seven-recalls',answers:Array(7).fill(words[3].word)}},lessons:{},wordReview:{[words[0].id]:due('2026-11-26'),[words[1].id]:due('2026-11-25'),[words[2].id]:due('2026-11-27'),[optional.id]:due('2026-11-25'),unknown:due('2026-11-25')}};
  let account={['growing-english-course-v1:english-8a-01']:saved};

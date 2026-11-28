@@ -1,6 +1,9 @@
 <script setup>
+import SearchablePicker from './SearchablePicker.vue';
+import {usePopupFocus} from './popup-focus.js';
+const popupFocus=usePopupFocus();
 import {ref,computed,onMounted,onBeforeUnmount} from 'vue';
-import {Button,Cell,CellGroup,Slider,Stepper,Switch,Popup,Picker,Collapse,CollapseItem} from 'vant';
+import {Button,Cell,CellGroup,Slider,Stepper,Switch,Popup,Collapse,CollapseItem} from 'vant';
 import 'vant/es/button/style';import 'vant/es/cell/style';import 'vant/es/cell-group/style';import 'vant/es/slider/style';import 'vant/es/stepper/style';import 'vant/es/switch/style';import 'vant/es/popup/style';import 'vant/es/picker/style';import 'vant/es/collapse/style';import 'vant/es/collapse-item/style';
 const props=defineProps({controller:{type:Object,required:true}}),m=ref(props.controller.model),a=props.controller.actions,error=ref(''),opened=ref([]),picker=ref(null),sceneHost=ref();
 const unsubscribe=props.controller.subscribe(value=>{m.value=value;});onBeforeUnmount(unsubscribe);
@@ -37,7 +40,7 @@ const marker=computed(()=>{const p=m.value.propagation;if(!p)return [];return [{
   </article>
  </div>
  <Popup :show="m.about" round closeable close-icon="cross" :style="{width:'min(92vw,600px)',padding:'30px'}" @update:show="run('about',$event)"><template v-if="m.kind==='explore'"><h2>动手，让物理看得见</h2><p>按苏科版2025年第4版八上第2—5章制作，共32个交互实验。光路、粒子与运动均为教学模型，适用条件显示在实验下方；公式推导与定量关系用于核对模型，不代替真实测量。</p><p>图示无需联网，不调用AI、不使用麦克风，也不改变学习记录或奖励。实验记录只保留在当前页面，刷新即清空。请在微课中继续完成复述与应用。</p></template><template v-else><h2>可以听见的物理</h2><p>本实验室用浏览器合成声音，将振幅、频率、音色与波形联系起来。合成音色是模型，不是实录乐器。</p><p>响度受到振幅、距离、频率及听觉等多种因素影响。距离实验采用理想自由声场的简化关系，真实教室中的反射、吸收和设备特性会影响结果。相对电平不是手机所在位置的实际分贝。</p><p>3D组件可用时支持拖动旋转、滚轮或双指缩放；离线或不支持3D时仍可使用图示与全部试听实验。本页不使用麦克风，也不上传声音。</p></template></Popup>
- <Popup :show="!!picker" position="bottom" round @update:show="!$event&&(picker=null)"><Picker :columns="choices" :model-value="[picker==='chapter'?m.chapter.id:m.state[picker]]" @confirm="confirm" @cancel="picker=null"><template #cancel><span class="cross" aria-label="关闭">×</span></template></Picker></Popup>
+ <Popup v-bind="popupFocus('picker',()=>picker=false)" :show="!!picker" position="bottom" round @update:show="!$event&&(picker=null)"><SearchablePicker :active="!!picker" :columns="choices" :model-value="[picker==='chapter'?m.chapter.id:m.state[picker]]" @confirm="confirm" @cancel="picker=null"><template #cancel><span class="cross" aria-label="关闭">×</span></template></SearchablePicker></Popup>
 </main>
 </template>
 <style scoped>

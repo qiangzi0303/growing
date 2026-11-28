@@ -4,15 +4,16 @@ import {readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {JSDOM} from 'jsdom';
 const require=createRequire(import.meta.url),folder='../../app/src/main/assets/web/app-design/';
-async function fixture({subject='math',data={},active=()=>true,request=async()=>'',photoApi}={}){
+async function fixture({subject='math',data={},active=()=>true,request=async()=>'',photoApi,chapterId}={}){
  const dom=new JSDOM('<main></main>',{url:'https://learn.test/math-course.html?chapter=math-8a-01',runScripts:'outside-only'}),w=dom.window;
  for(const [name,file] of Object.entries({GrowingMath:'math-data.js',GrowingPhysics:'physics-data.js',GrowingPracticeProgress:'practice-progress.js',GrowingApplicationPractice:'application-practice.js',GrowingHandwriting:'handwriting-core.js',GrowingCourseTools:'course-tools.js',GrowingMathFeedback:'math-feedback.js'}))w[name]=require(folder+file);
  w.GrowingMathFigure=w.GrowingPhysicsFigure=()=>'<svg></svg>';w.GrowingCourseSpeech={create:()=>({stop(){},play(){}})};w.UnitRewards={register(){},update(){}};w.GrowingCourseAI={request};w.GrowingHandwritingAI={request};
  w.eval(await readFile(new URL('../../platform-web/question-drawing.js',import.meta.url),'utf8'));
+ w.GrowingMathStudyFocus=require(folder+'math-study-focus.js');
  if(photoApi)w.GrowingQuestionAttempts={context:async()=>({studentId:'student',api:photoApi})};
  for(const [key,value] of Object.entries(data))w.localStorage.setItem(key,JSON.stringify(value));
  w.eval(await readFile(new URL(folder+'student-math-course.js',import.meta.url),'utf8'));
- const chapter=subject==='physics'?'physics-8a-01':'math-8a-01';const controller=w.GrowingStudentMathCourse.create({subject,params:new URLSearchParams({chapter}),storage:w.localStorage,active});
+ const chapter=chapterId||(subject==='physics'?'physics-8a-01':'math-8a-01');const controller=w.GrowingStudentMathCourse.create({subject,params:new URLSearchParams({chapter}),storage:w.localStorage,active});
  return {dom,w,controller};
 }
 test('Feynman resets only a saved score below seven in math and physics',async()=>{
@@ -222,6 +223,23 @@ test('reviewed photo candidates replace written slots without increasing ten or 
  await c.actions.submitPractice();state=c.snapshot();assert.equal(posts,1);assert.equal(state.practice.result.score,0);assert.equal(state.practice.result.total,10);assert.equal(state.practice.result.items[8].sourceKey,q.sourceKey);
  const saved=JSON.parse(w.localStorage.getItem(key));assert.equal(saved.photoPracticeGrade.id,'grade-1');assert.equal(saved.grades.length,0,'source photo assessment stays separate from local handwriting grades');
  assert.equal(state.questions[8].history[0].feedback,'Check the angle sum.');c.destroy();w.close();
+});
+
+test('all 68 topics retain exam and mistake coverage when photo candidates fill every slot',async()=>{
+ const D=require(folder+'math-data.js'),A=require(folder+'application-practice.js'),F=require(folder+'math-study-focus.js');
+ for(const chapter of D.chapters){
+  const sources=chapter.nodes.flatMap(n=>A.questions(n,'math').map((q,i)=>({id:n.id+'-photo-'+i,revision:1,figureVersion:1,questionType:q.type==='choice'?'choice':'written',practice:{nodeId:n.id,level:q.level},text:'Reviewed photo '+q.id})));
+  const f=await fixture({chapterId:chapter.id,photoApi:async()=>({studentId:'student',unitId:chapter.id,totalPerNode:10,counts:{},questions:sources})});
+  try{await new Promise(r=>setTimeout(r,0));
+   for(const n of chapter.nodes){f.controller.actions.choose(n.id);const qs=f.controller.snapshot().questions,original=A.questions(n,'math');
+    assert.equal(qs.length,10);assert.deepEqual(qs.map(q=>q.id),original.map(q=>q.id));
+    for(const segment of F[n.id].segments)assert.ok(f.w.GrowingDuckContext.segments.includes(segment),n.id+' lecture focus');
+    f.controller.actions.tab('practice');assert.equal(f.w.GrowingDuckContext.segments.length,0);f.controller.actions.tab('learn');
+    for(const kind of ['exam','mistake'])assert.ok(qs.some(q=>!q.sourcePhoto&&F[n.id][kind].some(i=>q.id===n.id+'-application-'+i)),n.id+' '+kind);
+    for(const q of qs){if(F[n.id].required.includes(q.id)){assert.equal(q.sourceKey,undefined);assert.equal(q.prompt,original.find(o=>o.id===q.id).prompt);}else assert.ok(q.sourceKey,q.id);}
+   }
+  }finally{f.controller.destroy();f.w.close();}
+ }
 });
 
 test('photo choices use independent grading, retain exactly ten and never reuse a static answer',async t=>{

@@ -2,6 +2,52 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const D=require('../app/src/main/assets/web/app-design/english-sentence-data.js');
 
+function mountTarget(t,query){
+  const fs=require('node:fs'),path=require('node:path');
+  const {JSDOM}=require('../console-web/node_modules/jsdom');
+  const assets=path.join(__dirname,'../app/src/main/assets/web/app-design');
+  const dom=new JSDOM(fs.readFileSync(path.join(assets,'english-sentence-demo.html'),'utf8'),{url:'https://test.invalid/english-sentence-demo.html?'+query,runScripts:'outside-only'});
+  t.after(()=>dom.window.close());dom.window.matchMedia=()=>({matches:true});
+  for(const name of ['english-sentence-units-13','english-sentence-units-2','english-sentence-units-45','english-sentence-units-678','english-sentence-data','english-sentence-progress','english-sentence-demo'])dom.window.eval(fs.readFileSync(path.join(assets,name+'.js'),'utf8'));
+  return dom.window;
+}
+test('sentence target uses the requested sentence in its original classroom',t=>{
+  const topic=D.units['english-8a-01'].topics[0],target=topic.sentences[1];
+  const w=mountTarget(t,'unit=english-8a-01&topic='+topic.id+'&sentence='+target.id);
+  assert.equal(w.document.querySelector('.word-english').textContent,D.wordPrompts(target)[0].en);
+  assert(w.document.querySelector('#sentence-app').textContent.includes(target.zh));
+});
+test('sentence targets outside the selected topic or unit are rejected',t=>{
+  const topic=D.units['english-8a-01'].topics[0];
+  for(const id of ['unknown',D.units['english-8a-02'].topics[0].sentences[0].id]){
+    const w=mountTarget(t,'unit=english-8a-01&topic='+topic.id+'&sentence='+id);
+    assert.equal(w.document.querySelector('[data-action=start]'),null);
+  }
+});
+test('target completion persists only its sentence and pending saves block parent navigation',t=>{
+  const topic=D.units['english-8a-01'].topics[0],target=topic.sentences[1];
+  const url='?unit=english-8a-01&topic='+topic.id+'&sentence='+target.id;
+  const w=mountTarget(t,url.slice(1)),doc=w.document;
+  const original=w.Storage.prototype.setItem;
+  w.Storage.prototype.setItem=function(){throw Error('offline');};
+  doc.querySelector('[data-action=start]').click();
+  const fill=value=>{
+    const editor=doc.querySelector('#typing-answer');editor.value=value;
+    editor.dispatchEvent(new w.InputEvent('input',{inputType:'insertText',bubbles:true}));
+    editor.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
+  };
+  for(const word of D.wordPrompts(target)){fill(word.en);doc.querySelector('[data-action=next]').click();}
+  fill(target.en);
+  assert.equal(w.GrowingEnglishSentenceStudy.navigate('?unit=english-8a-01'),false);
+  assert.equal(w.location.search,url);
+  assert(doc.querySelector('[data-action=save-progress]'));
+  w.Storage.prototype.setItem=original;
+  assert.equal(w.GrowingEnglishSentenceStudy.navigate('?unit=english-8a-01'),true);
+  const saved=JSON.parse(w.localStorage.getItem(w.EnglishSentenceProgress.key('english-8a-01')));
+  assert.deepEqual(Object.keys(saved.sentences),[target.id]);
+  assert.equal(w.EnglishSentenceProgress.valid(target,saved.sentences[target.id]),true);
+});
+
 test('ten original sentences have the agreed difficulty distribution and word prompts',()=>{
   assert.equal(D.sentences.length,10);
   assert.deepEqual(D.sentences.map(s=>s.level),['基础','基础','基础','基础','基础','基础','提高','提高','难题','综合']);

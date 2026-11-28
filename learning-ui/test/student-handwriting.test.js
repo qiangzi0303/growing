@@ -4,13 +4,13 @@ import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
 const base=new URL('../../app/src/main/assets/web/app-design/',import.meta.url);
-async function setup({query='',saved={},request,active=()=>{}}={}){
+async function setup({query='',saved={},request,active=()=>{},writeError=()=>false}={}){
  const data=new Map(Object.entries(saved)),writes=[];
  const w={window:null,URLSearchParams,crypto:{randomUUID},console,setTimeout,clearTimeout,AbortController,Image:class{},history:{replaceState(){}},document:{hidden:false,addEventListener(){},removeEventListener(){}},addEventListener(){},removeEventListener(){}};w.window=w;vm.createContext(w);
  for(const f of ['curriculum.js','handwriting-core.js','fraction-paper-tasks.js','handwriting-tasks.js','practice-math-upper.js','practice-math-lower.js','practice-physics.js','application-practice.js','student-handwriting.js'])vm.runInContext(await readFile(new URL(f,base),'utf8'),w);
  w.GrowingHandwriting.draw=()=>{};
  w.GrowingHandwritingAI={pageImage:async()=> 'actual-page-image',request:request||(async()=>({score:100,parts:[20,30,30,20],feedback:'正确',needsReview:false})),details:()=>''};
- const storage={getItem:key=>data.get(key)??null,setItem(key,value){writes.push(key);data.set(key,value);}};
+ const storage={getItem:key=>data.get(key)??null,setItem(key,value){if(writeError())throw Error('storage full');writes.push(key);data.set(key,value);}};
  const controller=w.GrowingStudentHandwriting.create({params:new URLSearchParams('subject=math&unit=math-8a-01&'+query),storage,active});
  return {w,data,writes,controller};
 }
@@ -51,4 +51,21 @@ test('leaving a session aborts grading and cannot save a late AI response',async
 });
 test('invalid application task displays an error and creates no unrelated original',async()=>{
  const s=await setup({query:'practice=unknown'});assert.equal(s.controller.snapshot().kind,'error');assert.equal(s.writes.length,0);s.controller.destroy();
+});
+
+test('grading only reports completion after its result is saved',async()=>{
+ const initial=await setup(),doc=initial.w.GrowingHandwriting.create('math','math-8a-01','complete question');initial.controller.destroy();
+ doc.pages[0].push({tool:'pen',width:4,points:[[5,5,.5]]});
+ let fail=false;
+ const s=await setup({query:'id='+key.split(':')[1],saved:{[key]:JSON.stringify(doc)},writeError:()=>fail,request:async()=>{fail=true;return {score:100,parts:[20,30,30,20],feedback:'正确',needsReview:false};}});
+ try{
+  assert.equal(await s.controller.actions.grade(),false);
+  assert.equal(s.controller.snapshot().unsaved,true);
+  assert.match(s.controller.snapshot().status,/未保存/);
+  assert.equal(JSON.parse(s.data.get(key)).grades.length,0);
+  assert.equal(s.controller.snapshot().grades.length,1,'pending result remains available for save retry');
+  fail=false;assert.equal(s.controller.actions.save(),true);
+  assert.equal(s.controller.snapshot().unsaved,false);
+  assert.equal(JSON.parse(s.data.get(key)).grades.length,1);
+ }finally{s.controller.destroy();}
 });

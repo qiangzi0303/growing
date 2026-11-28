@@ -13,11 +13,11 @@ async function fixture({unit='math-8a-01',subject='math',data=new Map(),clock={a
  const c=w.GrowingStudentMathCourse.create({subject,params:new URLSearchParams({chapter:unit}),storage,active:()=>alive,now:()=>clock.at});
  return {w,c,data,clock,storage,get writes(){return writes},fail:v=>fail=v,expire:()=>{alive=false},advance(ms){clock.at+=ms;return c.snapshot()},saved(){return JSON.parse(data.get(KEY))},close(){c.destroy();w.close()}};
 }
-test('every math chapter starts empty, records current actions, and physics is excluded',async()=>{
+test('every math chapter starts empty, records current actions, and physics has isolated storage',async()=>{
  const dataset=require(folder+'math-data.js'),data=new Map();
  for(const chapter of dataset.chapters){const f=await fixture({unit:chapter.id,data});try{const c=f.c;assert.equal(c.snapshot().pomodoro.rounds.length,0);c.actions.pomodoroStart();c.actions.markRead();const r=c.snapshot().pomodoro.rounds[0];assert.equal(r.nodeId,c.snapshot().selected);assert.equal(r.items.length,1);assert.equal(r.items[0].kind,'read');assert.equal(f.saved().topics[r.nodeId].seen,true);}finally{f.close()}}
  assert.equal(Object.keys(JSON.parse(data.get(KEY)).pomodoro).length,dataset.chapters.length);
- const p=await fixture({subject:'physics',unit:'physics-8a-01'});try{assert.equal(p.c.snapshot().pomodoro,undefined)}finally{p.close()}
+ const p=await fixture({subject:'physics',unit:'physics-8a-01'});try{assert.equal(p.c.snapshot().pomodoro.rounds.length,0);p.c.actions.pomodoroStart();assert.ok(p.data.has('growing-physics-lessons-v1'));assert.equal(p.data.has(KEY),false)}finally{p.close()}
 });
 test('pause, reload, topic changes, no per-second writes, account guard and another chapter pauses the old clock',async()=>{
  const f=await fixture();try{const c=f.c;c.actions.pomodoroStart();const first=c.snapshot().selected,other=c.snapshot().chapter.nodes[1].id,count=f.writes;f.advance(60000);assert.equal(f.writes,count);c.actions.choose(other);assert.equal(c.snapshot().pomodoro.rounds[0].nodeId,first);c.actions.pomodoroPause();f.advance(120000);assert.equal(c.snapshot().pomodoro.rounds[0].elapsedMs,60000);c.actions.pomodoroResume();

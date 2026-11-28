@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { reactive } from 'vue';
+import { NDatePicker, NPagination } from 'naive-ui';
 import { listModels, saveModel, listUsage } from '@/features/ai/api';
 import ModelsPage from '@/views/ai-models/index.vue';
 import UsagePage from '@/views/ai-usage/index.vue';
@@ -25,6 +26,26 @@ it('uses only admin masked configuration and omits blank replacement keys', asyn
 it('encodes filters and pagination without changing calendar dates', async () => {
   await listUsage({ from: '2026-11-01', to: '2026-11-23', userId: 'a&b', configId: 'chat', page: 2, pageSize: 20 });
   expect(api.mock.lastCall![0]).toBe('/admin/ai/usage?from=2026-11-01&to=2026-11-23&userId=a%26b&configId=chat&page=2&pageSize=20');
+});
+it('queries the selected calendar range unchanged, resets pagination and clears both dates', async () => {
+  api.mockResolvedValue({ summary: { inputTokens: 0, outputTokens: 0, totalTokens: 0, requests: 0, unknownRequests: 0, failedRequests: 0 }, accounts: [], calls: [], total: 60, page: 1, pageSize: 20 });
+  const page = mount(UsagePage); await flushPromises();
+  try {
+    const picker = page.getComponent(NDatePicker);
+    expect(picker.props('type')).toBe('daterange');
+    expect(picker.props('valueFormat')).toBe('yyyy-MM-dd');
+    expect(picker.props('inputReadonly')).toBe(false);
+    page.getComponent(NPagination).vm.$emit('update:page', 2); await flushPromises();
+    expect(new URL(api.mock.lastCall![0], 'https://test.invalid').searchParams.get('page')).toBe('2');
+    picker.vm.$emit('update:formattedValue', ['2026-10-31', '2026-11-01']);
+    await page.get('form').trigger('submit'); await flushPromises();
+    const params = new URL(api.mock.lastCall![0], 'https://test.invalid').searchParams;
+    expect([params.get('from'), params.get('to'), params.get('page')]).toEqual(['2026-10-31', '2026-11-01', '1']);
+    picker.vm.$emit('update:formattedValue', null);
+    await page.get('form').trigger('submit'); await flushPromises();
+    const cleared = new URL(api.mock.lastCall![0], 'https://test.invalid').searchParams;
+    expect([cleared.get('from'), cleared.get('to')]).toEqual(['', '']);
+  } finally { page.unmount(); }
 });
 it('restricts both AI pages to administrators', () => {
   for (const path of ['/ai-models', '/ai-usage']) {

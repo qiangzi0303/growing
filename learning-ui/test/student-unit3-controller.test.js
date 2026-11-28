@@ -10,7 +10,7 @@ test('Unit3 consecutive recall clears errors immediately and shared study preser
 });
 async function fixture({saved,active=()=>true,request=async()=>''}={}){
  const dom=new JSDOM('<main></main>',{url:'https://learn.test/word-ops-unit3/index.html',runScripts:'outside-only'}),w=dom.window,html=await readFile(new URL('word-ops-unit3/index.html',base),'utf8'),scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
- for(const i of [0,2,3,4,5,6,7])w.eval(scripts[i][1]);
+ for(const source of ['data.js','word-details.js','exam-data.js','word-practice.js','study.js','word-efficiency.js','learning-time.js']){const script=[...html.matchAll(/<script\b[^>]*data-source="([^"]+)"[^>]*>([\s\S]*?)<\/script>/gi)].find(match=>match[1]===source);assert.ok(script,source);w.eval(script[2]);}
  for(const [name,file] of Object.entries({WordMasteryRules:'word-mastery-rules.js',GrowingRewards:'reward-engine.js',GrowingEnglishUnitScore:'english-unit-score.js',GrowingEnglishScore:'english-score.js',GrowingEnglishWordReview:'english-word-review.js'}))w[name]=require('../../app/src/main/assets/web/app-design/'+file);
  w.UnitRewards={register(){},update(){}};w.GrowingCourseSpeech={create:()=>({play(){},stop(){}})};w.GrowingCourseAI={request};w.SentenceDemo={units:{'english-8a-03':{topics:[]}}};
  if(saved!==undefined)w.localStorage.setItem(KEY,typeof saved==='string'?saved:JSON.stringify(saved));w.eval(await readFile(new URL('app-design/student-unit3-course.js',base),'utf8'));
