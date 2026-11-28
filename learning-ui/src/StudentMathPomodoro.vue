@@ -34,12 +34,25 @@ watch(selected,r=>{if(!r&&!planView.value&&dialog.value?.open)close();if(r?.phas
 onBeforeUnmount(close);
 </script>
 
+<style scoped>
+.math-pomo .mp-track{gap:6px;min-height:44px}
+.math-pomo .mp-track .mp-plan-token{flex-basis:115px;min-width:0;height:44px;min-height:44px;padding:3px 7px;gap:6px;border-radius:8px}
+.math-pomo .mp-track .mp-plan-token svg{width:15px;height:17px}
+.math-pomo .mp-track .mp-plan-token small{font-size:12px;line-height:1.4;white-space:nowrap}
+.math-pomo .mp-track .mp-plan-token strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:1.4}
+.math-pomo .mp-track .mp-token{flex-basis:96px;min-width:0;min-height:44px;height:44px;padding:3px 7px;gap:6px;box-sizing:border-box}
+.math-pomo .mp-track .mp-token svg{width:13.5px;height:15px}
+.math-pomo .mp-track .mp-token span,.math-pomo .mp-track .mp-token small{font-size:12px;line-height:1.4}
+.math-pomo .mp-track .mp-token.running{font-size:20px;letter-spacing:0}
+@media(max-width:700px){.math-pomo .mp-track .mp-plan-token{flex-basis:102.5px}}
+</style>
+
 <template>
  <section class="math-pomo" aria-label="本单元番茄列表">
   <template v-if="plans.length">
    <div class="mp-plan-heading"><span>基础计划 {{plans.length}} 个<template v-if="model.extraRounds"> · 另加 {{model.extraRounds}} 轮巩固</template></span><button v-if="rounds.length" class="mp-history" data-action="history" @click="open(current||rounds.at(-1),$event)">{{current?clock(current)+' · '+phase(current):'查看计时记录'}}</button></div>
    <nav class="mp-track mp-plans" aria-label="选择番茄学习内容">
-    <button v-for="(plan,i) in plans" :key="plan.id" :data-plan="plan.id" class="mp-plan-token" :class="{selected:plan.id===model.selectedPlanId,complete:plan.status==='completed'}" :title="plan.title" :aria-label="`第 ${i+1} 个番茄：${plan.title}，${plan.status==='completed'?'目标完成':`${plan.done}/${plan.total} 项完成`}`" :aria-current="plan.id===model.selectedPlanId?'step':undefined" :disabled="working" @click="openPlan(plan,$event)"><svg viewBox="0 0 32 36" fill="none" aria-hidden="true"><path d="M16 10C4 3 0 19 6 27c4 6 16 6 20 0 6-8 2-24-10-17Z" stroke="currentColor" stroke-width="1.5"/><path d="M16 10V4m0 6-6-3m6 3 6-3" stroke="#66816a" stroke-width="1.7"/></svg><span><small>第 {{i+1}} 个 · {{plan.status==='completed'?'目标完成':plan.done?`${plan.done}/${plan.total} 项完成`:'待学习'}}</small><strong>{{plan.title}}</strong></span></button>
+    <button v-for="(plan,i) in plans" :key="plan.id" :data-plan="plan.id" class="mp-plan-token" :class="{selected:plan.id===model.selectedPlanId,complete:plan.status==='completed'}" :title="plan.title" :aria-label="`第 ${i+1} 个番茄：${plan.title}，${plan.status==='completed'?'目标完成':`${plan.done}/${plan.total} 项完成`}`" :aria-current="plan.id===model.selectedPlanId?'step':undefined" :disabled="working" @click="openPlan(plan,$event)"><svg viewBox="0 0 32 36" fill="none" aria-hidden="true"><path d="M16 10C4 3 0 19 6 27c4 6 16 6 20 0 6-8 2-24-10-17Z" stroke="currentColor" stroke-width="1.5"/><path d="M16 10V4m0 6-6-3m6 3 6-3" stroke="#66816a" stroke-width="1.7"/></svg><span><small>{{i+1}} · {{plan.status==='completed'?'完成':plan.done?`${plan.done}/${plan.total}`:'待学习'}}</small><strong>{{plan.title}}</strong></span></button>
    </nav>
 
   </template>

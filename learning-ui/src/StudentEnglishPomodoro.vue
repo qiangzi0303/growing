@@ -41,6 +41,16 @@ watch(selected,r=>{if(!r&&dialog.value?.open)close();});
 onBeforeUnmount(close);
 </script>
 
+<style scoped>
+.english-pomo .ep-track{gap:6px;min-height:44px}
+.english-pomo .ep-token{flex-basis:115px;min-width:0;min-height:44px;height:44px;padding:4px 7px;gap:6px;border-radius:8px}
+.english-pomo .ep-token svg{width:15px;height:17px}
+.english-pomo .ep-token span{min-width:0;overflow:hidden}
+.english-pomo .ep-token small{font-size:12px;line-height:1.4;overflow:hidden;text-overflow:ellipsis}
+.english-pomo .ep-token.running{font-size:20px;letter-spacing:0}
+@media(max-width:760px){.english-pomo .ep-token{flex-basis:102.5px}}
+</style>
+
 <template>
  <section class="english-pomo" :class="{'in-library':view==='words'}" aria-label="本单元番茄列表">
   <div class="ep-track">
@@ -48,9 +58,9 @@ onBeforeUnmount(close);
    <button :data-round="r.id" :data-action="r.phase==='ready'&&!active?'start':undefined" class="ep-token" :class="{running:r.phase==='learning'||r.phase==='break',paused:r.pauseUntil!=null,overtime:r.phase==='learning'&&r.elapsedMs>=STUDY,expired:r.endReason==='timeout'}" :aria-label="`第 ${r.index+1} 个番茄，${r.phase==='ready'?'待学习':phase(r)}${r.phase==='learning'||r.phase==='break'?'，'+clock(r):''}`" @click="open(r,$event)">
     <svg v-if="r.endReason==='timeout'" class="ep-rotten" viewBox="0 0 32 36" fill="none" aria-hidden="true"><path d="M16 11C6 5 1 16 5 25c2 6 8 7 12 5 7 3 12-3 11-10-1-9-6-12-12-9Z" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="1.5"/><path d="M16 11c2-4 6-6 9-2m-9 2-7-2m7 2-1-5" stroke="#8b7e58" stroke-width="1.7"/><ellipse cx="10" cy="20" rx="2.2" ry="3" fill="currentColor" opacity=".6"/><circle cx="22" cy="24" r="2.5" fill="currentColor" opacity=".45"/><path d="m18 15 3 2-2 3m-7 6q3-3 6 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
     <svg v-else :class="{'ep-smile':r.phase==='finished'&&!r.endReason}" viewBox="0 0 32 36" fill="none" aria-hidden="true"><path d="M16 10C4 3 0 19 6 27c4 6 16 6 20 0 6-8 2-24-10-17Z" stroke="currentColor" stroke-width="1.5"/><path d="M16 10V4m0 6-6-3m6 3 6-3" stroke="#66816a" stroke-width="1.7"/><g v-if="r.phase==='finished'&&!r.endReason" class="ep-happy-face"><circle cx="11" cy="18" r="1.4" fill="currentColor"/><circle cx="21" cy="18" r="1.4" fill="currentColor"/><path d="M10 23q6 7 12 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></g></svg>
-    <template v-if="r.phase==='ready'"><span><small>第 {{r.index+1}} 个 · 待学习</small></span></template>
+    <template v-if="r.phase==='ready'"><span><small>{{r.index+1}} · 待学习</small></span></template>
     <template v-else-if="r.phase!=='finished'">{{clock(r)}}</template>
-    <template v-else><span><small>第 {{r.index+1}} 个 · {{phase(r)}}</small></span></template>
+    <template v-else><span><small>{{r.index+1}} · {{r.endReason==='manual'?'手动结束':phase(r)}}</small></span></template>
    </button>
    </template>
    <PomodoroStartButton v-if="!model.plan&&!active" :label="entries.length?`第 ${entries.length+1} 个番茄`:'开始番茄'" title="25 分钟专注" @click="act('pomodoroStart')"/>

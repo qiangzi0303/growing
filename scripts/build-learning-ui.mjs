@@ -37,7 +37,7 @@ function reviseHtml(path,names){
  const before=readFileSync(path,'utf8'),after=before.replace(/<(?:script|link)\b[^>]*>/gi,tag=>tag.replace(/\b(src|href)=(['"])([^'"<>]+)\2/g,(all,attr,quote,value)=>{
   const name=value.split(/[?#]/)[0].split('/').pop();if(!names.has(name))return all;
   const hash=value.indexOf('#'),fragment=hash<0?'':value.slice(hash),url=hash<0?value:value.slice(0,hash),query=url.indexOf('?'),base=query<0?url:url.slice(0,query),params=new URLSearchParams(query<0?'':url.slice(query+1));
-  if(name==='student-pages.js'&&path.endsWith('math-course.html')){params.set('studentUi','20261128-math-study-focus-1');return attr+'='+quote+base+'?'+params+fragment+quote;}
+  if(name==='student-pages.js'&&path.endsWith('math-course.html')){params.set('studentUi','20261128-math-study-focus-2');return attr+'='+quote+base+'?'+params+fragment+quote;}
   if(name==='student-pages.js'&&path.endsWith('english-course.html')){params.set('studentUi','20261128-relearn-1');return attr+'='+quote+base+'?'+params+fragment+quote;}
   if(name==='student-pages.js'&&path.endsWith('physics-course.html')){params.set('studentUi','20261128-physics-fork-sound-1');return attr+'='+quote+base+'?'+params+fragment+quote;}
   if(['student-pages.js','application-practice.js','student-resources-model.js','student-handwriting.js'].includes(name)){params.set('studentUi','20261127-week13-graph-1');return attr+'='+quote+base+'?'+params+fragment+quote;}

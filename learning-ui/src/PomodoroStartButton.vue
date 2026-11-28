@@ -10,11 +10,10 @@ defineProps({label:{type:String,default:'开始番茄'}});
 </template>
 
 <style scoped>
-.pomodoro-start{display:flex;align-items:center;justify-content:center;gap:10px;flex:0 0 126px;min-height:64px;border:1px solid #dce5de;background:#fff;border-radius:10px;padding:10px 14px;color:#5d6d62;white-space:nowrap;cursor:pointer;font:inherit}
-.pomodoro-start svg{width:27px;height:30px;flex-shrink:0;color:#b26c56}
-.pomodoro-start[data-action="start"]{min-height:64px}
-.pomodoro-start span{font-size:13px;line-height:1.6;font-weight:400}
+.pomodoro-start{display:flex;align-items:center;justify-content:center;gap:6px;flex:0 0 96px;min-height:44px;border:1px solid #dce5de;background:#fff;border-radius:8px;padding:4px 7px;color:#5d6d62;white-space:nowrap;cursor:pointer;font:inherit}
+.pomodoro-start svg{width:13.5px;height:15px;flex-shrink:0;color:#b26c56}
+.pomodoro-start[data-action="start"]{min-height:44px}
+.pomodoro-start span{font-size:12px;line-height:1.4;font-weight:400}
 .pomodoro-start:focus-visible{outline:3px solid #38694f;outline-offset:-3px}
 .pomodoro-start:disabled{cursor:wait;opacity:.65}
-@media(max-width:760px){.pomodoro-start[data-action="start"]{min-height:52px;padding:6px 12px}.pomodoro-start span{line-height:1.4}}
 </style>
